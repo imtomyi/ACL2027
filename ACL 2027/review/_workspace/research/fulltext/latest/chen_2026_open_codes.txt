@@ -1,0 +1,1198 @@
+       A Computational Method for Measuring “Open Codes” in Qualitative
+                                  Analysis
+                                         John Chen
+                          University of Arizona, Tucson, AZ, USA
+                                 johnchen@arizona.edu
+                Alexandros Lotsos, Sihan Cheng, Lexie Zhao, Yanjia Zhang,
+          Jessica Hullman, Bruce L. Sherin, Uri J. Wilensky, and Michael S. Horn
+                         Northwestern University, Evanston, IL, USA
+{alexandroslotsos2026, sihancheng2026, xinyuezhao2020, fzhang}@u.northwestern.edu
+              {jhullman, bsherin, uri, michael-horn}@northwestern.edu
+                   Abstract                     Terry et al., 2017) rely on the inductive approach to
+                                                                discover emergent patterns from human data, induc-
+       Qualitative analysis is critical to understanding        tive coding is hampered by its subjective and time-
+       human datasets in many social science disci-             consuming nature (Attride-Stirling, 2001; Bowman
+       plines. A central method in this process is in-
+                                                                et al., 2023). Since “ground truth” may not exist
+       ductive coding, where researchers identify and
+       interpret codes directly from the datasets them-         at this stage, truth-based evaluation methods (e.g.,
+       selves. Yet, this exploratory approach poses             inter-coder reliability) mismatch inductive coding’s
+       challenges for meeting methodological expec-             inherent open-endedness (McDonald et al., 2019;
+       tations (such as “depth” and “variation”), espe-         Corbin and Strauss, 2008b; Terry et al., 2017). As
+       cially as researchers increasingly adopt Genera-         many computational linguistics, machine learning,
+       tive AI (GAI) for support. Ground-truth-based            or qualitative research studies (e.g., Xiao et al.)
+       metrics are insufficient because they contra-
+                                                                attempt to leverage Generative AI (GAI) for induc-
+       dict the exploratory nature of inductive coding,
+       while manual evaluation can be labor-intensive.
+                                                                tive coding tasks, a theory-informed and computa-
+       This paper presents a theory-informed compu-             tionally operational evaluation method is urgently
+       tational method for measuring inductive coding           needed.
+       results from humans and GAI. Our method first               This paper introduces a theory-informed com-
+       merges individual codebooks using an LLM-                putational method for systematically measuring
+       enriched algorithm. It measures each coder’s             open coding results from both human and machine
+       contribution against the merged result using
+                                                                coders. We propose an LLM-enhanced merging
+       four novel metrics: Coverage, Overlap, Nov-
+       elty, and Divergence. Through two experiments
+                                                                algorithm and four team-based evaluation metrics
+       on a human-coded online conversation dataset,            that do not rely on ground-truth assumptions. We
+       we 1) reveal the merging algorithm’s impact on           conducted two empirical experiments to 1) reveal
+       metrics; 2) validate the metrics’ stability and          the merging algorithm’s impact on the metrics; 2)
+       robustness across multiple runs and different            validate the metrics’ stability and robustness across
+       LLMs; and 3) showcase the metrics’ ability to            multiple runs and different LLMs; and 3) showcase
+       diagnose coding issues, such as excessive or             the metrics’ ability to diagnose coding issues, such
+       irrelevant (hallucinated) codes. Our work pro-
+                                                                as excessive or irrelevant (hallucinated) codes. The
+       vides a reliable pathway for ensuring method-
+       ological rigor in human-AI qualitative analysis.         results illustrate the metrics’ stability, robustness,
+                                                                and use cases, with caution notes regarding their
+   1   Introduction                                             limitations and potential risks.
+
+   Qualitative analysis is widely adopted across many           2     Related Work
+   social science disciplines. Most often, qualitative
+   researchers apply descriptive labels (codes) in two          2.1    The Nature and Challenges of Inductive
+   ways: deductive coding, where codes are applied                     Qualitative Coding
+   according to a preconceived coding scheme, and               During inductive coding, researchers identify con-
+   inductive coding (“open coding”), where codes are            cepts and themes directly from raw data (Strauss
+   concepts derived from the raw data.                          and Corbin, 1998; Rahman, 2016), aiming at dis-
+      While methodologies such as Grounded The-                 covering novel insights often without an existing
+   ory (GT) (Corbin and Strauss, 2008b, 1990) and               theoretical framework (Corbin and Strauss, 2008b,
+   Thematic Analysis (TA) (Braun and Clarke, 2006;              1990; Strauss and Corbin, 1998; Terry et al., 2017).
+                                                           41740
+                   Findings of the Association for Computational Linguistics: ACL 2026, pages 41740–41758
+                                July 2-7, 2026 ©2026 Association for Computational Linguistics
+The process involves iterating through a corpus to      quires robust evaluation methods that account for
+identify meaningful segments and assign descrip-        the open-ended and exploratory characteristics of
+tive labels (codes) that emerge directly from the       inductive coding. However, existing evaluation
+data. Researchers then often group their coded seg-     strategies remain largely misaligned with these
+ments into labeled “categories” that are used for       goals:
+further analysis. This process resembles iterative
+clustering in machine learning contexts. Induc-
+                                                           1. “Ground truth”-based metrics compare an
+tive coding is open-ended, subjective, and does not
+                                                              input set of codes against an expert-labeled
+strive for a singular “correct” result (Terry et al.,
+                                                              dataset (Parfenova et al., 2025; Zhao et al.,
+2017). Rather, the process should capture as many
+                                                              2024; Dai et al., 2023). While it provides
+aspects, patterns, or “codable moments” as possi-
+                                                              quantifiable metrics such as precision and re-
+ble (Terry et al., 2017; Corbin and Strauss, 1990,
+                                                              call, its presupposition of a single correct an-
+2008a).
+                                                              swer directly contradicts qualitative research
+   Yet, inductive coding is inherently subjective,
+                                                              theories (Corbin and Strauss, 2008b; Terry
+time-consuming, and prone to ambiguities, making
+                                                              et al., 2017). Essentially, this approach con-
+methodological rigor difficult to achieve (Attride-
+                                                              strains inputs to a predefined scope, thereby
+Stirling, 2001; Bowman et al., 2023; Braun and
+                                                              limiting the discovery of novel insights (Liew
+Clarke, 2021; Bringer et al., 2004; Tuckett, 2005;
+                                                              et al., 2014; Xiao et al., 2023; Parfenova et al.,
+Furniss et al., 2011; Saunders et al., 2018). Since
+                                                              2025).
+the process aims to widely capture novel insights
+rather than enforcing consistency, deductive cod-
+ing metrics (such as inter-rater reliability) become       2. Clustering and topic-coherence metrics
+gravely inadequate due to their reliance on “ground           evaluate internal structure through measures
+truth” assumptions (McDonald et al., 2019).                   such as compactness, separation, or word-
+   To address this mismatch, qualitative researchers          level coherence (Rahimi et al., 2023). Al-
+are shifting towards team-based approaches, where             though they do not require ground truth, they
+the team constantly compares and contrasts codes              prioritize internal homogeneity rather than
+from multiple individuals (Cascio et al., 2019;               conceptual breadth or interpretive variation.
+Thomas, 2006). Team-based approaches em-                      Inductive coding, by contrast, values the
+brace different perspectives, resulting in more in-           coverage of diverse and crosscutting ideas
+sights and mitigating individual biases (Corbin and           rather than tight cluster cohesion (Corbin and
+Strauss, 1990; Thomas, 2006). It makes researchers            Strauss, 2008b; Terry et al., 2017). Moreover,
+closer towards the elusive goals of inductive anal-           these metrics treat each coder or model output
+ysis, such as depth, variation, and theoretical sat-          in isolation, lacking a mechanism to assess
+uration (Corbin and Strauss, 2008b; Adams et al.,             how different coders align, diverge, or collec-
+2008; Furniss et al., 2011; Saunders et al., 2018).           tively represent the dataset (Thomas, 2006).
+                                                              Hence, their objectives are incompatible with
+2.2 Evaluating ML/GAI for Inductive                           the theoretical aims of inductive qualitative
+    Qualitative Coding                                        analysis.
+ML/GAI approaches offer significant potential to
+support and enhance qualitative research by as-            3. Human-annotated evaluations ask experts
+sisting in the coding process (Xiao et al., 2023).            to assess the usefulness, explainability, or rel-
+Existing computational approaches have primar-                evance of machine-generated codes through
+ily framed machine-assisted qualitative coding as             survey-based instruments (De Paoli, 2023a,b;
+either a classification-based task, which mimics              Zambrano et al., 2023; Spinoso-Di Piano,
+human labels, or a generation-based task, which               2023). While such methods provide valu-
+produces codes directly from data (Liew et al.,               able qualitative insights, they are costly, time-
+2014; Gebreegziabher et al., 2023; Rietz and Maed-            consuming, and difficult to scale for large
+che, 2021; Xiao et al., 2023; Grootendorst, 2022;             datasets or iterative evaluation cycles, poten-
+Saravani et al., 2023; Sievert and Shirley, 2014;             tially overlooking systematic omissions when
+De Paoli, 2023a; Sinha et al., 2024).                         all coders fail to recognize a key concept (Par-
+   Effectively leveraging ML/GAI’s potential re-              fenova et al., 2025).
+                                                   41741
+3     Computational Metrics                               space that serves as an approximation of “all pos-
+                                                          sible interpretations” of the data, as prescribed by
+Building on the team-based approach adopted by            qualitative analysis methods (Fig. 1).
+qualitative researchers (Thomas, 2006), our method           To do this, we first consider each coder’s re-
+aggregates multiple coders’ coding results (i.e.,         sults and define their Code Space (CSP), to be the
+codebooks) into a shared analytical space and cal-        set of all codes they identified or interpreted from
+culates four computational metrics. Guided by             the dataset (Fig. 1A). In turn, we can consider
+qualitative analysis theory and the limitations iden-     the union of all individual CSPs as the Aggregate
+tified in existing evaluation methods, our metric         Code Space (ACS) that encompasses the codes
+design follows three core requirements: First, the        identified or interpreted from the dataset by all
+evaluation must remain independent of any ground          coders. However, simply considering the ACS to
+truth so that coders can be assessed even when            be this union does not take into account that real-
+no authoritative codebook exists. Second, it must         world coders often use different codes to represent
+capture both the breadth of ideas and the inter-          identical or very similar ideas (e.g., the codes “User
+pretive balance of each coder while discouraging          Feedback” vs “Feedback from User”).
+over-fragmentation or redundant labeling. Third, it          To account for this, we propose a four-stage al-
+must be stable across different models and repeated       gorithm that utilizes semantic similarity and hierar-
+runs while remaining sensitive to problematic cases       chical clustering to iteratively consolidate an ACS
+such as hallucination or flooding.                        from a set of individual CSPs. In addition to this,
+    To address these goals, we introduce four com-        we also expand our definition of an ACS to include
+plementary metrics: Coverage, Overlap, Novelty,           the fact that semantically similar codes are con-
+and Divergence. Together, they evaluate how in-           nected by links as N eighbors (Fig. 1B). Noting
+dividual coders contribute to the collective inter-       that each code in an individual CSP has a label
+pretation of the data. Our method operates without        (the code itself) and may have examples (pieces
+assuming a ground truth or requiring human adju-          of data the code was applied to), and a def inition
+dication, though expert-coded results can serve as        (a description of the concept the code covers), the
+useful anchors when evaluating untested models            algorithm is thus defined as follows:
+or prompts. A reference implementation of the ag-
+gregation algorithm, full documentation, and met-            1. Begin with the ACS simply being the union
+ric calculation procedures are publicly available               of all individual CSPs, only considering the
+(open-sourced software package, licensed under                  label of each code.
+CC BY–NC 4.0).
+                                                             2. For each code in the ACS, use hierarchical
+3.1    Aggregating Coding Results: Code Spaces                  clustering to merge codes with semantically
+       (CSP) and Aggregated Code Spaces (ACS)                   very similar labels. For each merging pair,
+                                                                the shorter label will be adopted.
+
+                                                             3. For each code in the ACS, use LLMs to gener-
+                                                                ate a new def inition based on its label and
+                                                                examples. Then, repeat the merging using
+                                                                both label and def inition, using LLMs to
+                                                                generate the resulting label and def inition
+                                                                of the merged code.
+
+                                                             4. Finally, repeat stage 3 but iteratively and using
+                                                                our modified clustering algorithm (see below
+Figure 1: A: A conceptual illustration of an ACS merged         for more details).
+from csp1 and csp2 . B: Measuring csp1 using the
+merged ACS as a reference.                                  In stages 2 and 3, we apply a strict threshold for
+                                                          cosine distances between the text embeddings of
+  The first step towards calculating our proposed         each code. However, we found that a single thresh-
+metrics is to aggregate the codebooks produced by         old was often insufficient in separating different
+multiple individual coders into a single conceptual       codes. In stage 4, we therefore adapt hierarchical
+                                                     41742
+clustering to apply two merge thresholds (lower              is weighted by their total number of codes
+and upper, with lower < upper) on each dendro-               to prevent inflation from over-coding. Cover-
+gram node, from which the penalty coefficient is             age increases as a coder contributes more dis-
+calculated. These penalty terms prevent merges               tinct codes that expand the shared conceptual
+that would conflate distinct concepts and ensure             space, reflecting broader interpretive reach.
+that smaller or sparser codebooks do not exert dis-          Excessively high values, particularly when
+proportionate influence in the merged structure.             accompanied by many codes, may indicate
+                                                             redundancy or flooding.
+Algorithm 1 First Penalty on the Difference Be-
+tween Examples                                         Algorithm 3 Weighting Codes and Codebooks
+Require: Candidate codes A, B ∈ ACS with em-            1: for x ∈ ACS do
+    beddings ca , cb and example sets EA , EB           2:    sizex = max{#(code ∈ x), sizemedian }
+         |E ∩E |                                                               1
+ 1: e = |EA ∪EB |
+           A   B
+                          ▷ e: example-overlap ratio    3:    weightx = ln (size  x)
+    (Jaccard)                                           4:    for code ∈ ACS do
+ 2: dista,b = d(ca , cb ) + penalty ∗ e2 ▷ d: cosine    5:        if c ∈ x then
+    distance                                            6:             obsx,c *= 1
+                                                        7:        else
+                                                        8:             obsx,c *= lnln(|neighbors∈x|+1)
+                                                                                       (|neighbors|+1)
+Algorithm 2 Second Penalty on Unique Examples           9:        end if
+of the Potential Merge                                 10:        scorec += obsx,c ∗ weightx
+Require: dist = adjusted distance of the node          11:    end for
+                                                       12: end for
+Require: count unique examples of the node
+Require: countavg , countmax : average and max-
+    imum unique-example counts across candidate
+    nodes                                              Algorithm 4 Calculating Coverage
+ 1: o = max( count
+                  count−countavg
+                                   , 0)                 1: for x ∈ ACS do P
+                     max −countavg                                                    obsx,c ×scorec
+ 2: if dist ≤ lower then
+                                                                                c∈acs
+                                                        2:    coveragex =        P
+                                                                                    c∈acs scorec
+ 3:     return YES                                      3: end for
+ 4: else if dist > upper then
+ 5:     return NO
+ 6: else if dist + penalty ∗ o2 < upper then              • Overlap: How much does a given CSP over-
+ 7:     return YES                                          lap with others? Overlap increases as a
+ 8: else                                                    coder’s codes coincide or neighbor those con-
+ 9:     return NO ▷ Considered as “Neighbors”               tributed by others, indicating stronger con-
+10: end if                                                  ceptual alignment and agreement. Very high
+                                                            Overlap combined with low Novelty may sug-
+                                                            gest redundancy, whereas very low Overlap
+3.2 Four Computational Metrics
+                                                            can indicate conceptual drift, inconsistency,
+The four proposed metrics measure each coder’s              or misunderstanding. The algorithm is almost
+CSP against the ACS in four ways: Coverage, Over-           the same as the one proposed for coverage, ex-
+lap, Novelty, and Divergence (Fig. 1B). In Algo-            cept each coder’s impact on score is removed
+rithms 3–6, x denotes a coder, c a code in ACS,             from the ACS (see Divergence).
+obsx,c the observation score, and scorec the aggre-
+gate code weight.                                         • Novelty: How many “unique” codes does a
+                                                            given CSP include (i.e., codes that no other
+   • Coverage: How much conceptual space does               coders identified)? Novelty increases when a
+     a given CSP cover in the ACS? Both TA                  coder introduces previously unseen ideas, cap-
+     and GT strive for “richness” of codes, cap-            turing their contribution of new conceptual
+     turing depth and variation for further analysis        ground. Moderate Novelty indicates balanced
+     (Corbin and Strauss, 2008b; Braun and Clarke,          and productive insight, while excessive Nov-
+     2013). Each code is weighted by the number             elty with low Overlap may suggest idiosyn-
+     of coders who identified it, and each coder            cratic or hallucinatory coding. In considering
+                                                  41743
+         Novelty, we measure how much additional                    3. Can our metrics identify edge cases such as
+         conceptual space a coder contributes beyond                   excessive codes or hallucinations?
+         the team’s collective coverage.
+                                                                4.1    Task and Dataset
+Algorithm 5 Calculating Novelty                                 We reused the prompt, dataset, and human coding
+    1: for x ∈ ACS doP                                          results from Chen et al.’s study, where researchers
+    2:      noveltyx =    c∈csp(novel=1)
+                           P
+                                           obsx,c ∗scorec
+                                                            ▷   conducted manual evaluation. In each experiment,
+                             c∈acs(novel=1) scorec
+                                                                we applied our computational metrics to induc-
+       novel = 1: codes not identified by other
+                                                                tive qualitative coding results from four human
+       coders
+                                                                coders (three PhD students, one undergraduate stu-
+    3: end for
+                                                                dent, all in a U.S. higher education institution) and
+                                                                four machine coders (the same LLM with differ-
+     • Divergence: How far is a given CSP’s code                ent prompts). Both experiments work on an on-
+       distribution from the ACS? Divergence in-                line conversation dataset between Physics Lab (an
+       creases as a coder’s focus or emphasis departs           online learning software)’s designers and teacher
+       from the group’s shared distribution, signaling          users. The conversation happened in public mes-
+       either distinctive analytical perspective or in-         saging groups, and the collection of such data has
+       stability. Lower Divergence indicates stronger           been approved by a university IRB. The dataset
+       alignment with the team baseline. We calcu-              is attached as part of the Software package and
+       late each CSP’s divergence as the separation             has been properly anonymized. Our usage of the
+       from its probability distribution from that of           dataset is consistent with the original intention and
+       other CSPs. We used the Jensen-Shannon Di-               IRB approval.
+       vergence (JSD) to tolerate potential zeros.                 Due to human researchers’ limited capacity, we
+                                                                focused on the first 127 messages. The same
+Algorithm 6 Calculating Divergence                              question was provided to human and machine
+    1: for x ∈ ACS do                                           coders: “How did Physics Lab’s online commu-
+    2:    Bc = scorec − obsx,c ∗ weightx           ▷            nity emerge?”
+       Baseline - excludingp
+                           the coder’s contribution                Since most qualitative data are from human sub-
+    3:    divergencex = JSD(B ∥ obsx,c )                        jects and are subject to IRB protection, we inten-
+    4: end for                                                  tionally chose open-source and locally available
+                                                                models for the experiments. We used Gemma3-
+                                                                27B (with temperature = 0.5) to generate new sets
+   Because coding traditions vary, these metrics are
+                                                                of machine codes. We used mxbai-embed-large to
+best interpreted in combination rather than through
+                                                                calculate semantic distances (Lee et al., 2024; Li
+fixed thresholds. In practice, productive coders
+                                                                and Li, 2023).
+tend to maintain moderate Coverage together with
+Overlap that reflects shared understanding and Nov-             4.2    Experiment 1: Ablation and Comparison
+elty that contributes distinct yet relevant ideas. Ex-                 Study
+act ranges will vary by dataset and analytical con-             Experiment 1 addresses RQ1 and RQ2 through an
+text.                                                           ablation study on the four stages of our merging
+                                                                algorithm . We chose four machine coders from
+4        Experimental Design
+                                                                Chen et al.’s comparison study: Chunk-Level (i.e.,
+To empirically validate our computational metrics               generate per “chunk” of messages); Chunk-Level,
+and merging algorithm, we designed two experi-                  Structured; Item-Level (i.e., generate per message);
+ments to answer three research questions (RQ1-                  Item-Level, Verb Phrases Only.
+RQ3):
+                                                                    1. Condition 1 corresponds to the first “naive”
+    1. How does each stage of our merging algorithm                    stage, where codes are merged solely by their
+       affect our metrics?                                             labels.
+    2. Given the probabilistic nature and different                 2. Condition 2 corresponds to the second stage,
+       capabilities of LLMs, how robust or stable are                  where codes are merged with a strict threshold
+       our metrics?                                                    (0.32) by their labels.
+                                                            41744
+  3. Condition 3 corresponds to the third stage,        LLM choice, we only used Gemma3 27B for this
+     where an LLM generates definitions based on        experiment. In total, both experiments cost 8̃ mil-
+     each code’s label and examples. Then, the          lion LLM tokens (5 read, 3 write), around $20 for
+     codes are merged with a strict threshold (0.32)    proprietary models.
+     by labels and definitions.
+                                                        5     Empirical Study
+  4. Condition 4 corresponds to the fourth stage,
+     where the codes are iteratively merged with an     The following sections present our hypotheses and
+     upper threshold (0.55) and a lower threshold       empirical results. We provide more details through
+     (0.32) by labels and definitions, until no more    Appendices B and via the reproduction repository.
+     codes can be merged.
+                                                        5.1     RQ1: Measuring Each Stage’s Impact on
+   For each condition and LLM used, we repeated                 Our Merging Algorithm
+10 runs, recorded each human and machine coder’s        Experiment 1 first examines how each stage of our
+number of codes within the merged ACS, and cal-         merging algorithm impacts each coder’s number of
+culated four computational metrics. In addition to      merged codes and the resulting metrics.
+individual coders, we also calculated metrics for
+the combination “group” of AI or human coders.          5.1.1    Hypothesis 1: Evaluation condition
+Thresholds in each condition are chosen interac-                 significantly affects the number of
+tively through our example implementation. The                   merged codes and computed metrics.
+strict threshold is chosen by ensuring that 10 code     We used ordinary least squares (OLS) regression to
+pairs with a semantic distance right below it have      model the effect of algorithmic stages (Conditions
+the same meanings. The upper threshold is chosen        1-4) on the number of consolidated codes and each
+by ensuring that 10 code pairs right below it have      coder’s four metrics.
+at least similar meanings.                                 Result: Mostly Confirmed. Each algorithm
+   In Stages 3 and 4, the study doubles as a com-       stage significantly reduced the total number of
+parison between different LLMs used in the pro-         merged codes (p < 0.001). As shown in Table
+cess: Gemma3 27B (non-reasoning, small, open-           1, we observed significant shifts in computational
+source) (Team, 2025a), Qwen QwQ 32B (reason-            metrics in Conditions 3 and 4, but not in 2.
+ing, small, open-source) (Team, 2025b), GPT-4.1
+(non-reasoning, large, proprietary), and Gemini-         Condition     Coverage   Overlap   Novelty   Divergence
+2.5-Pro (reasoning, large, proprietary).                 Condition 2     0.09%     -0.09%    0.05%         0.37%
+                                                         Condition 3     3.60%      5.45%    0.94%        -4.31%
+                                                         Condition 4     7.02%      7.86%   -1.64%        -1.91%
+4.3 Experiment 2: Measuring Edge Cases
+Experiment 2 addresses RQ3. Starting from the           Table 1: OLS regression coefficients for evaluation met-
+Item-Level coder, which performed the best (to-         rics across Conditions 2 to 4 (relative to Condition 1).
+gether with its Verb Phrases Only Variant) in hu-       Conditions 1 and 2 are deterministic. For other values,
+man evaluation and computational metrics, we cre-       p < 0.001.
+ated three variants to simulate potential edge cases:
+
+  1. Flooding Coder is explicitly instructed to gen-    5.1.2    Hypothesis 2: Evaluation condition has
+     erate an excessive number of codes per item.                minimal impact on the relative ranking
+                                                                 of coder metrics.
+  2. Hallucinating Coder has the same prompt            We conducted a ranking stability analysis across
+     but works with an irrelevant, AI-generated         conditions using one-way ANOVA with Tukey
+     conversation.                                      HSD post-hoc comparisons.
+  3. Hallucinate + Flooding Coder combines the             Result: Partially Confirmed. While algorith-
+     two changes together.                              mic stages shift the values of computational met-
+                                                        rics, rankings remain relatively stable. For all met-
+   For each variant, we repeated 10 runs with the       rics, rankings of top performers (#1-5) stay the
+same human coders and machine coders, replacing         same. For other coders, rankings within the label-
+results from the Item-Level coder with its variant.     only (1, 2) and LLM-enriched conditions (3, 4) are
+Since our preliminary results find little impact on     highly similar.
+                                                   41745
+5.2 RQ2: Evaluating the Robustness and                    5.2.3    Hypothesis 5: Repeated measurements
+    Stability of Our Proposed Metrics                              under the same condition/model yield
+                                                                   low coefficients of variation (CoV).
+Experiment 1 then evaluates whether our computa-
+tional metrics remain robust across repeated runs         We calculated the coefficient of variation for each
+and different LLMs in Conditions 3 and 4.                 metric over 10 evaluation runs per Condition per
+                                                          merging LLM.
+5.2.1 Hypothesis 3: LLM used in the merging                  Result: Confirmed. CoV values remain below
+      process significantly influences metrics            0.1 in all cases. Divergence has the lowest variabil-
+      and code counts.                                    ity around 0.01. Condition 4 shows slightly higher
+                                                          variance than Condition 3.
+We used OLS regression to model the effect of
+LLMs on the number of consolidated codes and
+each coder’s four metrics, controlling for fixed ef-      5.2.4    Hypothesis 6: LLMs used in the
+fects between Conditions 3 and 4 and between in-                   merging process have little effect on the
+dividual coders.                                                   relative ranking of coders.
+   Result: Partially Confirmed. Across Con-
+                                                          We conducted one-way ANOVA with Tukey HSD
+ditions 3 and 4, three models (Gemma3 27B,
+                                                          post-hoc comparisons to examine whether coder
+Qwen QwQ 32B, and GPT 4.1) produce very sim-
+                                                          rankings differed across LLMs.
+ilar metrics and numbers of merged codes. The
+only substantial deviation comes from Gemini-2.5-           Result: Mostly Confirmed. The top and bottom-
+pro, which produces fewer merged codes, higher            ranked coders remained consistent across all four
+coverage and overlap (approximately 4% to 6%              LLMs in both Conditions 3 and 4. Rankings for
+increase), and lower divergence (4% decrease)             mid-performing coders fluctuate, primarily when
+(Fig. 2).                                                 their differences are not statistically significant.
+
+
+                                                          5.3     RQ3: Testing Our Proposed Metrics’
+                                                                  Diagnostic Utility for Edge Cases
+
+                                                          Experiment 2 tests whether our computational met-
+                                                          rics can detect abnormal inductive qualitative codes
+                                                          from machine coder variants designed to simulate
+                                                          edge cases: Flooding, Hallucinating, and Com-
+                                                          bined (Fig. 3).
+
+Figure 2: Effect of merging LLM on four evaluation
+metrics from the OLS model. Each bar represents the av-
+erage coefficient difference from the grand mean across
+LLMs, along with 95% confidence intervals.
+
+
+5.2.2 Hypothesis 4: Metric outcomes are
+      well-explained by condition, model, and
+      coder identity.
+
+From the same OLS model used by Hypothesis 3,
+we calculated adjusted R2 values to determine the
+extent to which the combination of condition, merg-
+ing LLM, and coder explains variation in metric
+values.                                                   Figure 3: Mean coder metrics across Baseline, Flood-
+  Result: Confirmed. All adjusted R2 values ex-           ing, Hallucinating, and Combined variants with 95%
+ceed 0.91.                                                confidence intervals.
+
+                                                     41746
+5.3.1 Hypothesis 7: Excessive coding increases            Taken together, these metrics provide a holistic
+      coverage, overlap, and novelty with              and nuanced assessment of a coder’s performance
+      diminishing returns, while divergence            that does not rely on “ground truths” that may not
+      remains stable.                                  exist even with teams of human experts. Instead
+Result: Confirmed. The mean metrics from the           of pursuing a single, simplistic measure of agree-
+flooding coder have higher coverage (78.7%), over-     ment, our method embraces the subjectivity and
+lap (57.9%), and novelty (68.1%) than the Baseline     exploratory spirit of inductive qualitative analy-
+coder. Novelty showed diminishing returns. Di-         sis (Corbin and Strauss, 1990; Braun and Clarke,
+vergence remained stable (67.3% vs. 64.9%). A          2012). It enables researchers to appreciate not only
+similar effect is observed between the Hallucinat-     consensus but also the valuable variation that dif-
+ing and Combined coders.                               ferent coders bring to the table, providing a more
+                                                       complete picture of human-AI or human-human
+5.3.2 Hypothesis 8: Coding on irrelevant data          collaboration processes.
+      (i.e., hallucination) reduces coverage and
+      overlap, while increasing divergence.            6.1   The Necessity of the Iterative,
+                                                             LLM-Enriched Merging Algorithm
+Result: Confirmed. The mean metrics from the
+Hallucinating coder have reduced coverage (35.6%)      RQ1 explored the impact of each stage of our merg-
+and overlap (15.6%), while divergence increases        ing algorithm. The findings from our ablation study
+sharply to 75.7%. A stronger effect is observed        (see 5.1) show that while each stage progressively
+between the Hallucinating and Combined coders.         reduces the number of codes in the Aggregated
+In particular, while the Combined coder produced       Code Space (ACS), the most significant shift in our
+245% more codes than the baseline (1,775 vs. 514),     metrics occurs between Stage 2 and Stage 3. This
+it has lower overlap (39.6% vs. 25.2%) and higher      transition, which introduces LLM-generated defini-
+divergence (76.3% vs. 64.9%).                          tions to the merging process, is far more impactful
+                                                       than simply relaxing semantic distance thresholds,
+6    Discussions                                       as seen in the transitions between other stages.
+                                                          This result confirms a central premise of our
+This paper introduces a theory-informed compu-         work: capturing true conceptual similarity in in-
+tational method for systematically evaluating the      ductive coding requires moving beyond superficial
+outputs of inductive coding. At the heart of our       linguistic parallels. The “naive” merging stages
+contribution are four metrics designed to capture      (Conditions 1 and 2), which rely solely on code la-
+the multifaceted nature of inductive coding:           bels, are insufficient. Therefore, the introduction of
+                                                       LLM-generated definitions centrally contributes to
+    • Coverage measures the depth and variation of
+                                                       our proposed metrics. This stage infuses the seman-
+      a coder’s contribution against the Aggregated
+                                                       tic representation of each code with meaning de-
+      Code Space (ACS), reflecting the qualitative
+                                                       rived from its underlying data points (“examples”),
+      goal of achieving breadth and depth in analy-
+                                                       without forcing a direct comparison between those
+      sis (Corbin and Strauss, 2008b).
+                                                       data points. Such insulation is vital for the induc-
+    • Overlap quantifies a coder’s alignment with      tive workflow, where coders may legitimately iden-
+      the conceptual consensus of the group, indi-     tify the same concept in different segments of the
+      cating how much their interpretations resonate   data (Corbin and Strauss, 1990); comparing data
+      with others.                                     points directly would be prone to error.
+                                                          Hypotheses 1 and 2 also clarify the distinct roles
+    • Novelty identifies the unique concepts a coder   of Stage 4 (iteratively merging with more relaxed
+      introduces, highlighting their potential value   thresholds), which produces a highly consolidated
+      in bringing new perspectives to the analytical   ACS but does not significantly impact the mea-
+      process.                                         suring outcome. Since we regenerate a label and
+                                                       definition for each merging pair, Stage 4 is compu-
+    • Divergence measures how much a coder’s           tationally intensive. Therefore, its utility depends
+      conceptual focus differs from others in the      on the research goal. To produce a clean concep-
+      group, offering insight into their unique ana-   tual map for further interpretation, comparison, or
+      lytical lens.                                    synthesis (e.g., when identifying a coder’s poten-
+                                                   41747
+tial bias), the computational cost of Stage 4 is well   serve as a “red flag” for further evaluation. This
+justified. Conversely, when numerical metrics are       diagnostic capability offers a layer of quality con-
+the primary output (such as in large-scale model        trol that is essential for ensuring rigor in human-AI
+comparisons), the less computationally demanding        collaborative workflows.
+Stage 3 may provide sufficiently stable and reliable
+outcomes for screening purposes.                        7     Conclusion
+6.2 The Impact of LLM on Outcomes                       This paper presents a reliable and robust compu-
+While the involvement of LLMs in the merging            tational method for the theory-informed, system-
+processes introduces intrinsic randomness, the find-    atic evaluation of inductive coding. By moving
+ings from RQ2 confirm our method’s reliability          beyond a reliance on a single “ground truth,” our
+and robustness across multiple LLMs and repeated        approach provides a practical pathway for quali-
+runs. As shown in Hypothesis 4, with very high          tative researchers to leverage AI in inductive ana-
+adjusted R2 values, our proposed metrics are over-      lytical processes responsibly. By measuring and
+whelmingly explained by coders’ intrinsic merits.       quantifying conceptual ideas like coverage, over-
+Repeated measurements under the same conditions         lap, novelty, and divergence, we shift the evaluation
+yield low coefficients of variation (Hypothesis 5),     focus of inductive coding from enforcing agree-
+showing stability across multiple LLM samplings.        ment to a more nuanced appreciation of the diverse
+   Crucially, our metrics’ stability extends to the     contributions that each coder brings to the collab-
+choice of LLM. Tested on a diverse set of models,       orative, exploratory process. As more and more
+the choice of model has little effect on the relative   qualitative researchers explore LLMs for inductive
+ranking of coders (Hypothesis 6), where the top         coding, we offer a timely contribution to ensure
+and bottom-ranked performers remained consistent        methodological rigor and facilitate more effective
+across all LLMs. This implication is significant for    and transparent human-AI collaboration.
+the practical adoption by qualitative researchers,
+as they can confidently use smaller, open-source        8     Limitations
+models (e.g., Gemma3 27B) to measure outcomes           While this study presents a robust computational
+from human or machine coders. Such models can           method for evaluating inductive coding, it is im-
+be easily deployed locally, providing better privacy    portant to acknowledge its limitations. From there,
+protections and regulation compliance for handling      future research can help establish best practices
+often sensitive human subject data.                     and clear guidelines for qualitative researchers to
+6.3 Performance of Metrics in Edge Cases                adopt our metrics. Application and misuse risks
+                                                        are discussed separately in Appendix A.
+RQ3 evaluated the robustness and diagnostic utility
+of our metrics in simulated edge cases. The “Flood-     8.1    Limitation on the Dataset and Domain
+ing” coder variant, explicitly prompted to produce
+an excessive number of codes, was expected to cre-      The validation of our metrics was conducted on a
+ate significant redundancy. The metrics correctly       single dataset consisting of online conversations
+capture that: both “Flooding” variants registered       from a specific online community. While effec-
+higher Coverage and Novelty, but with diminishing       tive in this context, the method’s performance
+returns that mark the results’ redundancy.              and the metrics’ utility need to be tested on more
+   Similarly, the “Hallucinating” coder variant,        diverse forms of qualitative data, such as semi-
+which worked from irrelevant data with the correct      structured interview transcripts or open-ended sur-
+prompt, was expected to produce thematically sim-       vey responses. The nuances of these different data
+ilar codes but fail to capture critical details from    types may present unique challenges not encoun-
+the true data. The metrics capture the issue as         tered in this study.
+well: both “Hallucinating” variants produced a pre-
+                                                        8.2    Limitation on the Simulated Edge Cases
+dictable and dramatic drop in Coverage and Over-
+lap, coupled with a sharp increase in Divergence.       The “Flooding” and “Hallucinating” coders were
+   In all three cases, our metrics behave predictably   created through explicit instructions to simulate
+in response to those coding issues, suggesting that     poor coding practices. Although our metrics suc-
+abnormal comparative values from our metrics can        cessfully identified these simulated cases, further
+                                                    41748
+research is needed to validate their diagnostic ca-          2. Empirical data analysis (e.g., code for visual-
+pabilities in real-world scenarios. This includes               ization or regression analysis based on explicit
+testing the method on codes generated by novice                 human instructions).
+human researchers, non-expert coders, or subtly
+flawed AI prompts, which may produce less ex-                3. Paper writing (e.g., proofreading, editing, La-
+treme and harder-to-detect issues than our simu-                TeX syntax support).
+lated variants.
+
+8.3 Limitation on Missing Critical Codes                  References
+Our framework evaluates coders relative to the Ag-        Anne Adams, Peter Lunt, and Paul Cairns. 2008. A
+gregated Code Space (ACS), which is constructed             Qualitative Approach to HCI Research. In Research
+from the combined outputs of all coders. As a re-           Methods for Human-Computer Interaction. Cam-
+sult, it cannot detect critical codes that are entirely     bridge University Press.
+absent from every individual code space. This blind       Jennifer Attride-Stirling. 2001. Thematic networks: an
+spot is not unique to our method but inherent to             analytic tool for qualitative research. Qualitative
+all team-based or consensus-oriented qualitative            Research, 1(3):385–405.
+evaluation approaches: if no coder identifies a par-      Robert Bowman, Camille Nadal, Kellie Morrissey, Anja
+ticular concept, it will not appear in the collective       Thieme, and Gavin Doherty. 2023. Using Thematic
+representation. Ensuring coder diversity and us-            Analysis in Healthcare HCI at CHI: A Scoping Re-
+ing multiple human or model perspectives remain             view. In Proceedings of the 2023 CHI Conference on
+                                                            Human Factors in Computing Systems, pages 1–18,
+essential to mitigate this limitation.                      Hamburg Germany. ACM.
+
+8.4 Limited Interpretations on Deviant LLM                Virginia Braun and Victoria Clarke. 2006. Using the-
+    Behaviors                                               matic analysis in psychology. Qualitative Research
+                                                            in Psychology, 3(2):77–101.
+Despite 3 out of 4 models behaving similarly in
+our experiment (Hypothesis 3), our findings ob-           Virginia Braun and Victoria Clarke. 2012. Thematic
+                                                            analysis. American Psychological Association.
+served deviated merging behaviors and behaviors
+with Gemini-2.5-Pro, which showed a tendency to           Virginia Braun and Victoria Clarke. 2013. Successful
+merge codes more. Even when the ranking order               qualitative research: A practical guide for beginners.
+is relatively stable, this model choice leads to sig-     Virginia Braun and Victoria Clarke. 2021. One size fits
+nificant changes in raw metric numbers. Further              all? What counts as quality practice in (reflexive) the-
+research should investigate whether and/or why the           matic analysis? Qualitative Research in Psychology,
+stronger reasoning model merges differently, and            18(3):328–352.
+whether this deep merging may prove preferable or         Joy D. Bringer, Lynne H. Johnston, and Celia H. Brack-
+not to human researchers.                                   enridge. 2004. Maximizing Transparency in a Doc-
+                                                            toral Thesis1: The Complexities of Writing About
+Acknowledgments                                             the Use of QSR*NVIVO Within a Grounded Theory
+                                                            Study. Qualitative Research, 4(2):247–265.
+We acknowledge the support and help from Dr.              M. Ariel Cascio, Eunlye Lee, Nicole Vaudrin, and
+Matthew Berland, Dr. Lydia Cao, and Dr. James               Darcy A. Freedman. 2019. A Team-based Approach
+Spillane (and his students) during the research pro-        to Open Coding: Considerations for Creating Inter-
+cess. In addition, we acknowledge the support               coder Consensus. Field Methods, 31(2):116–130.
+from the National Science Foundation under Grant          John Chen, Alexandros Lotsos, Grace Wang, Lexie
+Number 2303582.                                             Zhao, Bruce Sherin, Uri Wilensky, and Michael Horn.
+   We also acknowledge the usage of Generative AI           2025. Processes matter: How ml/gai approaches
+                                                            could support open qualitative coding of online dis-
+tools within and regarding the study. With constant
+                                                            course datasets. In Proceedings of the 18th Interna-
+human supervision and quality assurance, such               tional Conference on Computer-Supported Collab-
+tools are used to assist in:                                orative Learning-CSCL 2025, pp. 415-419. Interna-
+                                                            tional Society of the Learning Sciences.
+  1. Software development (e.g., copilot autocom-         Juliet Corbin and Anselm Strauss. 2008a. Chapter 10 /
+     pletion; refactoring; generating boilerplate            Analyzing Data for Concepts. In Basics of Qualita-
+     code or data cleanup code).                             tive Research (3rd ed.): Techniques and Procedures
+                                                     41749
+  for Developing Grounded Theory. SAGE Publica-              Workshop on Language Technologies and Computa-
+  tions, Inc., 2455 Teller Road, Thousand Oaks Cali-         tional Social Science, pages 44–48, Baltimore, MD,
+  fornia 91320 United States.                                USA. Association for Computational Linguistics.
+
+Juliet Corbin and Anselm Strauss. 2008b. Chapter          Nora McDonald, Sarita Schoenebeck, and Andrea Forte.
+  14 / Criteria for Evaluation. In Basics of Qualita-       2019. Reliability and Inter-rater Reliability in Qual-
+   tive Research (3rd ed.): Techniques and Procedures       itative Research: Norms and Guidelines for CSCW
+   for Developing Grounded Theory. SAGE Publica-            and HCI Practice. Proceedings of the ACM on
+   tions, Inc., 2455 Teller Road, Thousand Oaks Cali-       Human-Computer Interaction, 3(CSCW):1–23.
+   fornia 91320 United States.
+                                                          Angelina Parfenova, Andreas Marfurt, Jürgen Pfeffer,
+Juliet M. Corbin and Anselm Strauss. 1990. Grounded         and Alexander Denzler. 2025. Text annotation via
+   theory research: Procedures, canons, and evaluative      inductive coding: Comparing human experts to llms
+   criteria. Qualitative sociology, 13(1):3–21. Pub-        in qualitative data analysis. In Findings of the Asso-
+   lisher: Springer.                                        ciation for Computational Linguistics: NAACL 2025,
+                                                            pages 6456–6469.
+Shih-Chieh Dai, Aiping Xiong, and Lun-Wei Ku. 2023.
+  LLM-in-the-loop: Leveraging large language model        Hamed Rahimi, Jacob Louis Hoover, David Mimno, Hu-
+  for thematic analysis. In Findings of the Association     bert Naacke, Camelia Constantin, and Bernd Amann.
+  for Computational Linguistics: EMNLP 2023, pages          2023. Contextualized topic coherence metrics. arXiv
+  9993–10001, Singapore. Association for Computa-           preprint arXiv:2305.14587.
+  tional Linguistics.
+                                                          Md Shidur Rahman. 2016. The Advantages and Disad-
+Stefano De Paoli. 2023a. Can Large Language Mod-           vantages of Using Qualitative and Quantitative Ap-
+   els emulate an inductive Thematic Analysis of semi-     proaches and Methods in Language “Testing and As-
+   structured interviews? An exploration and provo-        sessment” Research: A Literature Review. Journal
+   cation on the limits of the approach and the model.     of Education and Learning, 6(1):102.
+   arXiv preprint. ArXiv:2305.13014 [cs].
+                                                          Tim Rietz and Alexander Maedche. 2021. Cody: An AI-
+Stefano De Paoli. 2023b. Performing an Inductive The-       Based System to Semi-Automate Coding for Qual-
+   matic Analysis of Semi-Structured Interviews With a      itative Research. In Proceedings of the 2021 CHI
+   Large Language Model: An Exploration and Provo-          Conference on Human Factors in Computing Sys-
+   cation on the Limits of the Approach. Social Science     tems, CHI ’21, pages 1–14, New York, NY, USA.
+   Computer Review, 0(0):1–23.                              Association for Computing Machinery.
+Dominic Furniss, Ann Blandford, and Paul Curzon.
+                                                          Sina Mahdipour Saravani, Sadaf Ghaffari, Yanye Luther,
+  2011. Confessions from a grounded theory PhD:
+                                                             James Folkestad, and Marcia Moraes. 2023. Auto-
+  experiences and lessons learnt. In Proceedings of the
+                                                             mated code extraction from discussion. In Advances
+  SIGCHI Conference on Human Factors in Comput-
+                                                             in Quantitative Ethnography: 4th International Con-
+  ing Systems, pages 113–122, Vancouver BC Canada.
+                                                             ference, ICQE 2022, Copenhagen, Denmark, Octo-
+  ACM.
+                                                             ber 15–19, 2022, Proceedings, page 227. Springer
+Simret Araya Gebreegziabher, Zheng Zhang, Xiaohang           Nature.
+  Tang, Yihao Meng, Elena L. Glassman, and Toby
+  Jia-Jun Li. 2023. PaTAT: Human-AI Collaborative         Benjamin Saunders, Julius Sim, Tom Kingstone,
+  Qualitative Coding with Explainable Interactive Rule      Shula Baker, Jackie Waterfield, Bernadette Bartlam,
+  Synthesis. In Proceedings of the 2023 CHI Confer-         Heather Burroughs, and Clare Jinks. 2018. Satura-
+  ence on Human Factors in Computing Systems, CHI           tion in qualitative research: exploring its conceptual-
+  ’23, pages 1–19, New York, NY, USA. Association           ization and operationalization. Quality & Quantity,
+  for Computing Machinery.                                  52(4):1893–1907.
+
+Maarten Grootendorst. 2022. Bertopic: Neural topic        Carson Sievert and Kenneth Shirley. 2014. Ldavis: A
+ modeling with a class-based tf-idf procedure. arXiv        method for visualizing and interpreting topics. In
+ preprint arXiv:2203.05794.                                 Proceedings of the workshop on interactive language
+                                                            learning, visualization, and interfaces, pages 63–70.
+Sean Lee, Aamir Shakir, Darius Koenig, and Julius
+  Lipp. 2024. Open source strikes bread - new fluffy      Ravi Sinha, Idris Solola, Ha Nguyen, Hillary Swan-
+  embeddings model.                                         son, and LuEttaMae Lawrence. 2024. The Role of
+                                                            Generative AI in Qualitative Research: GPT-4’s Con-
+Xianming Li and Jing Li. 2023. Angle-optimized text         tributions to a Grounded Theory Analysis. In Pro-
+  embeddings. arXiv preprint arXiv:2309.12871.              ceedings of the Symposium on Learning, Design and
+                                                            Technology, pages 17–25, Delft Netherlands. ACM.
+Jasy Suet Yan Liew, Nancy McCracken, Shichun Zhou,
+   and Kevin Crowston. 2014. Optimizing Features in       Cesare Spinoso-Di Piano. 2023. Qualitative code sug-
+   Active Machine Learning for Complex Qualitative          gestion: A human-centric approach to qualitative
+   Content Analysis. In Proceedings of the ACL 2014         coding. McGill University (Canada).
+                                                     41750
+Anselm Strauss and Juliet Corbin. 1998. Basics of quali-
+  tative research: Techniques and procedures for devel-
+  oping grounded theory, 2nd ed. Basics of qualitative
+  research: Techniques and procedures for develop-
+  ing grounded theory, 2nd ed., pages xiii, 312–xiii,
+  312. Place: Thousand Oaks, CA, US Publisher: Sage
+  Publications, Inc.
+Gemma Team. 2025a. Gemma 3.
+Qwen Team. 2025b. Qwq-32b: Embracing the power
+ of reinforcement learning.
+Gareth Terry, Nikki Hayfield, Victoria Clarke, and Vir-
+  ginia Braun. 2017. Thematic analysis. The SAGE
+  handbook of qualitative research in psychology, 2(17-
+  37):25. Publisher: SAGE Publications Ltd.
+David R. Thomas. 2006. A General Inductive Approach
+  for Analyzing Qualitative Evaluation Data. American
+  Journal of Evaluation, 27(2):237–246.
+
+Anthony G. Tuckett. 2005. Applying thematic anal-
+  ysis theory to practice: A researcher’s experience.
+  Contemporary Nurse, 19(1-2):75–87.
+
+Ziang Xiao, Xingdi Yuan, Q. Vera Liao, Rania Abdel-
+  ghani, and Pierre-Yves Oudeyer. 2023. Supporting
+  Qualitative Analysis with Large Language Models:
+  Combining Codebook with GPT-3 for Deductive
+  Coding. In Companion Proceedings of the 28th Inter-
+  national Conference on Intelligent User Interfaces,
+  IUI ’23 Companion, pages 75–78, New York, NY,
+  USA. Association for Computing Machinery.
+Andres Felipe Zambrano, Xiner Liu, Amanda Barany,
+  Ryan S. Baker, Juhan Kim, and Nidhi Nasiar. 2023.
+  From nCoder to ChatGPT: From Automated Coding
+  to Refining Human Coding. In Advances in Quantita-
+  tive Ethnography, Communications in Computer and
+  Information Science, pages 470–485, Cham. Springer
+  Nature Switzerland.
+Fengxiang Zhao, Fan Yu, and Yi Shang. 2024. A new
+  method supporting qualitative data analysis through
+  prompt generation for inductive coding. In 2024
+  IEEE International Conference on Information Reuse
+  and Integration for Data Science (IRI), pages 164–
+  169. IEEE.
+
+
+
+
+                                                      41751
+A     Potential Risks
+While our computational method is designed to mitigate risks in human-AI qualitative analysis, its
+improper application or the misinterpretation of its metrics can introduce other potential risks.
+
+A.1 Misinterpretation of Metrics
+Especially when coming from a non-qualitative research background, users may treat our computational
+metrics as objective, definitive measures of quality, contrary to the exploratory and subjective nature of
+inductive coding. For example, when substituting a baseline machine coder with its deviant variants, we
+interpreted the higher Divergence metrics as an indicator of potential hallucination. However, deviating
+from the consensus can also be valuable in other scenarios, such as a coder from a different intellectual
+tradition or lived background. Over-reliance on metric values can prevent junior researchers from
+developing the critical, interpretive skills that come from manual comparison, reflection, and building
+consensus with peers. Hence, our metrics should be used as diagnostic tools to prompt deeper qualitative
+inquiry, not as a substitute for it.
+
+A.2 Dependency on the Coding Team
+The Aggregated Code Space (ACS) is fundamentally a synthesis of the input codebook group. The
+quality and comprehensiveness of the evaluation are therefore dependent on the diversity and rigor of
+the coding team. If the entire human-AI team shares a particular bias or overlooks a critical theme,
+the ACS will reflect this omission. Consequently, researchers who rely solely on metric values risk
+automation bias, which diminishes critical engagement with the raw data and the coding process. We
+encourage researchers to continue recruiting a diverse human team and employing multiple LLMs for
+inductive coding. Moreover, they should also explore the interactive interface generated by our software
+package, which provides a network-based visualization of codes and metrics. We intend to further study
+the interface in an upcoming research project.
+
+A.3 Privacy and Data Security
+Our method involves processing data through Large Language Models and text embedding models. While
+our study prioritized the use of local, open-source models to protect sensitive data, researchers applying
+this method with proprietary, the usage of cloud-based APIs risk exposing confidential or personally
+identifiable information from their datasets. It is hence critical for researchers to maintain adherence to
+IRB protocols and relevant data privacy regulations.
+
+B     Appendices
+B.1    Regression Results for Hypothesis 1
+This appendix provides complete regression tables supporting Hypothesis 1 (Section 5.1.1), which tests
+whether the algorithmic condition significantly affects the number of consolidated codes and the quality
+of generated open codes.
+   We report outputs from five ordinary least squares (OLS) models. Regression 1 models the number
+of consolidated codes per transcript as a function of condition. Regression 2 consists of four separate
+models, each predicting one code-level metric: coverage, overlap, novelty, or divergence. Conditions
+are dummy-coded, and coder identity is sum-coded. All regressions use the design matrix described in
+Section 5.1.1, with coder identity sum-coded, condition dummy-coded (Condition 1 as the baseline), and
+heteroscedasticity-robust (HC3) standard errors.
+                  Table 2: Regression output for Consolidated Code Count (Hypothesis 1).
+
+                     Predictor        coef   std err         z   P> |z|       [0.025, 0.975]
+                     Intercept     1509.00         –         –        –                [–, –]
+                     Condition 2    -54.00         –         –        –                [–, –]
+                     Condition 3   -110.88      3.01    -36.90    0.000   [-116.77, -104.99]
+                     Condition 4   -651.53     16.97    -38.40    0.000   [-684.78, -618.27]
+
+
+                                                       41752
+              Note: Standard errors unavailable for some parameters due to rank deficiency in constraints.
+
+
+                          Table 3: Regression output for Coverage % (Hypothesis 1).
+
+                   Predictor                     coef    std err       z    P> |z|   [0.025, 0.975]
+                   Intercept                    28.89       0.80   34.20     0.000   [27.20, 30.50]
+                   Condition 2                   0.09       1.20    0.08     0.936     [-2.20, 2.40]
+                   Condition 3                   3.60       0.90    4.23     0.000      [1.90, 5.30]
+                   Condition 4                   7.02       0.87    8.06     0.000      [5.30, 8.70]
+                   (Coder dummies omitted)
+
+
+                           Table 4: Regression output for Overlap % (Hypothesis 1).
+
+                   Predictor                     coef    std err       z    P> |z|   [0.025, 0.975]
+                   Intercept                    15.81       1.10   13.93     0.000   [13.60, 18.00]
+                   Condition 2                  -0.09       1.60   -0.06     0.956     [-3.30, 3.10]
+                   Condition 3                   5.45       1.10    4.75     0.000      [3.20, 7.70]
+                   Condition 4                   7.86       1.20    6.69     0.000    [5.60, 10.20]
+                   (Coder dummies omitted)
+
+
+                           Table 5: Regression output for Novelty % (Hypothesis 1).
+
+                   Predictor                     coef    std err       z    P> |z|   [0.025, 0.975]
+                   Intercept                    23.95       0.20   97.69     0.000   [23.50, 24.40]
+                   Condition 2                   0.05       0.30    0.15     0.879     [-0.60, 0.70]
+                   Condition 3                   0.94       0.26    3.61     0.000      [0.40, 1.40]
+                   Condition 4                  -1.64       0.27   -6.10     0.000    [-2.20, -1.10]
+                   (Coder dummies omitted)
+
+
+                         Table 6: Regression output for Divergence % (Hypothesis 1).
+
+                   Predictor                    coef    std err         z   P> |z|    [0.025, 0.975]
+                   Intercept                   72.35       0.60    125.55    0.000    [71.20, 73.50]
+                   Condition 2                  0.37       0.80      0.48    0.633      [-1.10, 1.90]
+                   Condition 3                 -4.31       0.59     -7.29    0.000     [-5.50, -3.20]
+                   Condition 4                 -1.91       0.60     -3.20    0.001     [-3.10, -0.70]
+                   (Coder dummies omitted)
+
+
+B.2   Coder Rankings for Hypothesis 2
+This appendix supports Hypothesis 2 (Section 5.1.2), which examines the relative ranking of coders
+across evaluation conditions. For each metric, we present the metric outcomes and rankings of 8 coders
+(plus two groups) per condition. Rel denotes the strength of evidence that the listed coder performs better
+than the next one in the ranking chain.
+   Symbols: >>> p ≤ 0.001; >> 0.001 < p ≤ 0.01; > 0.01 < p ≤ 0.05; ≈ p > 0.05. These
+thresholds are derived from Tukey’s HSD post-hoc comparisons following a one-way ANOVA on metric
+values, conducted separately for each condition. Special note for Conditions 1 and 2: those conditions
+do not involve probabilistic LLM-based merging and therefore are deterministic, denoted with >>>.
+
+
+
+
+                                                        41753
+                                Table 7: Coder rankings by condition for Coverage (Hypothesis 2).
+
+Condition 1                     Rel          Condition 2             Rel             Condition 3             Rel           Condition 4            Rel
+group: ai (84.80%)              >>>         group: ai (84.85%)       >>>           group: ai (87.66%)        >>>         group: ai (87.29%)       >>>
+item-verb-ai (48.25%)           >>>       item-any-ai (48.46%)       >>>         item-any-ai (56.67%)        >>>       item-any-ai (60.48%)       >>>
+item-any-ai (47.92%)            >>>      item-verb-ai (48.24%)       >>>        item-verb-ai (52.77%)        >>>      item-verb-ai (57.11%)       >>>
+group: human (40.58%)           >>>     group: human (40.22%)        >>>       group: human (43.93%)         >>>     group: human (47.10%)        >>>
+human-c (15.15%)                >>>         human-c (15.16%)         >>>           human-c (18.36%)          >>>         human-c (23.83%)         >>>
+human-b (14.10%)                >>>         human-b (13.90%)         >>>           human-b (16.11%)          >>>         human-b (20.36%)         >>>
+human-a (10.65%)                >>>         human-a (10.96%)         >>>     chunk-structured-ai (13.68%)    >     chunk-structured-ai (17.32%)   ≈
+human-d (10.18%)                >>>         human-d (10.34%)         >>>      chunk-barany-ai (12.64%)       ≈      chunk-barany-ai (16.60%)      >
+chunk-barany-ai (8.90%)         >>>    chunk-barany-ai (8.89%)       >>>           human-d (12.43%)          >>>         human-d (15.25%)         >
+chunk-structured-ai (8.38%)           chunk-structured-ai (8.83%)                  human-a (10.71%)                      human-a (13.83%)
+
+
+
+
+                                 Table 8: Coder rankings by condition for Overlap (Hypothesis 2).
+
+Condition 1                     Rel          Condition 2             Rel             Condition 3             Rel           Condition 4            Rel
+group: ai (51.59%)              >>>         group: ai (50.79%)       >>>           group: ai (60.09%)        >>>         group: ai (57.30%)       >>>
+item-any-ai (29.22%)            >>>       item-any-ai (29.28%)       >>>         item-any-ai (41.64%)        >>>       item-any-ai (44.60%)       >>>
+item-verb-ai (28.09%)           >>>      item-verb-ai (27.88%)       >>>        item-verb-ai (36.49%)        >>>      item-verb-ai (40.72%)       >>>
+group: human (16.96%)           >>>     group: human (16.62%)        >>>       group: human (23.33%)         >>>     group: human (24.71%)        >>>
+human-b (7.19%)                 >>>          human-b (6.97%)         >>>           human-c (10.65%)          ≈           human-c (15.25%)         >
+human-c (6.94%)                 >>>          human-c (6.89%)         >>>            human-b (9.86%)          ≈           human-b (13.14%)         ≈
+human-a (5.91%)                 >>>          human-a (6.06%)         >>>     chunk-structured-ai (8.60%)     ≈     chunk-structured-ai (11.12%)   ≈
+human-d (5.34%)                 >>>          human-d (5.42%)         >>>            human-d (7.73%)          ≈      chunk-barany-ai (10.83%)      ≈
+chunk-structured-ai (3.45%)     >>>   chunk-structured-ai (3.73%)    >>>      chunk-barany-ai (7.68%)        ≈           human-d (10.03%)         ≈
+chunk-barany-ai (3.40%)                chunk-barany-ai (3.56%)                      human-a (6.57%)                       human-a (8.97%)
+
+
+
+
+                                 Table 9: Coder rankings by condition for Novelty (Hypothesis 2).
+
+Condition 1                     Rel           Condition 2            Rel             Condition 3             Rel           Condition 4            Rel
+group: ai (80.50%)              >>>         group: ai (80.44%)       >>>            group: ai (81.03%)       >>>         group: ai (77.74%)       >>>
+item-any-ai (42.43%)            >>>       item-any-ai (42.20%)       >>>          item-any-ai (45.05%)       >>>       item-any-ai (36.59%)       ≈
+item-verb-ai (39.34%)           >>>      item-verb-ai (39.69%)       >>>         item-verb-ai (42.12%)       >>>      item-verb-ai (35.80%)       >>>
+group: human (30.17%)           >>>     group: human (30.25%)        >>>        group: human (30.84%)        >>>     group: human (27.12%)        >>>
+human-c (11.65%)                >>>         human-c (11.49%)         >>>            human-c (12.84%)         >>>         human-c (11.78%)         >>>
+human-b (9.43%)                 >>>          human-b (9.46%)         >>>             human-b (9.77%)         >>>          human-b (8.47%)         ≈
+chunk-structured-ai (7.44%)     >>>   chunk-structured-ai (7.54%)    >>>      chunk-structured-ai (7.79%)    >     chunk-structured-ai (8.00%)    ≈
+chunk-barany-ai (7.20%)         >>>    chunk-barany-ai (7.21%)       >>>       chunk-barany-ai (7.21%)       >>>    chunk-barany-ai (7.36%)       >>>
+human-d (6.14%)                 >>>          human-d (6.25%)         >>>             human-d (6.44%)         >            human-d (5.37%)         ≈
+human-a (5.25%)                              human-a (5.54%)                         human-a (5.82%)                      human-a (4.92%)
+
+
+
+
+                               Table 10: Coder rankings by condition for Divergence (Hypothesis 2).
+
+Condition 1                     Rel           Condition 2             Rel             Condition 3            Rel           Condition 4            Rel
+chunk-barany-ai (78.87%)        >>>    chunk-barany-ai (78.70%)       >>>           human-a (73.88%)         >           human-a (74.57%)         ≈
+chunk-structured-ai (78.50%)    >>>   chunk-structured-ai (78.38%)    >>>      chunk-barany-ai (72.87%)      ≈           human-d (73.98%)         ≈
+human-d (75.40%)                >>>         human-d (75.69%)          >>>           human-d (72.61%)         >      chunk-barany-ai (73.59%)      ≈
+human-c (74.87%)                >>>         human-c (75.31%)          >>>     chunk-structured-ai (71.57%)   ≈     chunk-structured-ai (73.41%)   >>
+human-a (74.72%)                >>>         human-a (75.10%)          >>>           human-c (71.24%)         ≈           human-b (72.37%)         ≈
+human-b (74.09%)                >>>         human-b (74.67%)          >>>           human-b (70.89%)         >>>         human-c (71.86%)         >>>
+group: human (69.45%)           >>>     group: human (69.94%)         >>>           group: ai (65.24%)       ≈           group: ai (70.05%)       >>>
+group: ai (68.84%)              >>>         group: ai (69.45%)        >>>       group: human (64.77%)        >>>     group: human (68.09%)        >>>
+item-verb-ai (65.08%)           >>>      item-verb-ai (65.56%)        >>>        item-verb-ai (60.17%)       >>>      item-verb-ai (64.07%)       >>>
+item-any-ai (63.72%)                      item-any-ai (64.43%)                    item-any-ai (57.20%)                 item-any-ai (62.41%)
+
+
+
+
+                                                                           41754
+B.3   Regression Results for Hypotheses 3 and 4
+This appendix providesOLS regression results supporting Hypotheses 3 and 4 (Section 5.2.1 and 5.2.2).
+Hypothesis 3 tests whether the LLM used in the merging process significantly influences each code-level
+metric and the number of consolidated codes. Hypothesis 4 evaluates how well condition, merging model,
+and coder identity together explain variation in outcomes. All results are based on the model:
+
+                         Y ∼ C(condition) + C(model, Sum) + C(coder, Sum)
+
+where Y represents each outcome of interest. We use dummy-coding for the condition (Condition
+3 as the baseline), sum-coding for the model and coder identity (Average as the baseline), and HC3
+heteroscedasticity-robust standard errors. Coefficients are interpreted as deviations from the baseline.
+
+                 Table 11: Regression output for Consolidated Codes (Hypotheses 3 and 4).
+
+               Predictor                      coef    std err        z   P> |z|         [0.025, 0.975]
+               Intercept                 295.2700       3.015    97.94    0.000   [289.361, 301.179]
+               Condition 4               -78.1800       4.442   -17.60    0.000    [-86.886, -69.474]
+               Gemini-2.5-pro            -15.0150       4.609    -3.26    0.001      [-24.048, -5.982]
+               Gemma3-27b                  1.3700       3.642     0.38    0.707        [-5.768, 8.508]
+               GPT-4.1                     2.5150       3.607     0.70    0.486        [-4.555, 9.585]
+               (Coder terms omitted)
+
+                                         R2 = 0.951     Adjusted R2 = 0.950
+
+
+
+                    Table 12: Regression output for Coverage % (Hypotheses 3 and 4).
+
+                 Predictor                     coef   std err        z   P> |z|      [0.025, 0.975]
+                 Intercept                  0.3250      0.001   326.50    0.000      [0.323, 0.327]
+                 Condition 4                0.0342      0.002    22.59    0.000      [0.031, 0.037]
+                 Gemini-2.5-pro             0.0440      0.002    24.48    0.000      [0.041, 0.048]
+                 Gemma3-27b                -0.0122      0.001   -11.28    0.000    [-0.014, -0.010]
+                 GPT-4.1                   -0.0152      0.001   -14.75    0.000    [-0.017, -0.013]
+                 (Coder terms omitted)
+
+                                         R2 = 0.993     Adjusted R2 = 0.993
+
+
+
+                     Table 13: Regression output for Overlap % (Hypotheses 3 and 4).
+
+                 Predictor                     coef   std err        z   P> |z|      [0.025, 0.975]
+                 Intercept                  0.2126      0.001   147.81    0.000      [0.210, 0.215]
+                 Condition 4                0.0240      0.002    10.72    0.000      [0.020, 0.028]
+                 Gemini-2.5-pro             0.0637      0.003    23.97    0.000      [0.058, 0.069]
+                 Gemma3-27b                -0.0189      0.002   -11.55    0.000    [-0.022, -0.016]
+                 GPT-4.1                   -0.0213      0.001   -14.74    0.000    [-0.024, -0.018]
+                 (Coder terms omitted)
+
+                                         R2 = 0.970     Adjusted R2 = 0.969
+
+
+
+                     Table 14: Regression output for Novelty % (Hypotheses 3 and 4).
+
+                 Predictor                     coef   std err        z   P> |z|      [0.025, 0.975]
+                 Intercept                  0.2489      0.001   309.04    0.000      [0.247, 0.251]
+                 Condition 4               -0.0258      0.001   -20.21    0.000    [-0.028, -0.023]
+                 Gemini-2.5-pro             0.0136      0.001    10.41    0.000      [0.011, 0.016]
+                 Gemma3-27b                -0.0052      0.001    -4.75    0.000    [-0.007, -0.003]
+                 GPT-4.1                   -0.0046      0.001    -4.59    0.000    [-0.007, -0.003]
+                 (Coder terms omitted)
+
+                                         R2 = 0.994     Adjusted R2 = 0.994
+
+
+
+                                                        41755
+                    Table 15: Regression output for Divergence % (Hypotheses 3 and 4).
+
+                 Predictor                    coef    std err        z    P> |z|      [0.025, 0.975]
+                 Intercept                 0.6804       0.001   803.88     0.000      [0.679, 0.682]
+                 Condition 4               0.0240       0.001    20.54     0.000      [0.022, 0.026]
+                 Gemini-2.5-pro           -0.0420       0.001   -31.99     0.000    [-0.045, -0.039]
+                 Gemma3-27b                0.0121       0.001    13.04     0.000      [0.010, 0.014]
+                 GPT-4.1                   0.0166       0.001    19.77     0.000      [0.015, 0.018]
+                 (Coder terms omitted)
+
+                                         R2 = 0.920    Adjusted R2 = 0.919
+
+
+
+B.4   Regression Results for Hypothesis 5
+This appendix provides regression outputs supporting Hypothesis 5 (Section 5.2.3), which evaluates the
+stability of metric outputs by analyzing the coefficient of variation (CoV) across stochastic LLM runs in
+Conditions 3 and 4. All models use ordinary least squares (OLS) regression to predict the CoV for each
+metric, using condition, merging model, and coder identity as predictors. Condition is dummy-coded
+(Condition 3 as baseline), and both model and coder identity are sum-coded (average as baseline). Robust
+(HC3) standard errors are used.
+
+             Table 16: Regression output for CoV of Consolidated Code Count (Hypothesis 5).
+
+                 Predictor                    coef std err            z    P> |z|     [0.025, 0.975]
+                 Intercept                 0.0040    0.001         5.93     0.000     [0.003, 0.005]
+                 Condition 4               0.0236    0.002        15.23     0.000     [0.021, 0.027]
+                 Gemini-2.5-pro            0.0047    0.001         3.88     0.000     [0.002, 0.007]
+                 Gemma3-27b               -0.0023    0.002        -1.49     0.136    [-0.005, 0.001]
+                 GPT-4.1                   0.0021    0.001         1.55     0.120    [-0.001, 0.005]
+                 (Coder dummies omitted)
+                 R2 = 0.830      Adjusted R2 = 0.797
+
+
+                     Table 17: Regression output for CoV of Coverage (Hypothesis 5).
+
+                 Predictor                    coef std err            z    P> |z|     [0.025, 0.975]
+                 Intercept                 0.0272    0.003         9.36     0.000     [0.021, 0.033]
+                 Condition 4               0.0307    0.005         6.77     0.000     [0.022, 0.040]
+                 Gemini-2.5-pro            0.0019    0.004         0.54     0.587    [-0.005, 0.009]
+                 Gemma3-27b               -0.0071    0.004        -1.68     0.093    [-0.015, 0.001]
+                 GPT-4.1                   0.0020    0.004         0.50     0.621    [-0.006, 0.010]
+                 (Coder dummies omitted)
+                 R2 = 0.737      Adjusted R2 = 0.686
+
+
+                      Table 18: Regression output for CoV of Overlap (Hypothesis 5).
+
+                 Predictor                    coef std err            z    P> |z|     [0.025, 0.975]
+                 Intercept                 0.0440    0.004        11.34     0.000     [0.036, 0.052]
+                 Condition 4               0.0490    0.007         7.45     0.000     [0.036, 0.062]
+                 Gemini-2.5-pro           -0.0043    0.005        -0.83     0.404    [-0.014, 0.006]
+                 Gemma3-27b               -0.0108    0.006        -1.74     0.082    [-0.023, 0.001]
+                 GPT-4.1                   0.0051    0.006         0.88     0.377    [-0.006, 0.016]
+                 (Coder dummies omitted)
+                 R2 = 0.698      Adjusted R2 = 0.639
+
+
+
+
+                                                       41756
+                                       Table 19: Regression output for CoV of Novelty (Hypothesis 5).
+
+                               Predictor                    coef std err                                      z        P> |z|           [0.025, 0.975]
+                               Intercept                 0.0359    0.004                                   8.09         0.000           [0.027, 0.045]
+                               Condition 4               0.0495    0.006                                   7.67         0.000           [0.037, 0.062]
+                               Gemini-2.5-pro            0.0163    0.006                                   2.61         0.009           [0.004, 0.029]
+                               Gemma3-27b               -0.0130    0.006                                  -2.18         0.029         [-0.025, -0.001]
+                               GPT-4.1                  -0.0049    0.005                                  -1.01         0.311          [-0.014, 0.005]
+                               (Coder dummies omitted)
+                               R2 = 0.784      Adjusted R2 = 0.741
+
+                                     Table 20: Regression output for CoV of Divergence (Hypothesis 5).
+
+                               Predictor                    coef std err                                      z        P> |z|            [0.025, 0.975]
+                               Intercept                 0.0090    0.001                                  17.95         0.000            [0.008, 0.010]
+                               Condition 4               0.0038    0.001                                   4.80         0.000            [0.002, 0.005]
+                               Gemini-2.5-pro            0.0042    0.001                                   5.61         0.000            [0.003, 0.006]
+                               Gemma3-27b               -0.0034    0.001                                  -4.67         0.000          [-0.005, -0.002]
+                               GPT-4.1                  -0.0007    0.001                                  -1.07         0.284           [-0.002, 0.001]
+                               (Coder dummies omitted)
+                               R2 = 0.597      Adjusted R2 = 0.518
+
+
+B.5       Coder Rankings for Hypothesis 6
+This appendix presents full coder ranking tables supporting Hypothesis 6 (Section 5.2.4), which investi-
+gates whether the choice of evaluation LLM affects the relative ranking of coders. For each metric, we
+compute average scores per coder and rank them separately under four evaluation models in Condition 3
+and Condition 4. Rel denotes the strength of evidence that the listed coder performs better than the next
+one in the ranking chain.
+   Symbols: >>> p ≤ 0.001; >> 0.001 < p ≤ 0.01; > 0.01 < p ≤ 0.05; ≈ p > 0.05. These
+thresholds are derived from Tukey’s HSD post-hoc comparisons following a one-way ANOVA on metric
+values, conducted separately for each condition.
+
+                                     Table 21: Coder rankings for Coverage, Condition 3 (Hypothesis 6).
+
+Condition 3                    Rel          Gemini-2.5-pro           Rel          Gemma3-27B              Rel              GPT-4.1               Rel        Qwen-QwQ-32B              Rel
+group: ai (87.66%)             >>>          group: ai (90.23%)       >>>         group: ai (86.50%)       >>>           group: ai (86.64%)       >>>         group: ai (87.25%)       >>>
+item-any-ai (56.67%)           >>>        item-any-ai (60.27%)       >         item-any-ai (56.54%)       >>>         item-any-ai (54.61%)       >>>       item-any-ai (55.27%)       >>>
+item-verb-ai (52.77%)          >>>       item-verb-ai (58.96%)       >>>      item-verb-ai (51.35%)       >>>        item-verb-ai (49.89%)       >>>      item-verb-ai (50.87%)       >>>
+group: human (43.93%)          >>>      group: human (48.08%)        >>>     group: human (42.39%)        >>>       group: human (42.34%)        >>>     group: human (42.90%)        >>>
+human-c (18.36%)               >>>          human-c (22.85%)         >>>         human-c (16.47%)         ≈             human-c (16.79%)         >>>         human-c (17.32%)         >>>
+human-b (16.11%)               >>>          human-b (18.11%)         >>>         human-b (16.14%)         >>>           human-b (14.80%)         >>>         human-b (15.37%)         ≈
+chunk-structured-ai (13.68%)   >            human-d (13.64%)         ≈     chunk-structured-ai (14.29%)   >>>     chunk-structured-ai (12.71%)   ≈     chunk-structured-ai (14.69%)   >>>
+chunk-barany-ai (12.64%)       ≈      chunk-structured-ai (13.02%)   ≈      chunk-barany-ai (12.83%)      >>>      chunk-barany-ai (11.83%)      ≈      chunk-barany-ai (13.15%)      ≈
+human-d (12.43%)               >>>     chunk-barany-ai (12.74%)      >           human-d (12.02%)         >>>           human-d (11.62%)         >>          human-d (12.44%)         >>>
+human-a (10.71%)                            human-a (11.39%)                     human-a (10.40%)                       human-a (10.52%)                     human-a (10.55%)
+
+
+
+
+                                     Table 22: Coder rankings for Coverage, Condition 4 (Hypothesis 6).
+
+Condition 4                    Rel          Gemini-2.5-pro           Rel          Gemma3-27B              Rel              GPT-4.1               Rel        Qwen-QwQ-32B              Rel
+group: ai (87.29%)             >>>          group: ai (91.26%)       >>>         group: ai (85.28%)       >>>           group: ai (87.15%)       >>>         group: ai (85.45%)       >>>
+item-any-ai (60.48%)           >>>        item-any-ai (69.10%)       >>>       item-any-ai (56.87%)       >>>         item-any-ai (59.19%)       >>>       item-any-ai (56.76%)       >>>
+item-verb-ai (57.11%)          >>>       item-verb-ai (65.58%)       >>>      item-verb-ai (54.42%)       >>>        item-verb-ai (54.93%)       >>>      item-verb-ai (53.49%)       >>>
+group: human (47.10%)          >>>      group: human (55.52%)        >>>     group: human (44.90%)        >>>       group: human (44.16%)        >>>     group: human (43.83%)        >>>
+human-c (23.83%)               >>>          human-c (32.22%)         >>>         human-c (20.99%)         >>            human-c (21.81%)         >>>         human-c (20.30%)         >>>
+human-b (20.36%)               >>>          human-b (27.30%)         >>>         human-b (18.91%)         >             human-b (18.06%)         >>>         human-b (17.17%)         ≈
+chunk-structured-ai (17.32%)   ≈      chunk-structured-ai (21.35%)   ≈     chunk-structured-ai (16.97%)   ≈       chunk-structured-ai (15.32%)   ≈     chunk-structured-ai (15.66%)   ≈
+chunk-barany-ai (16.60%)       >       chunk-barany-ai (21.32%)      ≈      chunk-barany-ai (15.87%)      >        chunk-barany-ai (14.95%)      ≈      chunk-barany-ai (14.27%)      ≈
+human-d (15.25%)               >            human-d (20.43%)         ≈           human-d (13.96%)         ≈             human-d (14.04%)         ≈           human-d (12.56%)         ≈
+human-a (13.83%)                            human-a (18.83%)                     human-a (12.67%)                       human-a (12.43%)                     human-a (11.38%)
+
+
+
+
+                                                                                        41757
+                                      Table 23: Coder rankings for Overlap, Condition 3 (Hypothesis 6).
+
+Condition 3                    Rel          Gemini-2.5-pro            Rel         Gemma3-27B               Rel             GPT-4.1               Rel        Qwen-QwQ-32B              Rel
+group: ai (60.09%)             >>>          group: ai (70.62%)        >>>         group: ai (55.60%)       >>>          group: ai (56.08%)       >>>         group: ai (58.08%)       >>>
+item-any-ai (41.64%)           >>>        item-any-ai (47.70%)        >>        item-any-ai (41.21%)       >>>        item-any-ai (38.03%)       >>>       item-any-ai (39.60%)       >>>
+item-verb-ai (36.49%)          >>>       item-verb-ai (45.72%)        >>>      item-verb-ai (34.58%)       >>>       item-verb-ai (31.84%)       >>>      item-verb-ai (33.82%)       >>>
+group: human (23.33%)          >>>      group: human (28.80%)         >>>     group: human (21.55%)        >>>      group: human (20.88%)        >>>     group: human (22.08%)        >>>
+human-c (10.65%)               ≈            human-c (15.43%)          >>>          human-b (9.76%)         ≈             human-c (8.78%)         ≈            human-c (9.57%)         ≈
+human-b (9.86%)                ≈            human-b (12.21%)          >>>   chunk-structured-ai (9.14%)    ≈             human-b (8.28%)         ≈     chunk-structured-ai (9.48%)    ≈
+chunk-structured-ai (8.60%)    ≈             human-d (9.20%)          ≈            human-c (8.82%)         >>     chunk-structured-ai (7.44%)    ≈            human-b (9.18%)         ≈
+human-d (7.73%)                ≈      chunk-structured-ai (8.37%)     ≈      chunk-barany-ai (7.85%)       ≈             human-d (6.77%)         ≈      chunk-barany-ai (8.06%)       ≈
+chunk-barany-ai (7.68%)        ≈       chunk-barany-ai (8.14%)        ≈            human-d (7.34%)         >>>     chunk-barany-ai (6.68%)       ≈            human-d (7.62%)         >
+human-a (6.57%)                              human-a (7.55%)                       human-a (6.19%)                       human-a (6.22%)                      human-a (6.30%)
+
+
+
+
+                                      Table 24: Coder rankings for Overlap, Condition 4 (Hypothesis 6).
+
+Condition 4                    Rel           Gemini-2.5-pro           Rel           Gemma3-27B              Rel             GPT-4.1              Rel        Qwen-QwQ-32B              Rel
+group: ai (57.30%)             >>>           group: ai (73.02%)       >>>         group: ai (50.65%)        >>>          group: ai (55.45%)      >>>         group: ai (50.09%)       >>>
+item-any-ai (44.60%)           >>>         item-any-ai (57.66%)       >>        item-any-ai (39.58%)        >>>        item-any-ai (42.19%)      >>>       item-any-ai (38.97%)       >>>
+item-verb-ai (40.72%)          >>>        item-verb-ai (54.01%)       >>>      item-verb-ai (36.58%)        >>>       item-verb-ai (37.39%)      >>>      item-verb-ai (34.92%)       >>>
+group: human (24.71%)          >>>       group: human (34.62%)        >>>     group: human (21.65%)         >>>      group: human (21.66%)       >>>     group: human (20.90%)        >>>
+human-c (15.25%)               >             human-c (24.31%)         >>>         human-c (12.09%)          ≈            human-c (13.18%)        ≈           human-c (11.40%)         ≈
+human-b (13.14%)               ≈             human-b (20.23%)         >>>         human-b (11.52%)          ≈            human-b (10.89%)        ≈            human-b (9.92%)         ≈
+chunk-structured-ai (11.12%)   ≈        chunk-barany-ai (15.39%)      ≈     chunk-structured-ai (10.89%)    ≈       chunk-barany-ai (9.10%)      ≈     chunk-structured-ai (9.72%)    ≈
+chunk-barany-ai (10.83%)       ≈             human-d (15.11%)         ≈      chunk-barany-ai (10.15%)       ≈      chunk-structured-ai (9.01%)   ≈      chunk-barany-ai (8.68%)       ≈
+human-d (10.03%)               ≈       chunk-structured-ai (14.88%)   ≈            human-d (8.65%)          ≈             human-d (8.98%)        ≈            human-d (7.37%)         ≈
+human-a (8.97%)                              human-a (13.66%)                      human-a (7.78%)                        human-a (7.81%)                     human-a (6.62%)
+
+
+
+
+                                      Table 25: Coder rankings for Novelty, Condition 3 (Hypothesis 6).
+
+Condition 3                    Rel          Gemini-2.5-pro            Rel         Gemma3-27B               Rel             GPT-4.1               Rel        Qwen-QwQ-32B              Rel
+group: ai (81.03%)             >>>          group: ai (83.66%)        >>>         group: ai (79.24%)       >>>          group: ai (80.56%)       >>>         group: ai (80.67%)       >>>
+item-any-ai (45.05%)           >>>        item-any-ai (47.25%)        >>>       item-any-ai (44.34%)       >>>        item-any-ai (44.33%)       >>>       item-any-ai (44.26%)       >>>
+item-verb-ai (42.12%)          >>>       item-verb-ai (44.94%)        >>>      item-verb-ai (41.07%)       >>>       item-verb-ai (40.69%)       >>>      item-verb-ai (41.78%)       >>>
+group: human (30.84%)          >>>      group: human (31.36%)         >>>     group: human (30.60%)        >>>      group: human (30.79%)        >>>     group: human (30.61%)        >>>
+human-c (12.84%)               >>>          human-c (13.54%)          >>>         human-c (12.44%)         >>>          human-c (12.60%)         >>>         human-c (12.79%)         >>>
+human-b (9.77%)                >>>           human-b (9.93%)          >>           human-b (9.76%)         >>>           human-b (9.97%)         >>>          human-b (9.44%)         >>
+chunk-structured-ai (7.79%)    >      chunk-structured-ai (8.68%)     ≈     chunk-structured-ai (7.50%)    >>     chunk-structured-ai (7.65%)    ≈     chunk-structured-ai (7.34%)    ≈
+chunk-barany-ai (7.21%)        >>>     chunk-barany-ai (7.90%)        >      chunk-barany-ai (6.86%)       ≈       chunk-barany-ai (7.08%)       >>>    chunk-barany-ai (6.99%)       ≈
+human-d (6.44%)                >             human-d (6.77%)          ≈            human-d (6.44%)         >             human-d (6.09%)         ≈            human-d (6.46%)         ≈
+human-a (5.82%)                              human-a (5.79%)                       human-a (5.94%)                       human-a (5.76%)                      human-a (5.80%)
+
+
+
+
+                                      Table 26: Coder rankings for Novelty, Condition 4 (Hypothesis 6).
+
+Condition 4                    Rel          Gemini-2.5-pro            Rel          Gemma3-27B              Rel             GPT-4.1               Rel        Qwen-QwQ-32B              Rel
+group: ai (77.74%)             >>>          group: ai (80.88%)        >>>         group: ai (75.22%)       >>>          group: ai (78.34%)       >>>         group: ai (76.50%)       >>>
+item-any-ai (36.59%)           ≈          item-any-ai (39.56%)        >>>      item-verb-ai (34.99%)       ≈          item-any-ai (36.49%)       >        item-verb-ai (36.74%)       ≈
+item-verb-ai (35.80%)          >>>       item-verb-ai (36.31%)        >>>       item-any-ai (34.74%)       >>>       item-verb-ai (35.17%)       >>>       item-any-ai (35.58%)       >>>
+group: human (27.12%)          >>>      group: human (27.41%)         >>>     group: human (28.28%)        >>>      group: human (25.06%)        >>>     group: human (27.73%)        >>>
+human-c (11.78%)               >>>          human-c (11.97%)          ≈           human-c (11.84%)         >>>          human-c (11.14%)         >>>         human-c (12.16%)         >>>
+human-b (8.47%)                ≈      chunk-structured-ai (11.29%)    ≈            human-b (8.70%)         >>>    chunk-structured-ai (8.26%)    ≈            human-b (8.03%)         >>
+chunk-structured-ai (8.00%)    ≈        chunk-barany-ai (9.62%)       ≈      chunk-barany-ai (6.97%)       ≈             human-b (7.58%)         ≈     chunk-structured-ai (6.15%)    ≈
+chunk-barany-ai (7.36%)        >>>           human-b (9.59%)          >>>   chunk-structured-ai (6.31%)    ≈       chunk-barany-ai (7.15%)       >>>    chunk-barany-ai (5.69%)       ≈
+human-d (5.37%)                ≈             human-d (6.59%)          ≈            human-d (5.41%)         ≈             human-d (4.16%)         ≈            human-d (5.33%)         ≈
+human-a (4.92%)                              human-a (6.24%)                       human-a (5.04%)                       human-a (4.09%)                      human-a (4.33%)
+
+
+
+
+                                     Table 27: Coder rankings for Divergence, Condition 3 (Hypothesis 6).
+
+Condition 3                    Rel          Gemini-2.5-pro            Rel          Gemma3-27B              Rel             GPT-4.1               Rel        Qwen-QwQ-32B              Rel
+human-a (73.88%)               >            human-a (71.91%)          ≈           human-a (74.56%)         >>>          human-a (74.62%)         ≈           human-a (74.44%)         >>>
+chunk-barany-ai (72.87%)       ≈       chunk-barany-ai (71.78%)       ≈           human-c (73.38%)         ≈       chunk-barany-ai (74.52%)      ≈           human-d (72.83%)         ≈
+human-d (72.61%)               >      chunk-structured-ai (71.29%)    ≈           human-d (73.05%)         ≈            human-d (74.13%)         ≈      chunk-barany-ai (72.40%)      ≈
+chunk-structured-ai (71.57%)   ≈            human-d (70.45%)          >>>    chunk-barany-ai (72.76%)      >>>    chunk-structured-ai (73.53%)   ≈           human-c (72.38%)         ≈
+human-c (71.24%)               ≈            human-b (67.73%)          >>>         human-b (71.07%)         ≈            human-c (73.43%)         ≈           human-b (71.78%)         >>>
+human-b (70.89%)               >>>          human-c (65.79%)          >>>   chunk-structured-ai (71.01%)   >>>          human-b (72.96%)         >>>   chunk-structured-ai (70.44%)   >>>
+group: ai (65.24%)             ≈            group: ai (60.48%)        ≈           group: ai (66.89%)       >            group: ai (67.14%)       ≈           group: ai (66.46%)       ≈
+group: human (64.77%)          >>>      group: human (59.93%)         >>>     group: human (66.34%)        >>>      group: human (66.88%)        >>>     group: human (65.93%)        >>>
+item-verb-ai (60.17%)          >>>       item-verb-ai (53.78%)        >>       item-verb-ai (61.38%)       >>>       item-verb-ai (63.30%)       >>>      item-verb-ai (62.21%)       >>>
+item-any-ai (57.20%)                      item-any-ai (52.27%)                  item-any-ai (57.83%)                  item-any-ai (59.91%)                 item-any-ai (58.81%)
+
+
+
+
+                                     Table 28: Coder rankings for Divergence, Condition 4 (Hypothesis 6).
+
+Condition 4                    Rel          Gemini-2.5-pro            Rel          Gemma3-27B              Rel             GPT-4.1               Rel        Qwen-QwQ-32B              Rel
+human-a (74.57%)               ≈      chunk-structured-ai (70.94%)    ≈           human-a (75.75%)         ≈            human-a (75.38%)         ≈           human-a (76.45%)         ≈
+human-d (73.98%)               ≈            human-a (70.68%)          ≈           human-d (75.28%)         ≈      chunk-structured-ai (75.00%)   ≈           human-d (75.98%)         ≈
+chunk-barany-ai (73.59%)       ≈       chunk-barany-ai (70.36%)       ≈           human-c (74.41%)         ≈       chunk-barany-ai (74.76%)      ≈      chunk-barany-ai (75.01%)      ≈
+chunk-structured-ai (73.41%)   >>           human-d (70.09%)          >>>    chunk-barany-ai (74.23%)      ≈            human-d (74.59%)         ≈           human-b (74.54%)         ≈
+human-b (72.37%)               ≈            human-b (67.20%)          >           human-b (73.84%)         ≈            human-b (73.89%)         ≈           human-c (74.33%)         ≈
+human-c (71.86%)               >>>          human-c (65.45%)          ≈     chunk-structured-ai (73.53%)   >>           human-c (73.23%)         >>>   chunk-structured-ai (74.18%)   >>>
+group: ai (70.05%)             >>>          group: ai (65.00%)        >>>         group: ai (72.02%)       >>>          group: ai (71.33%)       >>          group: ai (71.83%)       >
+group: human (68.09%)          >>>      group: human (61.91%)         >>>     group: human (70.45%)        >>>      group: human (69.62%)        >>>     group: human (70.40%)        >>>
+item-verb-ai (64.07%)          >>>       item-verb-ai (57.50%)        ≈        item-verb-ai (66.28%)       >>        item-verb-ai (65.87%)       >>>      item-verb-ai (66.62%)       >>>
+item-any-ai (62.41%)                      item-any-ai (56.40%)                  item-any-ai (64.94%)                  item-any-ai (63.87%)                 item-any-ai (64.45%)
+
+
+
+
+                                                                                         41758
+

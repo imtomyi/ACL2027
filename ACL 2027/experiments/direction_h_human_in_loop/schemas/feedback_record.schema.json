@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-feedback-record-v1.json",
+  "title": "Direction H linked human feedback record",
+  "description": "A feedback sidecar linked to, but never embedded in or substituted for, one canonical qc-paper-metrics-v1 rating. The model_feedback projection contains only material permitted in a frozen revision-model input.",
+  "type": "object",
+  "required": [
+    "feedback_version",
+    "feedback_id",
+    "pilot_item_id",
+    "rating_key",
+    "feedback_status",
+    "model_feedback",
+    "created_at_utc"
+  ],
+  "properties": {
+    "feedback_version": {
+      "const": "direction-h-feedback-v1"
+    },
+    "feedback_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "pilot_item_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "rating_key": {
+      "$ref": "#/$defs/ratingKey"
+    },
+    "feedback_status": {
+      "enum": [
+        "no_change",
+        "actionable_revision",
+        "reject_or_regenerate",
+        "human_escalation"
+      ]
+    },
+    "model_feedback": {
+      "$ref": "#/$defs/modelFeedback"
+    },
+    "created_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "feedback_status": {
+            "const": "no_change"
+          }
+        },
+        "required": ["feedback_status"]
+      },
+      "then": {
+        "properties": {
+          "model_feedback": {
+            "properties": {
+              "findings": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "feedback_status": {
+            "enum": ["actionable_revision", "reject_or_regenerate"]
+          }
+        },
+        "required": ["feedback_status"]
+      },
+      "then": {
+        "properties": {
+          "model_feedback": {
+            "properties": {
+              "findings": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "errorFlag": {
+      "enum": [
+        "fabricated_or_altered_quote",
+        "wrong_attribution",
+        "unsupported_inference",
+        "hidden_source_concentration",
+        "lost_negative_case",
+        "contextual_flattening",
+        "unsupported_abstraction",
+        "sensitive_or_diagnostic_inference",
+        "inconsistent_codebook",
+        "other"
+      ]
+    },
+    "ratingKey": {
+      "type": "object",
+      "required": [
+        "annotation_version",
+        "rater_id",
+        "packet_id",
+        "output_id",
+        "rated_at_utc",
+        "rating_record_sha256"
+      ],
+      "properties": {
+        "annotation_version": {
+          "const": "qc-paper-metrics-v1"
+        },
+        "rater_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "packet_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "output_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "rated_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "rating_record_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "additionalProperties": false
+    },
+    "finding": {
+      "type": "object",
+      "required": [
+        "finding_id",
+        "error_flag",
+        "severity",
+        "output_locations",
+        "evidence_excerpt_ids",
+        "issue",
+        "requested_change"
+      ],
+      "properties": {
+        "finding_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "error_flag": {
+          "$ref": "#/$defs/errorFlag"
+        },
+        "severity": {
+          "description": "Issue severity for revision. Only `serious` findings populate the canonical rating's serious_error_flags; minor/material findings remain actionable sidecar feedback without changing that core field.",
+          "enum": [
+            "minor",
+            "material",
+            "serious"
+          ]
+        },
+        "output_locations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "type": "string",
+            "pattern": "^/",
+            "maxLength": 500
+          },
+          "uniqueItems": true
+        },
+        "evidence_excerpt_ids": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "uniqueItems": true
+        },
+        "issue": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "requested_change": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "additionalProperties": false
+    },
+    "modelFeedback": {
+      "type": "object",
+      "description": "Identity-free feedback projection that may be copied verbatim into a revision case. It must not contain ratings, confidence, review time, arm labels, target truth, or manipulation labels.",
+      "required": [
+        "feedback_summary",
+        "findings",
+        "preserve",
+        "uncertainties"
+      ],
+      "properties": {
+        "feedback_summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3000
+        },
+        "findings": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        },
+        "preserve": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "uniqueItems": true
+        },
+        "uncertainties": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

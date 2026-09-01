@@ -1,0 +1,864 @@
+       Exploring Large Language Models for Qualitative Data Analysis
+
+                             Tim Fischer, Chris Biemann
+  Language Technology Group, Department of Informatics, University of Hamburg, Germany
+                       {firstname.lastname}@uni-hamburg.de
+
+
+
+
+                      Abstract                             data and conducting in-depth qualitative analysis.
+                                                           This involves organizing and categorizing docu-
+    This paper explores the potential of Large             ments through metadata assignment and creating
+    Language Models (LLMs) to enhance qualita-
+                                                           a tag taxonomy, which is utilized for classifying
+    tive data analysis (QDA) workflows within the
+    open-source QDA platform developed at our
+                                                           documents. Simultaneously, they dive into the nu-
+    university. We identify several opportunities          ances of the material, developing hierarchical code
+    within a typical QDA workflow where AI as-             taxonomies to annotate relevant text passages and
+    sistance can boost researcher productivity and         capturing their insights through memos.
+    translate these opportunities into corresponding          While tasks like metadata extraction and doc-
+    NLP tasks: document classification, informa-           ument classification can be repetitive and time-
+    tion extraction, span classification, and text gen-    consuming, qualitative analysis tasks such as an-
+    eration. A benchmark tailored to these QDA
+                                                           notation, paraphrasing, and summarization are de-
+    activities is constructed, utilizing English and
+    German datasets that align with relevant use           manding. The potential for AI assistance to stream-
+    cases. Focusing on efficiency and accessibility,       line and enhance these diverse workflows motivates
+    we evaluate the performance of three promi-            our exploration of Large Language Models (LLMs).
+    nent open-source LLMs - Llama 3.1, Gemma               Hence, this work aims to assess how effectively
+    2, and Mistral NeMo - on this benchmark. Our           LLMs can support users in QDA tasks and ulti-
+    findings reveal the promise of LLM integration         mately boost their efficiency and productivity. To
+    for streamlining QDA workflows, particularly
+                                                           this end, we identify four core NLP tasks embed-
+    for English-language projects. Consequently,
+    we have implemented the LLM Assistant as an
+                                                           ded in our QDA platform’s core functionalities: 1)
+    opt-in feature within our platform and report          document classification, 2) document information
+    the implementation details. With this, we hope         extraction, 3) span classification, and 4) text genera-
+    to further democratize access to AI capabilities       tion. We then curate datasets that closely align with
+    for qualitative data analysis.                         real-world use cases regarding domain and tasks,
+                                                           focusing on English and German. Subsequently,
+1 Introduction                                             we evaluate the performance of three state-of-the-
+The Discourse Analysis Tool Suite (Schneider et al., art open-source LLMs, Llama 3.1, Gemma 2, and
+2023) is a platform developed at our university to         Mistral NeMo, on this benchmark.
+empower Digital Humanities (DH) researchers in                Our findings show the promising potential of
+conducting qualitative data analysis (QDA). De- LLM integration within the Discourse Analy-
+veloped collaboratively and tailored to the specific       sis Tool Suite (DATS), particularly for English
+needs of DH scholars, the platform democratizes            projects. Consequently, we implement the LLM
+access to machine learning methods, enabling non- Assistant as an opt-in feature for English projects,
+experts to manage and analyze large-scale, unstruc- paving the way for further enhancements and ex-
+tured, multi-modal data effectively.                       pansions. Contributions of this paper are:
+   While the platform’s overarching design is                 1. We articulate the envisioned AI-assisted work-
+rooted in Grounded Theory-based research (Strauss                flow within our platform, highlighting user
+and Corbin 1990, Strauss et al. 1996), its versatile             needs and requirements.
+features support various disciplines. Within the              2. We design a benchmark tailored specifically
+core QDA workflow on our platform, researchers                   to common QDA tasks within our platform.
+engage in a dynamic process of structuring their              3. We evaluate open-source LLMs on it.
+                                                        423
+  Proceedings of the 4th International Conference on Natural Language Processing for Digital Humanities, pages 423–437
+                           November 16, 2024. ©2024 Association for Computational Linguistics
+    4. We report on their integration into our tool.      but not necessarily those most relevant to QDA
+   This work represents our first step towards au-        workflows. In contrast, Ziems et al. (2024) ex-
+tomating and providing assistance for various com-        plores the potential of LLMs to transform Compu-
+mon tasks in our QDA platform using LLMs. We              tational Social Science (CSS) by evaluating their
+aim to facilitate more efficient, insightful qualita-     zero-shot performance on a range of English CSS
+tive data analysis by augmenting researchers’ capa-       tasks. Their extensive evaluation, focused on tax-
+bilities with LLM assistance.                             onomic labeling and free-form coding, highlights
+                                                          LLMs’ potential to augment CSS research as zero-
+2     Related work                                        shot data annotators, strongly motivating our work.
+                                                          Still, many benchmarks prioritize English data.
+QDA Platforms and AI Integration Several
+                                                             Our benchmark is constructed to be relevant to
+prominent platforms have emerged in the realm
+                                                          the tasks and data encountered in QDA, incorporat-
+of qualitative data analysis software, each offer-
+                                                          ing datasets that approximate real-world scenarios
+ing distinct functionalities to researchers. Some
+                                                          within our platform. Focusing on document classi-
+platforms have taken notable steps towards incor-
+                                                          fication, information extraction, span classification,
+porating AI-powered features into their workflows.
+                                                          and text generation in English and German, we
+   CATMA (Gius et al., 2022) is a versatile QDA
+                                                          aim to gather insights that can directly inform the
+tool focusing on text and image analysis. It cur-
+                                                          effective integration and utilization of LLMs in
+rently lacks built-in AI capabilities.
+                                                          qualitative research.
+   Known for its comprehensive approach to qual-
+itative and mixed-methods research, MAXQDA1               LLMs and QDA Rasheed et al. (2024) explores
+has introduced "MAXQDA AI Assist," offering AI-           the potential of LLMs to serve as data analysts
+driven features like summarization, paraphrasing,         in qualitative research within Software Engineer-
+and concept explanation.                                  ing. Their approach employs a multi-agent model
+   A robust platform for qualitative data analysis,       where each LLM agent performs specific research-
+NVivo’s2 latest beta version is actively integrat-        related tasks, such as interpreting textual data and
+ing AI functionalities, including thematic coding,        interview transcripts, to automate common quali-
+sentiment analysis, and text summarization.               tative analysis processes. Their findings suggest
+   Atlas.ti3 is recognized for its visual and network-    that LLMs can significantly accelerate data analy-
+based analysis tools. The platform incorporates AI        sis, allowing researchers to handle larger datasets
+with existing features like code suggestions, senti-      efficiently, which further motivates this work.
+ment analysis, summarization, and entity recogni-
+tion powered by OpenAI’s GPT models.                      3   Envisioned workflow
+   Notably, AI-powered features within these QDA
+                                                           This section presents an illustrative excerpt of
+platforms are currently only found in paid versions.
+                                                           a qualitative data analysis workflow inspired by
+They are realized by sending data to third-party
+                                                           project partners who actively utilize the Discourse
+providers, potentially leading to data protection
+                                                           Analysis Tool Suite. This scenario highlights poten-
+issues. In contrast, our open-source QDA platform
+                                                           tial areas where AI-powered automation enhances
+aims to democratize access to state-of-the-art AI
+                                                           productivity.
+capabilities, making advanced functionalities freely
+                                                              Imagine Alice, a researcher aiming to analyze
+available to researchers across disciplines. It can
+                                                           local companies across various industries, focusing
+be run in-house if required.
+                                                           on their societal impact and challenges. She initi-
+LLM Benchmarks While several prominent                     ates semi-structured interviews with CEOs, stating
+general LLM benchmarks like MMLU (Hendrycks                the current date, introducing herself, and then in-
+et al., 2021), SuperGLUE (Wang et al., 2019), BIG- quiring about company details (e.g., size, sales vol-
+bench (Srivastava et al., 2023), HELM (Liang et al., ume) and the interviewee’s background (e.g., name,
+2023), and MTEB (Muennighoff et al., 2023) ex- age, position) before asking her research questions.
+ist, they often lack a direct connection to specific       She records these interviews with her smartphone.
+real-world applications, including qualitative data           After collecting data, Alice starts the qualitative
+analysis. They may cover a broad range of tasks            analysis  process within our QDA platform. She
+1
+  https://maxqda.com                2
+                                      https://nvivo.de/    creates a new project, defines document tags for
+3
+  https://atlasti.com                                      industry categorization, and establishes metadata
+                                                        424
+fields like "Interview Date," "Company Size," and       4.1   Models
+"Partner Name" to capture crucial interview de-
+tails. Upon uploading her recorded interviews, our      Our open-source Discourse Analysis Tool Suite ex-
+platform currently utilizes Whisper (Radford et al.,    clusively employs open-source and open-licensed
+2022) to generate automatic transcripts.                libraries, which extends to integrated models. Since
+                                                        our primary users, universities and researchers, of-
+   After the automatic pre-processing, Alice is pre-
+                                                        ten handle sensitive data, local execution of the en-
+sented with interview transcripts, which are now
+                                                        tire platform, including models, is crucial for main-
+automatically tagged by industry and partially pop-
+                                                        taining data privacy. Given such environments’ typ-
+ulated with metadata. The AI-powered system sug-
+                                                        ically limited computational resources, we focus
+gested tags and metadata values based on the inter-
+                                                        on small, efficient LLM variants for fast inference.
+view content, which Alice verifies and completes
+with the help of an intuitive UI.                          As a result, we evaluate three state-of-the-art
+                                                        open-source decoder-only models: Llama 3.1
+   Having an organized document collection, Alice
+                                                        (Dubey et al. 2024, Touvron et al. 2023), Gemma 2
+starts the qualitative annotation. She constructs
+                                                        (Gemma Team, 2024), and Mistral NeMo (Mistral
+a code system aligned with her research ques-
+                                                        AI Team 2024, Jiang et al. 2023) with 8B, 9B, and
+tions that incorporates codes like "Social Impact"
+                                                        12B parameters, respectively. This makes deploy-
+and fine-grained sub-codes for "Problems". Next,
+                                                        ing them in environments with limited resources
+she activates the auto-coding feature, and the AI-
+                                                        possible. We only test instruct fine-tuned models
+powered system suggests relevant text annotations.
+                                                        and use half-precision (FP16) variants. Llama 3.1
+An interface allows her to review these suggestions.
+                                                        is an openly accessible, open-source model from
+   While reviewing, Alice notices occasional dis-       Meta AI published under the Llama 3 Community
+fluencies like repetitions and filler words, typical    License. It has a large context window of 128k
+of verbatim transcriptions. She selects a disfluent     tokens and was trained on a corpus of about 15 tril-
+passage, activates the paraphrasing feature, and is     lion multilingual tokens. Gemma 2 is a lightweight,
+presented with an AI-generated suggestion. After        open model from Google, built from the same tech-
+minor edits, she approves the improved version.         nology as their Gemini models. This variant was
+Similarly, she employs the automatic summariza-         trained on 8 trillion tokens from web documents,
+tion feature to condense lengthy answers to her         code, and mathematics, primarily in English. Mis-
+interview questions for improved clarity.               tral NeMo is a model from Mistral AI built in col-
+   Equipped with such AI-powered tools, Alice ef-       laboration with NVIDIA and published under the
+ficiently processes her remaining transcripts and       Apache 2.0 license. It also offers a large context
+utilizes our platform’s analytical features to answer   window of up to 128k tokens and was trained on
+her research questions.                                 multi-lingual and code data.
+
+
+                                                        4.2   Experiment construction
+4   Benchmark of QDA-related NLP Tasks
+                                                        We conduct zero-shot experiments using a single,
+This benchmark evaluates LLMs on tasks mirror-          clear prompt for each task, dataset, and language,
+ing real-world QDA use cases, as outlined in the        deliberately avoiding extensive prompt engineer-
+previous section. We aim to identify the most suit-     ing (prompts are detailed in appendix A, dataset
+able model for effective user support to be inte-       taxonomies are listed in appendix B). Models are
+grated into DATS. To this end, we carefully select      instructed on the expected output format, and devi-
+datasets for document classification (assigning tags    ations are counted as errors. We report formatting
+to documents), document information extraction          adherence at the end of this chapter.
+(extraction of metadata from documents), span clas-        All experiments ran on a single A100 GPU, re-
+sification (annotation of relevant passages), and       peated three times per configuration. Reported re-
+text generation (correcting and summarizing text        sults are averaged across runs to mitigate fluctua-
+passages). Our platform mainly caters to English        tions. We further aggregate results by model and
+and German data, so we focus our evaluation and         task because of space restrictions; full results are
+dataset selection on these two languages.               listed in the appendix.
+                                                     425
+4.3      Task 1: Document classification                                       Model       Task       Prec    Recall        F1    Acc
+Document classification is essential in QDA for                                gemma2      coarse    67.20     65.42    64.85     65.4
+organizing data collections. Our platform supports                             llama3.1    coarse    64.33     59.36    58.07     59.4
+fine-grained tag sets that enable researchers to clas-                         mistral     coarse    64.39     62.00    61.28     62.0
+sify documents into one or more groups. Many
+analysis features rely on these tags for comparison                            gemma2      fine      70.50     62.00    63.00     62.4
+and sub-corpora creation, highlighting the potential                           llama3.1    fine      57.50     36.00    34.00     35.9
+of automatic tag suggestions to improve workflows.                             mistral     fine      66.50     53.50    55.00     53.6
+   We assess LLMs on two relevant document clas-                               gemma2      multi     55.48     52.23    52.35      8.6
+sification tasks. Multi-class involves assigning a                             llama3.1    multi     52.12     42.38    43.95      6.9
+single class from pre-defined options, further dif-                            mistral     multi     57.51     49.62    51.05      8.6
+ferentiated into coarse- and fine-grained settings
+based on the number of classes. Multi-label allows                             Table 1: Evaluation of Task 1 - Document Classification
+for multiple class associations.
+4.3.1 Datasets                                                                    Gemma 2 consistently outperforms the other
+Tagesschau is an established German news web-                                  models, maintaining high performance (64.85 F1
+site known for its serious and objective reporting                             coarse, 63.00 fine) despite the significant increase
+covering news from Germany and the world. We                                   in classes for the fine-grained classification tasks.
+automatically extracted a taxonomy of 4 main cate-                             In contrast, the other models struggle in the fine-
+gories (coarse) and 20 sub-categories (fine) from a                            grained scenario, Llama 3.1 performing the worst
+publicly available crawl4 spanning 2018 – 2023.                                (34.00 F1). We refer to appendix Table 5 to com-
+   BBC is the public service broadcaster of the                                pare English and German performance. For coarse-
+United Kingdom that publishes English news from                                grained classification, all models exhibit superior
+UK and the world and is deemed a trusted source                                performance on the German Tagesschau dataset
+of information. Similarly, we extracted a taxonomy                             compared to the English BBC dataset but experi-
+of 4 main categories (coarse) and 26 sub-categories                            ence a noticeable drop (over 22 points F1) on the
+(fined) from the BBC dataset published by Li et al.                            fine-grained German task. This suggests challenges
+(2024) that covers 2017 – 2024.                                                in German fine-grained classification.
+   IMDb, the Internet Movie Database, contains
+information about movies, TV shows, etc. The                                   4.4 Task 2: Document Information Extraction
+IMDb Genres dataset5 includes movie descriptions                               Similar to document classification, assigning meta-
+and their classification into one of 16 major genres                           data to research materials aids data organization
+(coarse) and 2-3 of 25 subgenres (multi-label). For                            in QDA. DATS enables users to define metadata
+all datasets, we sampled 10.000 documents.                                     that is used for features like search, filtering, visu-
+   Since analyzing news articles is a common use                               alization, and quantitative analysis. As automating
+case within our Discourse Analysis Tool Suite, the                             metadata extraction could boost researcher produc-
+Tagesschau and BBC datasets, which are news                                    tivity, this is a relevant task.
+datasets, are a good fit for this benchmark. While                                We frame it as document-level information ex-
+not directly related to our domain, the IMDb Gen-                              traction, exploring extractive question-answering
+res dataset was explicitly included for its multi-                             (EQA) and template-filling approaches. EQA in-
+label classification task.                                                     volves extracting answers from the context or label-
+                                                                               ing them as unanswerable. Template-filling (sim-
+4.3.2 Results
+                                                                               ilar to slot-filling, relation extraction, and event
+We evaluate document classification on three sub-                              extraction) focuses on extracting multiple related
+tasks: coarse-, fine-grained, and multi-label clas-                            information, e.g., arguments of a relation or infor-
+sification. The aggregated results are presented                               mation about an event.
+in Table 1, and the complete evaluation is in the
+appendix, Table 5. We report weighted Precision                                4.4.1   Datasets
+(Prec), Recall, F1, and Accuracy (Acc).                                        The Stanford Question Answering Dataset
+4
+    https://github.com/bjoernpl/tagesschau                                     (SQuAD) by Rajpurkar et al. (2016) is a bench-
+5
+    https://kaggle.com/datasets/rajugc/imdb-movies-dataset-based-on-genre      mark dataset for extractive question-answering. It
+                                                                            426
+consists of questions posed by crowd workers on              Model              Task                EM         F1
+a set of Wikipedia articles, where the answer to
+every question is a text segment from the context.           gemma2             extractive-qa      66.53   79.41
+   The SQuAD 2.0 dataset (Rajpurkar et al., 2018)            llama3.1           extractive-qa      56.04   70.64
+builds upon the original one and introduces unan-            mistral-nemo       extractive-qa      55.21   72.39
+swerable questions, making it more challenging.              gemma2             template-filling   36.69   36.70
+Crowd workers carefully crafted the unanswerable             llama3.1           template-filling   40.62   40.63
+questions to be similar to answerable ones.                  mistral            template-filling   23.86   23.87
+   The GermanQuAD dataset (Möller et al., 2021)
+is a German counterpart to SQuAD. This extrac-              Table 2: Evaluation of Task 2 - Information Extraction.
+tive question-answering dataset was carefully con-
+structed by students and experts familiar with ma-
+                                                            4.5     Task 3: Span classification
+chine learning and QA on the German variants of
+the English Wikipedia articles used in SQuAD.               Annotation (often also called coding) of relevant
+   These datasets, with multiple questions per              text passages (spans) is critical to many QDA
+Wikipedia passage, align with our scenario of ex-           projects and especially important for research
+tracting various metadata from documents. While             projects following the Grounded Theory paradigm.
+some questions align with typical metadata fields           Here, the coding is done in the three phases of
+(e.g., "When," "How many," "Where"), others                 "open," "selective," and "axial" coding. Our Dis-
+target more complex information, making them                course Analysis Tool Suite supports these coding
+less suitable for metadata extraction. Nonetheless,         phases. Automating parts of the annotation pro-
+strong performance on these datasets indicates po-          cess could streamline their workflow, making this
+tential for successful application in DATS.                 a relevant benchmark task. As users can create
+   The MUC-4 dataset (Sundheim, 1992), designed             fine-grained code systems to annotate text passages
+for template-filling, contains 1700 news articles           in our platform, we formulate the automatic anno-
+about terrorist incidents. It requires systems to clas-     tation of text passages as coarse- and fine-grained
+sify each incident and fill five slots of relevant infor-   span classification tasks.
+mation. This dataset aligns well with our use case
+                                                            4.5.1    Datasets
+of extracting multiple metadata from documents,
+particularly within the news domain, making it an        Few-NERD (Ding et al., 2021) is a fine-grained,
+ideal fit for our benchmark.                             large-scale Named Entity Recognition dataset con-
+                                                         sisting of 8 coarse-grained and 66 fine-grained cat-
+4.4.2 Results                                            egories. Over 180,000 sentences of Wikipedia ar-
+We evaluate document-level information extrac- ticles were carefully annotated by experienced an-
+tion on two sub-tasks: extractive QA and template- notators. German LER (Leitner et al., 2020), the
+filling. The aggregated results are shown in Table       German Legal Entity Recognition dataset, consists
+2, the complete evaluation in the appendix, Table 6. of German legal documents and a typology rele-
+We report Exact Match (EM) and F1 scores, with           vant to court decisions with 7 coarse-grained and 19
+template-filling scores averaged across all slots.       fine-grained types. About 66,000 sentences were
+    While Gemma 2 exhibits a clear advantage in          annotated by two domain experts. This dataset is
+extractive QA (79 F1), Llama 3.1 performs best           challenging, as models need to be familiar with
+in template-filling (40 F1). Interestingly, template- German law terms. While categories like persons,
+filling is a greater challenge overall, likely due to    events, and organizations are relevant, we often
+the increased complexity of extracting multiple cor- observe different annotations spanning multiple
+rect answers simultaneously, as reflected in the         sentences in QDA projects. Still, FewNERD and
+lower scores across all models (at least 70 F1 for       German LER are included in our benchmark as
+extractive qa vs. at most 40 F1 for template filling). NER is a prominent span classification task, and
+In extractive QA, the models exhibit comparable          we argue that understanding the concepts of these
+performance on the GermanQuAD and SQuAD                  datasets is likely required for performing well on
+datasets (refer to appendix Table 6), indicating no      more complex annotation tasks.
+significant difference between English and German           The dataset for quotation attribution in German
+language capabilities.                                   news articles (Petersen-Frey and Biemann, 2024)
+                                                      427
+consists of 1000 annotated German news articles           Model      Task           P        R       F1     Acc
+from WIKINEWS. It includes information about
+who said what to whom as well as how and in which         gemma2     coarse    35.19    44.07     37.98    85.02
+context. Quotations are categorized into direct, in-      llama3.1   coarse    26.22     4.70      7.82    80.33
+direct, free, and reported speech. This task is part of   mistral    coarse    39.28    15.38     21.22    81.76
+the benchmark, as the identification and annotation       gemma2     fine      40.25    31.64     31.84    83.86
+of utterances were common to multiple projects            llama3.1   fine      26.66     4.16      6.78    80.37
+we conducted with colleagues from social sciences.        mistral    fine      39.72    10.66     15.39    81.04
+However, we simplify this task by considering only
+                                                          gemma2     quot      36.40    25.61     29.81    90.29
+"speaker" and "direct speech" annotations.
+                                                          llama3.1   quot      33.16    10.88     15.18    88.17
+4.5.2   Results                                           mistral    quot      23.03    10.69     13.71    86.24
+We evaluate span classification on three sub-tasks:
+                                                           Table 3: Evaluation of Task 3 - Span Classification
+coarse-, fine-grained NER (coarse, fine), and quo-
+tations (quot). The aggregated results are listed
+in Table 3. The full evaluation is reported in the        according to specific aspects systematically.
+appendix, Table 7. We report weighted Precision              DATS allows users to attach notes to documents
+(P), Recall (R), F1 score, and Accuracy (Acc). Ac-        or text passages. As hinted at in Section 3, we aim
+curacy includes the classification of outside tokens.     to expand this functionality with fluency correc-
+   Gemma 2 consistently outperforms the other             tion and text summarization capabilities. Assisting
+models across all sub-tasks (30–38 F1). Llama             users with this can streamline their workflow. Con-
+3.1’s performance is notably poor (7–15 F1), pri-         sequently, we consider the two text generation tasks
+marily due to its frequent failure to adhere to output    in our benchmark.
+formatting instructions. The model often switches            Abstractive summarization involves generating
+the positions of NER labels and corresponding text        concise and fluent summaries similar to human-
+spans, leading to significant parsing errors. To          written ones and is thus likely preferred by our
+maintain a fair comparison across all models, we          users. Disfluency correction aims to enhance read-
+retain our original parsing algorithm and prompt          ability by identifying and removing issues such as
+instead of fixing such errors. Consequently, our          repetitions, filler words, and false starts.
+experiments indirectly evaluate the instruction fol-
+lowing capabilities of the models. Increasing the         4.6.1   Datasets
+number of classes from coarse to fine-grained NER         The Disfl-QA dataset (Gupta et al., 2021), initially
+leads to a significant performance drop across all        intended for evaluating question-answering robust-
+models. Comparing English and German results              ness against disfluencies, consists of about 12k
+(refer to appendix Table 7) reveals significantly         pairs of fluent and corresponding disfluent ques-
+lower scores for German. Even the best perform-           tions built upon SQuAD 2.0. We repurpose the
+ing model, Gemma 2, achieves at most half the             dataset to benchmark models’ ability to correct dis-
+F1 score in German compared to English. This              fluent texts, leveraging only the question pairs.
+could suggest challenges in handling German text             The DISCO dataset (Bhat et al., 2023), de-
+or reflect the increased difficulty of German LER.        signed to facilitate multilingual disfluency correc-
+                                                          tion, comprises a human-annotated corpus of over
+4.6 Task 4: Text Generation                               12k disfluent-fluent text utterance pairs in English,
+Researchers must potentially correct fluency issues       Hindi, German, and French. We utilize only the
+or summarize long and wordy statements, espe- English and German parts. It is constructed upon a
+cially when dealing with transcripts. Further, in the     publicly available dataset of human-AI agent inter-
+qualitative content analysis approach of Mayring          actions. The dataset covers four disfluency types:
+(2019), popular in the Humanities in Germany, Filler, Repetition, Correction, and False Start.
+summarization, explication, and structuring are de-          While the specific domains of these datasets
+fined as the three main pillars of content analysis. (question-answering and human-AI interactions)
+Here, summarization is employed to condense in- differ from our platform’s use case of correcting
+formation, explication to clarify meaning by pro- transcriptions of interviews and other qualitative
+viding context, and structuring to filter the material    data, we included them due to the scarcity of re-
+                                                       428
+sources for disfluency correction.                        Regarding language performance, our findings
+   The CNN/DM (Hermann et al., 2015) dataset, a        reveal discrepancies. While all models exhibit
+widely-used benchmark for summarization tasks,         strong performance on German data for coarse-
+consists of over 300,000 article-summary pairs         grained document classification, a consistent de-
+extracted from CNN and Daily Mail news arti-           cline is observed across the board for fine-grained
+cles written in English between 2007 and 2015.         document classification, span classification, and
+The summaries are primarily based on human-            text generation tasks in German. This suggests that
+generated highlights or article descriptions.          current open-source LLMs still face challenges in
+   MLSUM (Scialom et al., 2020), a large-scale         handling the complexities of the German language,
+multilingual summarization dataset, comprises          particularly in nuanced and generative tasks.
+over 1.5 million article-summary pairs collected          Throughout all experiments, we tracked parsing
+from online newspapers between 2010 and 2019.          errors. Gemma 2 consistently adhered to the pro-
+It covers five languages (French, German, Span-        vided instructions (1% issues), followed by Mistral
+ish, Russian, and Turkish) and is a multilingual       NeMo (2% issues). Llama 3.1, on the other hand,
+extension to CNN/DM. We utilize the German part        struggled notably (5% issues), most evident by the
+of MLSUM for our benchmark, drawn from the             span classification tasks.
+Süddeutsche Zeitung newspaper.                            Overall, our findings highlight the potential of
+   Both datasets, centered around news articles,       LLMs, especially Gemma 2, to significantly en-
+align well with the use of news articles as a data     hance QDA workflows regarding document clas-
+source on our QDA platform, making them suitable       sification, document information extraction, span
+for evaluating LLM summarization performance.          classification, and text generation.
+
+4.6.2    Results                                       5    Integrating LLMs in our QDA platform
+We evaluate disfluency correction (CORR) and ab-       User feedback during early testing led us to refine
+stractive summarization (SUM). The aggregated          our envisioned workflow outlined in Section 3. The
+results are shown in Table 4. The full evaluation is   implementation of summarization and fluency cor-
+in appendix Table 8. We report Rouge (R), Exact        rection aligned with our original plan. However,
+Match (EM), F1 and METEOR scores.                      users wanted to access document-based assistance
+   Gemma 2 demonstrates superior performance           features (document tagging, metadata extraction,
+in the disfluency correction task (84 R-1), with       annotation) at any point in their workflow, not just
+the other two models performing slightly worse         during the initial document import. Consequently,
+(79 R-1). Llama 3.1 and Gemma 2 perform sim-           we redesign the LLM Assistant as a standalone fea-
+ilarly in abstractive summarization (28 vs. 29 R-      ture independent of the pre-processing pipeline.
+1). Both summarization and disfluency correction          The feature is initiated by selecting the docu-
+tasks exhibit a performance drop of at least 12 per-   ments for analysis and clicking the LLM Assistant
+centage points when applied to German text (see        button. This launches a five-step dialog. Step 5
+appendix Table 8), suggesting increased difficulty     is depicted in Figure 1, Step 1 - 4 are shown in
+for all models in handling German text generation      appendix Figure 2:
+and instruction following.
+                                                           1. Task Selection: Users select document tag-
+                                                              ging, metadata extraction, or annotation.
+4.7     Discussion
+                                                       2. Focus: Users specify which tags, metadata
+Across the four evaluated tasks, Gemma 2 consis-          fields, or codes the LLM should consider.
+tently emerges as the top-performing model. While
+                                                       3. Prompt Review: Users revise the system- and
+Llama 3.1 performs best in template-filling and ab-
+                                                          user prompts that are automatically generated
+stractive summarization, its struggles with NER,
+                                                          based on the chosen task and selections
+instruction following and the consistent worst per-
+formance in German tasks highlight potential limi-     4. Job Execution: A progress bar indicates that
+tations. Mistral NeMo, while generally capable,           the LLM Assistant job runs in the background.
+could never demonstrate superior performance,             The dialog can be closed and reopened later.
+even though it has the most parameters (12B)           5. Result Review: LLM-generated suggestions
+among the benchmarked models.                             and their reasoning alongside the documents’
+                                                   429
+   Model       Task      Rouge 1     Rouge 2    Rouge L      Rouge Lsum          EM       F1    METEOR
+   gemma2      CORR         84.24      73.68        82.48           82.49    40.08      84.24      85.60
+   llama3.1    CORR         79.00      67.54        77.20           77.21    33.80      78.89      80.86
+   mistral     CORR         78.97      63.51        77.07           77.07    25.91      78.88      79.67
+   gemma2      SUM          27.89        8.86       18.96           21.92        0.00   26.90      23.68
+   llama3.1    SUM          29.06        9.93       19.56           22.70        0.00   28.15      25.70
+   mistral     SUM          24.81        7.86       17.04           19.54        0.00   24.35      21.82
+
+                               Table 4: Evaluation of Task 4 - Text Generation
+
+
+                                                        result view, we prioritize transparency by display-
+                                                        ing the LLM’s reasoning and suggestions. Addi-
+                                                        tionally, it allows users to critically evaluate the
+                                                        suggestions and decide how to incorporate them
+                                                        with their existing work, ensuring that the final
+                                                        output aligns with their intentions.
+                                                           The LLM Assistant is built using React for the
+                                                        frontend and Ollama, FastAPI, and Celery for the
+                                                        backend. Celery handles background job process-
+                                                        ing, ensuring that LLM tasks run without interrupt-
+                                                        ing user workflow. Ollama hosts the Gemma 2
+                                                        model, which performed best in our benchmark.
+                                                        We reuse the benchmark prompts, as they were in-
+                                                        tentionally designed with future implementation in
+                                                        mind. We opt for the template-filling prompt style
+                                                        instead of extractive question-answering for meta-
+                                                        data extraction. Providing metadata descriptions
+Figure 1: LLM Assistant - Step 5: Result View. Users    is more intuitive for users than formulating fitting
+can review the suggestions.                             questions for each field.
+
+                                                        6    Conclusion
+     existing tags/metadata/codes are presented.
+     Here, the user chooses to keep existing work,       In this paper, we investigated the potential of
+     overwrite it with the LLM suggestions, or           LLMs to enhance qualitative data analysis work-
+     merge both per document or in batches.              flows, focusing on common tasks within our open-
+                                                         source Discourse Analysis Tool Suite. We de-
+   User control and transparency are key require- signed a benchmark reflecting real-world use cases
+ments throughout the design of the LLM Assistant. and evaluated the performance of three promi-
+Our philosophy is to ensure that any form of au- nent open-source LLMs. Our findings demonstrate
+tomation is a supportive tool, offering suggestions      the promise of LLM integration, particularly for
+while the user retains decision-making. We firmly        English-language projects. Consequently, we im-
+believe that AI should augment human expertise, plemented the LLM Assistant within our platform,
+not replace it. Thus, we’ve designed our platform        a significant step towards empowering researchers
+to require explicit user approval for automatically- with transparent and user-controlled AI assistance
+generated suggestions.                                   that augments, rather than replaces, human exper-
+   Our implementation achieves user control and          tise.
+transparency in two ways. The prompt review step            In future work, we plan to extend the LLM Assis-
+allows users to inspect and modify the generated         tant to suggest new tags and codes, fostering a more
+prompts, fostering transparency. Further, it enables     exploratory QDA process. Furthermore, we aim
+advanced users to exert fine-grained control and         to incorporate more domain-specific datasets that
+provide additional task-specific instructions. In the    closely align with DH researchers’ real-world use
+                                                      430
+cases. Finally, we will explore few-shot learning ap-   References
+proaches to enhance performance on nuanced tasks.       Vineet Bhat, Preethi Jyothi, and Pushpak Bhattacharyya.
+User activities within our platform (e.g., tagging        2023. DISCO: A large scale human annotated corpus
+documents and annotating text passages) generate          for disfluency correction in Indo-European languages.
+valuable training data for model fine-tuning, poten-      In Findings of the Association for Computational Lin-
+                                                          guistics: EMNLP 2023, pages 12833–12857, Singa-
+tially leading to more efficient models tailored to       pore. Association for Computational Linguistics.
+individual user preferences. Code for replicating
+the benchmark6 , the repository of DATS7 and a live     Ning Ding, Guangwei Xu, Yulin Chen, Xiaobin Wang,
+demo are available8 .                                     Xu Han, Pengjun Xie, Haitao Zheng, and Zhiyuan
+                                                          Liu. 2021. Few-NERD: A few-shot named entity
+                                                          recognition dataset. In Proceedings of the 59th An-
+7   Limitations                                           nual Meeting of the Association for Computational
+                                                          Linguistics and the 11th International Joint Confer-
+While our implemented LLM Assistant demon-                ence on Natural Language Processing, pages 3198–
+strates promising potential for enhancing QDA             3213, Online. Association for Computational Lin-
+workflows, it’s important to understand its limi-         guistics.
+tations.
+                                                        Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey,
+   Firstly, the current implementation utilizes on        Abhishek Kadian, and Ahmad Al-Dahle et al. 2024.
+zero-shot learning, which may not fully capture           The llama 3 herd of models. ArXiv, abs/2407.21783.
+the nuances of specific QDA projects. Fine-tuning
+                                                        Gemma Team. 2024. Gemma 2: Improving open
+LLMs on user-specific data could lead to more             language models at a practical size. ArXiv,
+accurate and contextually relevant suggestions.           abs/2407.21783.
+   Secondly, we restricted the LLM Assistant to
+English-language projects due to the observed per-      Evelyn Gius, Jan Christoph Meister, Malte Meister,
+                                                          Marco Petris, Christian Bruck, Janina Jacke, Mareike
+formance discrepancies between English and Ger-           Schumacher, Dominik Gerstorfer, Marie Flüh, and
+man language tasks. Expanding language support            Jan Horstmann. 2022. CATMA: Computer Assisted
+will require further research and development to          Text Markup and Analysis.
+ensure similar performance across different lan-
+                                                        Aditya Gupta, Jiacheng Xu, Shyam Upadhyay, Diyi
+guages.                                                   Yang, and Manaal Faruqui. 2021. Disfl-QA: A
+   Thirdly, the selection of suitable datasets for        benchmark dataset for understanding disfluencies in
+benchmarking remains a challenge. While we                question answering. In Findings of the Association
+aimed to select datasets that closely resemble real-      for Computational Linguistics: ACL-IJCNLP 2021,
+                                                          pages 3309–3319, Online. Association for Computa-
+world QDA use cases, certain discrepancies be-            tional Linguistics.
+tween the benchmark tasks and actual user work-
+flows exist. We will continue to identify and incor-    Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou,
+                                                          and Mantas Mazeika et al. 2021. Measuring massive
+porate more representative datasets to ensure the
+                                                          multitask language understanding. In Proceedings of
+evaluation’s validity and generalizability.               the International Conference on Learning Represen-
+   Finally, we consider the inherent limitations of       tations, Online.
+LLMs in general. They could struggle with tasks re-
+                                                        Karl Moritz Hermann, Tomáš Kočiský, Edward Grefen-
+quiring complex reasoning, nuanced understanding          stette, Lasse Espeholt, Will Kay, Mustafa Suleyman,
+of context, or common sense knowledge. Addition-          and Phil Blunsom. 2015. Teaching machines to read
+ally, potential biases embedded within the training       and comprehend. In Proceedings of the 28th Interna-
+data can influence the LLM’s outputs, requiring           tional Conference on Neural Information Processing
+                                                          Systems, page 1693–1701, Cambridge, MA, USA.
+careful consideration and critical evaluation of the      MIT Press.
+generated suggestions. This is why we deem the
+manual validation step integrated into our LLM As-      Albert Q. Jiang, Alexandre Sablayrolles, Arthur Men-
+sistant, where users retain control over the accep-       sch, Chris Bamford, and Devendra Singh Chaplot
+                                                          et al. 2023. Mistral 7b. ArXiv, abs/2310.06825.
+tance and integration of AI-generated suggestions,
+as very important.                                      Elena Leitner, Georg Rehm, and Julian Moreno-
+                                                          Schneider. 2020. A dataset of German legal doc-
+                                                          uments for named entity recognition. In Proceedings
+6
+  https://github.com/uhh-lt/llm4qda                       of the Twelfth Language Resources and Evaluation
+7
+  https://github.com/uhh-lt/dats                          Conference, pages 4478–4485, Marseille, France. Eu-
+8
+  https://dats.ltdemos.informatik.uni-hamburg.de/         ropean Language Resources Association.
+                                                    431
+Yucheng Li, Frank Guerin, and Chenghua Lin. 2024.            2024. Can large language models serve as data ana-
+  Latesteval: Addressing data contamination in lan-          lysts? a multi-agent assisted approach for qualitative
+  guage model evaluation through dynamic and time-           data analysis. ArXiv, abs/2402.01386.
+  sensitive test construction. In Proceedings of the
+  AAAI Conference on Artificial Intelligence, vol-         Florian Schneider, Tim Fischer, Fynn Petersen-Frey, Is-
+  ume 38, pages 18600–18607, Vancouver, Canada.               abel Eiser, Gertraud Koch, and Chris Biemann. 2023.
+                                                             The D-WISE Tool Suite: Multi-Modal Machine-
+Percy Liang, Rishi Bommasani, Tony Lee, Dimitris              Learning-Powered Tools Supporting and Enhancing
+  Tsipras, and Dilara Soylu et al. 2023. Holistic evalu-      Digital Discourse Analysis. In Proceedings of the
+  ation of language models. Transactions on Machine           61st Annual Meeting of the Association for Compu-
+  Learning Research, 1525(1):140–146.                         tational Linguistics (Volume 3: System Demonstra-
+                                                              tions), pages 328–335.
+Philipp Mayring. 2019. Qualitative content analysis:
+  Demarcation, varieties, developments. Forum Qual-        Thomas Scialom, Paul-Alexis Dray, Sylvain Lamprier,
+  itative Sozialforschung / Forum: Qualitative Social        Benjamin Piwowarski, and Jacopo Staiano. 2020.
+  Research, 20(3):Art. 16.                                   MLSUM: The multilingual summarization corpus.
+                                                             In Proceedings of the 2020 Conference on Empirical
+Mistral AI Team. 2024. Mistral nemo. https:                  Methods in Natural Language Processing (EMNLP),
+ //mistral.ai/news/mistral-nemo/. Accessed:                  pages 8051–8067, Online. Association for Computa-
+  2024-08-31.                                                tional Linguistics.
+
+Timo Möller, Julian Risch, and Malte Pietsch. 2021.        Aarohi Srivastava, Abhinav Rastogi, Abhishek Rao,
+  GermanQuAD and GermanDPR: Improving non-                   Abu Awal Md Shoeb, and Abubakar Abid et al. 2023.
+  English question answering and passage retrieval.          Beyond the imitation game: quantifying and extrapo-
+  In Proceedings of the 3rd Workshop on Machine              lating the capabilities of language models. Transac-
+  Reading for Question Answering, pages 42–50, Punta         tions on Machine Learning Research, 2023(5):1–95.
+  Cana, Dominican Republic. Association for Compu-
+  tational Linguistics.                                    Anselm Strauss and Juliet Corbin. 1990. Basics of Qual-
+                                                             itative Research: Grounded Theory Procedures and
+Niklas Muennighoff, Nouamane Tazi, Loic Magne, and           Techniques. SAGE Publications, Inc.
+  Nils Reimers. 2023. MTEB: Massive text embedding
+  benchmark. In Proceedings of the 17th Conference         Anselm Strauss, Juliet Corbin, Solveigh Niewiarra,
+  of the European Chapter of the Association for Com-        and Heiner Legewie. 1996. Grounded Theory:
+  putational Linguistics, pages 2014–2037, Dubrovnik,        Grundlagen Qualitativer Sozialforschung. Beltz,
+  Croatia. Association for Computational Linguistics.        Psychologie-Verlag-Union Weinheim.
+
+Fynn Petersen-Frey and Chris Biemann. 2024. Dataset        Beth M. Sundheim. 1992. Overview of the fourth Mes-
+  of quotation attribution in German news articles. In       sage Understanding Evaluation and Conference. In
+  Proceedings of the 2024 Joint International Confer-        Proceedings of the Fourth Message Understanding
+  ence on Computational Linguistics, Language Re-            Conference (MUC-4), McLean, VA, USA.
+  sources and Evaluation, pages 4412–4422, Torino,         Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+  Italia. ELRA and ICCL.                                     Martinet, and Marie-Anne Lachaux et al. 2023.
+                                                             Llama: Open and efficient foundation language mod-
+Alec Radford, Jong Wook Kim, Tao Xu, Greg Brock-
+                                                             els. ArXiv, abs/2302.13971.
+  man, Christine McLeavey, and Ilya Sutskever. 2022.
+  Robust speech recognition via large-scale weak su-       Alex Wang, Yada Pruksachatkun, Nikita Nangia, Aman-
+  pervision. ArXiv, abs/2212.04356.                          preet Singh, Julian Michael, Felix Hill, Omer Levy,
+                                                             and Samuel R. Bowman. 2019. Superglue: a stickier
+Pranav Rajpurkar, Robin Jia, and Percy Liang. 2018.          benchmark for general-purpose language understand-
+  Know what you don’t know: Unanswerable ques-               ing systems. In Proceedings of the 33rd International
+  tions for SQuAD. In Proceedings of the 56th An-            Conference on Neural Information Processing Sys-
+  nual Meeting of the Association for Computational          tems, Red Hook, NY, USA. Curran Associates Inc.
+  Linguistics, pages 784–789, Melbourne, Australia.
+  Association for Computational Linguistics.               Caleb Ziems, William Held, Omar Shaikh, Jiaao Chen,
+                                                             Zhehao Zhang, and Diyi Yang. 2024. Can large lan-
+Pranav Rajpurkar, Jian Zhang, Konstantin Lopyrev, and        guage models transform computational social sci-
+   Percy Liang. 2016. SQuAD: 100,000+ questions for          ence? Computational Linguistics, 50(1):237–291.
+   machine comprehension of text. In Proceedings of
+   the 2016 Conference on Empirical Methods in Natu-
+   ral Language Processing, pages 2383–2392, Austin,
+  TX, USA. Association for Computational Linguis-
+   tics.
+
+Zeeshan Rasheed, Muhammad Waseem, Aakash Ah-
+  mad, Kai-Kristian Kemell, and Wang Xiaofeng et al.
+                                                       432
+A    Prompts
+Table 9 lists all user prompts used in our experi-
+ments for English datasets and tasks. We translated
+system- and user prompts into German for German
+datasets. The system prompt is always the same:
+   You are a system that supports the analysis of
+large amounts of text. You will always answer in
+the required format and use no formatting other
+than what the user expects!                                            (a) Step 1: Method Selection
+
+   All user prompts in this study adhere to a consis-
+tent structure designed to provide clear instructions
+and expectations. Each prompt begins with explicit
+task instructions, informing the model about the
+desired action, such as extracting an answer from
+a given context. This is followed by a detailed
+specification of the expected answer format, includ-
+ing potential responses for unanswerable questions
+(e.g., "Not answerable"). A concrete example is
+provided to clarify the desired output further. It
+is important to note that these examples are not
+few-shot examples derived from the datasets them-
+selves. Finally, key constraints or limitations of
+the task are reiterated. We hope this ensures the                        (b) Step 2: Tag Selection
+model operates within the defined boundaries (e.g.,
+extracting answers verbatim from the text).
+   The placeholders ’{}’ within the prompt tem-
+plates serve as dynamic variables populated with
+task-specific information. Depending on the task,
+these placeholders may contain a list of classes or
+categories for classification tasks, a set of slots for
+information extraction, or a specific question for
+question-answering tasks. Additionally, the context
+placeholder is filled with the relevant document or
+text passage from which the model is expected to
+derive its response.
+
+B    Additonal Dataset Information
+Table 10 provides additional information (e.g., tax-                    (c) Step 3: Prompt Editing
+onomies, slots) about the datasets used in our
+benchmark. All of this information was provided to
+the models within the prompt templates; for exam-
+ple, for the document classification task, the model
+was provided with a list of categories and their de-
+scriptions. For Task 1 - Text Classification, models
+were additionally provided with short 1-2 sentence
+descriptions of each class. Genre descriptions were
+taken from the IMDb website, news category de-
+                                                                            (d) Step 4: Waiting
+scriptions were written by the authors
+                                                            Figure 2: Steps 1-4 of the LLM Assistant Feature
+
+                                                      433
+                   Table 5: Full evaluation results of Task 1 - Document Classification
+
+Model           Dataset          Language      Task           Precision    Recall         F1   Accuracy
+gemma2          Tagesschau       de            coarse             84.88     81.94     82.01         81.94
+llama3.1        Tagesschau       de            coarse             83.13     74.79     76.01         74.79
+mistral-nemo    Tagesschau       de            coarse             83.55     77.62     78.92         77.62
+gemma2          BBC              en            coarse             76.59     76.58     74.85         76.58
+llama3.1        BBC              en            coarse             71.07     70.29     65.64         70.29
+mistral-nemo    BBC              en            coarse             69.97     71.69     68.89         71.69
+gemma2          imdb             en            coarse             40.12     37.74     37.70         37.74
+llama3.1        imdb             en            coarse             38.78     33.00     32.57         33.00
+mistral-nemo    imdb             en            coarse             39.66     36.70     36.04         36.70
+gemma2          Tagesschau       de            fine               68.00     59.00     60.00         59.43
+llama3.1        Tagesschau       de            fine               58.00     26.00     29.00         25.80
+mistral-nemo    Tagesschau       de            fine               65.00     43.00     47.00         42.86
+gemma2          BBC              en            fine               73.00     65.00     66.00         65.47
+llama3.1        BBC              en            fine               57.00     46.00     39.00         46.07
+mistral-nemo    BBC              en            fine               68.00     64.00     63.00         64.27
+gemma2          imdb             en            multi-label        55.48     52.23     52.35          8.58
+llama3.1        imdb             en            multi-label        52.12     42.38     43.95          6.88
+mistral-nemo    imdb             en            multi-label        57.51     49.62     51.05          8.58
+
+
+
+
+            Table 6: Full evaluation results of Task 2 - Document Information Extraction
+
+        Model        Dataset            Language      Task                Exact Match          F1
+        gemma2       SQUAD1             en            extractive-qa               75.73    87.19
+        llama3.1     SQUAD1             en            extractive-qa               70.39    82.64
+        mistral      SQUAD1             en            extractive-qa               67.48    83.35
+        gemma2       SQUAD2             en            extractive-qa               63.85    69.80
+        llama3.1     SQUAD2             en            extractive-qa               48.82    56.25
+        mistral      SQUAD2             en            extractive-qa               50.81    60.64
+        gemma2       GermanQuAD         de            extractive-qa               60.01    81.25
+        llama3.1     GermanQuAD         de            extractive-qa               48.91    73.04
+        mistral      GermanQuAD         de            extractive-qa               47.34    73.18
+        gemma2       MUC4               en            template-filling            36.69    36.70
+        llama3.1     MUC4               en            template-filling            40.62    40.63
+        mistral      MUC4               en            template-filling            23.86    23.87
+
+
+
+
+                                                   434
+                        Table 7: Full evaluation results of Task 3 - Span Classification
+
+        Model      Dataset       Language      Task           Precision    Recall          F1    Accuracy
+        gemma2     fewnerd       en            coarse             48.53     55.72     51.15             83.73
+        llama3.1   fewnerd       en            coarse              40.6      7.72     12.87             79.46
+        mistral    fewnerd       en            coarse             49.95     18.97     26.32             81.12
+        gemma2     germanler     de            coarse             21.85     32.42     24.82             86.32
+        llama3.1   germanler     de            coarse             11.84      1.67      2.78             81.21
+        mistral    germanler     de            coarse              28.6     11.79     16.11             82.41
+        gemma2     fewnerd       en            fine               47.92     40.78     42.31             83.23
+        llama3.1   fewnerd       en            fine               38.97      6.53     10.54              79.2
+        mistral    fewnerd       en            fine               39.53     12.68     17.64             79.86
+        gemma2     germanler     de            fine               32.58     22.49     21.37             84.48
+        llama3.1   germanler     de            fine               14.36      1.78      3.02             81.54
+        mistral    germanler     de            fine               39.91      8.64     13.13             82.22
+        gemma2     quotations    de            quotations          36.4     25.61     29.81             90.29
+        llama3.1   quotations    de            quotations         33.16     10.88     15.18             88.17
+        mistral    quotations    de            quotations         23.03     10.69     13.71             86.24
+
+
+
+
+Table 8: Full evaluation results of Task 4 - Text Generation. We report Rouge (R), Exact Match (EM), F1 and
+METEOR scores on two text generation tasks: disfluency correction (CORR) and summarization (SUM).
+
+Model      Dataset      Lang    Task         R-1        R-2     R-L    R-Lsum         EM          F1      METEOR
+gemma2     DisflQA      en      CORR       83.28      71.99   80.66       80.67     21.77       83.10           89.08
+llama3.1   DisflQA      en      CORR       78.94      65.33   75.80       75.80     11.45       78.46           85.69
+mistral    DisflQA      en      CORR       78.21      63.10   75.24       75.24     15.21       77.77           81.38
+gemma2     DISCO        en      CORR       92.40      85.56   91.63       91.64     64.44       92.59           91.55
+llama3.1   DISCO        en      CORR       91.20      84.57   90.58       90.58     64.01       91.43           91.07
+mistral    DISCO        en      CORR       85.44      73.14   84.39       84.36     41.87       85.52           85.02
+gemma2     DISCO        de      CORR       77.03      63.48   75.15       75.16     34.04       77.02           76.18
+llama3.1   DISCO        de      CORR       66.87      52.73   65.21       65.24     25.94       66.77           65.83
+mistral    DISCO        de      CORR       73.25      54.28   71.57       71.60     20.64       73.35           72.62
+gemma2     CNNDM        en      SUM        34.98      11.21   22.51       28.43      0.00       33.30           29.73
+llama3.1   CNNDM        en      SUM        36.44      12.44   23.09       29.38      0.00       34.88           31.97
+mistral    CNNDM        en      SUM        30.81       9.44   20.49       25.48      0.00       30.19           24.01
+gemma2     MLSUM        de      SUM        20.81       6.52   15.40       15.41      0.00       20.50           17.63
+llama3.1   MLSUM        de      SUM        21.68       7.43   16.04       16.03      0.00       21.41           19.42
+mistral    MLSUM        de      SUM        18.81       6.27   13.59       13.60      0.01       18.51           19.62
+
+
+
+                                                      435
+Table 9: The prompts used in both Evaluation and Implementation. {} are placeholders for task-dependent input.
+
+Task              Prompt Template
+                  Please classify the document in one (all appropriate) of the following categories: {}
+                  Please answer in this format. You are not required to provide any reasoning.
+Document          Category: <category>
+Classification    Reason: <reason>
+                  e.g. Category: News
+                  Document:{}
+                  Please extract the answer to the following question from the context below:
+                  Context: {}
+                  Question: {}
+                  Please answer in this format.
+Extractive        If the question cannot be answered from the context, respond with ’Not answerable’.
+QA                You are not required to provide any reasoning.
+                  Answer: <answer> or <not answerable>
+                  Reasoning: <reasoning>
+                  e.g. Answer: 42
+                  Remember, the answer MUST be extracted verbatim from the text, do not generate it!
+                  I prepared a list of slots. The slots are: {}
+                  Please extract the corresponding information (if any) from the following text: {}
+                  Please answer in this format.
+Template
+                  If the text does not include information about a specific slot, leave it empty.
+Filling
+                  <Slot>: <extracted information>
+                  e.g. Incident: Arson, Perpetrator: John Doe, Weapon: Matches
+                  Remember, you MUST extract the information verbatim from the text, do not generate it!
+                  Please summarize the text below concisely, highlighting the most important information.
+                  Try to use about {} words only.
+                  Text: {}
+Summarization     Respond in the following format:
+                  Summary: <summarized text>
+                  e.g. Summary: Theia was hit by a car ...
+                  Remember, you MUST summarize the original text, do not generate new facts!
+                  Please remove all disfluencies from the noisy, disfluent text below.
+                  Keep the text close to the original, but ensure it is read fluently.
+                  Text: {}
+Disfluency
+                  Respond in the following format:
+Correction
+                  Fluent text: <the corrected text>
+                  e.g. Fluent text: This picture looks great.
+                  Remember, you MUST keep to the original text; do not generate new content!
+                  I prepared a list of categories/information. The categories are: {}
+                  Please extract fitting text spans from the following text: {}
+Span              Respond in the following format:
+Classification    <category>: <extracted text>
+                  e.g. Art: Mona Lisa, Building: Eiffel Tower
+                  Remember, you MUST extract the information verbatim from the text, do not generate it!
+
+
+                                                     436
+                    Table 10: Taxonomies of the datasets used in Task 1, 2, and 3.
+
+Task 1       Document Classification
+Dataset      Classes (coarse - fine)
+             UK - england, scotland, wales, ireland, politics
+             World - africa, asia, australia, europe, latin, us, middle-east
+BBC
+             Sport - boxing, cricket, footbal, formula1, rugby, tennis
+             Misc - business, education, elections, entertainment, arts, health, science, technology
+             Inland - Deutschlandtrend, Gesellschaft, Innenpolitik, Mittendrin
+             Ausland - Afrika, Amerika, Asien, Europa, Ozeanien
+Tagesschau   Wirtschaft - Börse, Finanzen, Konjunktur, Technologie, Unternehmen, Verbraucher,
+                         Weltwirtschaft
+             Wissen - Forschung, Gesundheit, Klima, Technologie
+             Action, Adventure, Animation, Biography, Crime, Family, Fantasy, Film-Noir, History,
+IMDB
+             Horror, Mystery, Romance, SciFi, Sports, Thriller, War
+
+Task 2       Document Information Extraction
+Dataset      Slots
+             Incident: One of ’Arson’, ’Attack’, ’Bombing’, ’Kidnapping’, ’Robbery’
+             Perpetrator: An individual perpetrator
+             Group Perpetrator: A group or organizational perpetrator
+MUC4
+             Victim: Sentient victims of the incident
+             Target: Physical objects targeted by the incident
+             Weapon: Weapons employed by the perpetrators
+
+Task 3       Span Classification
+Dataset      Classes (coarse - fine)
+             Art - broadcastprogram, film, music, other, painting, writtenart
+             Building - airport, hospital, hotel, library, other, restaurant, sportsfacility, theater
+             Event - attack, disaster, election, other, protest, sportsevent
+             Location - GPE, bodiesofwater, island, mountain, other, park, road
+             Organization - company, education, government, media, other, political party, religion,
+fewNERD
+                             show organization, sportsleague, sportsteam
+             Other - astronomy, award, biology, chemical, currency, disease, educational degree, god,
+                     language, law, living thing, medical
+             Person - actor, artist, athlete, director, other, politician, scholar, soldier
+             Product - airplane, car, food, game, other, ship, software, train, weapon
+             Person - Anwalt, Richter
+             Ort - Land, Stadt, Straße, Landschaft
+             Organisation - Unternehmen, Institution, Gericht, Marke
+German-LER   Norm - Gesetz, Verordnung, EU Norm
+             Regulierung - Vorschrift, Vertrag
+             Rechtsprechung
+             Literatur
+             Sprecher
+Quotations
+             Direkte Rede
+
+
+                                                 437
+

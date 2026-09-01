@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-j-theme/repair-assignment-plan-v1.json",
+  "title": "Private balanced incomplete-block repair assignment plan",
+  "type": "object",
+  "required": [
+    "plan_version", "status", "panel_manifest_sha256", "created_at_utc",
+    "minimum_assessors_per_revision", "one_variant_per_item_per_assessor",
+    "charlie_may_assess", "feedback_author_may_assess_own_revision",
+    "target_verifier_may_assess", "assessors", "assignments"
+  ],
+  "properties": {
+    "plan_version": {"const": "direction-h-j-theme-repair-assignment-plan-v1"},
+    "status": {"enum": ["template_incomplete", "frozen"]},
+    "panel_manifest_sha256": {
+      "oneOf": [{"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"}, {"type": "null"}]
+    },
+    "created_at_utc": {"type": ["string", "null"], "format": "date-time"},
+    "minimum_assessors_per_revision": {"const": 3},
+    "one_variant_per_item_per_assessor": {"const": true},
+    "charlie_may_assess": {"const": false},
+    "feedback_author_may_assess_own_revision": {"const": false},
+    "target_verifier_may_assess": {"const": false},
+    "assessors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["assessor_id", "evaluator_group", "independent"],
+        "properties": {
+          "assessor_id": {"type": "string", "minLength": 1},
+          "evaluator_group": {"enum": ["qualitative_methods_expert", "domain_expert", "dual_expertise"]},
+          "independent": {"const": true}
+        },
+        "additionalProperties": false
+      }
+    },
+    "assignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["assignment_id", "assessor_id", "repair_packet_id", "item_id", "revision_id", "sequence"],
+        "properties": {
+          "assignment_id": {"type": "string", "pattern": "^DHJRA_[a-f0-9]{20}$"},
+          "assessor_id": {"type": "string", "minLength": 1},
+          "repair_packet_id": {"type": "string", "pattern": "^DHJRP_[a-f0-9]{20}$"},
+          "item_id": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"},
+          "revision_id": {"type": "string", "pattern": "^DHJRV_[a-f0-9]{20}$"},
+          "sequence": {"type": "integer", "minimum": 1}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "frozen"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "panel_manifest_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+          "created_at_utc": {"type": "string"},
+          "assessors": {"minItems": 3},
+          "assignments": {"minItems": 1}
+        }
+      },
+      "else": {
+        "properties": {
+          "panel_manifest_sha256": {"type": "null"},
+          "created_at_utc": {"type": "null"},
+          "assessors": {"maxItems": 0},
+          "assignments": {"maxItems": 0}
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

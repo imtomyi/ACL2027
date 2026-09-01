@@ -1,0 +1,551 @@
+                                             Echoes in the Sky: Computational Thematic
+                                            Analysis of Online Public Discourse on Bluesky
+                                                      Across Trump’s Reelection
+
+                                        Qile Wang*1[0000−0003−0308−6033] , Ali Salloum*2[0000−0002−2381−6876] , Carolina
+                                                      Coimbra Vieira*3[0000−0003−3156−4151] , Benjamin E.
+                                                1[0000−0002−6233−6453]
+                                        Bagozzi                        , Mikko Kivelä2[0000−0003−2049−1954] , Kenneth E.
+                                                              1[0000−0002−0936−7840]
+                                                       Barner                        , and Matthew Louis
+                                                                 Mauriello1[0000−0001−5359−6520]
+                                                              1
+                                                                 University of Delaware, Newark, USA
+                                                            {kylewang,bagozzib,barner,mlm}@udel.edu
+                                                                 2
+                                                                   Aalto University, Espoo, Finland
+
+
+
+
+arXiv:2608.04120v1 [cs.HC] 4 Aug 2026
+                                                              {ali.salloum,mikko.kivela}@aalto.fi
+                                                 3
+                                                   Max Planck Institute for Demographic Research, Rostock, Germany
+                                                                   coimbravieira@demogr.mpg.de
+
+
+
+                                                Abstract. As political disruption intensifies online discourse, Bluesky
+                                                has become an important platform for political discussion and public
+                                                reaction. In this study, we examine large-scale discourse on Bluesky re-
+                                                lated to U.S. policy developments associated with the Trump admin-
+                                                istration. Using the historical retrieval API, we collected all available
+                                                posts matching Trump and related keywords from 2019 to 2026, yielding
+                                                38.5 million posts. We leverage a large language model (LLM)-assisted
+                                                clustering pipeline, combined with human validation, to identify 14 in-
+                                                terpretable thematic domains in English-language posts and 19 the-
+                                                matic categories across 258 executive orders (EOs) signed between Jan-
+                                                uary 20, 2025, and May 1, 2026. Our findings identify several dominant
+                                                themes in Bluesky discourse, including executive governance, political
+                                                identity, and national security, as well as recurring themes in EOs, in-
+                                                cluding executive task forces, border enforcement, and foreign policy.
+                                                We also find substantial variation in the persistence and volatility of
+                                                issue attention, accompanied by an increasing proportion of negative
+                                                sentiment over time. The dataset and resources are publicly available at
+                                                https://github.com/Sensify-Lab/Echoes-in-the-Sky
+
+                                                Keywords: Bluesky · Executive Orders · LLM · Social Media Analysis
+
+
+                                        1     Introduction
+                                        Social media discourse increasingly reflects and shapes broader offline social and
+                                        political dynamics [5]. During periods of political disruption, online platforms of-
+                                        ten intensify and accelerate the circulation of public discourse [7]. The reelection
+                                            * These authors contributed equally.
+2                Wang et al.
+
+
+                                                     Bluesky
+    A    Data construction                     B   Microtopic Discovery         C    Overarching Themes           D    Executive Order
+                API Retrieval                        Embeddings                     {}      Initial Coding                   EO Collection
+                 38.5M posts                         Qwen3-Embedding-8B
+           2019-01-02 to 2026-02-02                                             Hybrid Codebooks                        n = 258 EOs
+                                                     transforms                                                   2025-01-20 to 2026-05-01
+                                                                                   Topic Modeling 17 seed codes
+                Cleaning filters                                                   GPT-5.4 identify 344 codes
+           Keep English posts (88.5%)              UMAP + HDBSCAN                                                     {}     Initial Coding
+           Remove short posts (n <= 6)
+                                                                                              Validation          Hybrid Codebooks
+                                                                                                                     PAP seedcodes
+        Context Enrichment                             Interpretation             Two researchers review,            GPT-5.4 identify 24 codes
+                                                     Qwen3 summaries generate   resolve ambiguity, and refine.
+      Post        Media         Media                titles and descriptions.
+      Text         Title      Description                                                                                    Validation
+                                                                                                                             Two researchers
+                                                   Microtopic clusters                      Bluesky Themes                  review, and refine.
+                Sentiment
+            VADER sentiment                                 n=4,770
+        Clean Final corpus = 30.2M                                                       Codes grouped into 14              EO themes
+                                                   10.5M posts assigned to                overarching themes               Codes grouped into 19
+    47% negative | 17% neutral |36% positive
+                                                   identifiable microtopics                                                overarching themes
+
+
+
+
+Fig. 1: Overview of the analysis pipeline, from Bluesky data retrieval and micro-
+topic modeling to EO coding and theme alignment.
+
+
+of President Donald Trump and the subsequent wave of U.S. policy shifts, includ-
+ing Executive Orders (EOs) 14162 (“Putting America First”), 14168 (“Gender
+Ideology”), 14257 (“Tariff”), and others, reignited polarized debate across offline
+and online spaces. While platforms such as X/Twitter have long served as central
+infrastructures for studying political communication and online behavior [2], re-
+cent API access restrictions and platform governance changes have constrained
+large-scale data collection through APIs. Consequently, alternative platforms
+such as Bluesky have emerged as promising environments for studying contem-
+porary online political discourse and evolving digital publics [11]. In this study,
+we investigate the online public discourse on Bluesky following Trump’s 2024
+reelection, focusing on answering two main research questions: (RQ1) What are
+the main topics related to Trump discussed on Bluesky, and what sentiments are
+associated with them? And, (RQ2) how do topics discussed on Bluesky evolve
+over time, and do major shifts coincide with Trump’s EOs?
+    To answer these questions, we collected 38.5 million Bluesky posts related to
+President Donald Trump, spanning January 2019 to February 2026 (see overall
+method in Figure 1). We then characterize the thematic structure of Trump-
+related Bluesky posts and compare it with the thematic distribution of Trump-
+signed EOs. Our approach combines microtopic exploration, multi-LLM anno-
+tation, and human-in-the-loop thematic analysis. Next, we examine how atten-
+tion to and sentiment toward overarching themes vary over time on Bluesky,
+focusing on whether some themes remain persistent while others appear episodi-
+cally during periods of heightened political activity. Finally, we apply structural
+break detection to identify significant changes in discussion dynamics and eval-
+uate whether these temporal shifts are associated with the timing of EOs. This
+work contributes by providing: (i) one of the largest publicly available research-
+oriented collections of Trump-related Bluesky posts; (ii) a scalable qualitative
+computational thematic analysis framework incorporating multi-LLM annota-
+tion and human validation; and (iii) an EO-linked annotation framework for
+studying the temporal dynamics of policy-driven online political discourse.
+                                                        Echoes in the Sky       3
+
+2     Related Work
+
+Early studies examining Bluesky suggest that the platform exhibits strong polit-
+ical clustering and a predominantly left-leaning user base [10,11]. However, few
+studies examine Bluesky discourse dynamics across sentiment, topic, and tem-
+poral dimensions. At the same time, rapid advances in LLMs have enabled new
+approaches to large-scale qualitative analysis [13,14]. Prior research on Trump-
+related discussions across social media platforms suggests that online discourse
+can capture politically meaningful opinion trends and event-driven shifts in pub-
+lic attention. Twitter opinion trends during the 2016 U.S. presidential election
+closely tracked national polling aggregates [3], while Telegram discussions dur-
+ing the 2024 U.S. election responded to major political events [9]. Building on
+these studies, we examine Trump-related discourse on Bluesky using sentiment
+analysis, topic modeling, LLM-assisted thematic analysis, and temporal analysis.
+
+
+3     Data and Methods
+
+3.1   Bluesky
+
+Data Collection We queried the API endpoint (app.bsky.feed.searchPosts)
+using a keyword lexicon designed to capture posts related to Donald Trump.4
+To overcome the API limit of 100 items per request (≈100,000 posts), we im-
+plemented a dynamic time-windowing strategy. Whenever a query reached this
+limit, the collection window was automatically reduced and the query rerun,
+with a minimum temporal resolution of one second. Each selected keyword was
+queried independently. After removing duplicate records, the final corpus com-
+prised 38.5 million posts. The collection period spans January 2, 2019, to Febru-
+ary 2, 2026, capturing discourse pre- and post-Trump reelection. Accordingly, the
+dataset includes 241,389 posts in 2023, followed by rapid growth to 4.6 million
+posts in 2024 and 30.9 million posts in 2025, indicating substantial platform
+expansion (see Figure 1 in the Supplementary Material (SM)5 ). We captured
+1,364,569 unique authors, with each user contributing 28.2 posts (SD = 256.1),
+representing roughly 3% of global Bluesky users (see Table 1 in the SM).
+
+
+Data Preprocessing and Sentiment Analysis We constructed the analytic
+corpus using a rigorous multi-stage data-cleaning pipeline, as shown in Figure 1.
+First, we restricted our analysis to English-language posts (88.45%, 34M posts).
+We cleaned posts by removing URLs, hashtags, and mentions while preserving
+emojis, given their linguistic value [8]. We then used the cleaned post text to
+estimate user sentiment with VADER.6 Following [6,1], we removed posts with
+4
+  Keywords: “trump”, “maga”, “trumpism”, “potus45”, “america first”, “keep america
+  great”, “Trumpocalypse”, “Republican”, “Drumpf”, “45th President”
+5
+  https://github.com/Sensify-Lab/Echoes-in-the-Sky/blob/main/SM.pdf
+6
+  https://pypi.org/project/vaderSentiment/
+4       Wang et al.
+
+fewer than six words and, when available, concatenated media titles and descrip-
+tions to provide contextual information for posts with limited text. This resulted
+in a cleaned English-language corpus of approximately 30.2 million posts.
+
+
+Post-Level Microtopic Analysis To identify fine-grained thematic structures
+within the corpus, we conducted a microtopic analysis at the individual post
+level, building on the prior framework [11]. We partitioned the dataset into
+four subsets to preserve temporal patterns while enabling efficient processing
+and identification of topic emergence and decline. The microtopic pipeline used
+“Qwen3-Embedding-8B” for semantic embeddings, UMAP for dimensionality re-
+duction, and HDBSCAN for clustering to identify semantically coherent post
+clusters. Implementation details are available in the project repository.7 To eval-
+uate clustering robustness, we conducted hyperparameter exploration. Table 2
+in the SM reports the optimal hyperparameters for microtopic clustering across
+temporal partitions. To interpret clusters as microtopics, we analyzed their rep-
+resentative posts using frequent keywords and LLM-generated summaries. In
+the final stage, we extracted representative keywords with CountVectorizer and
+sampled up to 100 posts from each discovered cluster for semantic interpretation.
+These samples were processed by a vLLM-hosted language model (“30B-A3B-
+Instruct-2507” 8 ), which generated concise titles and thematic descriptions for
+each cluster. The resulting microtopics were then reviewed and refined through
+human validation to support higher-level overarching thematic analysis.
+
+
+Overarching Theme Generation While microtopics reveal localized dis-
+course patterns, higher-level themes are needed to interpret broader political
+narratives. After identifying microtopics, we developed a human-AI thematic
+analysis framework to group them into overarching themes, following thematic
+analysis principles [4] and prior work on LLM-assisted qualitative synthesis with
+human validation [12]. The framework involved two steps: initial coding and
+theme development. In the initial coding stage, GPT-5.4 mini generated one or
+more candidate codes for each microtopic based on its title and description. To
+guide this process, we used a preliminary codebook of 17 seed codes derived
+from an independent topic modeling analysis of microtopic summaries (see Fig-
+ure 2 in the SM), while allowing the model to generate new codes when existing
+codes were insufficient. Two researchers iteratively reviewed the candidate codes,
+resolved ambiguous cases, and refined code definitions.
+    In the theme development stage, semantically related codes were grouped into
+approximately 10 to 25 candidate overarching themes. Each microtopic was then
+assigned to a single dominant theme to support macro-level interpretation and
+downstream temporal analysis. The researchers inspected the resulting theme
+structure and merged, renamed, or revised themes to improve conceptual clar-
+ity, distinctiveness, and interpretability. This iterative process combined model-
+7
+    https://github.com/alesalloum/microtopics-analysis
+8
+    https://huggingface.co/Qwen/Qwen3-30B-A3B-Instruct-2507
+                                                         Echoes in the Sky       5
+
+generated semantic grouping with human interpretive judgment to produce the
+final set of overarching themes.
+
+
+3.2   Executive Orders (EOs)
+
+To study the association between themes discussed online on Bluesky and EOs,
+we conducted a separate thematic analysis of EOs signed during Donald Trump’s
+second term. EO data were collected from the Federal Register Presidential Doc-
+uments page9 and include 258 EOs signed between January 20, 2025, and May 1,
+2026. Following the Bluesky theme-generation procedure, we used a hybrid cod-
+ing strategy. The U.S. Policy Agendas Project (PAP) annotation scheme served
+as the initial codebook10 and two researchers then reviewed and revised the an-
+notations to ensure that the final EO themes accurately captured the substantive
+content of each order.
+
+
+3.3   Temporal Analysis
+
+To detect significant changes in thematic activity and the timing of shifts in
+user attention, we applied structural break analysis. We constructed daily post-
+volume time series for each Bluesky theme beginning on January 20, 2025, corre-
+sponding to the start of Trump’s second presidential term. For each time series
+yt , we estimated breakpoints using the strucchange package in R. The pro-
+cedure uses dynamic programming to identify breakpoints
+                                                   PK+1 P that minimize         the
+                                                                            2
+residual sum of squares across segments: RSS = j=1               (y
+                                                            t∈Sj t  − ȳj )   where
+Sj denotes segment j, ȳj is the mean daily post volume within segment j, and K
+is the number of estimated breakpoints. The optimal number of breakpoints was
+determined by minimizing the Bayesian Information Criterion (BIC). Approxi-
+mate confidence intervals for breakpoint locations were computed and reported
+when statistically meaningful interval estimates were available.
+
+
+4     Results & Discussion
+
+4.1   Sentiment Analysis
+
+We examine sentiment dynamics to assess whether Trump-related discussions
+are predominantly positive, negative, or neutral, and how these patterns change
+over time. We computed VADER sentiment scores using only the original user-
+authored post content,11 excluding text from externally linked media to ensure
+that the sentiment scores reflect users’ own expressions. Using this approach,
+47.0% of posts were classified as negative, 17.3% as neutral, and 35.7% as posi-
+tive.
+9
+   https://www.federalregister.gov/presidential-documents/executive-orders
+10
+   https://www.comparativeagendas.net/project/us/research/92
+11
+   Including media metadata changed sentiment classifications of only 4% of posts.
+6            Wang et al.
+
+
+
+
+Fig. 2: Monthly Sentiment Frequency. Monthly post counts by sentiment cate-
+gory (left) and sentiment shares as percentages of total posts (right).
+
+Table 1: Examples of high-frequency microtopics identified across temporal par-
+titions (A–D) and their corresponding overarching theme (B1–B14).
+    Part.    ID     Microtopic Summarization                            Count   Theme
+    A        44     Trump’s Gaza Takeover Plan and Its Consequences     184,591 B3
+    A        809    Trump’s TikTok Paradox: From Ban to Savior          47,579 B5
+    A        35     Project 2025: Trump’s Hidden Agenda                 42,572 B4
+    A        27     Trump Blames DEI for Plane Crash Amid Safety Cuts   42,206 B1
+    C        1131   Trump’s Erosion of Disaster Response Systems        39,904 B9
+
+    Figure 2 shows the monthly distribution of posts by sentiment. Total Trump-
+related posting volume also increased sharply, with particularly large volumes
+in January and February 2025, coinciding with the start of Trump’s second
+presidential term. Overall, the figure suggests simultaneous growth in platform
+activity and the increasing dominance of negative sentiment in the monthly
+sentiment composition. Negative sentiment consistently represented the largest
+share of monthly Bluesky posts about Trump, while positive sentiment remained
+lower across most months. The gap between negative and positive sentiment
+increased over time, rising from 2% in August 2024 to approximately 15% by
+January 2026. Strongest negative sentiment gaps post-January 2025 appear in
+Public Health (45%), Immigration (44%), Public Lands (42%), and National
+Security (34%), reflecting Bluesky’s left-leaning user composition and critical
+reactions to Trump administration policies (see Figures 3–17 in the SM).
+
+4.2         Microtopic Discovery
+While sentiment captures the emotional tone of discourse, microtopic analysis
+identifies the substantive issues around which discussion is organized. Across
+the four temporal partitions, the optimized clustering pipeline identified 4,770
+microtopic clusters. As a result, 10,456,083 posts were assigned to identifiable
+microtopics, while the remaining posts were treated as unclustered observations.
+Clustering quality metrics (silhouette scores 0.52–0.53, trustworthiness 0.95, as-
+                                                                                                 Echoes in the Sky                 7
+
+                                                           E1 Executive    Coordination and
+B1 Executive   Power and
+    Administrative Control
+                                                               Administrative Task Forces
+                                                           E2 Public   Order, Crime, and
+                                                               Border Enforcement
+B2 Republican     Politics and
+    Partisan Conflict                                      E3 Foreign
+                                                               Relations
+                                                                         Policy and External
+    National Security and
+B3 Geopolitical Strategy                                   E4 National    Security, Defense,
+                                                               and Strategic Resilience
+                                                           E5 Trade,   Tariffs, and Export
+B4 Authoritarianism
+    Democratic Erosion
+                        and                                    Promotion
+                                                               Domestic Investment and
+                                                           E6 Market Competition
+B5 Media    Narratives and
+    Public Framing                                         E7 Civil Rights, Equality, and
+                                                               Gender Policy
+B6 Legal   Accountability and
+    Constitutional Rights                                  E8 Health,   Reproductive Care,
+                                                               and Medical Research
+                                                           E9 Education     and Higher-Ed
+B7 Economic
+    Distribution
+                Inequality and                                 Transparency
+
+    Technology, AI, and
+                                                           E10 Energy   Development and
+                                                               Resource Expansion
+B8 Digital Power                                               Technology, Science, Artificial
+                                                           E11 Intelligence   Development
+
+B9 Public   Land, Energy, and
+    Climate Governance                                     E12 Workforce,    Training, and
+                                                               Retirement Security
+                                                               Cultural Heritage and
+    Education, Universities,                               E13 National Pastime
+B10 and Intellectual Control                               E14 Environmental      Stewardship
+                                                               and Beautification
+B11 Public Health                                          E15 Housing    Affordability and
+                                                               Development Deregulation
+
+B12 Immigration,   Borders,                                E16 Infrastructure    and Maritime
+    and Sovereignty                                            Transportation Rules
+                                                           E17 Public  Lands, Parks, and
+B13 Aesthetics,  Populism,
+    and Performance Power
+                                                               Timber Production
+                                                               Water Supply and Disaster
+                                                           E18 Response
+B14 Race, Civil Rights, and
+    Identity Hierarchies                                   E19 Family
+                                                               Wellbeing
+                                                                        Support and Child
+
+
+                                 NUMBER OF BLUESKY POSTS                                              NUMBER OF EXECUTIVE ORDERS
+
+
+
+
+Fig. 3: Distribution of overarching themes in Bluesky posts (left) and Executive
+orders signed during Trump’s second term (right). Percentages indicate the share
+of posts or EOs mapped to each theme, while colors in the left panel denote the
+sentiment composition of Bluesky posts within each theme.
+
+signment confidence 0.80–0.82) indicated stable, interpretable microtopics across
+temporal partitions. Table 1 presents the highest-frequency microtopics identi-
+fied across the temporal partitions. These microtopics capture a broad range
+of political discourse themes, including international conflict, electoral politics,
+executive governance, media controversies, partisan polarization, foreign policy,
+and disaster response. Several themes recur across partitions, particularly discus-
+sions of Gaza, Elon Musk, and the Republican Party. This recurrence suggests
+both continuity and evolution in public political attention over time. These fine-
+grained microtopics also provide the foundation for the subsequent macro-level
+thematic analysis, where related microtopics are merged into broader interpre-
+tive categories.
+
+
+4.3         EOs and Bluesky Overarching Themes Annotation
+
+Using our human-AI thematic analysis pipeline, we generated 344 initial codes
+from the microtopics and consolidated them into 14 overarching themes. The
+left panel of Figure 3 presents the distribution of these Bluesky themes, along
+with their corresponding sentiment composition. Among the most prominent
+themes were Executive Power (B1) and Partisan Conflict (B2). Similarly, we
+identified 19 thematic categories across 258 executive orders, as shown in the
+right panel of Figure 3. The largest category was Executive Coordination and
+Administrative Task Forces (18.60%), followed by Public Order, Crime, and
+Border Enforcement (12.79%), Foreign Policy and External Relations (11.24%),
+and National Security, Defense, and Strategic Resilience (10.85%). Trade, Tariffs,
+and Export Promotion was also prominent (7.36%). These categories point to a
+strong emphasis on administrative coordination, enforcement, foreign policy, and
+security governance, closely mirroring the dominant themes in Bluesky discourse.
+8       Wang et al.
+
+
+
+
+Fig. 4: Temporal dynamics of Bluesky political discussion themes by month. The
+heatmap shows monthly post volumes for 14 themes on a logarithmic color scale,
+with cell values indicating the percentage of theme-assigned posts in that month.
+Y-axis labels use abbreviated theme names from Figure 3 (left).
+
+    However, political attention is inherently dynamic. Some issues remain con-
+sistently salient, while others emerge briefly in response to specific events before
+rapidly declining. Examining how attention evolves across themes provides in-
+sight into how online publics allocate and reallocate attention during periods of
+political change. Figure 4 indicates the monthly evolution of Bluesky overarch-
+ing themes. Discussion volume increased across nearly all themes after January
+2025, coinciding with the start of Trump’s second term. Executive Power (B1)
+and Partisan Conflict (B2) remained dominant throughout the observation pe-
+riod. Several issue-specific themes also exhibited marked temporal variation.
+Economic Trade (B7) peaked (14%) in April 2025, while Media Narratives (B5)
+and Authoritarianism (B4) were most pronounced in September and October
+2025. These fluctuations suggest that thematic attention on Bluesky was closely
+responsive to contemporaneous political events and policy developments.
+
+
+4.4   Structural Break Analysis
+
+Visual inspection of temporal trends in Bluesky post volume reveals fluctuations
+in public attention, while structural break analysis identifies statistically signifi-
+cant changes in discussion dynamics. Figure 5 identifies several statistically sig-
+nificant structural breaks in immigration-related discourse. These breakpoints
+correspond to abrupt changes in posting activity and suggest transitions be-
+tween distinct attention regimes. Several breaks occur near major border con-
+trol executive actions, including EO 14287 (“Protecting American Communities
+From Criminal Aliens”), signed on April 28, 2025; EO 14321 (“Ending Crime
+and Disorder on America’s Streets”); and EO 14333 (“Declaring a Crime Emer-
+gency in the District of Columbia”), signed on August 11, 2025. These tem-
+poral alignments suggest that a combination of policy announcements, media
+coverage, and broader political debate may have shaped immigration-related
+discourse on Bluesky. Rather than evolving gradually, immigration discourse ap-
+pears episodic, with attention shifting abruptly between relatively stable periods.
+                                                          Echoes in the Sky          9
+
+
+
+
+                                       2025-05-04                    2025-08-21
+                                     Low: 2025-04-20              Low: 2025-08-20
+                        2024-11-09   High: 2025-05-05             High: 2025-09-09
+
+
+
+
+Fig. 5: Structural breaks in the Theme Immigration (B12). Dashed vertical lines
+mark estimated breakpoint dates, and shaded regions show 95% confidence in-
+tervals where reliable estimates were available.
+
+Detected breakpoints cluster around discrete political events, such as executive
+actions and associated media coverage, suggesting these events coincide with
+abrupt changes in discussion volume. This episodic pattern is consistent with
+those observed across discourse themes analyzed (see Figures 18-26 in the SM).
+
+5   Conclusion & Future Work
+In this study, we analyzed Trump-related Bluesky posts to examine how on-
+line political discourse evolves around major U.S. policy developments. Using
+an LLM-assisted thematic analysis pipeline with human validation, we iden-
+tified discourse themes spanning executive governance, partisan conflict, im-
+migration, international affairs, technology, media narratives, and democratic
+institutions. The findings show that Bluesky attention is both persistent and
+event-sensitive, with some themes remaining consistently salient and others ris-
+ing episodically around major political or policy developments. Negative senti-
+ment was also prominent throughout the corpus, especially after the beginning
+of Trump’s second presidential term. Our analysis is limited to English-language
+Trump-related posts. The sentiment analysis is based on VADER and does not
+distinguish supportive from opposing sentiment. In addition to that, temporal
+associations should not be interpreted as causal. Future work should examine
+multilingual discourse, user-level dynamics, and stance.
+Acknowledgments. This work was carried out while the first author was a PhD
+student and during a research visit to the Max Planck Institute for Demographic
+Research. We thank Emilio Zagheni, Tom Theile, Aliakbar Akbaritabar, Egor
+Kotov, and Abigail Tun Mendicuti for their conceptual guidance.
+
+References
+ 1. Baik, K., Kim, J.: Analyzing the discourse around russo-ukrainian war in ger-
+    many: Understanding variances in public stances. In: International Conference on
+10      Wang et al.
+
+    Advances in Social Networks Analysis and Mining. pp. 315–331. Springer (2025).
+    https://doi.org/10.31235/osf.io/qe4m3_v1
+ 2. Barberá, P., Jost, J.T., Nagler, J., Tucker, J.A., Bonneau, R.: Tweeting from left to
+    right: Is online political communication more than an echo chamber? Psychological
+    science 26(10), 1531–1542 (2015). https://doi.org/10.1177/0956797615594620
+ 3. Bovet, A., Morone, F., Makse, H.A.: Validation of twitter opinion trends with
+    national polling aggregates: Hillary clinton vs donald trump. Scientific reports
+    8(1), 8673 (2018). https://doi.org/10.1038/s41598-018-26951-y
+ 4. Braun, V., Clarke, V.: Using thematic analysis in psychology. Qualita-
+    tive research in psychology 3(2), 77–101 (2006). https://doi.org/10.1191/
+    1478088706qp063oa
+ 5. Conover, M., Ratkiewicz, J., Francisco, M., Gonçalves, B., Menczer, F., Flammini,
+    A.: Political polarization on twitter. In: Proceedings of the international aaai con-
+    ference on web and social media. vol. 5, pp. 89–96 (2011). https://doi.org/10.
+    1609/icwsm.v5i1.14126
+ 6. Gkikas, D.C., Tzafilkou, K., Theodoridis, P.K., Garmpis, A., Gkikas, M.C.: How
+    do text characteristics impact user engagement in social media posts: Modeling
+    content readability, length, and hashtags number in facebook. International Journal
+    of Information Management Data Insights 2(1), 100067 (2022). https://doi.org/
+    10.1016/j.jjimei.2022.100067
+ 7. Jost, J.T., Barberá, P., Bonneau, R., Langer, M., Metzger, M., Nagler, J., Ster-
+    ling, J., Tucker, J.A.: How social media facilitates political protest: Informa-
+    tion, motivation, and social networks. Political psychology 39, 85–118 (2018).
+    https://doi.org/10.1111/pops.12478
+ 8. Kejriwal, M., Wang, Q., Li, H., Wang, L.: An empirical study of emoji usage on
+    twitter in linguistic and national contexts. Online social networks and media 24,
+    100149 (2021). https://doi.org/10.1016/j.osnem.2021.100149
+ 9. Paoletti, G., Ferreira, C.H., Vassio, L., Rocha, L., Almeida, J.M.: Tracing the 2024
+    us election debate on telegram with llms and graph analysis. Social Network Analy-
+    sis and Mining 15(1), 91 (2025). https://doi.org/10.1007/s13278-025-01504-0
+10. Quelle, D., Bovet, A.: Bluesky: Network topology, polarization, and algorithmic
+    curation. PloS one 20(2), e0318034 (2025). https://doi.org/10.1371/journal.
+    pone.0318034
+11. Salloum, A., Quelle, D., Iannucci, L., Bovet, A., Kivelä, M.: Politics and polariza-
+    tion on bluesky (2025), https://arxiv.org/abs/2506.03443
+12. Wang, Q., Erqsous, M., Barner, K.E., Mauriello, M.L.: Lata: A pilot study on
+    llm-assisted thematic analysis of online social network data generation experi-
+    ences. Proceedings of the ACM on Human-Computer Interaction 9(2), 1–28 (2025).
+    https://doi.org/10.1145/3711022
+13. Wang, Q., Erqsous, M., Khatiwada, P., Karwankar, A., Alhassan, F.M., Chan-
+    drasekaran, A., Abraham, B., Lovell, F., Ngo, A.A., Mauriello, M.L.: Leverag-
+    ing large language models for review classification and rating estimation of men-
+    tal health applications. In: Proceedings of the International AAAI Conference on
+    Web and Social Media. vol. 19, pp. 2017–2029 (2025). https://doi.org/10.1609/
+    icwsm.v19i1.35916
+14. Wang, Q., Khatiwada, P., Vieira, C.C., Bagozzi, B.E., Barner, K.E., Mauriello,
+    M.L.: Wisdom of the llm crowd: A large scale benchmark of multi-label u.s.
+    election-related harmful social media content (2026), https://arxiv.org/abs/
+    2602.11962
+

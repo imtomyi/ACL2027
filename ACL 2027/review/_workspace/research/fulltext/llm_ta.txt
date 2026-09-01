@@ -1,0 +1,534 @@
+                                          LLM-TA: An LLM-Enhanced Thematic Analysis Pipeline for Transcripts from
+                                                     Parents of Children with Congenital Heart Disease
+                                          Muhammad Zain Raza1 * , Jiawei Xu1 * , Terence Lim2,3 , Lily Boddy2 , Carlos M. Mery4,5 , Andrew
+                                                                             Well6,7 , Ying Ding1,7
+                                                                                     1
+                                                                                       School of Information, UT Austin
+                                                                                         2
+                                                                                   College of Natural Sciences, UT Austin
+                                                                                                3
+                                                                                                  Graphen, Inc.
+                                                               4
+                                                                 Division of Pediatric Cardiac Surgery, Vanderbilt University Medical Center
+                                                             5
+                                                               Pediatric Heart Institute at Monroe Carell Jr. Children’s Hospital at Vanderbilt
+
+
+
+
+arXiv:2502.01620v1 [cs.CL] 3 Feb 2025
+                                                                          6
+                                                                            Texas Center for Pediatric and Congenital Heart Disease
+                                                                                      7
+                                                                                        Dell Medical School, UT Austin
+                                          raza.zain08@austin.utexas.edu, {jiaweixu,terence.lim}@utexas.edu, lilyboddy212@gmail.com, carlos.mery@vumc.org,
+                                                                      Andrew.Well@austin.utexas.edu, ying.ding@ischool.utexas.edu
+                                                                    Abstract                                 of unanticipated themes, patterns, and insights in textual
+                                                                                                             datasets such as patient interview transcripts (Braun and
+                                          Thematic Analysis (TA) is a fundamental method in health-
+                                          care research for analyzing transcript data, but it is resource-
+                                                                                                             Clarke 2006; Saldana 2011). The seminal work by Braun
+                                          intensive and difficult to scale for large, complex datasets.      and Clarke (Braun and Clarke 2006) defines a six-phase
+                                          This study investigates the potential of large language models     process for inductive TA: (1) familiarization with the data,
+                                          (LLMs) to augment the inductive TA process in high-stakes          (2) generation of initial codes, (3) theme identification, (4)
+                                          healthcare settings. Focusing on interview transcripts from        theme review, (5) theme definition and naming, and (6)
+                                          parents of children with Anomalous Aortic Origin of a Coro-        report production. This iterative and reflective process in-
+                                          nary Artery (AAOCA)—a rare congenital heart disease—we             volves continuous movement between these phases to ensure
+                                          propose an LLM-Enhanced Thematic Analysis (LLM-TA)                 a thorough analysis (Nowell et al. 2017).
+                                          pipeline. Our pipeline integrates an affordable state-of-the-
+                                          art LLM (GPT-4o mini), LangChain, and prompt engineer-                Inductive TA does not rely on pre-determined codes or
+                                          ing with chunking techniques to analyze nine detailed tran-        themes; instead, analysts derive codes directly from the data
+                                          scripts following the inductive TA framework. We evaluate          without imposing external frameworks. However, this flex-
+                                          the LLM-generated themes against human-generated results           ibility, while valuable for capturing nuanced insights, can
+                                          using thematic similarity metrics, LLM-assisted assessments,       lead to inconsistencies and challenges in coherence (Hol-
+                                          and expert reviews. Results demonstrate that our pipeline out-     loway and Todres 2003). Furthermore, the approach is
+                                          performs existing LLM-assisted TA methods significantly.           resource-intensive, time-consuming, and does not scale ef-
+                                          While the pipeline alone has not yet reached human-level           fectively for large datasets. While small teams can man-
+                                          quality in inductive TA, it shows great potential to improve
+                                          scalability, efficiency, and accuracy while reducing analyst
+                                                                                                             age hundreds of observations, analyzing thousands of data
+                                          workload when working collaboratively with domain ex-              points introduces unique challenges related to consistency
+                                          perts. We provide practical recommendations for incorpo-           and resource allocation (Katz, Fleming, and Main 2024). Re-
+                                          rating LLMs into high-stakes TA workflows and emphasize            searchers have incorporated machine learning to assist hu-
+                                          the importance of close collaboration with domain experts          mans during the data annotation process, such as by learning
+                                          to address challenges related to real-world applicability and      patterns in real-time as user annotated the data (Gebreegzi-
+                                          dataset complexity. https://github.com/jiaweixu98/LLM-TA           abher et al. 2023) or leveraging rationale extraction models
+                                                                                                             to generate theme recommendations (Overney et al. 2024).
+                                                                                                             Some studies have explored automating the themes identi-
+                                                             1     Introduction                              fication by using topic modeling techniques (Leeson et al.
+                                        Thematic Analysis (TA) is a widely employed qualitative re-          2019; Guetterman et al. 2018). However, these methods are
+                                        search method, particularly prevalent in healthcare and re-          primarily statistical, only considering the prevalence of key-
+                                        lated fields such as psychology (Braun and Clarke 2006),             words in the corpus and do not capture the nuances of human
+                                        heart disease research (Mery et al. 2023), sport and exercise        researchers’ results (Parfenova, Denzler, and Pfeffer 2024).
+                                        studies (Braun, Clarke, and Weate 2016), gender identity ex-            To address these limitations, several studies have ex-
+                                        ploration (Bradford et al. 2020), and anorexia research (Tier-       plored the potential of large language models (LLMs) to
+                                        ney and Fox 2010). TA facilitates an inductive examina-              automate inductive TA tasks. These efforts include evalu-
+                                        tion of participant perspectives, enabling the identification        ating LLMs’ alignment with human annotations in diverse
+                                            * These authors contributed equally.                             contexts such as video game players and data science ed-
+                                        Copyright © 2025, Association for the Advancement of Artificial      ucators (De Paoli 2024), psychiatric patient-clinician in-
+                                        Intelligence (www.aaai.org). All rights reserved.                    teractions (Mathis et al. 2024), pandemic-era team feed-
+                                                   Stage 1: Coding                                                                                 Stage 2: Theme Generation
+
+              1a) Data Pre-Processing             1b) Code Generation            1c) Separate Codes                     2a) Process chunks                  2b) Consolidate Theme List           2c) Compare GPT-4
+                                                       of N Codes                 into groups of 50                  separately, gather themes                                                   and Human Themes
+                  Split long
+                                                                                      Group 1 of N                          Group 1 of N                                                            for Similarity
+               transcripts into
+              smaller chunks for                   1) Emotional Impact          1) Emotional Impact                    1) Navigating Treatment                 1) Navigating Treatment
+               LLM to process.
+                                                   2) Fear of Diagnosis          2) Fear of Diagnosis                   2) Impact of Diagnosis                 2) Impact of Diagnosis
+                                                                                                                                                                                                 GPT-4         Human
+                                                 N) Anxiety of Diagnosis       N) Anxiety of Diagnosis                  8) Impact of Treatment                 8) Impact of Treatment
+                   -Codes                     Prompt: You are in the initial coding                                                                        Prompt: Consolidate preliminary
+                                                                                                                  Prompt: Conduct thematic
+                   -Themes                 stage. Provide code names, descriptions,                                                                         themes into overarching themes.
+                                                                                                                 analysis within each group &
+                                                and quotes from the transcript.                                                                            Ensure each topic is included in at
+                                                                                                                 combine similar codes into a
+                                                                                                                  single, concise description.            least one group & allowing overlap.
+
+
+
+
+   Figure 1: Pipeline for LLM-enhanced thematic analysis (LLM-TA) of transcripts from parents of children with AAOCA.
+
+                                                                                                        Code Generation
+
+                          0-Shot                                           1-Shot                                            Reflexion Prompting
+
+                                     1)1)Mixed Emotions
+                                         Emotional Impact                                 1) Emotional Impact                                    1) Emotional Impact                   1) Psycological Burden
+                                       2) Fear
+                                             2)ofFear
+                                                  Diagnosis                               2) Fear of Diagnosis                                   2) Fear of Diagnosis               2) Diagnostic Apprehension
+
+                                      N) Anxiety of Diagnosis
+                                           N) Anxiety                                    N) Anxiety of Diagnosis                             N) Anxiety of Diagnosis                    N) Prognosis Anxiety
+
+                                   *Prompt                                    *Prompt, *Example Response.                         *Prompt, *Example Response.                    *Reflexion, Regenerate
+
+                      *Prompt: Conduct thematic analysis                      *Example Response: Physically
+                                                                                                                                   *Reflexion: Refine the outputs of the LLM during
+                          on cardiac patient interview                        keeping up: "Many participants
+                                                                                                                                   preliminary code generation. Evaluate the initial
+                     transcripts to identify outcomes and                    reported feeling excluded during
+                                                                                                                                   outputs for specificity and comprehensiveness,
+                        healthcare gaps. Include a direct                   physical education activities due to                     generate self-feedback, and incorporate the
+                           quote from the transcript.                      their inability to keep up with peers.”                   feedback into a second iteration to improve
+                                                                                                                                        alignment with the examples and data.
+
+
+
+
+  Figure 2: Prompting strategies in the LLM-TA code generation stage. These strategies are also used for theme generation.
+
+
+back (Katz, Fleming, and Main 2024), barriers to arthro-                                                                   et al. 2024). Advanced LLMs and robust prompt engineer-
+plasty (Mannstadt et al. 2024), vaccine rhetoric on Twit-                                                                  ing techniques have yet to be fully leveraged in this con-
+ter (Deiner et al. 2024), media coverage of a controver-                                                                   text (Katz, Fleming, and Main 2024; Mathis et al. 2024).
+sial financial scandal (Khan et al. 2024), facts descriptions                                                              In this study, we introduce an LLM-Enhanced Thematic
+from criminal court opinions regarding thefts (Drápal, West-                                                              Analysis (LLM-TA) pipeline and address these gaps with
+ermann, and Savelka 2023), and SMS health intervention                                                                     three key contributions:
+prompts (Prescott et al. 2024). Collaborative frameworks in-
+tegrating human expertise with LLM capabilities have also
+                                                                                                                             • We present the first LLM-enhanced TA pipeline tai-
+been proposed to enhance the TA process (Dai, Xiong, and
+                                                                                                                               lored for high-stakes, lengthy, real-world, de-identified
+Ku 2023; Zhang et al. 2023; Gao et al. 2024). Both open-
+                                                                                                                               transcripts. Specifically, we analyze interview transcripts
+source models (e.g., Llama 2, Mistral) (Mathis et al. 2024;
+                                                                                                                               with parents of children diagnosed with Anomalous Aor-
+Katz, Fleming, and Main 2024) and proprietary models (e.g.,
+                                                                                                                               tic Origin of a Coronary Artery (AAOCA), a type of con-
+GPT-3.5, GPT-4, Claude) (De Paoli 2024; Dai, Xiong, and
+                                                                                                                               genital heart disease.
+Ku 2023; Singh et al. 2024; Mannstadt et al. 2024) have
+been utilized, demonstrating significant time savings and
+                                                                                                                             • We apply thematic similarity analysis, LLM-based judg-
+scalability while maintaining relevance (Mathis et al. 2024;
+                                                                                                                               ments, and assessments by a TA expert who previ-
+Prescott et al. 2024). Additionally, some studies have evalu-
+                                                                                                                               ously worked on the dataset to compare LLM-generated
+ated LLMs’ capacity for deductive qualitative research (Gao
+                                                                                                                               themes with human-coded ground truth. Employing
+et al. 2024; Xiao et al. 2023; Singh et al. 2024).
+                                                                                                                               chunking strategies, we test various prompt engineer-
+   Despite significant advances, LLMs’ ability to perform                                                                      ing techniques—including zero-shot, one-shot, and re-
+inductive TA on real-world healthcare interview transcripts                                                                    flection—on contextually rich AAOCA interview tran-
+remains under-explored. Prior studies have primarily fo-                                                                       scripts. Our LLM-TA pipeline outperforms existing
+cused on lower-stakes domains like video games or mu-                                                                          LLM-augmented TA methods in thematic accuracy,
+sic (Dai, Xiong, and Ku 2023; De Paoli 2024). Even within                                                                      LLM assessment, and expert review.
+healthcare, existing analyses often use small datasets with
+shorter transcripts, failing to capture the complexity of real-                                                              • By closely collaborating with the inductive TA expert,
+world scenarios (Mathis et al. 2024; Mannstadt et al. 2024).                                                                   we identified gaps of LLM-gernated themes compared to
+Moreover, evaluations of LLM-generated themes have not                                                                         human researchers. We provide preliminary insights on
+involved researchers who conducted the original inductive                                                                      integrating LLMs into real-world workflows to enhance
+TA on the same dataset (Mathis et al. 2024; Mannstadt                                                                          the efficiency and scalability of inductive TA.
+                      2     Methodology                             Stage 2: Theme Generation. Themes represent overarch-
+We developed a LLM-Enhanced Thematic Analysis                       ing concepts synthesized from multiple related codes. Each
+pipeline (Figure 1) to perform inductive TA (Braun and              theme includes a short title, a detailed description, and the
+Clarke 2006) on de-identified transcripts from nine focus           associated codes. These themes are critical for understand-
+group sessions involving 42 parents. These transcripts, with        ing participants’ perspectives and are used to inform the re-
+a median word count of 11,457, document conversations be-           search findings.
+tween interviewers and parents of children with AAOCA.               • 2(a) Preliminary theme generation. For each group
+Traditional inductive TA involves six stages: 1) Familiariza-          of codes, we prompted the LLM to synthesize prelimi-
+tion with the data, 2) Generation of initial codes, 3) Theme           nary themes. Acting as an inductive TA researcher, the
+identification, 4) Theme review, 5) Final theme definition             LLM analyzed the grouped codes and their descriptions
+and naming, and, 6) Report production. Stages (2) through              to identify themes. Each preliminary theme included a ti-
+(5) typically require at least two human researchers to inde-          tle, a detailed description, and the associated codes. This
+pendently generate and refine codes and themes, followed               process was repeated for all N groups, resulting in N
+by collaborative discussions to finalize results. This iterative       sets of preliminary themes. Notably, a single code could
+process is both time- and labor-intensive.                             belong to multiple themes.
+   Formally, given a dataset of de-identified transcripts            • 2(b) Final theme generation. In the final stage, the LLM
+                                                                       reviewed all preliminary themes and their associated
+                      T = {T1 , T2 , . . . , Tn }
+                                                                       codes across groups. It synthesized overarching themes
+where n = 9 focus group sessions, involving 42 parents                 by considering the participants’ experiences, needs, and
+of children with AAOCA, our objective is to automate the               meaningful outcomes related to living with children diag-
+inductive TA process using an LLM. Each transcript Ti is               nosed with AAOCA. The final themes included detailed
+lengthy (median word count of 11,457) and contains rich                descriptions and were designed to reflect the most promi-
+conversational data between parents. The goal is to generate           nent insights from the data.
+a set of initial Codes and and Themes:                              Prompting Strategies. To implement the pipeline, we em-
+        C = {c1 , c2 , . . . , ck }, Θ = {θ1 , θ2 , . . . , θk },   ployed three distinct prompting strategies of increasing com-
+                                                                    plexity (Figure 2): zero-shot, one-shot, and Reflexion (Shinn
+that capture significant patterns in the data. There are two        et al. 2024). All detailed prompts can be accessed through
+primary stages in the LLM-TA pipeline (Figure 1):                   our public GitHub repository.
+
+Stage 1: Initial code generation on chunked transcripts.             • Zero-shot prompting. In the zero-shot setting, we used
+Codes are the foundational units of inductive TA, captur-              straightforward prompts to guide the LLM in identify-
+ing significant concepts and ideas from the transcripts. Each          ing codes from transcript chunks and generating the fi-
+code includes a concise name, a meaningful description, and            nal themes, as outlined in the pipeline. These prompts
+representative quotes from the transcripts.                            included a detailed explanation of the inductive TA
+                                                                       methodology. Additionally, the prompts incorporated
+ • 1(a) Splitting transcripts into smaller chunks. To en-              comprehensive background information on the AAOCA
+   able fine-grained analysis, we divided each transcript into         transcripts, aligning with the familiarization stage of tra-
+   smaller chunks of up to 1,500 words. Each chunk pre-                ditional inductive TA. This approach allowed the LLM to
+   serves the integrity of conversational context. This ap-            process the data without requiring prior examples.
+   proach improves the LLM’s ability to generate detailed            • One-shot prompting. Building on the zero-shot ap-
+   and accurate codes, compared to directly processing en-             proach, the one-shot setting introduced curated exam-
+   tire transcripts as described by Mathis et al. (2024).              ples from a related inductive TA study. These examples
+ • 1(b) LLM-based initial coding. We prompted the LLM                  served as templates to guide the LLM in generating code
+   to roleplay as an inductive TA researcher tasked with               names and theme descriptions that adhered to the desired
+   generating initial codes for each chunk. The prompt                 format and context.
+   provided detailed context about the transcripts and in-           • Reflexion prompting. In the Reflexion setting (Shinn
+   structed the LLM to identify exhaustive codes, each ac-             et al. 2024), we extended the one-shot approach by in-
+   companied by a name, description, and representative                corporating iterative feedback to refine the LLM’s out-
+   quotes. On average, the LLM generated one code for ev-              puts. After the LLM generated preliminary themes, we
+   ery 225 words of transcript.                                        prompted it to critically evaluate its outputs, focusing
+ • 1(c) Grouping initial codes. After generating codes                 on the specificity and comprehensiveness of the theme
+   for all chunks, we concatenated the codes (including                names and descriptions. The LLM then generated feed-
+   their names, descriptions, and quotes) and divided them             back on its own outputs, identifying areas for improve-
+   into N sequential groups. This divide-and-conquer strat-            ment. Using this feedback, we conducted a second round
+   egy mitigates the LLM’s limitations in processing large             of theme generation, refining the preliminary themes to
+   amounts of information at once (Liu et al. 2023; Wang               ensure greater alignment with the the underlying data.
+   et al. 2024), ensuring that the grouped codes retain fine-          A similar Reflexion-based strategy was employed during
+   grained details for subsequent theme generation.                    Stage 2(b) (Final theme generation) to synthesize final
+   themes that were both coherent and representative of the           themes, the LLM assigned a similarity score between 0 and
+   participants’ experiences.                                         1 based on its understanding of the conceptual overlap, with
+                                                                      a score of 0 meaning completely different and 1 meaning
+           3    Experiment and Evaluation                             completely overlapping. We prompted the LLM to apply a
+Qualitative research does not always have a definitive                penalty if one description is very specific and the other is
+ground truth. In this study, to evaluate the performance of           very general, ensuring a more balanced evaluation.
+LLM-TA pipeline, we employ two complementary methods.                    Baselines. We used the method proposed by Mathis et al.
+First, we invited a core researcher, responsible for generat-         (2024) as our baseline, which incorporates iterative refine-
+ing the human themes using the same dataset (see AAOCA                ment, chain-of-thought, and Reflexion prompting. We also
+patients focus group Transcript Dataset section), to provide          performed a simplified version of their method without the
+qualitative feedback regarding the accuracy and helpfulness           Reflexion module, while keeping all other settings identical.
+of the LLM-generated themes and descriptions. We also                    Experimental Settings. For all our proposed methods,
+utilize embedding similarity and LLM judgment methods                 we use OpenAI’s GPT-4o-mini-2024-07-18 with a
+to evaluate the similarity between the LLM-generated and              temperature of 0 for reproducibility. We build the pipeline
+human-generated themes and theme descriptions.                        using langchain v0.3.21. For the baseline methods
+   Similarity Metrics. We employed both embedding and                 proposed by Mathis et al. (2024), we follow their strategy
+LLM-based metrics to validate the LLM-TA pipeline                     and set the temperature to 1.0.
+by evaluating the similarity between human and LLM-                   AAOCA Patients Focus Group Transcript Dataset. The
+generated descriptions. For each method, pairwise similar-            de-identified transcript corpus was derived from nine fo-
+ity scores between theme descriptions were aggregated into            cus group sessions involving 42 parents of children with
+similarity matrices. Following Mathis et al. (2024), we con-          AAOCA. These sessions were lightly moderated by a non-
+verted continuous similarity scores into binary classifica-           clinical facilitator, encouraging open discussions that al-
+tions (similar or not) by setting a threshold through sensi-          lowed parents to express previously unarticulated needs and
+tivity analysis (Figure 3). Based on the similarity matrices,         experiences related to living with the condition. The nine
+we calculated the Jaccard Similarity and the Hit Rate.                transcripts had a median word count of 11,457. Using tra-
+   Let H = {h1 , h2 , . . . , hn } represent the set of human-        ditional inductive TA methods, three study team members
+generated themes, and L = {l1 , l2 , . . . , lm } represent the set   independently coded the transcripts and developed themes
+of LLM-generated themes. For each pair (hi , lj ) in H × L,           based on the data. They engaged in iterative discussions to
+we compute a similarity score s(hi , lj ). We define Sθ =             review and refine codes and identify themes. This process
+{(hi , lj ) ∈ H × L | s(hi , lj ) ≥ θ}, where θ is the simi-          was both time- and resource-intensive and required approxi-
+larity threshold determined via sensitivity analysis and kept         mately 30 person-hours. The final analysis identified twelve
+consistent across different baselines.                                meaningful outcomes for individuals and parents.
+   The Jaccard Similarity is defined as the proportion of                For this study, we used these nine deidentified transcripts
+theme pairs considered similar out of all possible pairs:             as our dataset. Additionally, one of the experts from the orig-
+                                    |Sθ |    |Sθ |                    inal inductive TA team collaborated closely with us to eval-
+          Jaccard Similarity =            =                    (1)    uate the LLM-generated results. The twelve themes repre-
+                                  |H × L|   n×m                       senting meaningful outcomes, as articulated by the partici-
+   The Hit Rate measures the proportion of human-generated            pants and identified by the human research team, serve as
+themes that find a highly similar mapping in the LLM-                 the ground truth data. The theme titles are listed in Figure 3.
+generated themes:
+                                                                                              4   Results
+                                   |Hs |
+                        Hit Rate =                             (2)    Efficiency Analysis. Conducting inductive TA on nine
+                                    n                                 lengthy transcripts required approximately 30 person-hours
+where Hs = {h ∈ H | ∃ l ∈ L, s(h, l) ≥ θ}.                            for human researchers. In contrast, the LLM-TA pipeline
+   These metrics provide insights into the similarity between         completed the task in under 10 minutes for all methods ex-
+human-generated themes H and LLM-generated themes L.                  cept the 1-shot + Reflexion approach, which took 90 min-
+The Jaccard Similarity quantifies the proportion of similar           utes (1.5 hours). Even this most time-intensive method re-
+theme pairs while the Hit Rate indicates how many human               duced task duration by 97% compared to manual analysis.
+themes are adequately captured by the LLM.                            While some quality gaps remain between LLM- and human-
+   Embedding-Based Semantic Similarity. We employed                   generated themes, the results highlight the potential for in-
+the sentence transformer models: all-MiniLM-L6-v2,                    tegrating the LLM-TA method into human-led inductive TA
+all-mpnet-base-v2, and sentence-T5-xxl, to                            workflows to enhance scalability and efficiency.
+encode the theme descriptions into high-dimensional em-                  Quantitative Evaluation. Jaccard Similarity and hit-rate
+beddings. Pairwise cosine similarity scores were computed             were used for evaluation. Table 1 summarizes the com-
+between human-generated and LLM-generated embeddings.                 parison between human- and LLM-generated themes, uti-
+   LLM-Based Similarity. The LLM acts as a judge to as-               lizing five prompting and chunking strategies. Two base-
+sess the similarity of ideas between human-generated and              line methods were replicated from the (Mathis et al. 2024)
+LLM-generated themes (Liu et al. 2024). For each pair of              study, alongside three variants of our proposed LLM-TA
+                                                                               Human-labeled themes vs. LLM-labeled themes
+                                                  Similarity Metrics           Jaccard Similarity         Hit Rate
+                                                  sentence-t5-xxl (> 0.82)           0.111                   0.667
+          Mathis et al. (2024) (w/o Reflexion)    all-mpnet-base-v2 (> 0.62)         0.146                   0.750
+                                                  all-MiniLM-L6-v2 (> 0.56)          0.097                   0.500
+                                                  LLM as a judge (> 0.5)             0.056                   0.667
+                                                  sentence-t5-xxl (> 0.82)           0.139                   0.583
+          Mathis et al. (2024) (w/ Reflexion)     all-mpnet-base-v2 (> 0.62)         0.139                   0.583
+                                                  all-MiniLM-L6-v2 (> 0.56)          0.083                   0.417
+                                                  LLM as a judge (> 0.5)             0.042                   0.750
+                                                  sentence-t5-xxl (> 0.82)           0.410                   1.000
+          LLM-TA (0-Shot)                         all-mpnet-base-v2 (> 0.62)         0.410                   0.917
+                                                  all-MiniLM-L6-v2 (> 0.56)          0.389                   0.917
+                                                  LLM as a judge (> 0.5)             0.118                   0.750
+                                                  sentence-t5-xxl (> 0.82)           0.396                   1.000
+          LLM-TA (1-Shot)                         all-mpnet-base-v2 (> 0.62)         0.326                   0.917
+                                                  all-MiniLM-L6-v2 (> 0.56)          0.285                   0.917
+                                                  LLM as a judge (> 0.5)             0.174                   0.917
+                                                  sentence-t5-xxl (> 0.82)           0.222                   1.000
+          LLM-TA (1-Shot + Reflexion)             all-mpnet-base-v2 (> 0.62)         0.291                   0.833
+                                                  all-MiniLM-L6-v2 (> 0.56)          0.215                   0.833
+                                                  LLM as a judge (> 0.5)             0.152                   0.917
+                                                  sentence-t5-xxl (> 0.82)           0.583                   1.000
+          Ground Truth (Human)                    all-mpnet-base-v2 (> 0.62)         0.486                   1.000
+                                                  all-MiniLM-L6-v2 (> 0.56)          0.500                   1.000
+                                                  LLM as a judge (> 0.5)             0.104                   1.000
+
+Table 1: Performance comparison of human-generated and LLM-generated themes and descriptions. Jaccard similarity and Hit
+rate are used to measure Human-labeled themes vs. LLM-labeled themes based on pair-wise similarity in Figure 3.
+
+                                                   Similarity with Human Coding
+           Methods                                 Concepts Level Theme Level          Specificity         Usefulness
+           Mathis et al. (2024) (w/o Reflexion)        High            1 (Low)          1 (Low)          Not Very Helpful
+           Mathis et al. (2024) (w/ Reflexion)         High            1 (Low)        2 (Medium)         Not Very Helpful
+           LLM-TA (0-Shot)                             High           2 (High)          4 (High)             Helpful
+           LLM-TA (1-Shot)                             High           2 (High)     3 (Moderate-High)    Moderately Helpful
+           LLM-TA (1-Shot + Reflexion)                 High          3 (Highest)      5 (Highest)            Helpful
+
+ Table 2: Expert evaluation.The LLM-TA pipeline outperformed baselines in thematic similarity, specificity, and usefulness.
+
+
+pipeline. Our approaches showed clear improvements across               in baseline methods, our prompts explicitly outlined the
+both metrics. For Jaccard Similarity, the zero-shot strategy            research context, objectives, and task-specific instructions,
+achieved the highest score in three of four evaluation meth-            such as generating theme names, descriptions, and identify-
+ods, as well as the highest overall average. For hit-rate, the          ing relevant quotes. This precision enabled the LLM to pro-
+one-shot method performed the best, obtaining the highest               duce outputs more aligned with human-generated themes.
+or joint-highest scores across all evaluation methods. Per-             Moreover, in the one-shot setting, we further enriched con-
+formance declined slightly in the one-shot + Reflexion set-             textual understanding by incorporating a real-world example
+ting. Compared to baseline methods, our pipeline achieved a             from Inductive TA conducted on similar transcripts. This ex-
+216% improvement in average Jaccard Similarity and 45%                  ample clarified expectations and reinforced the LLM’s abil-
+improvement in average hit-rate.                                        ity to structure outputs effectively.
+   Two key factors underpinned the superior performance of                 Expert Evaluation. To assess the LLM-generated
+our approach. First, the chunking strategy played a pivotal             themes, we engaged a human researcher who had previ-
+role. Baseline methods (Mathis et al. 2024) analyzed shorter            ously conducted the ground truth inductive TA on the same
+transcripts with a median length of 3,200 words and did not             AAOCA dataset. This expert’s domain familiarity enabled a
+utilize chunking. While this approach is adequate for smaller           precise evaluation of thematic accuracy and relevance.
+datasets, it struggles with large, real-world transcripts. By              Table 2 highlights the expert’s overall evaluation. The
+dividing longer transcripts into manageable chunks, our                 LLM-TA pipeline outperformed baselines in thematic simi-
+method prevented information loss and facilitated the ex-               larity, specificity, and usefulness. However, the expert noted
+traction of more nuanced insights, thereby improving theme              limitations in the utility of themes generated by the one-shot
+generation. Second, the use of detailed prompts signifi-                LLM-TA method, despite its superior hit rate. In contrast,
+cantly enhanced outcomes. Unlike the generic prompts used               themes produced by the zero-shot setting were qualitatively
+          (a)                      a                                                            (b)                  a
+                                   b                                                                                 b
+                                   c                                                                                 c
+
+
+
+
+          Human-generated themes
+                                                                                            Human-generated themes
+                                   d                                                                                 d
+                                   e                                                                                 e
+                                   f                                                                                 f
+                                   g                                                                                 g
+                                   h                                                                                 h
+                                   i                                                                                 i
+                                   j                                                                                 j
+                                   k                                                                                 k
+                                   l                                                                                 l
+                                       0   1   2   3     4   5   6   7    8   9   10   11                                 0   1   2   3   4   5   6    7     8   9   10   11
+                                                       LLM-generated themes                                                           LLM-generated themes
+                           Human-generated themes.                                                            LLM-generated themes. (LLM-TA 0-shot)
+                           a) Clarity of potential risks and outcomes                                         0) Seeking clarity and reassurance about my child's health journey
+                           b) Freedom from hypervigilance related to the condition                            1) Balancing normalcy and protection in my child's life
+                           c) The diagnosis given in a compassionate and empathic way                         2) Coping with emotional turmoil and uncertainty about my child's future
+                           d) A sense of control over the future                                              3) Desiring emotional support and understanding from healthcare providers
+                           e) Being heard and taken seriously by clinicians                                   4) Experiencing relief and gratitude for successful interventions
+                           f) Individualized support for management decision-making                           5) Living with constant vigilance and fear of health crises
+                           g) Receiving support from others                                                   6) Struggling with guilt and self-blame regarding my child's condition
+                           h) Being appropriately informed                                                    7) Desiring positive messaging about health outcomes
+                           i) Partnership with the care team                                                  8) Feeling overwhelmed by the demands of caregiving
+                           j) Feeling that my child is safe                                                   9) Building a supportive community with other parents
+                           k) Not feeling responsible for the diagnosis and its timing                        10) Managing the emotional impact of surgery on my child
+                           l) Appropriately coping with stress, anxiety and depression                        11) Advocating for awareness and understanding of heart conditions
+
+Figure 3: (a) Similarity heatmap of themes generated by the LLM-TA (zero-shot) method compared with human themes using
+all-MiniLM-L6-v2. (b) Similarity heatmap of themes generated by the LLM-TA (zero-shot) method compared with human
+themes using all-MiniLM-L6-v2, with a threshold score of 0.56.
+
+
+more useful, underscoring the insufficiency of similarity-                                                                  These findings underscore the necessity of close collab-
+based metrics for assessing thematic quality.                                                                            oration with domain experts to iteratively refine prompts
+   The expert also identified some shortcomings in LLM-                                                                  based on research goals and contextual knowledge. High-
+generated themes. (1) Lack of representativeness. Certain                                                                stakes datasets often require expertise-derived context be-
+themes overemphasized rare, dramatic experiences rather                                                                  yond what transcripts explicitly provide, which LLMs inher-
+than reflecting broader trends. For instance, the theme                                                                  ently lack. Our results reinforce the irreplaceable role of ex-
+“Finding relief in a diagnosis after health crises” dispropor-                                                           pert human evaluation in TA, particularly in complex health-
+tionately highlighted cardiac arrest cases, whereas most par-                                                            care datasets. While embedding-based and LLM-based sim-
+ents of incidentally diagnosed children reported heightened                                                              ilarity metrics provide valuable quantitative insights, only
+anxiety instead of relief. Similarly, themes like “Managing                                                              human reviewers can, as of now, qualitatively assess the-
+the financial challenges of care” overrepresented financial                                                              matic relevance and accuracy.
+concerns, which were rarely mentioned across transcripts.
+(2) Inaccurate interpretations. Some themes misrepre-                                                                                             5        Conclusion
+sented transcript content. For example, the theme “Seeking                                                               Motivated by the need to reduce the time-consuming induc-
+simplicity in discussing my child’s heart condition” misin-                                                              tive TA process in complex healthcare transcript data, we de-
+terpreted parents’ preferences for a comprehensive under-                                                                signed an LLM-enhanced inductive TA pipeline to automate
+standing as a desire for simplified information. Similarly, the                                                          stages (1) to (5) of the traditional TA process. Using chunk-
+overly broad theme “Desiring clear communication and un-                                                                 ing, we performed fine-grained coding and theme identifi-
+derstanding from medical professionals” conflated distinct                                                               cation. Additionally, we developed detailed instructions on
+issues such as empathy and clinical communication into                                                                   the steps of TA and the research goals, specifically regard-
+a single category. (3) Missing clinical context. The LLM                                                                 ing the meaningful outcomes for parents of children with
+lacked knowledge of clinical context external to the tran-                                                               AAOCA, and incorporated these into various LLM prompt-
+scripts, such as long-term outcomes for AAOCA or man-                                                                    ing strategies. By evaluating the pipeline with domain exper-
+agement strategy nuances. For example, parents’ desire for                                                               tise and LLM-based metrics, we significantly improved the
+more information reflects a lack of clinical evidence on op-                                                             performance of existing LLM-enhanced TA methods. We
+timal management strategies of AAOCA, rather than mere                                                                   emphasize that the evaluation of LLM-enhanced inductive
+gaps in communication. Those clinical contexts are not in                                                                TA on high-stakes data must involve domain experts. While
+the transcripts, and providing the model with such clin-                                                                 automated methods can assist in analyzing correlations and
+ical context could improve the accuracy of future LLM-                                                                   provide quantitative insights, expert evaluation remains irre-
+generated themes.                                                                                                        placeable and invaluable in ensuring the accuracy and rele-
+vance of themes derived from such datasets.                      Gebreegziabher, S. A.; Zhang, Z.; Tang, X.; Meng, Y.;
+   Through close collaboration with an inductive TA ex-          Glassman, E. L.; and Li, T. J.-J. 2023. PaTAT: Human-AI
+pert, we identified key limitations of current LLM-generated     Collaborative Qualitative Coding with Explainable Interac-
+themes, primarily arising from the lack of clinical context      tive Rule Synthesis. In Proceedings of the 2023 CHI Con-
+that domain experts possess and cannot be directly inferred      ference on Human Factors in Computing Systems, CHI ’23.
+from transcripts. Based on these findings, we strongly rec-      New York, NY, USA: Association for Computing Machin-
+ommend that future researchers collaborate closely with          ery. ISBN 9781450394215.
+domain experts to design prompts and interpret results at        Guetterman, T. C.; Chang, T.; DeJonckheere, M.; Basu, T.;
+each stage of TA. To further enhance reliability, future work    Scruggs, E.; and Vydiswaran, V. V. 2018. Augmenting
+should: (1) engage multiple experts to mitigate individual       Qualitative Text Analysis with Natural Language Process-
+biases and broaden interpretive perspectives, (2) incorporate    ing: Methodological Study. J Med Internet Res, 20(6): e231.
+clinical guidelines or regulatory documents into prompts to
+enrich LLMs’ contextual understanding, and (3) validate the      Holloway, I.; and Todres, L. 2003. The status of method:
+pipeline across diverse medical conditions to assess general-    flexibility, consistency and coherence. Qualitative research,
+izability. Such steps will help fully harness LLMs’ potential    3(3): 345–357.
+to scale inductive TA while preserving analytical rigor in       Katz, A.; Fleming, G. C.; and Main, J. 2024. Thematic Anal-
+sensitive healthcare domains.                                    ysis with Open-Source Generative AI and Machine Learn-
+                                                                 ing: A New Method for Inductive Qualitative Codebook De-
+Acknowledgements                                                 velopment. arXiv preprint arXiv:2410.03721.
+We would like to acknowledge the following funding
+                                                                 Khan, A. H.; Kegalle, H.; D’Silva, R.; Watt, N.; Whelan-
+supports: NIH OT2OD032581, NIH OTA-21-008, NIH
+                                                                 Shamy, D.; Ghahremanlou, L.; and Magee, L. 2024. Au-
+1OT2OD032742-01.
+                                                                 tomating Thematic Analysis: How LLMs Analyse Contro-
+                                                                 versial Topics. arXiv:2405.06919.
+                       References
+                                                                 Leeson, W.; Resnick, A.; Alexander, D.; and Rovers, J.
+Bradford, N. J.; Rider, G. N.; Catalpa, J. M.; Morrow, Q. J.;
+                                                                 2019.    Natural Language Processing (NLP) in Qual-
+Berg, D. R.; Spencer, K. G.; and McGuire, J. K. 2020.
+                                                                 itative Public Health Research: A Proof of Concept
+Creating gender: A thematic analysis of genderqueer nar-
+                                                                 Study. International Journal of Qualitative Methods, 18:
+ratives. In Non-binary and Genderqueer Genders, 37–50.
+                                                                 1609406919887021.
+Routledge.
+Braun, V.; and Clarke, V. 2006. Using thematic analysis in       Liu, J. L.; Wang, Y.; Lyu, Y.; Su, Y.; Niu, S.; Xu, X. O.;
+psychology. Qualitative research in psychology, 3(2): 77–        and Zhang, Y. 2024. Harnessing LLMs for Automated
+101.                                                             Video Content Analysis: An Exploratory Workflow of Short
+                                                                 Videos on Depression. In Companion Publication of
+Braun, V.; Clarke, V.; and Weate, P. 2016. Using thematic
+                                                                 the 2024 Conference on Computer-Supported Coopera-
+analysis in sport and exercise research. In Routledge hand-
+                                                                 tive Work and Social Computing, CSCW Companion ’24,
+book of qualitative research in sport and exercise, 213–227.
+                                                                 190–196. New York, NY, USA: Association for Computing
+Routledge.
+                                                                 Machinery. ISBN 9798400711145.
+Dai, S.-C.; Xiong, A.; and Ku, L.-W. 2023. LLM-in-
+the-loop: Leveraging Large Language Model for Thematic           Liu, N. F.; Lin, K.; Hewitt, J.; Paranjape, A.; Bevilacqua,
+Analysis. In Findings of the Association for Computational       M.; Petroni, F.; and Liang, P. 2023. Lost in the Middle: How
+Linguistics: EMNLP 2023, 9993–10001.                             Language Models Use Long Contexts. arXiv:2307.03172.
+De Paoli, S. 2024. Performing an inductive thematic analysis     Mannstadt, I.; Goodman, S. M.; Rajan, M.; Young, S. R.;
+of semi-structured interviews with a large language model:       Wang, F.; Navarro-Millán, I.; and Mehta, B. 2024. A Novel
+An exploration and provocation on the limits of the ap-          Approach for Mixed-Methods Research Using Large Lan-
+proach. Social Science Computer Review, 42(4): 997–1019.         guage Models: A Report Using Patients’ Perspectives on
+Deiner, M. S.; Honcharov, V.; Li, J.; Mackey, T. K.; Porco,      Barriers to Arthroplasty. ACR Open Rheumatology, 6(6):
+T. C.; and Sarkar, U. 2024. Large Language Models Can            375–379.
+Enable Inductive Thematic Analysis of a Social Media Cor-        Mathis, W. S.; Zhao, S.; Pratt, N.; Weleff, J.; and De Paoli, S.
+pus in a Single Prompt: Human Validation Study. JMIR in-         2024. Inductive thematic analysis of healthcare qualitative
+fodemiology, 4(1): e59641.                                       interviews using open-source large language models: How
+Drápal, J.; Westermann, H.; and Savelka, J. 2023. Using         does it compare to traditional methods? Computer Methods
+Large Language Models to Support Thematic Analysis in            and Programs in Biomedicine, 255: 108356.
+Empirical Legal Studies. arXiv:2310.18729.                       Mery, C. M.; Well, A.; Taylor, K.; Carberry, K.; Colucci, J.;
+Gao, J.; Guo, Y.; Lim, G.; Zhang, T.; Zhang, Z.; Li, T. J.-J.;   Ulack, C.; Zeiner, A.; Mizrahi, M.; Stewart, E.; Dillingham,
+and Perrault, S. T. 2024. CollabCoder: a lower-barrier, rigor-   C.; et al. 2023. Examining the Real-Life Journey of Individ-
+ous workflow for inductive collaborative qualitative analysis    uals and Families Affected by Single-Ventricle Congenital
+with large language models. In Proceedings of the CHI Con-       Heart Disease. Journal of the American Heart Association,
+ference on Human Factors in Computing Systems, 1–29.             12(5): e027556.
+Nowell, L. S.; Norris, J. M.; White, D. E.; and Moules, N. J.
+2017. Thematic analysis: Striving to meet the trustworthi-
+ness criteria. International journal of qualitative methods,
+16(1): 1609406917733847.
+Overney, C.; Saldı́as, B.; Dimitrakopoulou, D.; and Roy, D.
+2024. SenseMate: An Accessible and Beginner-Friendly
+Human-AI Platform for Qualitative Data Analysis. In
+Proceedings of the 29th International Conference on In-
+telligent User Interfaces, IUI ’24, 922–939. New York,
+NY, USA: Association for Computing Machinery. ISBN
+9798400705083.
+Parfenova, A.; Denzler, A.; and Pfeffer, J. 2024. Automating
+Qualitative Data Analysis with Large Language Models. In
+Fu, X.; and Fleisig, E., eds., Proceedings of the 62nd Annual
+Meeting of the Association for Computational Linguistics
+(Volume 4: Student Research Workshop), 83–91. Bangkok,
+Thailand: Association for Computational Linguistics.
+Prescott, M. R.; Yeager, S.; Ham, L.; Rivera Saldana, C. D.;
+Serrano, V.; Narez, J.; Paltin, D.; Delgado, J.; Moore, D. J.;
+and Montoya, J. 2024. Comparing the efficacy and efficiency
+of human and generative AI: Qualitative thematic analyses.
+JMIR AI, 3: e54482.
+Saldana, J. 2011. Fundamentals of qualitative research. Ox-
+ford University Press.
+Shinn, N.; Cassano, F.; Gopinath, A.; Narasimhan, K.; and
+Yao, S. 2024. Reflexion: Language agents with verbal re-
+inforcement learning. Advances in Neural Information Pro-
+cessing Systems, 36.
+Singh, S. H.; Jiang, K.; Bhasin, K.; Sabharwal, A.; Moukad-
+dam, N.; and Patel, A. B. 2024. RACER: An LLM-
+powered Methodology for Scalable Analysis of Semi-
+structured Mental Health Interviews.            arXiv preprint
+arXiv:2402.02656.
+Tierney, S.; and Fox, J. R. 2010. Living with the anorexic
+voice: A thematic analysis. Psychology and Psychotherapy:
+Theory, Research and Practice, 83(3): 243–254.
+Wang, Y.; Cai, Y.; Chen, M.; Liang, Y.; and Hooi, B. 2024.
+Primacy Effect of ChatGPT. arXiv:2310.13206.
+Xiao, Z.; Yuan, X.; Liao, Q. V.; Abdelghani, R.; and
+Oudeyer, P.-Y. 2023. Supporting qualitative analysis with
+large language models: Combining codebook with GPT-3
+for deductive coding. In Companion proceedings of the 28th
+international conference on intelligent user interfaces, 75–
+78.
+Zhang, H.; Wu, C.; Xie, J.; Lyu, Y.; Cai, J.; and Carroll, J. M.
+2023. Redefining qualitative analysis in the AI era: Utiliz-
+ing ChatGPT for efficient thematic analysis. arXiv preprint
+arXiv:2309.10771.
+

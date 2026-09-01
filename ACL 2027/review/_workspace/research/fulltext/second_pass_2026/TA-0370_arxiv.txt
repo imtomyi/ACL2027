@@ -1,0 +1,370 @@
+                                             Qualitative Coding Analysis through Open-Source Large
+                                           Language Models: A User Study and Design Recommendations
+                                                              Tung T. Ngo∗                                                 Dai Nguyen Van                              Anh-Minh Nguyen
+                                                   thanhtung.ngo@tudublin.ie                                           dainv@neu.edu.vn                            minh.a.nguyen@ucdconnect.ie
+                                                 Technological University Dublin                                  National Economics University                      University College Dublin
+                                                         Dublin, Ireland                                                 Hanoi, Vietnam                                   Dublin, Ireland
+
+                                                                                           Phuong-Anh Do                                       Anh Nguyen-Quoc
+                                                                                          anhdp@ftu.edu.vn                                    anh.nguyenquoc@ucd.ie
+                                                                                       Foreign Trade University                               University College Dublin
+
+
+
+
+arXiv:2602.18352v1 [cs.HC] 20 Feb 2026
+                                                                                           Hanoi, Vietnam                                          Dublin, Ireland
+                                         Abstract                                                                                        1   Introduction
+                                         Qualitative data analysis is labor-intensive, yet the privacy risks                             Qualitative research is central to the social sciences because it en-
+                                         associated with commercial Large Language Models (LLMs) often                                   ables scholars to explain social phenomena and build theory by
+                                         preclude their use in sensitive research. To address this, we intro-                            surfacing meaning, process, and lived experience that are difficult to
+                                         duce ChatQDA, an on-device framework powered by open-source                                     capture with predefined measures. Yet the craft of qualitative data
+                                         LLMs designed for privacy-preserving open coding. Our mixed-                                    analysis (QDA), particularly manual open coding, remains labour-
+                                         methods user study reveals that while participants rated the system                             intensive and cognitively demanding, constraining how much data
+                                         highly for usability and perceived efficiency, they exhibited "con-                             researchers can analyse rigorously and transparently [2]. Recent ad-
+                                         ditional trust", valuing the tool for surface-level extraction while                            vances in third-party large language models (LLMs) (e.g., ChatGPT,
+                                         questioning its interpretive nuance and consistency. Furthermore,                               Gemini, and Perplexity), therefore appear promising and growing
+                                         despite the technical security of local deployment, participants re-                            in popularity: by automating aspects of qualitative analysis, they
+                                         ported epistemic uncertainty regarding data protection, suggesting                              can reduce the time burden of open coding and expand analytic
+                                         that invisible security measures are insufficient to foster trust. We                           capacity [25].
+                                         conclude with design recommendations for local-first analysis tools                                This promise, however, is tempered by several ethical and gover-
+                                         that prioritize verifiable privacy and methodological rigor.                                    nance challenges. Using commercial LLMs often entails transferring
+                                                                                                                                         confidential participant data to external servers, raising concerns
+                                         CCS Concepts                                                                                    about data sovereignty, re-identification risk, and compliance with
+                                         • Computing methodologies → Natural language processing; •                                      institutional review board (IRB) requirements [7, 28]. These risks
+                                         Software and its engineering → Open source model; • Secu-                                       are compounded by the opacity of proprietary model architectures,
+                                         rity and privacy → Privacy-preserving protocols; • Human-                                       including the possibility that sensitive inputs may be inadvertently
+                                         centered computing → Natural language interfaces; User cen-                                     memorised and later reproduced, a vulnerability documented in
+                                         tered design.                                                                                   large-scale generative models [3]. In many qualitative research stud-
+                                                                                                                                         ies, especially those involving vulnerable populations or sensitive
+                                                                                                                                         settings, these constraints might make it difficult, and sometimes
+                                         Keywords
+                                                                                                                                         impossible, to justify the use of third-party LLMs.
+                                         Large Language Models, Open-Source, Human-AI Collaboration,                                        Open-source LLMs offer a theoretically compelling alternative
+                                         Qualitative Data Analysis                                                                       for sensitive qualitative analysis. Because they can be deployed lo-
+                                         ACM Reference Format:                                                                           cally or within institution-controlled environments, they enable re-
+                                         Tung T. Ngo, Dai Nguyen Van, Anh-Minh Nguyen, Phuong-Anh Do, and Anh                            searchers to analyse qualitative data without transmitting it beyond
+                                         Nguyen-Quoc. 2026. Qualitative Coding Analysis through Open-Source                              secure boundaries, thereby strengthening privacy protection and
+                                         Large Language Models: A User Study and Design Recommendations. In Pro-                         regulatory compliance [28]. Their transparency and modifiability
+                                         ceedings of CHI Conference on Human Factors in Computing Systems (CHI ’26).                     also allow adaptation to domain language and analytic approaches,
+                                         ACM, New York, NY, USA, 6 pages. https://doi.org/XXXXXXX.XXXXXXX                                including lightweight fine-tuning through Low-Rank Adaptation
+                                                                                                                                         (LoRA) [13] and grounding outputs in a researcher’s corpus via
+                                         Permission to make digital or hard copies of all or part of this work for personal or           Retrieval-Augmented Generation (RAG), which can reduce halluci-
+                                         classroom use is granted without fee provided that copies are not made or distributed
+                                         for profit or commercial advantage and that copies bear this notice and the full citation
+                                                                                                                                         nations and improve context retention [15].
+                                         on the first page. Copyrights for components of this work owned by others than the                 Despite their advantages, open-source LLMs can pose substantial
+                                         author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or          usability and maintenance challenges for qualitative researchers,
+                                         republish, to post on servers or to redistribute to lists, requires prior specific permission
+                                         and/or a fee. Request permissions from permissions@acm.org.                                     particularly those without technical expertise. Effective use requires
+                                         CHI ’26, Barcelona, Spain                                                                       competence in machine learning workflows, command-line tools,
+                                         © 2026 Copyright held by the owner/author(s). Publication rights licensed to ACM.               and model configuration (e.g., quantization and inference param-
+                                         ACM ISBN 978-1-4503-XXXX-X/2018/06
+                                         https://doi.org/XXXXXXX.XXXXXXX
+                                                                                                                                         eters), creating barriers for researchers trained in interpretive or
+CHI ’26, April 13–17, 2026, Barcelona, Spain                                                                                      Tung T. Ngo et al.
+
+
+human-centered methodologies rather than computational methods             [27] and GLM-4.5 [23], enable self-reflection and adaptive compu-
+[2, 14]. Furthermore, the open-source ecosystem lacks integrated,          tational allocation. These shifts are complemented by models like
+well-designed workflows that support core qualitative research             gpt-oss-120b [18], which provide customizable chain-of-thought
+practices, forcing researchers to assemble ad hoc solutions that can       capabilities essential for tailored research workflows.
+undermine rigour and analytic quality [25]. This tension, high ethi-
+cal suitability but limited usability and evidence-based performance,      3 Methods
+motivates the present study.
+   The contributions of our research:
+                                                                           3.1 ChatQDA - Chatbot Powered by
+                                                                               Open-Source LLMs
+     • We developed ChatQDA, an on-device platform powered by              A chat-based interface was selected for its intuitive alignment with
+       open-source LLMs, designed to preserve data privacy while           participants’ familiarity with tools like ChatGPT and Gemini, as
+       supporting qualitative researchers through an open-coding           well as its flexibility for integrating advanced LLM capabilities. We
+       workflow.                                                           developed ChatQDA based on Hugging Face’s Chat UI1 framework,
+     • We reported findings from a user study examining how users          and the system design adheres to recommendations outlined in [26].
+       experience and evaluate collaboration with ChatQDA dur-             To ensure transparent reasoning, only LLMs capable of generating
+       ing open coding, focusing on perceived usefulness, security         interpretable explanations were incorporated. Users can upload
+       and privacy, ease of use, trustworthiness, and behavioural          document files and query the system about their content, with con-
+       intention.                                                          textual understanding enhanced by a large context window (e.g.,
+     • We distilled empirically grounded design recommendations            extended token limits). The chat history for each session is dynami-
+       for future open-source, LLM-based qualitative analysis tools.       cally embedded in the prompt to contextualize responses, enabling
+                                                                           the system to refine answers iteratively based on user feedback.
+                                                                           We selected the gpt-oss-20b [18] model for its efficient balance of
+2    Related Work                                                          high-tier reasoning and a compact hardware footprint optimized
+The integration of AI into QDA has evolved from clerical automa-           for on-device use. This 20.9B-parameter MoE model utilizes MXFP4
+tion to interactive partnership. [20] illustrated this with Cody, a sys-   quantization to achieve a 12.8 GiB checkpoint, allowing deploy-
+tem prioritizing interactive rule refinement and reflection over pro-      ment on hardware with only 16GB of RAM. While activating just
+cessing speed. Addressing collaboration, [10] developed CoAIcoder          3.61B parameters per pass for low latency, it remains competitive
+to mediate team interpretation, though they identify a trade-off           on benchmarks, scoring 98.7% on AIME 2025 (with tools) and 85.3%
+between improved consensus and reduced code diversity. Contex-             on MMLU.
+tualizing this shift, [9] argues that AI should assist rather than
+automate, enabling researchers to manage scale and abstraction             3.2     User Study
+without sacrificing methodological nuance.                                 To understand how qualitative researchers experience open-source
+   The emergence of Large Language Models (LLMs) has further               LLM assistance in open coding, we conducted a mixed-method
+transformed AI into an interpretive partner capable of thematic syn-       user study. The study examines researchers’ experiences when
+thesis and reflexive assistance. [12] and [16] observe that while AI       conducting open coding manually and when collaborating with
+excels at identifying concrete, descriptive themes, it often misses the    ChatQDA during the same analytic task.
+subtle nuances detected by human contextual knowledge; notably,
+Morgan found that LLMs reverse the traditional inductive cycle             3.2.1 Participants. We deliberately recruited two user groups as
+by presenting broad concepts first for researchers to query rather         a comparative case study [29]. The first group comprised novice
+than moving from raw data to themes. Modern frameworks such as             qualitative researchers (fewer than two years of experience with
+GAITA [17] and GATA [1] formalize this as a guided partnership             qualitative data analysis and limited prior use of AI for QDA). The
+where the human remains the intellectual leader while delegating           second group comprised more experienced qualitative researchers
+structured tasks like template refinement and data familiarization         (at least two years of qualitative research experience and some
+to the AI. Most recently, [22] and [6] have advocated for AI as a          prior exposure to AI-supported QDA). In total, we conducted four
+reflexive co-researcher or epistemic agent. While [22] integrated          sessions (two participants per group). Before participation, we ex-
+GPT-4 to generate micro-analytic memos that surface missed data            plained the study purpose and procedures and obtained informed
+segments in Grounded Theory analysis, [6]’s AbductivAI model               consent. To reduce the risk that participants’ feedback would be
+utilizes Chain-of-Thought (CoT) prompting to involve AI agents             driven primarily by first impressions of the interface (as indicated in
+and human coders in iterative validation loops, fundamentally con-         our pilot), we provided a detailed guide describing ChatQDA’s func-
+verting AI from a passive tool into an active intellectual contributor     tions, usage scenarios and allowed participants to try the system
+in distributed cognition networks.                                         several times prior to the study task.
+   Recent open-source advancements have significantly narrowed
+the performance gap with proprietary systems. Llama 3.1 [21] rivals        3.2.2 User Task and Requirements. Each participant conducted
+GPT-4 in general reasoning, while Kimi K2 [24] advances agentic            two open-coding activities using the same dataset of a 5-page semi-
+intelligence through autonomous tool orchestration. Innovations in         structured interview transcript.
+reasoning-focused architectures, such as DeepSeek-R1’s [11] pure
+reinforcement learning and the hybrid "thinking modes" of Qwen3            1 https://github.com/huggingface/chat-ui
+Qualitative Coding Analysis through Open-Source LLMs: A User Study and Design Recommendations                        CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+      • Task 1 - Manual open coding (baseline): Participants con-                  4.2     Perceived Privacy
+        ducted open coding, following their usual procedures. This                 Across the four perceived privacy items, responses clustered in the
+        stage served both to familiarise participants with the dataset             upper-mid range (3–4), indicating moderate to elevated privacy
+        and to establish a baseline for comparison.                                concern when using the ChatQDA. Concern was highest for data
+      • Task 2 - ChatQDA-assisted open coding. Participants then                   collection and privacy during use (75% agree; 𝑀 = 3.75), followed by
+        collaborated with ChatQDA to open-code the same materials                  potential unauthorised secondary use of research data (𝑀 = 3.50).
+        for 1 additional hour.                                                     Concern was lowest for unauthorised sharing with other entities
+                                                                                   (𝑀 = 3.25). Overall, participants’ privacy concerns centred more
+3.2.3 Data Collection. Following the two coding activities, partici-               on how much data the system collects and how data are handled
+pants completed a short post-task survey administered in English                   during processing, rather than on explicit third-party sharing.
+via Google Forms. The survey used multi-item, 5-point Likert scales                    Beyond limited technical expertise, a plausible explanation is the
+(1 = strongly disagree; 5 = strongly agree) to measure perceived                   gap between the theoretical privacy benefits and the practical real-
+security and privacy [4], perceived ease of use, perceived usefulness              ities of open-source LLM use. While participants recognised that
+[8], and trust [5]. We then conducted a semi-structured interview                  local deployment should, in principle, strengthen privacy protec-
+with each participant to probe the reasoning behind their survey re-               tions, they remained cautious because they could not independently
+sponses and to elicit concrete examples from the session. Interviews               verify how models are built, distributed, and maintained, or how
+were conducted in person, lasted approximately 40 minutes, audio-                  data might be handled in practice. As one participant noted: “In the-
+recorded, transcribed using OpenAI Whisper [19], and manually                      ory, open-source LLMs may protect user data better than closed ones,
+checked for accuracy.                                                              but in practice we can’t know how developers use the information, or
+                                                                                   whether an open-source model contains malicious code to take user
+3.2.4 Data Analysis. Survey responses were analysed using de-                      data.”
+scriptive statistics to summarise patterns across constructs. Inter-
+view transcripts and ChatQDA interaction logs were analysed using
+deductive thematic analysis [3], guided by the survey constructs
+(perceived usefulness, ease of use, security and privacy, and trust-
+                                                                                   4.3     Perceived Ease of Use
+worthiness). We began with participant-level coding to develop                     Across the perceived ease-of-use items, responses were generally
+initial codes and construct-level themes, then iteratively refined the             positive, indicating that ChatQDA was easy to learn and understand.
+coding scheme and theme definitions through discussion among                       All participants rated 4 (agree) for “Learning to use this technology
+the co-authors. The resulting themes characterise opportunities                    for qualitative analysis is easy for me” and for “My interaction with
+and challenges in LLM-supported open coding and inform design                      this technology for qualitative analysis is clear and understandable”
+recommendations for future qualitative analysis tools.                             Perceived ease of becoming skillful was more mixed (25% = 2, 50%
+                                                                                   = 3, 25% = 4; M = 3.00), suggesting strong initial learnability but
+                                                                                   some uncertainty about developing higher proficiency.
+4     Key Findings                                                                    The qualitative comments help explain why participants rated
+From the study, we were able to gather two kinds of data: quantita-                ChatQDA as easy to learn and clear to interact with. A novice re-
+tive data from the surveys and qualitative data from the think-aloud               searcher emphasised prompting as an accessible skill: they found it
+sessions and interviews, which are described in detail below for                   straightforward to generate and iterate multiple prompts, experi-
+each major theme.                                                                  menting with keywords and instructions to progressively improve
+                                                                                   the output.
+4.1     Perceived Security
+Perceived security ratings clustered around the neutral midpoint
+(𝑀𝑒𝑑𝑖𝑎𝑛 = 3), reflecting cautious confidence with no strong en-                    4.4     Perceived Usefulness
+dorsement. Items regarding preventing third-party modification                     Across perceived usefulness items, responses were generally pos-
+and interception got slightly higher (𝑀 = 3.0) than those concern-                 itive (mostly 3–5), indicating that ChatQDA was viewed as po-
+ing general security measures and unauthorized access (𝑀 = 2.75).                  tentially helpful for qualitative analysis, particularly for efficiency.
+Overall, participants did not express strong security concerns, but                Ratings for overall usefulness clustered around neutral to agree
+neither did they strongly endorse the system’s security, suggesting                (𝑀 = 3.00), and were slightly higher for making qualitative analysis
+that perceived security may depend on clearer, more concrete as-                   easier (𝑀 = 3.25). The strongest endorsement was accomplish-
+surance (e.g., transparent explanations of safeguards, evidence of                 ing tasks more quickly (50% rated 5; 𝑀 = 3.75, 𝑀𝑑 = 4), while
+local-only processing, and auditable protections).                                 perceived performance improvement showed greater variability
+   The largely moderate (neutral) security ratings appear to reflect               (evenly distributed across 2–5; 𝑀 = 3.50).
+epistemic uncertainty rather than a negative judgment. One par-                       Overall, data from all sources show that participants anticipated
+ticipant explicitly framed their midpoint choice because of limited                clear time-saving benefits, while views on broader performance
+technical expertise: “Although I’m a qualitative researcher, I’m not               gains were more varied, suggesting that usefulness may be most
+a technology engineer. . . I don’t really trust that this platform can             immediate for efficiency and may depend on longer-term use or
+prevent a third party from modifying the data I process. I’m not sure.”            stronger evidence of improvements in analytic quality.
+CHI ’26, April 13–17, 2026, Barcelona, Spain                                                                                                   Tung T. Ngo et al.
+
+
+4.5     Trustworthiness                                                     5.1     Make Privacy and Security Visible
+Across trustworthiness items, ratings clustered around the mid-             Even with on-device deployment, participants did not strongly
+point, indicating moderate trust in ChatQDA. Overall trust was              endorse security or privacy. Their ratings reflect uncertainty and
+neutral to slightly positive (𝑀 = 3.00), while perceived reputation         limited ability to verify what the system does with data. Improve
+was lowest (𝑀 = 2.75), suggesting ChatQDA was not yet seen as               ChatQDA by: (1) adding clear in-app statements and controls on
+an established research tool. Perceived competence/effectiveness            what is stored, logged, and how to delete it; (2) showing a “local-
+was more favourable (𝑀 = 3.25, 𝑀𝑑 = 3.5). Reliability ratings were          only/no network calls” indicator; and (3) providing model prove-
+mixed, with half of the participants agreeing but one participant           nance (version/source/checksum) to reduce concerns about open-
+selected 1 (𝑀 = 3.00, 𝑀𝑑 = 3.5).                                            source supply-chain risks.
+   Qualitative data help explain this pattern of conditional trust.
+Participants emphasised that trustworthiness varied by sub-task:            5.2     Build Trust through Traceability and
+excerpt extraction was seen as acceptable, whereas labelling and                    Consistency
+first-order coding were viewed as less dependable. As one partici-
+                                                                            Trustworthiness varied by sub-task: excerpt extraction was accept-
+pant explained: “It depends on the task. For excerpt extraction, the
+                                                                            able, but labelling/first-order coding raised concerns about hal-
+quantitative accuracy is about 50–60%, but in terms of quality, the
+                                                                            lucination, inconsistency across steps, and sensitivity to prompt
+researcher still needs to review the data, because open-source models
+                                                                            changes. Participants also noted the system handled surface mean-
+often only identify surface-level, direct statements that are close to-
+                                                                            ing better than latent meaning requiring broader context. Improve
+gether in the conversation. If the interviewee speaks indirectly, stating
+                                                                            ChatQDA by: (1) forcing evidence-based outputs (highlighted spans/line
+a claim in the first sentence but giving an illustrative example at
+                                                                            references for every excerpt/code); (2) adding guardrails to prevent
+the end, the AI often captures only the first sentence and ignores the
+                                                                            “new” excerpts/codes appearing across stages; (3) enabling repro-
+example.” Trust was further weakened by perceived hallucination
+                                                                            ducible runs (saved prompts/settings) and a lockable codebook; and
+and inconsistencies across analytic steps, illustrated by one partic-
+                                                                            (4) supporting grouping related excerpts under shared codes.
+ipant’s observation: “For label extraction, the AI tends to perform
+much worse and shows signs of hallucination. For example, it identi-
+fies only 8 excerpts, but when assigning first-order codes it becomes
+                                                                            5.3     Move from "Fast" to "Methodologically
+10. Usually it assigns one code per excerpt; the AI cannot identify                 Defensible"
+meaning-based relationships across excerpts to group them under the         Usefulness was strongest for efficiency, while perceived perfor-
+same code.” Participants also highlighted sensitivity to prompts as         mance gains were more varied, suggesting ChatQDA’s value is
+a threat to consistency: “Consistency is only slightly above average.       clearest as a time-saving assistant, but broader adoption depends
+When I change the instructions, the results change immediately, and         on supporting analytic rigour. Improve ChatQDA by: integrating
+that can push the outputs further apart. For a less experienced quali-      memoing and audit trails, linking codes to evidence, and providing
+tative researcher, this could be confusing when looking at the results      lightweight prompt templates for common qualitative tasks to help
+produced.” Finally, while the system was perceived as effective for         users become skilful (not just competent).
+surface-level meaning “When using this platform, I feel that at the
+direct, surface level of meaning it processes quite quickly and is rel-     Acknowledgments
+atively effective” participants remained sceptical about its ability        To Robert, for the bagels and explaining CMYK and color spaces.
+to support deeper interpretive work: “I feel that for deeper layers
+of meaning, implicit meanings and meanings that require a broader           References
+context, reading across more parts of the data, and higher inference,        [1] Isil Anakok, Andrew Katz, Kai Jun Chew, and Holly Matusovich. 2025. Leveraging
+the platform is not very good yet.” Together, these insights suggest             Generative Text Models and Natural Language Processing to Perform Traditional
+that participants’ trust in ChatQDA was bounded: the tool was                    Thematic Data Analysis. International Journal of Qualitative Methods 24 (April
+                                                                                 2025), 16094069251338898. doi:10.1177/16094069251338898
+valued as a fast assistant for explicit content, but viewed as less          [2] Cauã Ferreira Barros, Bruna Borges Azevedo, Valdemar Vicente Graciano Neto,
+reliable for nuanced interpretation and consistent coding without                Mohamad Kassab, Marcos Kalinowski, Hugo Alexandre D. Do Nascimento, and
+                                                                                 Michelle C.G.S.P. Bandeira. 2025. Large Language Model for Qualitative Re-
+careful researcher oversight.                                                    search: A Systematic Mapping Study. In 2025 IEEE/ACM International Workshop
+                                                                                 on Methodological Issues with Empirical Studies in Software Engineering (WSESE).
+                                                                                 IEEE, Ottawa, ON, Canada, 48–55. doi:10.1109/WSESE66602.2025.00015
+                                                                             [3] Nicholas Carlini, Florian Tramèr, Eric Wallace, Matthew Jagielski, Ariel Herbert-
+                                                                                 Voss, Katherine Lee, Adam Roberts, Tom Brown, Dawn Song, Úlfar Erlingsson,
+                                                                                 Alina Oprea, and Colin Raffel. 2021. Extracting Training Data from Large Lan-
+5     Discussions                                                                guage Models. In 30th USENIX Security Symposium (USENIX Security 21). USENIX
+Overall, participants found ChatQDA easy to use and potentially                  Association, 2633–2650. https://www.usenix.org/conference/usenixsecurity21/
+                                                                                 presentation/carlini-extracting
+useful, especially for speeding up open-coding tasks. However, they          [4] Juan Carlos Roca, Juan José García, and Juan José de la Vega. 2009. The
+expressed cautious confidence about security, moderate privacy                   importance of perceived trust, security and privacy in online trading sys-
+                                                                                 tems. Information Management & Computer Security 17, 2 (June 2009), 96–113.
+concern, and conditional trust in the system’s outputs, particularly             doi:10.1108/09685220910963983 _eprint: https://www.emerald.com/ics/article-
+for deeper interpretation and consistent coding. These tensions                  pdf/17/2/96/1208198/09685220910963983.pdf.
+help explain why behavioural intention was generally positive but            [5] Kwek Choon Ling, Dazmin Bin Daud, Tan Hoi Piew, Kay Hooi Keoy, and Padzil
+                                                                                 Hassan. 2011. Perceived Risk, Perceived Technology, Online Trust for the Online
+polarised (most willing to adopt, one clear outlier unwilling to                 Purchase Intention in Malaysia. International Journal of Business and Management
+use/recommend).                                                                  6, 6 (June 2011), p167. doi:10.5539/ijbm.v6n6p167
+Qualitative Coding Analysis through Open-Source LLMs: A User Study and Design Recommendations                                        CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+ [6] António Pedro Costa, Grzegorz Bryda, Prokopis A. Christou, and Judita Kasperi-             Sebastien Bubeck, Che Chang, Kai Chen, Mark Chen, Enoch Cheung, Aidan Clark,
+     uniene. 2025. AI as a Co-researcher in the Qualitative Research Workflow: Trans-           Dan Cook, Marat Dukhan, Casey Dvorak, Kevin Fives, Vlad Fomenko, Timur
+     forming Human-AI Collaboration. International Journal of Qualitative Methods               Garipov, Kristian Georgiev, Mia Glaese, Tarun Gogineni, Adam Goucher, Lukas
+     24 (Sept. 2025), 16094069251383739. doi:10.1177/16094069251383739                          Gross, Katia Gil Guzman, John Hallman, Jackie Hehir, Johannes Heidecke, Alec
+ [7] Badhan Chandra Das, M. Hadi Amini, and Yanzhao Wu. 2025. Security and                      Helyar, Haitang Hu, Romain Huet, Jacob Huh, Saachi Jain, Zach Johnson, Chris
+     Privacy Challenges of Large Language Models: A Survey. Comput. Surveys 57, 6               Koch, Irina Kofman, Dominik Kundel, Jason Kwon, Volodymyr Kyrylov, Elaine Ya
+     (June 2025), 1–39. doi:10.1145/3712001                                                     Le, Guillaume Leclerc, James Park Lennon, Scott Lessans, Mario Lezcano-Casado,
+ [8] Fred D. Davis. 1989. Perceived Usefulness, Perceived Ease of Use, and                      Yuanzhi Li, Zhuohan Li, Ji Lin, Jordan Liss, Lily, Liu, Jiancheng Liu, Kevin Lu,
+     User Acceptance of Information Technology. Management Information Sys-                     Chris Lu, Zoran Martinovic, Lindsay McCallum, Josh McGrath, Scott McKin-
+     tems Quarterly 13, 3 (Sept. 1989), 319–340. doi:10.2307/249008 _eprint:                    ney, Aidan McLaughlin, Song Mei, Steve Mostovoy, Tong Mu, Gideon Myles,
+     https://misq.umn.edu/misq/article-pdf/13/3/319/903/6_davis.pdf.                            Alexander Neitz, Alex Nichol, Jakub Pachocki, Alex Paino, Dana Palmie, Ashley
+ [9] Jessica L. Feuston and Jed R. Brubaker. 2021. Putting Tools in Their Place: The            Pantuliano, Giambattista Parascandolo, Jongsoo Park, Leher Pathak, Carolina
+     Role of Time and Perspective in Human-AI Collaboration for Qualitative Analysis.           Paz, Ludovic Peran, Dmitry Pimenov, Michelle Pokrass, Elizabeth Proehl, Huida
+     Proceedings of the ACM on Human-Computer Interaction 5, CSCW2 (Oct. 2021),                 Qiu, Gaby Raila, Filippo Raso, Hongyu Ren, Kimmy Richardson, David Robinson,
+     1–25. doi:10.1145/3479856                                                                  Bob Rotsted, Hadi Salman, Suvansh Sanjeev, Max Schwarzer, D. Sculley, Harshit
+[10] Jie Gao, Kenny Tsu Wei Choo, Junming Cao, Roy Ka-Wei Lee, and Simon Perrault.              Sikchi, Kendal Simon, Karan Singhal, Yang Song, Dane Stuckey, Zhiqing Sun,
+     2024. CoAIcoder: Examining the Effectiveness of AI-assisted Human-to-Human                 Philippe Tillet, Sam Toizer, Foivos Tsimpourlas, Nikhil Vyas, Eric Wallace, Xin
+     Collaboration in Qualitative Analysis. ACM Transactions on Computer-Human                  Wang, Miles Wang, Olivia Watkins, Kevin Weil, Amy Wendling, Kevin Whin-
+     Interaction 31, 1 (Feb. 2024), 1–38. doi:10.1145/3617362                                   nery, Cedric Whitney, Hannah Wong, Lin Yang, Yu Yang, Michihiro Yasunaga,
+[11] Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Peiyi Wang, Qihao Zhu,                  Kristen Ying, Wojciech Zaremba, Wenting Zhan, Cyril Zhang, Brian Zhang, Ed-
+     Runxin Xu, Ruoyu Zhang, Shirong Ma, Xiao Bi, Xiaokang Zhang, Xingkai Yu,                   die Zhang, and Shengjia Zhao. 2025. gpt-oss-120b & gpt-oss-20b Model Card.
+     Yu Wu, Z. F. Wu, Zhibin Gou, Zhihong Shao, Zhuoshu Li, Ziyi Gao, Aixin Liu,                doi:10.48550/arXiv.2508.10925 arXiv:2508.10925 [cs].
+     Bing Xue, Bingxuan Wang, Bochao Wu, Bei Feng, Chengda Lu, Chenggang                   [19] Alec Radford, Jong Wook Kim, Tao Xu, Greg Brockman, Christine McLeavey, and
+     Zhao, Chengqi Deng, Chong Ruan, Damai Dai, Deli Chen, Dongjie Ji, Erhang Li,               Ilya Sutskever. 2023. Robust speech recognition via large-scale weak supervision.
+     Fangyun Lin, Fucong Dai, Fuli Luo, Guangbo Hao, Guanting Chen, Guowei Li,                  In Proceedings of the 40th International Conference on Machine Learning (Honolulu,
+     H. Zhang, Hanwei Xu, Honghui Ding, Huazuo Gao, Hui Qu, Hui Li, Jianzhong                   Hawaii, USA) (ICML’23). JMLR.org, Article 1182, 27 pages.
+     Guo, Jiashi Li, Jingchang Chen, Jingyang Yuan, Jinhao Tu, Junjie Qiu, Junlong         [20] Tim Rietz and Alexander Maedche. 2021. Cody: An AI-Based System to Semi-
+     Li, J. L. Cai, Jiaqi Ni, Jian Liang, Jin Chen, Kai Dong, Kai Hu, Kaichao You, Kaige        Automate Coding for Qualitative Research. In Proceedings of the 2021 CHI Con-
+     Gao, Kang Guan, Kexin Huang, Kuai Yu, Lean Wang, Lecong Zhang, Liang                       ference on Human Factors in Computing Systems. ACM, Yokohama Japan, 1–14.
+     Zhao, Litong Wang, Liyue Zhang, Lei Xu, Leyi Xia, Mingchuan Zhang, Minghua                 doi:10.1145/3411764.3445591
+     Zhang, Minghui Tang, Mingxu Zhou, Meng Li, Miaojun Wang, Mingming Li,                 [21] Kira Sam and Raja Vavekanand. 2024. Llama 3.1: An In-Depth Analysis of the
+     Ning Tian, Panpan Huang, Peng Zhang, Qiancheng Wang, Qinyu Chen, Qiushi                    Next Generation Large Language Model. (2024). doi:10.13140/RG.2.2.10628.74882
+     Du, Ruiqi Ge, Ruisong Zhang, Ruizhe Pan, Runji Wang, R. J. Chen, R. L. Jin,                Publisher: Unpublished.
+     Ruyi Chen, Shanghao Lu, Shangyan Zhou, Shanhuang Chen, Shengfeng Ye,                  [22] Ravi Sinha, Idris Solola, Ha Nguyen, Hillary Swanson, and LuEttaMae Lawrence.
+     Shiyu Wang, Shuiping Yu, Shunfeng Zhou, Shuting Pan, S. S. Li, Shuang Zhou,                2024. The Role of Generative AI in Qualitative Research: GPT-4’s Contributions to
+     Shaoqing Wu, Tao Yun, Tian Pei, Tianyu Sun, T. Wang, Wangding Zeng, Wen Liu,               a Grounded Theory Analysis. In Proceedings of the Symposium on Learning Design
+     Wenfeng Liang, Wenjun Gao, Wenqin Yu, Wentao Zhang, W. L. Xiao, Wei An,                    and Technology. ACM, Delft Netherlands, 17–25. doi:10.1145/3663433.3663456
+     Xiaodong Liu, Xiaohan Wang, Xiaokang Chen, Xiaotao Nie, Xin Cheng, Xin Liu,           [23] GLM-4 5 Team, Aohan Zeng, Xin Lv, Qinkai Zheng, Zhenyu Hou, Bin Chen,
+     Xin Xie, Xingchao Liu, Xinyu Yang, Xinyuan Li, Xuecheng Su, Xuheng Lin, X. Q.              Chengxing Xie, Cunxiang Wang, Da Yin, Hao Zeng, Jiajie Zhang, Kedong Wang,
+     Li, Xiangyue Jin, Xiaojin Shen, Xiaosha Chen, Xiaowen Sun, Xiaoxiang Wang,                 Lucen Zhong, Mingdao Liu, Rui Lu, Shulin Cao, Xiaohan Zhang, Xuancheng
+     Xinnan Song, Xinyi Zhou, Xianzu Wang, Xinxia Shan, Y. K. Li, Y. Q. Wang, Y. X.             Huang, Yao Wei, Yean Cheng, Yifan An, Yilin Niu, Yuanhao Wen, Yushi Bai,
+     Wei, Yang Zhang, Yanhong Xu, Yao Li, Yao Zhao, Yaofeng Sun, Yaohui Wang, Yi                Zhengxiao Du, Zihan Wang, Zilin Zhu, Bohan Zhang, Bosi Wen, Bowen Wu,
+     Yu, Yichao Zhang, Yifan Shi, Yiliang Xiong, Ying He, Yishi Piao, Yisong Wang,              Bowen Xu, Can Huang, Casey Zhao, Changpeng Cai, Chao Yu, Chen Li, Chendi
+     Yixuan Tan, Yiyang Ma, Yiyuan Liu, Yongqiang Guo, Yuan Ou, Yuduan Wang, Yue                Ge, Chenghua Huang, Chenhui Zhang, Chenxi Xu, Chenzheng Zhu, Chuang Li,
+     Gong, Yuheng Zou, Yujia He, Yunfan Xiong, Yuxiang Luo, Yuxiang You, Yuxuan                 Congfeng Yin, Daoyan Lin, Dayong Yang, Dazhi Jiang, Ding Ai, Erle Zhu, Fei
+     Liu, Yuyang Zhou, Y. X. Zhu, Yanping Huang, Yaohui Li, Yi Zheng, Yuchen Zhu,               Wang, Gengzheng Pan, Guo Wang, Hailong Sun, Haitao Li, Haiyang Li, Haiyi Hu,
+     Yunxian Ma, Ying Tang, Yukun Zha, Yuting Yan, Z. Z. Ren, Zehui Ren, Zhangli                Hanyu Zhang, Hao Peng, Hao Tai, Haoke Zhang, Haoran Wang, Haoyu Yang, He
+     Sha, Zhe Fu, Zhean Xu, Zhenda Xie, Zhengyan Zhang, Zhewen Hao, Zhicheng                    Liu, He Zhao, Hongwei Liu, Hongxi Yan, Huan Liu, Huilong Chen, Ji Li, Jiajing
+     Ma, Zhigang Yan, Zhiyu Wu, Zihui Gu, Zijia Zhu, Zijun Liu, Zilin Li, Ziwei Xie,            Zhao, Jiamin Ren, Jian Jiao, Jiani Zhao, Jianyang Yan, Jiaqi Wang, Jiayi Gui, Jiayue
+     Ziyang Song, Zizheng Pan, Zhen Huang, Zhipeng Xu, Zhongyu Zhang, and Zhen                  Zhao, Jie Liu, Jijie Li, Jing Li, Jing Lu, Jingsen Wang, Jingwei Yuan, Jingxuan Li,
+     Zhang. 2025. DeepSeek-R1 incentivizes reasoning in LLMs through reinforcement              Jingzhao Du, Jinhua Du, Jinxin Liu, Junkai Zhi, Junli Gao, Ke Wang, Lekang Yang,
+     learning. Nature 645, 8081 (Sept. 2025), 633–638. doi:10.1038/s41586-025-09422-z           Liang Xu, Lin Fan, Lindong Wu, Lintao Ding, Lu Wang, Man Zhang, Minghao Li,
+[12] Leah Hamilton, Desha Elliott, Aaron Quick, Simone Smith, and Victoria Choplin.             Minghuan Xu, Mingming Zhao, Mingshu Zhai, Pengfan Du, Qian Dong, Shangde
+     2023. Exploring the Use of AI in Qualitative Analysis: A Comparative Study of              Lei, Shangqing Tu, Shangtong Yang, Shaoyou Lu, Shijie Li, Shuang Li, Shuang-Li,
+     Guaranteed Income Data. International Journal of Qualitative Methods 22 (Oct.              Shuxun Yang, Sibo Yi, Tianshu Yu, Wei Tian, Weihan Wang, Wenbo Yu, Weng Lam
+     2023), 16094069231201504. doi:10.1177/16094069231201504                                    Tam, Wenjie Liang, Wentao Liu, Xiao Wang, Xiaohan Jia, Xiaotao Gu, Xiaoying
+[13] Edward Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean                Ling, Xin Wang, Xing Fan, Xingru Pan, Xinyuan Zhang, Xinze Zhang, Xiuqing
+     Wang, Lu Wang, and Weizhu Chen. 2022. LORA: LOW-RANK ADAPTATION                            Fu, Xunkai Zhang, Yabo Xu, Yandong Wu, Yida Lu, Yidong Wang, Yilin Zhou,
+     OF LARGE LAN- GUAGE MODELS. (2022).                                                        Yiming Pan, Ying Zhang, Yingli Wang, Yingru Li, Yinpei Su, Yipeng Geng, Yitong
+[14] David M. J. Lazer, Alex Pentland, Duncan J. Watts, Sinan Aral, Susan Athey,                Zhu, Yongkun Yang, Yuhang Li, Yuhao Wu, Yujiang Li, Yunan Liu, Yunqing Wang,
+     Noshir Contractor, Deen Freelon, Sandra Gonzalez-Bailon, Gary King, Helen                  Yuntao Li, Yuxuan Zhang, Zezhen Liu, Zhen Yang, Zhengda Zhou, Zhongpei
+     Margetts, Alondra Nelson, Matthew J. Salganik, Markus Strohmaier, Alessandro               Qiao, Zhuoer Feng, Zhuorui Liu, Zichen Zhang, Zihan Wang, Zijun Yao, Zikang
+     Vespignani, and Claudia Wagner. 2020. Computational social science: Obstacles              Wang, Ziqiang Liu, Ziwei Chai, Zixuan Li, Zuodong Zhao, Wenguang Chen,
+     and opportunities. Science 369, 6507 (Aug. 2020), 1060–1062. doi:10.1126/science.          Jidong Zhai, Bin Xu, Minlie Huang, Hongning Wang, Juanzi Li, Yuxiao Dong,
+     aaz8170                                                                                    and Jie Tang. 2025. GLM-4.5: Agentic, Reasoning, and Coding (ARC) Foundation
+[15] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin,          Models. doi:10.48550/arXiv.2508.06471 arXiv:2508.06471 [cs].
+     Naman Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rocktäschel,              [24] Kimi Team, Yifan Bai, Yiping Bao, Guanduo Chen, Jiahao Chen, Ningxin Chen,
+     Sebastian Riedel, and Douwe Kiela. [n. d.]. Retrieval-Augmented Generation for             Ruijue Chen, Yanru Chen, Yuankun Chen, Yutian Chen, Zhuofu Chen, Jialei Cui,
+     Knowledge-Intensive NLP Tasks. ([n. d.]).                                                  Hao Ding, Mengnan Dong, Angang Du, Chenzhuang Du, Dikang Du, Yulun Du,
+[16] David L. Morgan. 2023. Exploring the Use of Artificial Intelligence for Qualitative        Yu Fan, Yichen Feng, Kelin Fu, Bofei Gao, Hongcheng Gao, Peizhong Gao, Tong
+     Data Analysis: The Case of ChatGPT. International Journal of Qualitative Methods           Gao, Xinran Gu, Longyu Guan, Haiqing Guo, Jianhang Guo, Hao Hu, Xiaoru Hao,
+     22 (Oct. 2023), 16094069231211248. doi:10.1177/16094069231211248                           Tianhong He, Weiran He, Wenyang He, Chao Hong, Yangyang Hu, Zhenxing Hu,
+[17] Kien Nguyen-Trung. 2025. ChatGPT in thematic analysis: Can AI become a                     Weixiao Huang, Zhiqi Huang, Zihao Huang, Tao Jiang, Zhejun Jiang, Xinyi Jin,
+     research assistant in qualitative research? Quality & Quantity 59, 6 (Dec. 2025),          Yongsheng Kang, Guokun Lai, Cheng Li, Fang Li, Haoyang Li, Ming Li, Wentao
+     4945–4978. doi:10.1007/s11135-025-02165-z                                                  Li, Yanhao Li, Yiwei Li, Zhaowei Li, Zheming Li, Hongzhan Lin, Xiaohan Lin,
+[18] OpenAI, Sandhini Agarwal, Lama Ahmad, Jason Ai, Sam Altman, Andy Apple-                    Zongyu Lin, Chengyin Liu, Chenyu Liu, Hongzhang Liu, Jingyuan Liu, Junqi Liu,
+     baum, Edwin Arbus, Rahul K. Arora, Yu Bai, Bowen Baker, Haiming Bao, Boaz                  Liang Liu, Shaowei Liu, T. Y. Liu, Tianwei Liu, Weizhou Liu, Yangyang Liu, Yibo
+     Barak, Ally Bennett, Tyler Bertao, Nivedita Brett, Eugene Brevdo, Greg Brockman,           Liu, Yiping Liu, Yue Liu, Zhengying Liu, Enzhe Lu, Lijun Lu, Shengling Ma, Xinyu
+CHI ’26, April 13–17, 2026, Barcelona, Spain                                                                                                             Tung T. Ngo et al.
+
+
+     Ma, Yingwei Ma, Shaoguang Mao, Jie Mei, Xin Men, Yibo Miao, Siyuan Pan, Yebo     [26] Lixiang Yan, Vanessa Echeverria, Gloria Milena Fernandez-Nieto, Yueqiao
+     Peng, Ruoyu Qin, Bowen Qu, Zeyu Shang, Lidong Shi, Shengyuan Shi, Feifan              Jin, Zachari Swiecki, Linxuan Zhao, Dragan Gašević, and Roberto Martinez-
+     Song, Jianlin Su, Zhengyuan Su, Xinjie Sun, Flood Sung, Heyi Tang, Jiawen Tao,        Maldonado. 2024. Human-AI Collaboration in Thematic Analysis using ChatGPT:
+     Qifeng Teng, Chensi Wang, Dinglu Wang, Feng Wang, Haiming Wang, Jianzhou              A User Study and Design Recommendations. In Extended Abstracts of the CHI
+     Wang, Jiaxing Wang, Jinhong Wang, Shengjie Wang, Shuyi Wang, Yao Wang,                Conference on Human Factors in Computing Systems. ACM, Honolulu HI USA,
+     Yejie Wang, Yiqin Wang, Yuxin Wang, Yuzhi Wang, Zhaoji Wang, Zhengtao Wang,           1–7. doi:10.1145/3613905.3650732
+     Zhexu Wang, Chu Wei, Qianqian Wei, Wenhao Wu, Xingzhe Wu, Yuxin Wu,              [27] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng,
+     Chenjun Xiao, Xiaotong Xie, Weimin Xiong, Boyu Xu, Jing Xu, Jinjing Xu, L. H.         Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, Chujie Zheng, Dayiheng
+     Xu, Lin Xu, Suting Xu, Weixin Xu, Xinran Xu, Yangchuan Xu, Ziyao Xu, Junjie           Liu, Fan Zhou, Fei Huang, Feng Hu, Hao Ge, Haoran Wei, Huan Lin, Jialong
+     Yan, Yuzi Yan, Xiaofei Yang, Ying Yang, Zhen Yang, Zhilin Yang, Zonghan Yang,         Tang, Jian Yang, Jianhong Tu, Jianwei Zhang, Jianxin Yang, Jiaxi Yang, Jing Zhou,
+     Haotian Yao, Xingcheng Yao, Wenjie Ye, Zhuorui Ye, Bohong Yin, Longhui Yu,            Jingren Zhou, Junyang Lin, Kai Dang, Keqin Bao, Kexin Yang, Le Yu, Lianghao
+     Enming Yuan, Hongbang Yuan, Mengjie Yuan, Haobing Zhan, Dehao Zhang, Hao              Deng, Mei Li, Mingfeng Xue, Mingze Li, Pei Zhang, Peng Wang, Qin Zhu, Rui
+     Zhang, Wanlu Zhang, Xiaobin Zhang, Yangkun Zhang, Yizhi Zhang, Yongting               Men, Ruize Gao, Shixuan Liu, Shuang Luo, Tianhao Li, Tianyi Tang, Wenbiao Yin,
+     Zhang, Yu Zhang, Yutao Zhang, Yutong Zhang, Zheng Zhang, Haotian Zhao,                Xingzhang Ren, Xinyu Wang, Xinyu Zhang, Xuancheng Ren, Yang Fan, Yang Su,
+     Yikai Zhao, Huabin Zheng, Shaojie Zheng, Jianren Zhou, Xinyu Zhou, Zaida              Yichang Zhang, Yinger Zhang, Yu Wan, Yuqiong Liu, Zekun Wang, Zeyu Cui,
+     Zhou, Zhen Zhu, Weiyu Zhuang, and Xinxing Zu. 2025. Kimi K2: Open Agentic             Zhenru Zhang, Zhipeng Zhou, and Zihan Qiu. 2025. Qwen3 Technical Report.
+     Intelligence. doi:10.48550/arXiv.2507.20534 arXiv:2507.20534 [cs].                    doi:10.48550/arXiv.2505.09388 arXiv:2505.09388 [cs].
+[25] Ziang Xiao, Xingdi Yuan, Q. Vera Liao, Rania Abdelghani, and Pierre-Yves         [28] Yifan Yao, Jinhao Duan, Kaidi Xu, Yuanfang Cai, Zhibo Sun, and Yue Zhang.
+     Oudeyer. 2023. Supporting Qualitative Analysis with Large Language Models:            2024. A survey on large language model (LLM) security and privacy: The Good,
+     Combining Codebook with GPT-3 for Deductive Coding. In 28th International             The Bad, and The Ugly. High-Confidence Computing 4, 2 (June 2024), 100211.
+     Conference on Intelligent User Interfaces. ACM, Sydney NSW Australia, 75–78.          doi:10.1016/j.hcc.2024.100211
+     doi:10.1145/3581754.3584136                                                      [29] Robert K. Yin. 2018. Case study research and applications : design and methods
+                                                                                           (6th ed ed.). Sage. https://cir.nii.ac.jp/crid/1970586434844156305
+

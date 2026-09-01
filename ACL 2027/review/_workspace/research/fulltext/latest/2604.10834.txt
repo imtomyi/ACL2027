@@ -1,0 +1,801 @@
+arXiv:2604.10834v1 [cs.SE] 12 Apr 2026
+                                            LLMs for Qualitative Data Analysis Fail on Security-specific Comments in
+                                                                      Human Experiments
+                                           Authors:
+                                              Maria Camporese, University of Trento (Italy)
+                                              Fabio Massacci, University of Trento (Italy), Vrije Universiteit Amsterdam (The Netherlands)
+                                              Yuanjun Gong, University of Trento (Italy)
+
+
+
+
+                                         This work has been partly supported by the European Union (EU) under Horizon Europe grant n . 101120393 (Sec4AI4Sec), by the Nederlandse
+                                         Organisatie voor Wetenschappelijk Onderzoek (NWO) under grant n. KIC1.VE01.20.004 (HEWSTI), and by the Italian Ministry of University
+                                         and Research (MUR), under the P.N.R.R. – NextGenerationEU grant n. PE00000014 (SERICS). This paper reflects only the author’s view and
+                                         the funders are not responsible for any use that may be made of the information contained therein.
+                                                                                                            1
+ICPC ’26, April 12–13, 2026, Rio de Janeiro, Brazil
+
+
+                                 Cybersecurity for AI-Augmented Systems (Sec4AI4Sec) . As artificial intelligence (AI) becomes omnipresent, even integrated within secure
+                                software development, the safety of digital infrastructures requires new technologies and new methodologies, as highlighted in the EU Strategic
+                                Plan 2021-2024. To achieve this goal, the EU-funded Sec4AI4Sec project will develop advanced security-by-design testing and assurance techniques
+                                tailored for AI-augmented systems. These systems can democratise security expertise, enabling intelligent, automated secure coding and testing
+                                while simultaneously lowering development costs and improving software quality. However, they also introduce unique security challenges,
+                                particularly concerning fairness and explainability. Sec4AI4Sec is at the forefront of the move to tackle these challenges with a comprehensive
+approach, embodying the vision of better security for AI and better AI for security. More information at https://sec4ai4sec.eu.
+
+
+                                   Hybrid Explainable Workflows for Security and Threat Intelligence (HEWSTI) In research into threats to safety and security, people and
+                                  AI collaborate to obtain actionable intelligence. Their sources and methods often have significant uncertainties and biases. Experts are aware of
+                                  these limitations, but lack the formal means to handle these uncertainties in their daily work. This project will invent a ‘metadata of uncertainty’
+                                  for threat intelligence (in both machine-readable and also human-interpretable forms) and validate it empirically. Intelligence agencies will then be
+                                  able to explicitly consider the trade-off between the accuracy, proportionality, privacy, and cost-effectiveness of investigations. This will contribute
+                                  towards the responsible use of AI to create a safer, more secure society.
+
+
+                                   In searCh Of eVidence of stEalth cybeR Threats (COVERT) AT 3 aims to analyze emerging attack methodologies and develop advanced
+                                  methods for detecting attacks and identifying guidelines for designing IT systems that ensure reduced vulnerability to new attack categories.
+                                  The detailed objectives can be divided into four macro categories: (i) Development of advanced tools for analyzing malware and software aimed at
+                                  identifying vulnerabilities that could be exploited by malware; (ii) Development of tools for analyzing network traffic to identify communications
+                                  related to ongoing attacks; (iii) Development of machine learning systems that are robust to attacks and through which it is possible to extract
+                                  knowledge aimed at creating more advanced tools for timely analysis and early identification of attacks; (iv) Analysis of the "human factors"
+                                  involved in an attack with the development of tools for analyzing and correlating information from OSINT (open sources intelligence) and for
+                                  the defense and prevention of attacks based on social engineering techniques.
+
+
+
+
+                     Maria Camporese (MSc 2022) is a PhD student at the University of Trento, Italy. Her research interests include security and machine learning. Contact
+                     her at maria.camporese@unitn.it.
+
+
+
+
+                      Fabio Massacci (Phd 1997) is a professor at the University of Trento, Italy, and Vrije Universiteit Amsterdam, Fabio Massacci is a professor at the University
+                     of Trento, Trento, Italy, and Vrije Universiteit Amsterdam, 1081 HV Amsterdam, The Netherlands. His research interests include empirical methods for the
+                     cybersecurity of sociotechnical systems. For his work on security and trust in sociotechnical systems, he received the Ten Year Most Influential Paper Award
+                     at the 2015 IEEE International Requirements Engineering Conference. He is named co-author of CVSS v4. He leads the Horizon Europe Sec4AI4Sec project and
+                     the Dutch National Project HEWSTI. He is past chair of the Security and Defense Group of the Society for Risk Analysis, and IEEE CertifAIEd Lead Assessor.
+                     Contact him at fabio.massacci@ieee.org.
+
+                     Yuanjun Gong (PhD 2025) is a postdoc researcher at the University of Trento, Italy. Her research interests include static analysis, software security and
+                     machine learning. Contact her at yuanjun.gong@unitn.it.
+
+
+
+
+   How to cite this paper:
+     • Camporese, M., Massacci, F. and Gong, Y. LLMs for Qualitative Data Analysis Fail on Security-specific Comments in Human
+       Experiments. Proceedings of the 2026 IEEE/ACM 34st International Conference on Program Comprehension (ICPC). IEEE Computer
+       Society.
+   License:
+     • This article is made available with a perpetual, non-exclusive, non-commercial license to distribute.
+      LLMs for Qualitative Data Analysis Fail on Security-specific
+                 Comments in Human Experiments
+                Maria Camporese                                             Fabio Massacci                                Yuanjun Gong
+             University of Trento, IT                                University of Trento, IT,                         University of Trento, IT
+            maria.camporese@unitn.it                            Vrije Universiteit Amsterdam, NL                       yuanjun.gong@unitn.it
+                                                                     fabio.massacci@ieee.org
+
+Abstract                                                                                material to allow for quantitative analysis [54]. Fragments of tex-
+[Background:] Thematic analysis of free-text justifications in hu-                      tual, audio, or video recordings are annotated with labels called
+man experiments provides significant qualitative insights. Yet, it is                   codes. Codes represent the smallest meaningful units, capturing
+costly because reliable annotations require multiple domain experts.                    noteworthy aspects of the recorded material. These codes are used
+Large language models (LLMs) seem ideal candidates to replace hu-                       for constructing broader themes, i.e. recurring patterns of mean-
+man annotators. [Problem:] Coding security-specific aspects (code                       ing. To ensure reliable analysis, the same piece of data is assigned
+identifiers mentioned, lines-of-code-mentioned, security keywords                       to at least one coder and one reviewer. Further, human coders de-
+mentioned) may require deeper contextual understanding than sen-                        velop and deepen their data interpretation and coding over multiple
+timent classification. [Objective:] explore whether LLMs can act                        iterations, making TA labor-intensive and time-consuming.
+as automated annotators for technical security comments by hu-                             In the realm of empirical software and security engineering,
+man subjects. [Method:] We prompt four best LLMs on LiveBench                           thematic analysis is used in a variety of settings. For example,
+to detect nine security-relevant codes in free-text comments by                         opinion mining over software repositories’ comments is a popular
+human subjects analyzing vulnerable code snippets. Outputs are                          research area [28]. In experiments with humans, qualitative analysis
+compared to the human annotators along with Cohen’s Kappa                               is used to validate the rationale behind their choices [36, 37].
+(chance-corrected accuracy). We test different prompts mimicking                           When discussing coding for opinion mining, one typically fo-
+annotation best practices: emerging codes, a detailed codebook                          cuses on the Sentiment polarity identification (e.g., positive, neutral,
+with examples, and conflicting examples. [Negative Results:] We                         or negative [28]), viewpoints and perspectives identification (e.g.,
+observed marked improvements only with the code descriptions,                           general reasons behind forking a repository [22]), or other knowl-
+but they are not uniform across codes and not sufficient to reliably                    edge extraction (e.g. usefulness of code reviews [38]). This can be
+replace a human annotator. [Limitations:] Additional studies with                       done both manually or automatically, e.g., the cited work by Jiang
+more LLMs and annotation tasks are needed.                                              [22] had both a manual annotation of open-ended questions and
+                                                                                        automated analysis of developer responses. More recent works pro-
+Keywords                                                                                posed to use LLMs [11, 29]. Using LLMs for replacing at least one
+                                                                                        human annotator seems, therefore, a low-hanging fruit.
+Qualitative Data Analysis, Thematic Analysis, Large Language Mod-
+                                                                                           We are interested in more specific, security-relevant annotations
+els, Security-Specific Annotation
+                                                                                        in which the LLM has to extract more domain-specific answers,
+ACM Reference Format:                                                                   such as whether the vulnerability type is mentioned in the human
+Maria Camporese, Fabio Massacci, and Yuanjun Gong. 2026. LLMs for Qual-                 explanations, or whether a possible exploit is mentioned, or some
+itative Data Analysis Fail on Security-specific Comments in Human Experi-               security keywords are mentioned. They are further detailed in Table
+ments. In 34th IEEE/ACM International Conference on Program Comprehen-                  1. Detection of such qualitative codes has also used by SAP to build
+sion (ICPC ’26), April 12–13, 2026, Rio de Janeiro, Brazil. ACM, New York,              their heuristic approach to identify security fixes among thousands
+NY, USA, 14 pages. https://doi.org/10.1145/3794763.3798172
+                                                                                        of commits starting from vulnerability descriptions [41].
+                                                                                           We therefore raise two research questions to explore the potential
+1    Introduction                                                                       of LLMs for automatic technical comment thematic annotation:
+Who has run a software engineering experiment with human sub-                               RQ1. Can LLMs replace a human annotator in security technical
+jects and not received a reviewer’s comment “You should manually                              annotations?
+analyze the participants’ explanations”?                                                    RQ2. What is the impact of different prompts mimicking the
+   The process for doing this qualitative analysis is called Thematic                         best practice of code refinements on LLMs’ performance on
+Analysis (TA) [11]. TA is a method for identifying, coding, and                               security technical annotations?
+interpreting patterns of meaning (themes) within qualitative data
+[9]. The aim is to distill insight from large volumes of qualitative                       We propose and instantiate an experimental methodology where
+                                                                                        LLMs receive a dataset of human comments, partially annotated
+                                                                                        by other humans, and must generate the annotations of security-
+                                                                                        relevant codes for a fraction not yet annotated comments (the ones
+This work is licensed under a Creative Commons Attribution 4.0 International License.   assigned to the replaced human). The design of the prompting
+ICPC ’26, Rio de Janeiro, Brazil                                                        strategy reflects the human coding procedure (emerging coding
+© 2026 Copyright held by the owner/author(s).
+ACM ISBN 979-8-4007-2482-4/2026/04                                                      at first, followed by a detailed codebook with examples, finally
+https://doi.org/10.1145/3794763.3798172                                                 addressing conflicting examples).
+ICPC ’26, April 12–13, 2026, Rio de Janeiro, Brazil                                                                                    Maria Camporese et al.
+
+
+   For the actual experiments, we then identified four state-of-the-
+art LLMs and asked them to generate the security-relevant codes
+instead of human annotators. When looking for a dataset for anno-
+tations, we realized that LLMs are likely trained on public datasets.
+Hence, we reached out to the authors of a security study where
+security technical comments have been manually annotated [36, 37]
+and asked if they had additional, not yet published annotations.
+They provided a thematic analysis of a different, unpublished ex-
+periment in which they had multiple annotators. This provided us
+with a dataset of 𝑛 = 263 human-generated comments where 13
+security-relevant codes (𝑐 = 9 security-relevant codes are tested)
+have been annotated by four people (see some examples in Table1).
+   Two key observations are important to evaluate such replace-
+ment: first, we should not hold an LLM to a higher standard than             Figure 1: Annotation by human annotators and LLMs
+a human annotator. Second, for a code to be useful, it has to be
+at once recurrent but sparse to truly capture different concepts
+[3]. Hence, an LLM could obtain a good accuracy just by chance                  (a) The annotators get an initial understanding from the back-
+because a meaningful code is typically not applicable to a random                   ground information and the codebook. The annotators
+comment. So we measure whether the replaced LLM can achieve                         individually mark a large fraction of their comments1 .
+the same Cohen’s Kappa as the (replaced) human annotator and                   (b) At this point, a formal definition of the codebook is agreed
+their reviewer. The same formula used for Cohen’s Kappa can also                    (Column 1 and 2 of Table1).
+be interpreted as chance-corrected accuracy [4], a metric proposed           (2) Completed annotation with codebook and first review
+in weather forecasting to test for rare events. Indeed, when using              (a) The annotators get a deeper understanding of the task
+traditional accuracy, we obtained over 75% in our experiment, when                  from the explicit definition for every code; They return to
+correcting for chance, the results dropped to half that value.                      their comments and consolidate their codes on all assigned
+                                                                                    comments.
+      Negative Result: LLMs cannot reliably replace human                      (b) Each annotator reviews the annotations from another an-
+      annotators for security-relevant annotations, not even with                   notator, marking agreement and conflicts. Reviewers are
+      a detailed code-book and examples from other annotators.                      randomly assigned.2
+                                                                                (c) By the end of this step, the disagreements are discussed
+                                                                                    and Column 1-4 of Table1 are generated as examples of
+1.1     Artifact Availability                                                       representative do and don’t.
+                                                                             (3) Final consolidate coding with do-s and don’t-s
+The data and the code implementation are open-sourced in https:
+                                                                                (a) The annotators get a comprehensive understanding of the
+//zenodo.org/records/18742065.
+                                                                                    task from the examples of other annotators, as well as
+                                                                                    the conflicting samples; Annotators individually finalize
+2     Human Annotations - Problem Specification                                     the annotations along the codebook, bearing in mind the
+Our research focuses on one of the simplest protocols for gener-                    conflicting examples.
+ating reliable annotations, as shown in Figure 1. In the qualitative           (b) By the end of this step, the final review discuss and collec-
+data collection from Papotti et al. [37], the authors describe the                  tively resolve all standing disagreements.
+process they used for annotation, which is quite standard for ap-        For the application scenario, our research focuses on the technical
+plied Thematic Analysis [15, 16]: first, a subset of authors jointly     comments annotation. The technical comments are provided by
+reviewed a sample of justifications for each vulnerable scenario to      human subjects in response to a request to perform a security
+identify a first set of emerging codes; second, the codes are consoli-   analysis of code snippets or patches. The background information
+dated into a codebook (Table 8 in [37]). After an additional phase of    is the summary information on the type of vulnerabilities and
+consultation, the author marked all remaining justifications, and an     evidence shown to the commenter and known to the annotator.
+independent researcher checked them. Finally, additional conflicts       The codes are thematic aspects applied to these comments. The
+were discussed by a subset of the authors and resolved.                  annotators are expected to label a code as “1” if the code applies to
+   With human annotators (𝐴, 𝐵, 𝐶, 𝐷, ...), the procedure should be      the participant’s comment and “0” if not.
+split down into four steps:                                                 Table1 describes the definition of codes and some representa-
+    (0) Emergence of codes                                               tive examples illustrating the annotation tasks, including positive
+       (a) Annotators individually read some samples and make up         1 The golden standard is that all comments should be annotated to avoid influencing
+           their own codes (principle of emergence).                     each other. In the experience of one author, annotators tend to stop and call a meeting
+      (b) The annotators gather up the codes and agree on code           when too many cases accumulate in which the annotator is unsure.
+                                                                         2 To reduce cost, one might consider a single annotator and a single reviewer, but this
+           names (Column 1 of Table1).
+                                                                         choice reduces the reliability too much. Also in this scenario, the human reviewer
+    (1) First annotation with shared codes (names)                       would have to review all comments anyhow, and then they could directly mark them.
+LLMs for Qualitative Data Analysis Fail on Security-specific Comments in Human Experiments                        ICPC ’26, April 12–13, 2026, Rio de Janeiro, Brazil
+
+
+                                                 Table 1: Example of Codes and Related Comments
+
+   Abbr.     Code Definition                 Code applicable Comments                                           Code inapplicable Comments
+    Var      Variable/Method identi-         I think it had something to do with inv and debug.                 header buffer capacity is not checked.
+             fiers are mentioned
+    Lin      Lines number men-           In this line, the memory at constant address is copied,                The null value may cause the function
+             tioned                      this memory will most likely not stay consistent among                 crash.
+                                         systems.
+    Key      Relevant       Keywords If the file attribute in the code is tampered with for an                  I don’t see any vulnerabilities.
+             mentioned                   instance of the BlockDriverState it might happen that the
+                                         code runs an infinite recursion, essentially stopping the
+                                         machine.
+    Vul      Text is related to the spe- Might modify environment variable with strtol.                         I think that negative checkin triggers
+             cific vulnerability                                                                                the vulnerability for the ML, not sure.
+    Sec      Text related to security A check should be added which checks if the buffer is not                 the datatype of debug wont support str-
+                                         overflowing.                                                           tol.
+    Exp      Potential exploit is men- The memcpy() function might be injected with a size that                 stderr is not created.
+             tioned                      is too big for the program to handle, therefore freezing
+                                         the computer’s resources.
+  NoVul      I don’t find vulnerabil- Since I did not find the code to be vulnerable, I have not                I am not sure.
+             ity                         marked any sections. The confidence however is low, as I
+                                         am struggling to find any vulnerable line.
+   Unsr      I’m not sure                The written buffer may overflow like said before, but I’m              memcpy buffer overflow.
+                                         not really sure.
+   Unclr     Unclear answer              Address.                                                               peer might be null.
+
+
+samples and negative samples. For example, in the comment “I                           LLM. In this scenario, it makes no sense to withhold from the LLM
+think it had something to do with inv and debug”, the code “Vari-                      the consensus they have already reached. Still, the LLM is favored
+able/Method identifiers are mentioned” (abbreviated as Var) is la-                     as in the actual replacement scenario, it would also have to mark
+beled as “1”, since the comment mentions the identifier “inv”.                         the difficult comments on which there was a human disagreement.
+   In our dataset, the four annotators divided the comments into
+four sets and followed the protocol above, each of them randomly                       3     Methodology
+annotating a fourth of the comments and reviewing the annotations
+of a different annotator.                                                              The next section provides a broad overview of the main stages of
+   The LLM should start after step 0b, when at least the code names                    our study to address our research questions. Some additional steps
+are defined by brainstorming among humans. It should then be able                      are further refined, including data collection, input preparation,
+to replace any of the human annotators (not as a reviewer), with an                    annotation generation, prompt refinement, and result analysis.
+acceptable success in each of the annotation steps (1a, 2a, 3a) using
+the corresponding information resulting from the previous steps                        3.1    Methodology Overview
+(0b, 1b, 2c). To apply the LLM support, we follow the process of the                      Data Collection and human annotation. We initially planned to
+cognition progress of human annotators, and design the prompts to                      use data from published experiments (e.g. [37]) when we realized
+provide the corresponding information to the LLM. If the LLM has                       that annotations published on the internet might be known to the
+the ability to substitute human annotators, it should have a similar                   LLM. Other experiments on commits and code analysis either did
+performance after getting the same prompt they got.                                    not make available the codes or were not on security relevant (e.g.
+   For the last steps (2a) we consider also a favourable version of                    [22, 36]). So we contacted the authors of [36, 37] and obtained a
+the task for the LLM, as we show in the first half of the bottom part                  different dataset that is not yet published. The human annotation
+of Figure 1: we give it the comments of the other annotators who                       procedure is done by four annotators, following the process in § 2.
+later would be reviewers of its own task. Finally, for step 3a, we                     The dataset is represented as a spreadsheet and contains the labels
+ask it to annotate only the comments on which the humans agreed,                       of code snippets or patches, the corresponding comments, and the
+while all comments on which humans disagreed are provided as                           annotator-labeled codes. We also obtain the reviewer-corrected
+examples. Both ‘helping hands’ should actually boost both Cohen’s                      code for each annotated comment (which we used as the final
+Kappa and the chance-corrected accuracy.                                               ground truth in the best prompt). The security-specific comments
+   This favorable condition can be acceptable if the LLM is intended                   collection and the annotation will be further described in §3.2.
+to replace the N-th annotator after the original N-1 humans have
+already run the protocol on their part and want to delegate the                           Input Preparation. To be consistent with the human protocol,
+completion of the remaining 1/Nth part of the comments to the                          the input to LLMs is the same spreadsheet where the codes labeled
+ICPC ’26, April 12–13, 2026, Rio de Janeiro, Brazil                                                                         Maria Camporese et al.
+
+
+by the selected human annotator are cleared. The remaining in-               The experimenters collected both quantitative metrics and qual-
+formation in the spreadsheet, such as the codes of the remaining          itative comments from participants justifying their vulnerability
+annotators, can provide extra information for the LLMs to under-          detection decisions, resulting in a dataset of 263 free-text comments,
+stand the task. As mentioned in Section 2, this is a significant help     each corresponding to a participant’s rationale for detecting (or
+for the LLM: the human annotators had to perform the work inde-           failing to detect) a vulnerability in a given code snippet. They were
+pendently. We believe it is justified as the idea is to use the LLM to    further annotated by other annotators.
+“finish off” the work for the first #𝐴 − 1 annotators
+                                                                          3.3    LLM Selection
+   Prompt Refinement. To guide the model effectively, imitating
+the human annotation process (§2), details and examples are pro-           M1: Models must be able to process spreadsheet files with annota-
+gressively added to the prompts (research goal and experimental                tions. Annotations are supplied with several different codes
+design, and format and semantics of the spreadsheet used for anno-             at once, and the model must be able to mimic the use.
+tation, examples of both successes and failures). A more detailed          M2: Different best models on LiveBench [48]. At the time of design-
+explanation is provided in §3.4.                                               ing, the best-performing proprietary models for Reasoning
+                                                                               Average score are ChatGPT-5 [34], o3 [35] (Both from Ope-
+   LLM Annotation Generation. The LLM under evaluation will be                 nAI), and Claude Sonnet 4 [2] (from Anthropic).
+instructed by the prompts to fill in the empty cells of the input          M3: Open Source vs Proprietary Models. Some of the models should
+spreadsheet generated from the previous step. The LLM will be                  be open source to provide a replicable experiment. The best-
+prompted to identify the present or absent labels of each code in              performing open-source models for Reasoning Average score
+each participant’s comment, and generate the annotations based on              are DeepSeek-V3.2 [12], Kimi K2 Thinking [45] from Moon-
+the remaining information from the spreadsheet and the knowledge               shot AI, and Qwen3-Max [52] (from Alibaba).
+provided by the prompts. The result of LLM auto-annotation should          M4: Models must produce results of the expected size. In prelimi-
+also be reported in a spreadsheet, generated by LLMs.                          nary experiments, some models failed to return the correct
+                                                                               number of entries, either omitting part of the input or gen-
+   Analysis. The LLM annotation experiments will be conducted                  erating too many rows. Because this made it impossible to
+individually, each time employing one #𝐿 LLMs and one of the                   reliably match their outputs to the ground truth, we dis-
+#𝑃 prompt types to replace one of the #𝐴 annotators. The results               carded models that did not produce the required number of
+for each run will be presented across #𝐶 codes. The annotations                rows.
+from LLMs are analyzed against the annotators’ and the reviewers’
+annotations, to compute the suitable performance metrics (most              For the proprietary models, we use the chat interface and the
+notably Cohen’s 𝜅) and identify statistically significant differences     professional subscription, as we assume it is the best available
+among LLMs or prompts. The analysis methods are refined in §3.5.          model. We also investigated Grok [50] (from xAI), but it is not
+                                                                          available in Italy at the time of designing. Besides DeepSeek-V3.2,
+                                                                          Kimi K2 Thinking, and Qwen3-Max, we also examined Mistral [33]
+3.2     Comments Collection and Annotation
+                                                                          and Llama [32] through the Amazon Bedrock interface.
+A realistic dataset requires underlying software engineering exper-
+iments with raw comments of the human participants and the code
+                                                                          3.4    Prompt Engineering
+labels from human annotators. The natural production of the data is
+that, in an underlying software or security engineering experiment,       To answer RQ1, we have crafted a series of prompts to enable the
+the participants were asked to give security-related comments on          LLMs to function as an annotator. At the same time, to answer RQ2,
+the provided code snippet or patches to explain the rationale for the     the prompts are applied sequentially, involving the progressive
+choices of the experiment. Then, the human-annotators analyzed            enrichment of knowledge on code definitions, annotated examples,
+the comments following the steps in §2.                                   targeted clarifications, and interactive feedback mechanisms.
+
+   The Underlying Experiment. The annotation dataset used in this            Prompt Selection. Prompts are compared to check whether in-
+research came from an unpublished experiment from the researchers         creasing prompt complexity yields significant improvements (RQ2):
+behind Papotti et al. [37]. In their experiment, a group of researchers     P1 : The prompt contains only the task description and the
+conducted a controlled experiment to assess whether AI-generated                 name of the codes. P1 describes research context, experi-
+suggestions could support Computer Science Master’s students                     ment design, spreadsheet structure (with code names), and
+in identifying vulnerabilities within source code snippets. In that              annotation task, and it provides the file without the appli-
+experiment, participants were shown six code snippets, each in one               cable code of the other annotators. To generate a correct
+of three possible versions: a plain (control) version, or a version en-          annotation without clues, the model can only rely on having
+hanced with highlights generated via explainability methods. The                 seen something similar in the past.
+highlights correspond to codes deemed most relevant by VulDeeP-             P2 : The prompt includes the formal definition of the codes.
+ecker [27], a DL-based vulnerability detection model. The high-                  P2 describes the expected behavior and provides an example
+lighted versions were generated using either a white-box method                  for each column to be filled. This stage corresponds to the
+(Gradient × Input [53]) or a black-box method (LEMNA [17]). The                  development of a formal codebook (Table 1).
+code snippets included common vulnerability types: buffer over-             P3 : The prompt includes the examples of the other annota-
+flows, format strings, and NULL pointer dereferences.                            tors. P3 provides the file with the labels of other annotators
+ LLMs for Qualitative Data Analysis Fail on Security-specific Comments in Human Experiments                            ICPC ’26, April 12–13, 2026, Rio de Janeiro, Brazil
+
+
+
+
+     User (P3𝑝𝑖𝑙𝑜𝑡 )                                                                          User (P3+ )
+
+     . . . Try to find two examples for each column that you find                              For each column, there are two examples that you might
+     similar but have opposite labeling, so I can clarify subtle                               find similar but have opposite labeling. I can clarify the
+     differences for you.                                                                      subtle differences for you.
+                                                                                              Variable/Method identifiers are mentioned
+     GPT-4o                                                                                   - ‘I think it had something to do with inv and debug’ →
+      I’ve found contrastive examples from your annotations for                                marked 1
+      each label, where student responses are similar in phrasing                             - ‘I did not select anything because [...] I am not that experi-
+      or content but were marked differently. Below are two exam-                              enced with C’ → marked 0
+      ples for each column, showing the kind of subtle distinctions                            Clarify: Are only clear technical identifiers enough, or
+      your reviewers made. You can now help me improve by                                      should any code-ish word be counted?
+      clarifying these distinctions.                                                           Clarification: The first sentence uses inv” and “debug” in a
+     Variable/Method identifiers are mentioned:                                               way that you can understand they are not part of a natural
+     - ‘I think it had something to do with inv and debug’ →                                   language sentence, so they must be code identifiers. So the
+      marked 1                                                                                 mark is 1. [. . . ]
+     - ‘I did not select anything because [...] I am not that experi-                          [Omit the contrastive examples and the clarifications
+      enced with C’ → marked 0                                                                 for other codes . . . ]
+      Clarify: Are only clear technical identifiers enough, or
+      should any code-ish word be counted?
+                                                                                                Figure 3: The defined prompt P3+ based on P3𝑝𝑖𝑙𝑜𝑡
+      [Omit the contrastive examples for other codes . . . ]
+
+     User (P3𝑝𝑖𝑙𝑜𝑡 )
+                                                                                          Pilot Experiment. For the exploration of the initial design of the
+     - Variable/Method identifiers are mentioned: The first                            prompts, we employed OpenAI’s GPT-4o model [18] (interactive
+      sentence uses “inv” and “debug” in a way that you can                            version) to conduct the pilot study for the prompts refinement. We
+      understand they are not part of a natural language sentence,                     chose GPT-4o since this model is not used in the main experiments
+      so they must be code identifiers. So the mark is 1. The                          and can therefore reduce the bias. The output of each turn from the
+      second sentence is a natural language sentence, the only                         pilot LLM is manually reviewed for insights. Based on these outputs,
+      part for which you could have doubts is “C”, but in this case                    we iteratively refined the input context and prompt content, incor-
+      it’s part of the natural sentence expressing the student did                     porating targeted feedback and clarifications to address systematic
+      not notice any vulnerability, maybe because he does not                          errors or ambiguities observed in the model’s predictions.
+      have enough experience in C programming                                             Prompts P1 ~P3+ were progressively specified and refined through-
+      [Omit the clarifications for other codes . . . ]                                 out the pilot experiment. In particular, during the specification of
+                                                                                       P3+ the user first asked the pilot LLM to find contrastive examples
+                                                                                       from the provided samples, then provided clarification addressing
+  Figure 2: The pilot interaction where P3𝑝𝑖𝑙𝑜𝑡 is constructed                         those ambiguities. Figure 2 shows an illustrative example of P3𝑝𝑖𝑙𝑜𝑡 ,
+                                                                                       and Figure 3 shows the crafted P3+ based on the pilot interaction.
+                                                                                          The pilot LLM was asked to find contrastive examples. LLMs in
+                                                                                       the main experiment are not asked to label these contrastive exam-
+          on other comments. Few-shot examples are considered a sig-                   ples to ensure that the corresponding answers are not inadvertently
+          nificant help for the LLMs, but they are not considered a                    disclosed to the LLMs when providing prompt P3+ .
+          good practice for human annotators, as they can be a source
+          of bias and lack of independence.                                             3.5      Formal Analysis
+P3𝑝𝑖𝑙𝑜𝑡 : The prompt asks for conflicting examples and provides
+                                                                                            Success Metrics. For each run, across #𝐿 LLMs, #𝑃 prompts, #𝐶
+          clarifications from the researcher.P3𝑝𝑖𝑙𝑜𝑡 asks the pilot
+                                                                                        codes, and #𝐴 annotators, we obtain a tuple which summarizes the
+          LLM to go through the human-annotated labels and extract
+                                                                                        result of the annotation of the 𝑁 comments.
+          two conflicting examples for each code, and ask what is
+                                                                                        ⟨ℓ, P, 𝑐, 𝑎,𝑇 𝑃ℓP𝑐𝑎 , 𝐹 𝑃ℓP𝑐𝑎 , , 𝐹 𝑁 ℓP𝑐𝑎 , 𝐹 𝑁 ℓP𝑐𝑎 ⟩, where:
+          unclear. A researcher then compiles the response to LLM’s
+          questions. This is done only once in the interaction.                               • 𝑇 𝑃ℓP𝑐𝑎 is the number of comments where 𝑐 = 1 by the anno-
+   P3+ : The prompt shows conflicting examples and the clari-                                   tator 𝑎 and 𝑐 = 1 by the LLM ℓ with prompt P;
+          fications from researchers. P3+ shows LLM the conflicting                           • 𝐹 𝑃ℓP𝑐𝑎 is the number of comments where 𝑐 = 0 by the anno-
+          examples obtained in the pilot interaction, as well as the                            tator 𝑎 and 𝑐 = 1 by the LLM ℓ with prompt P;
+          researchers’ answers to those ambiguities.                                          • 𝐹 𝑁 ℓP𝑐𝑎 is the number of comments where 𝑐 = 1 by the anno-
+                                                                                                tator 𝑎 and 𝑐 = 0 by the LLM ℓ with prompt P;
+    The selection of prompts is based on a pilot experiment elabo-                            • 𝑇 𝑁 ℓP𝑐𝑎 is the number of comments where 𝑐 = 0 by the anno-
+ rated below, e.g., the prompt P3+ is designed based on P3𝑝𝑖𝑙𝑜𝑡 .                               tator 𝑎 and 𝑐 = 0 by the LLM ℓ with prompt P.
+ICPC ’26, April 12–13, 2026, Rio de Janeiro, Brazil                                                                               Maria Camporese et al.
+
+
+   We define by 𝑐𝑜𝑟𝑟𝑒𝑐𝑡 ℓ,P,𝑐,𝑎 = 𝑇 𝑃ℓ,P,𝑐,𝑎 + 𝑇 𝑁 ℓ,P,𝑐,𝑎 the number of      Table 2: Proposed Thresholds for Human Replaceability
+correctly coded comment by the LLM ℓ for code 𝑐, we denote by
+𝑝𝑜𝑠 ℓ,P,𝑐,𝑎 = 𝑇 𝑃ℓ,P,𝑐𝑎 + 𝐹 𝑁 ℓ,P,𝑐,𝑎 the number of positives according      𝜅 (𝐴𝑐𝑐 ∗ )   Replaceability and Rationale
+to the human annotator, and by 𝑎𝑙𝑒𝑟𝑡 ℓ,P,𝑐,𝑎 = 𝑇 𝑃ℓ,P,𝑐,𝑎 + 𝐹 𝑃ℓ,P,𝑐,𝑎 we       <0        Hallucinate (✗) - The LLM has worse performance
+denote the number of comments marked as 1 for code 𝑐.                                     than random guessing in controlled experiments. It is
+                                                                                          not recommended to use it.
+    Cohen’s Kappa 𝜅 and Chance Corrected Accuracy. As mentioned              [0.0, 0.2]   Unusable (★) - The LLM will rarely generate the
+in the introduction, the first step is to make sure that we do not hold                   expected annotations and will almost always disagree
+LLMs to higher standards than human annotators. Cohen’s Kappa                             with the human annotator.
+is a robust indicator of agreement in which the percentage of codes          (0.2, 0.4]   Limited (★★), The LLM only partly generates the
+in agreement (𝑇 𝑃 and 𝑇 𝑁 ) between two coders (in our case, the                          annotations of a human coder. It might not converge
+LLM and one of the annotators) is normalized by the percentage                            when resolving conflicts with other annotators.
+of the agreement that could have been obtained by chance. For                (0.4, 0.6]   Moderate (★★★), The LLM is not able to generate
+the sake of simplicity, we remove in the subsequent equations the                         human annotation for around half the time. It might
+indexes describing the LLM, the column, and the annotator.                                or might not converge when discussing conflicts.
+                                                                             (0.6, 0.8]   Substantial (★★★★) - The LLM will generate codes
+                                                                                        close to a human annotator in practice. Multiple in-
+          𝐸 [𝐴𝑔𝑟𝑒𝑒]       =
+                                𝑎𝑙𝑒𝑟𝑡 𝑝𝑜𝑠
+                                      ·     + 1−
+                                                  𝑎𝑙𝑒𝑟𝑡 
+                                                         · 1−
+                                                              𝑝𝑜𝑠 
+                                                                    (1)                   teractions over conflicts are likely to converge.
+                                  𝑁      𝑁          𝑁          𝑁             (0.8, 1.0]   Almost Perfect (★★★★★) - The LLM would gener-
+                                𝑐𝑜𝑟𝑟𝑒𝑐𝑡                                                   ate almost the same annotations as human coders, or
+    𝐴𝑔𝑟𝑒𝑒 (= 𝐴𝑐𝑐)         =                                         (2)
+                                   𝑁                                                      at least will disagree with them only in a few cases.
+                                𝐴𝑔𝑟𝑒𝑒 − 𝐸 [𝐴𝑔𝑟𝑒𝑒]
+         𝜅 (= 𝐴𝑐𝑐 ∗ )     =                                         (3)
+                                   1 − 𝐸 [𝐴𝑔𝑟𝑒𝑒]
+                                                                            and annotator as pairs.
+   The definition of Agreement (2) is actually identical to accuracy if
+we consider each annotator as the ground truth, and Cohen’s Kappa                                                           
+                                                                                     𝑊      𝜅 ℓ1 ,P,𝑐,𝑎 , 𝜅 ℓ2 ,P,𝑐,𝑎 P, 𝑐, 𝑎 for ℓ1 and ℓ2          (4)
+(3) is actually identical to the definition of chance corrected accuracy.
+This indicator is quite common in the weather prediction literature            To answer RQ2, first, we evaluate the effectiveness of the prompts
+[4]: In the presence of an unbalanced dataset, some of the perfor-          irrespective of the LLMs. We aggregate the results over the codes
+mance metrics might be obtained by pure chance, just because we             and annotators for each LLM ℓ and prompt P. We perform the
+have too many (or too few) events of interest in the system. To             pairwise Wilcoxon test to compare the prompts with increasing
+avoid such mistakes, we need to compute the expected values of              level of effort, i.e., comparing prompt P𝑖 −1 with prompt P𝑖 .
+true positives or true negatives that we would have obtained by
+chance and subtract them from the values we obtain with the exper-
+                                                                                                                                           
+                                                                                                𝑊      𝜅 ℓ,P𝑖 −1 ,𝑐,𝑎 , 𝜅 ℓ,P𝑖 ,𝑐,𝑎 ℓ, 𝑐, 𝑎   (5)
+iment. The chance corrected accuracy is also known in the weather
+forecasting literature as the Heidke skill index (HSS).                     Since prompts are compared in increasing order (P𝑖 −1 is compared
+   Common guidelines [47] state that an interval of [0.0, 0.2] in-          with P𝑖 , which is then compared with P𝑖+1 , etc. they are independent
+dicates slight agreement, (0.2, 0.4] fair agreements, (0.4, 0.6] mod-       tests, and we do not need to perform a Bonferroni correction.
+erate agreement, (0.6, 0.8] substantial agreement, and (0.8, 1.0]              We can refine the analysis by comparing each LLM while keeping
+indicates almost perfect agreement. We can therefore use the same           the prompt constant, essentially repeating the test in Equation (4)
+guidelines to compare chance-corrected accuracy against the bands           for all prompts. In this setting, we need to perform a Bonferroni
+of Cohen’s 𝜅. We also have to account for the possibility that chance-      correction by considering as statistically significant only those
+corrected accuracy is negative, namely that the LLM is actually             tests with a p-value 𝑝 ≤ 5%  #𝐿 where #𝐿 is the number of LLMs
+worse than randomly guessing human annotations. We summarize                compared because we are repeating the previous test again now
+these levels in Table 2 and adapt it to the LLMs.                           with a different metric each time.
+   Since we have multiple annotators, when reporting a value, we
+take the average across annotators.                                         4 Results
+   Analysis and Statistical Tests. To answer RQ1, we first compute          4.1 RQ1: LLMs Ability on Automatic Annotation
+each metric and we report the average of the results across 𝐴 anno-         Table 3 reports the summary with the average precision, recall, accu-
+tators. Since an LLM might be better suited to some types of codes          racy, and Cohen’s Kappa (chance-corrected accuracy) for our exper-
+than others (e.g., better at understanding the presence of program          iments where we tried to replace a human annotator with an LLM
+identifiers than security keywords), we also consider the individual        for the best prompt P3+ that we have presented in §3.4. Values are av-
+                                                                                                                               1 1 Í
+coders as a second detailed comparison.                                     eraged across annotators and columns. e.g. 𝜅ˆ ℓ = #𝐴 #𝐶   𝑎,𝑐 𝜅 ℓ,P3+ ,𝑐,𝑎
+   Then compare the relative effectiveness of LLM ℓ𝑖 globally, we           to provide a first global assessment. As we can see from the Table
+perform a Wilcoxon paired test as a statistical test to compare the         the result is negative. We cannot reliably assume that an LLM can
+set of kappa’s value 𝜅 ℓ,P,𝑐,𝑎 for each prompt, considering each code       generally replace a human annotator.
+LLMs for Qualitative Data Analysis Fail on Security-specific Comments in Human Experiments                          ICPC ’26, April 12–13, 2026, Rio de Janeiro, Brazil
+
+
+        Table 3: Average Results with the Final Prompt                                   These findings are particularly interesting as the different prompts
+                                                                                      have different budgets in terms of tokens. Figure 4 shows the results
+ Based on the qualitative levels from Table 2 for Cohen’s 𝜅 guide-                    in terms of chance-corrected accuracy against the tokens used to
+ lines [47], we see that LLMs cannot reliably replace human                           obtain those results. Since the models have different ways to count
+ annotators. We also see the importance of using robust metrics                       tokens, and it is unclear how the Excel files are precisely counted,
+ not affected by unbalanced datasets.                                                 we opted for a third-party software (AWS Bedrock), which can be
+ LLM               Precision Recall Acc 𝜅/𝐴𝑐𝑐 ∗ Replace                               used to query several models to obtain a token count. Figure 5
+ GPT-5               0.62         0.47  0.74      0.26    ★★                          shows the results for each code.
+ Claude-4            0.57         0.51  0.74      0.30    ★★
+ DeepSeek-V3.2       0.79         0.64  0.83      0.53    ★★★
+ Qwen3-Max           0.74         0.73  0.86      0.61    ★★★★                               Negative Answer to RQ2: Prompt refinements with in-
+         Table 2: Substantial - ★★★★, Moderate -★★★, Limited - ★★.                           creasing efforts in terms of tokens do not uniformly guar-
+                                                                                             antee a good performance across LLMs for security-specific
+                                                                                             annotations. There is only a significant gain at the begin-
+                                                                                             ning when a formal definition of the codes is provided with
+   Human annotators are also error-prone and might disagree with                             the positive examples. Even proprietary models might be
+each other. Therefore, a too high bar might not correspond to prac-                          significantly confused by moire data.
+tical use. The next step investigate whether the poor (overall) per-
+formance is only due to some specific codes that are also hard for
+human annotators.
+                                                                                       4.3     Qualitative Analysis
+   Table 4 shows the summary of the results for the chance-corrected
+accuracy of each code for the final prompt. In this set-up we have                        LLMs’ elaboration of tabular data. Several LLMs initially con-
+given LLMs an easier task as we only consider the comments on                          sidered were excluded due to technical limitations encountered
+which the human annotators agree with the reviewers. So LLMs                           during experimentation. We first evaluated models via the Ama-
+were given codes where there is 100% agreement with humans.                            zon Bedrock [5] platform. Although Claude 4 Sonnet, LLaMA, and
+Once again, we only consider our best prompt P3+ .                                     DeepSeek could accept spreadsheet inputs, they were limited to
+   As we can see, on individual codes, the results are partly con-                     textual outputs and failed to reliably produce tabular data with the
+sistent across models with some notable exceptions. All models                         expected number of rows, even when explicitly prompted to do so.
+perform very poorly on some codes, such as identifying the unclear                        Additional model-specific constraints further reduced feasibil-
+answer (Unclr). They have a better success on spotting the negative                    ity: Mistral did not support document inputs on the tested end-
+answer ‘I don’t find vulnerability’ (Vul) and to identify whether                      point, while models in the LLaMA family repeatedly exceeded the
+there are Variable/Method identifiers mentioned (Var).                                 document ingestion time limit. Consequently, we abandoned the
+                                                                                       Bedrock-based setup and re-ran the experiments using each model’s
+                                                                                       publicly available chatbot interface. Grok was unavailable in Italy
+      Negative Answer to RQ1: The tested LLMs are not gen-                             at the time of the experiment and was therefore excluded. Among
+      erally able to match the human annotators except for some                        the remaining models, Kimi K2 Thinking failed to consistently gen-
+      specific code and only for some specific models. Surpris-                        erate valid tabular outputs, producing either an incorrect number
+      ingly, open source models perform generally better than                          of entries or malformed files.
+      proprietary LLMs. LLMs are not yet ready to replace human                           For GPT, DeepSeek, and Qwen, we successfully prompted the
+      annotators in security-relevant comments.                                        generation of spreadsheet files. This approach did not generalize to
+                                                                                       Claude, which instead produced a non-functional interactive web
+                                                                                       application. However, requesting tabular data as structured lists
+4.2     RQ2: Impact of Prompt Efforts                                                  yielded outputs with the correct number of entries, allowing their
+Table 5 shows the results per prompt across the four LLMs as we are                    inclusion in subsequent analyses.
+interested in determining whether there is a significant difference
+between the prompts, irrespective of the LLMs. Once again, we do                          Case studies. To investigate the sources of classification errors,
+not see a major difference. After the first prompt, where the chance-                 we qualitatively analyzed a subset of LLM-generated annotations.
+corrected accuracy moves from 37% to 42%, the values linger in the                    This analysis revealed recurring patterns underlying the models’
+area. Refining the prompts does not yield major changes.                              limited performance. For example, in prompt 3, ChatGPT-5 system-
+   Table 6 reports the results of Wilcoxon paired tests between                       atically labeled the Variable/Method identifiers are mentioned feature
+increasingly sophisticated prompts. While the comparison between                      as present for all annotators, regardless of comment content.
+P1 and P2 yields a 𝑝-value lower than 5%, such a value is not statis-                     A common challenge across models was distinguishing general
+tically significant after the Bonferroni correction, where we divide                  technical terminology from code-specific identifiers. Some models
+by the number of multiple comparisons 𝑝 > 0.05/(𝑃 − 1) = 0.017                        appeared overly sensitive to keywords (e.g., GPT labeling all oc-
+where 𝑃 is the number of compared prompts in order of sophisti-                       currences of “vulnerable” as positive), while others were misled by
+cation. So we cannot really conclude that spending time refining                      generic technical terms such as “debug” (e.g., Qwen). In general,
+the prompts yields any better outcome by the LLMs. This finding                       it seems models can get confused by the literal meaning of words
+persists even if separating the results by model, see Table 7.                        and miss the high-level significance, for example "By elimination
+ICPC ’26, April 12–13, 2026, Rio de Janeiro, Brazil                                                                                            Maria Camporese et al.
+
+
+                    Table 4: The Cohen’s 𝜅 of the human annotator/LLM’s agreement with the reviewers across codes
+
+    In spite of giving the LLM an easy task (by supplying it only the comments on which there was almost 100% agreement among
+    the humans), it could not successfully annotate most codes. Only on comments that describe the absence of a vulnerability (NoVul)
+    DeepSeek-V3.2 and Qwen3-Max are able to get close to the human agreement. GPT-5 and Claude-4 exhibit very low performance on
+    certain columns, but other models also have column-specific limitations.
+                           Human*                 GPT-5               Claude-4          DeepSeek-V3.2           Qwen3-Max
+                         𝜅ˆ Agreement            𝜅ˆ Replace          𝜅ˆ Replace        𝜅ˆ Replace              𝜅ˆ Replace
+            Var       0.98 ★★★★★              0.00 ★              0.52 ★★★          0.79 ★★★★               0.79 ★★★★
+            Lin       0.94 ★★★★★              0.57 ★★★            0.46 ★★★          0.31 ★★                 0.42 ★★★
+            Key       0.98 ★★★★★              0.30 ★★             0.14 ★            0.34 ★★                 0.56 ★★★
+            Vul       0.98 ★★★★★              0.50 ★★★            0.44 ★★★          0.39 ★★                 0.50 ★★★
+            Sec       0.98 ★★★★★              0.11 ★              0.15 ★            0.50 ★★★                0.66 ★★★★
+            Exp       0.98 ★★★★★              0.12 ★              0.20 ★            0.56 ★★★                0.64 ★★★★
+            NoVul     0.98 ★★★★★              0.30 ★★             0.42 ★★★          0.82 ★★★★★              0.85 ★★★★★
+            Unsr      0.93 ★★★★★              0.38 ★★             0.16 ★            0.66 ★★★★               0.59 ★★★
+            Unclr     0.95 ★★★★★              0.00 ★              0.13 ★            0.44 ★★★                0.41 ★★
+            Total     0.97 ★★★★★              0.25 ★★             0.29 ★★           0.54 ★★★                0.60 ★★★
+                           Table 2: Almost Perfect - ★★★★★, Substantial - ★★★★, Moderate -★★★, Limited - ★★, Unusable - ★, Hallucinate - ✗).
+
+
+
+
+                     (a) GPT-5                           (b) Claude-4                       (c) DeepSeek-V3.2                       (d) Qwen3-Max
+
+        Figure 4: Average Cohen’s 𝜅 (Chance Corrected Accuracy if human were ground truth) vs Effort (Size of Prompts)
+
+
+
+
+                     (a) GPT-5                           (b) Claude-4                       (c) DeepSeek-V3.2                       (d) Qwen3-Max
+
+Figure 5: Chance corrected accuracy against the required effort in tokens, with each curve corresponding to a different code.
+
+
+it seems that there is no other lines that can be assessed as vul-                     not very sure it is a vulnerable line" as positive for Relevant Key-
+nerables" for human annotators was just positive for I don’t find                      words mentioned, but "I don’t think any of the lines are vulnerable"
+vulnerability, but DeepSeek also marked it as positive for Text is                     as negative, even if they include almost all the same words.
+related to the specific vulnerability. Models also varied in their inter-
+pretation of uncertainty; for instance, GPT and Claude occasionally
+inferred uncertainty from modal expressions that human annota-                         5     Discussion
+tors did not consider indicative of uncertainty ("I would be inclined                  Our exploration revealed both the potential and the limits of using
+to think" or "it is likely that"). Finally, certain misclassifications                 LLMs for security-specific annotations of subjects’ justifications
+remained difficult to explain, for example, DeepSeek marked "I am                      for security choices in experiments where humans are asked to
+                                                                                       identify security issues in code snippets.
+LLMs for Qualitative Data Analysis Fail on Security-specific Comments in Human Experiments                          ICPC ’26, April 12–13, 2026, Rio de Janeiro, Brazil
+
+
+Table 5: Cohen’s 𝜅 (Chance Corrected Accuracy) per Prompt                                    • Prompt quality matters, but beyond a point, iterative refine-
+                                                                                               ment without architectural adaptation (e.g., fine-tuning) may
+ The only significant difference is obtained by providing the                                  yield diminishing returns.
+ LLMs with the definition of the codes (from P1 to P2 ). The large                           • Interactive prompting strategies may not be sufficient to
+ effort to further improve the prompts does not bring significant                              bridge the semantic gap between surface-level understand-
+ gain across different LLMs and also seems to confuse the model.                               ing and security-informed reasoning.
+ Prompt Precision Recall Acc 𝜅 (𝐴𝑐𝑐 ∗ ) Replaceability
+ P1             0.63     0.51    0.78     0.37    ★★
+ P2             0.67     0.56    0.79     0.42    ★★★
+ P3             0.59     0.54    0.76     0.35    ★★                                   6     Related Work
+ P3+            0.68     0.58    0.79     0.42    ★★★                                  Opinion mining for Software development Recent research
+                Table 2: Substantial - ★★★★, Moderate -★★★.
+                                                                                       has increasingly applied opinion mining and sentiment analysis to
+                                                                                       understand developers’ perspectives across various software engi-
+Table 6: Wilcoxon paired tests between increasingly sophis-
+                                                                                       neering (SE) tasks [28]. Various Natural Language Processing (NLP)
+ticated prompts
+                                                                                       and Machine Learning (ML) techniques have been applied to ana-
+                                                                                       lyze qualitative text in software engineering contexts. Sentiment
+                 Contrast      Wilcoxon’s 𝑊         𝑝-value                            polarity detection—using lexicon-based tools like SentiStrength
+                 P1 P2              181              0.037                             [46], ML models like Senti4SD [7], and Deep Learning classifiers
+                 P2 P3              292              0.890                             like SentiCR [1]—has been used to classify developer emotions
+                 P3 P3+              30              0.004                             in issue reports, Stack Overflow posts, and code reviews. Topic
+                                                                                       modeling methods such as LDA [6] and TwitterLDA [55] have sup-
+  Table 7: Wilcoxon paired tests across LLMs and prompts                               ported the discovery of latent concerns in developer discussions
+                                                                                       and user reviews. Supervised classifiers have been employed to
+             LLM             Contrast     Wilcoxon’s 𝑊         𝑝-value                 extract structured insights from unstructured text, such as identify-
+                             P1 P2              3                0.04                  ing bug reports, code requests, or usability issues in app reviews
+            GPT-5            P2 P3             45                 1.0                  (e.g., MARC 3.0 [20, 21], Ticket-Tagger [25]). More recently, hybrid
+                             P3 P3+             0               0.004                  techniques combining rule-based and statistical models have been
+                             P1 P2              9                0.06                  used for emotion detection (e.g., DEVA [19], EmoTxT [8]), and trust
+          Claude-4           P2 P3             31                0.85                  inference in developer collaboration [10]. Despite these advances,
+                             P3 P3+            16                0.42                  many studies report performance limitations when applying tools
+                             P1 P2             12                0.23                  trained on general-domain data to software-specific texts, under-
+      DeepSeek-V3.2          P2 P3              3                0.63                  scoring the need for domain-adapted approaches and annotated
+                             P3 P3+             0                 0.5                  datasets curated for SE tasks [24].
+                             P1 P2             28                0.75                  Qualitative data analysis in SE experiments. Qualitative data
+        Qwen3-Max            P2 P3              0               0.001                  analysis plays a vital role in SE experiments by uncovering in-
+                             P3 P3+             3                 1.0                  sights from textual sources such as interviews, open-ended surveys,
+                                                                                       and observational data [49]. The goal is to generate credible find-
+                                                                                       ings while maintaining a transparent chain of evidence, linking
+   While the model demonstrated the ability to parse structured                        conclusions clearly to the original data [40]. The process involves
+input and apply simple binary classification tasks, its performance                    coding segments of text to capture recurring ideas and developing
+varied widely across codes, especially those involving nuanced                         themes or hypotheses through techniques like constant compari-
+reasoning or implicit context. Most importantly, it is not possible to                 son or cross-case analysis [44]. These are followed by hypothesis
+achieve even a moderate accuracy of the given human annotators.                        confirmation strategies, such as triangulation or replication. To
+Therefore, the use of LLMs as an automatic annotator is still not                      reduce bias, multiple researchers often code independently and
+recommended for security-relevant annotations.                                         reconcile results collaboratively. These methods have supported
+   Prompt engineering showed diminishing returns. Adding de-                           research into developer rationale in code review comments [30],
+tailed explanations and examples improved results marginally, but                      selection of patches for vulnerability repair [36], vulnerability iden-
+not to a degree that would significantly offset the manual effort re-                  tification with program slicing [37], barriers to adopting automated
+quired to craft such prompts. Despite increased prompt complexity                      tools [23], and developer sentiments in socio-technical systems [14].
+and refinement, performance improvements were limited. These                           Such studies highlight the importance of rigorous qualitative anal-
+outcomes indicate that the model’s initial limitations in understand-                  ysis for exploring the human and collaborative aspects of software
+ing security-specific annotation tasks were not easily overcome by                     engineering.
+progressively more elaborate prompting alone.                                          LLMs for qualitative data analysis. With the development of
+   These findings suggest the following key insights:                                  large language models, their potential to assist humans in qual-
+     • (some) LLMs can assist with straightforward code detection                      itative research has been discussed increasingly. Several studies
+       (e.g., mentions of line numbers or identifiers), but struggle                   have explored the application of LLMs in qualitative analysis across
+       with interpretive codes like confusion.                                         different domains. For example, in healthcare, GPT-4 demonstrates
+ICPC ’26, April 12–13, 2026, Rio de Janeiro, Brazil                                                                        Maria Camporese et al.
+
+
+moderate agreement with human qualitative analysis [26]; in psy-          8   Conclusion
+chology, LLMs have been tested for deductive coding tasks in an-          Recent research has shown that large language models (LLMs) can
+alyzing children’s curiosity-driven questions, showing moderate           replicate human annotators for extracting sentiment analysis from
+to high agreement with experts on certain metrics [51]; in pro-           text. In this paper, we have investigated whether code capturing
+cessing, LLMs have also been applied for historical literature an-        domain-specific aspects in security and software engineering, such
+notation [13], music shuffle preference annotation and password           as code identifiers mentioned, lines-of-code-mentioned,
+management annotation [11], and show the potential ability. In            security keywords mentioned, can be achieved by LLMs to
+software engineering, the usage of LLMs for qualitative data analy-       reduce the manual effort involved in the qualitative analysis of
+sis is a relatively new topic. [39] proposes a multi-agent strategy       technical comments by acting as automated annotators.
+to study the LLMs’ ability in different qualitative research tasks,          We have prompted the four best proprietary and open source
+involving thematic annotation for GitHub or Stack Overflow dis-           LLMs on LiveBench (GPT-5, Claude-4, DeepSeek-V3.2, and Qwen3-
+cussions. While showing potential in qualitative research, some           Max) to identify the presence of 9 security-relevant codes in free-
+limitations of LLMs have also raised concerns, such as model bi-          text comments from humans analyzing code snippets for vulnera-
+ases, illusions, and ethical problems [42]. However, LLMs’ ability        bilities. The LLMs’ outputs were compared against a ground truth
+to analyze technical comments and to annotate different types of          annotated by expert coders using precision, recall, and the Heidke
+themes remains to be explored.                                            Skill Score (a chance-corrected accuracy measure). We refined the
+                                                                          prompts by mimicking the process of human annotators: emerging
+                                                                          codes, a codebook with examples, and conflicting examples.
+7    Threats to Validity                                                     We observed small improvements after providing detailed de-
+    Selected task might not represent all annotation scenarios. Our       scriptions and examples for each code, but we did not see a statis-
+evaluation focuses on a single type of security experiment and a          tically significant gain across codes or models. Most importantly,
+fixed set of nine security-relevant codes. The comments dataset           the overall performance is too low to replace a human annotator.
+is relatively representative of vulnerability assessment comments,           Given these findings, we argue that the role of LLMs in qualita-
+coming from CS master’s students. However, the tasks and code             tive security coding should, at present, remain assistive rather than
+can be different in the scope of security-specific annotation. For        autonomous. More experiments on larger corpora of experiments
+instance, the comments might cause bias since the students’ com-          are needed to go beyond generating a first draft of annotations,
+ments can vary a lot from those of the developers in the real-world.      highlighting potential codes for human verification, or accelerating
+Moreover, in this paper, the task is for LLMs strictly as full replace-   low-complexity tagging tasks.
+ments for human annotators, while the ability of LLMs to suggest             These results motivate future work on structured prompting
+candidate code, pre-filter, or detect disagreement remains to be          interfaces, model calibration, and the design of hybrid pipelines
+defined.                                                                  where LLMs complement rather than replace human insight in
+                                                                          technically demanding qualitative analyses.
+
+   Selected LLMs might not represent future performance. The se-          Acknowledgments
+lection of large language models was guided by the widely used            This work was partly funded by the EU under the Horizon Europe
+benchmark LiveBench. All LLMs were utilized in their full versions        Program with n. 101120393 (Sec4AI4Sec), by the Italian Ministry
+under subscription plans. However, the models were chosen at a            of University and Research (MUR) under the P.N.R.R. – NextGenera-
+specific point in time and may not reflect future developments.           tionEU grant n. PE00000014 (SERICS subproject, CUP E63C24000590001).
+
+                                                                          CRediT
+   The impact of prompt engineering. Our prompt design aimed to
+steer LLM outputs toward reliable annotations by embedding clear          Conceptualization: MC, YG, FM; Methodology: MC, YG, FM; Soft-
+task descriptions, structured guidelines, and representative exam-        ware Programming: MC; Validation: YG, FM; Formal analysis: FM;
+ples, thus leveraging in-context learning and few-shot prompting to       Investigation: MC, YG; Resources: FM; Data Curation: MC; Writing -
+reduce ambiguity. Additionally, we iteratively refined prompts,P3+        Original Draft: MC, YG; Writing - Review & Editing: Visualization:
+in particular, through pilot interactions with GPT-4o, adjusting          MC , YG; Supervision: YG, FM; Project administration: FM; Funding
+phrasing and examples based on model behavior to mitigate obvi-           acquisition: FM.
+ous misinterpretations. These practices align with common prompt
+engineering techniques such as template structuring and exemplar
+selection identified in recent literature on prompting methodolo-
+gies [31] and systematic taxonomies of prompting strategies [43].
+Nonetheless, prompt engineering lacks well-established, universally
+optimal procedures, and the effectiveness of particular formulations
+can vary substantially across tasks and models. Our design choices,
+therefore, reflect subjective decisions and limited expertise, and al-
+ternative prompt structures could lead to different model behaviors,
+limiting generalizability and posing a threat to validity.
+LLMs for Qualitative Data Analysis Fail on Security-specific Comments in Human Experiments                                      ICPC ’26, April 12–13, 2026, Rio de Janeiro, Brazil
+
+
+References                                                                                 [17] Wenbo Guo, Dongliang Mu, Jun Xu, Purui Su, G. Wang, and Xinyu Xing. 2018.
+ [1] Toufique Ahmed, Amiangshu Bosu, Anindya Iqbal, and Shahram Rahimi. 2017.                   LEMNA: Explaining Deep Learning based Security Applications. Proceedings
+     SentiCR: A customized sentiment analysis tool for code review interactions. In             of the 2018 ACM SIGSAC Conference on Computer and Communications Security
+     2017 32nd IEEE/ACM International Conference on Automated Software Engineering              (2018).
+     (ASE). IEEE, 106–111.                                                                 [18] Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perelman, Aditya Ramesh,
+ [2] Anthropic. 2025. Claude 4: Claude Opus 4 & Claude Sonnet 4 Large Language                  Aidan Clark, AJ Ostrow, Akila Welihinda, Alan Hayes, Alec Radford, et al. 2024.
+     Models. System card / technical documentation. https://www.anthropic.com/                  Gpt-4o system card. arXiv preprint arXiv:2410.21276 (2024).
+     news/claude-4 Includes Opus 4 and Sonnet 4, released May 22, 2025.                    [19] Md Rakibul Islam and Minhaz F Zibran. 2018. DEVA: sensing emotions in the
+ [3] Andreas Armborst. 2017. Thematic proximity in content analysis. Sage Open 7, 2             valence arousal space in software engineering text. In Proceedings of the 33rd
+     (2017), 2158244017707797.                                                                  annual ACM symposium on applied computing. 1536–1543.
+ [4] Anthony G Barnston. 1992. Correspondence among the correlation, RMSE, and             [20] Nishant Jha and Anas Mahmoud. 2018. Using frame semantics for classifying
+     Heidke forecast verification measures; refinement of the Heidke score. Weather             and summarizing application store reviews. Empirical Software Engineering 23, 6
+     and Forecasting 7, 4 (1992), 699–709.                                                      (2018), 3734–3767.
+ [5] Avik Bhattacharjee. 2025. Introduction to Amazon Bedrock. In A Practical              [21] Nishant Jha and Anas Mahmoud. 2019. Mining non-functional requirements
+     Guide to Generative AI Using Amazon Bedrock: Building, Deploying, and Securing             from app store reviews. Empirical Software Engineering 24 (2019), 3659–3695.
+     Generative AI Applications. Springer, 79–112.                                         [22] Jing Jiang, David Lo, Jiahuan He, Xin Xia, Pavneet Singh Kochhar, and Li Zhang.
+ [6] David M Blei, Andrew Y Ng, and Michael I Jordan. 2003. Latent dirichlet allocation.        2017. Why and how developers fork what from whom in GitHub. Empirical
+     Journal of machine Learning research 3, Jan (2003), 993–1022.                              Software Engineering 22, 1 (2017), 547–578.
+ [7] Fabio Calefato, Filippo Lanubile, Federico Maiorano, and Nicole Novielli. 2018.       [23] Brittany Johnson, Rahul Pandita, Justin Smith, Denae Ford, Sarah Elder, Emerson
+     Sentiment polarity detection for software development. In Proceedings of the 40th          Murphy-Hill, Sarah Heckman, and Caitlin Sadowski. 2016. A cross-tool com-
+     International Conference on Software Engineering. 128–128.                                 munication study on program analysis tool notifications. In Proceedings of the
+ [8] Fabio Calefato, Filippo Lanubile, and Nicole Novielli. 2017. Emotxt: a toolkit             2016 24th ACM SIGSOFT International Symposium on Foundations of Software
+     for emotion recognition from text. In 2017 seventh international conference on             Engineering. 73–84.
+     Affective Computing and Intelligent Interaction Workshops and Demos (ACIIW).          [24] Robbert Jongeling, Proshanta Sarkar, Subhajit Datta, and Alexander Serebrenik.
+     IEEE, 79–80.                                                                               2017. On negative results when using sentiment analysis tools for software
+ [9] Victoria Clarke and Virginia Braun. 2017. Thematic analysis. The journal of                engineering research. Empirical Software Engineering 22 (2017), 2543–2584.
+     positive psychology 12, 3 (2017), 297–298.                                            [25] Rafael Kallis, Andrea Di Sorbo, Gerardo Canfora, and Sebastiano Panichella.
+[10] Guilherme A Maldonado da Cruz, Elisa Hatsue Moriya Huzita, and Valéria D                   2019. Ticket tagger: Machine learning driven issue classification. In 2019 IEEE
+     Feltrim. 2016. Estimating Trust in Virtual Teams-A Framework based on Sen-                 International Conference on Software Maintenance and Evolution (ICSME). IEEE,
+     timent Analysis. In International Conference on Enterprise Information Systems,            406–409.
+     Vol. 2. SciTePress, 464–471.                                                          [26] Kevin Danis Li, Adrian M Fernandez, Rachel Schwartz, Natalie Rios, Mar-
+[11] Shih-Chieh Dai, Aiping Xiong, and Lun-Wei Ku. 2023. LLM-in-the-loop: Leverag-              vin Nathaniel Carlisle, Gregory M Amend, Hiren V Patel, and Benjamin N Breyer.
+     ing large language model for thematic analysis. arXiv preprint arXiv:2310.15100            2024. Comparing GPT-4 and human researchers in health care data analysis:
+     (2023).                                                                                    qualitative description study. Journal of Medical Internet Research 26 (2024),
+[12] DeepSeek-AI, Aixin Liu, Aoxue Mei, Bangcai Lin, Bing Xue, Bingxuan Wang,                   e56500.
+     Bingzheng Xu, Bochao Wu, Bowei Zhang, Chaofan Lin, Chen Dong, Chengda Lu,             [27] Zhen Li, Deqing Zou, Shouhuai Xu, Xinyu Ou, Hai Jin, Sujuan Wang, Zhijun
+     Chenggang Zhao, Chengqi Deng, Chenhao Xu, Chong Ruan, Damai Dai, Daya                      Deng, and Yuyi Zhong. 2018. Vuldeepecker: A deep learning-based system for
+     Guo, Dejian Yang, Deli Chen, Erhang Li, Fangqi Zhou, Fangyun Lin, Fucong                   vulnerability detection. arXiv preprint arXiv:1801.01681 (2018).
+     Dai, Guangbo Hao, Guanting Chen, Guowei Li, H. Zhang, Hanwei Xu, Hao Li,              [28] Bin Lin, Nathan Cassee, Alexander Serebrenik, Gabriele Bavota, Nicole Novielli,
+     Haofen Liang, Haoran Wei, Haowei Zhang, Haowen Luo, Haozhe Ji, Honghui                     and Michele Lanza. 2022. Opinion mining for software development: a systematic
+     Ding, Hongxuan Tang, Huanqi Cao, Huazuo Gao, Hui Qu, Hui Zeng, Jialiang                    literature review. ACM Transactions on Software Engineering and Methodology
+     Huang, Jiashi Li, Jiaxin Xu, Jiewen Hu, Jingchang Chen, Jingting Xiang, Jingyang           (TOSEM) 31, 3 (2022), 1–41.
+     Yuan, Jingyuan Cheng, Jinhua Zhu, Jun Ran, Junguang Jiang, Junjie Qiu, Junlong        [29] Petter Mæhlum, David Samuel, Rebecka Maria Norman, Elma Jelin, Øyvind An-
+     Li, Junxiao Song, Kai Dong, Kaige Gao, Kang Guan, Kexin Huang, Kexing Zhou,                dresen Bjertnæs, Lilja Øvrelid, and Erik Velldal. 2024. It’s Difficult to be Neutral–
+     Kezhao Huang, Kuai Yu, Lean Wang, Lecong Zhang, Lei Wang, Liang Zhao,                      Human and LLM-based Sentiment Annotation of Patient Comments. arXiv
+     Liangsheng Yin, Lihua Guo, Lingxiao Luo, Linwang Ma, Litong Wang, Liyue                    preprint arXiv:2404.18832 (2024).
+     Zhang, M. S. Di, M. Y. Xu, Mingchuan Zhang, Minghua Zhang, Minghui Tang,              [30] Mika V Mäntylä and Casper Lassenius. 2008. What types of defects are really
+     Mingxu Zhou, Panpan Huang, Peixin Cong, Peiyi Wang, Qiancheng Wang, Qihao                  discovered in code reviews? IEEE Transactions on Software Engineering 35, 3
+     Zhu, Qingyang Li, Qinyu Chen, Qiushi Du, Ruiling Xu, Ruiqi Ge, Ruisong Zhang,              (2008), 430–448.
+     Ruizhe Pan, Runji Wang, Runqiu Yin, Runxin Xu, Ruomeng Shen, Ruoyu Zhang,             [31] Ggaliwango Marvin, Nakayiza Hellen, Daudi Jjingo, and Joyce Nakatumba-
+     S. Wu, Z. Z. Ren, Zehua Zhao, Zehui Ren, Zhangli Sha, Zhe Fu, Zhean Xu,                    Nabende. 2023. Prompt engineering in large language models. In International
+     Zhenda Xie, Zhengyan Zhang, Zhewen Hao, Zhibin Gou, Zhicheng Ma, Zhigang                   conference on data intelligence and cognitive informatics. Springer, 387–402.
+     Yan, Zhihong Shao, Zhixian Huang, Zhiyu Wu, Zhuoshu Li, Zhuping Zhang,                [32] Meta AI. 2024. The LLaMA 3 Herd of Models. arXiv preprint (2024). https:
+     Zian Xu, Zihao Wang, Zihui Gu, Zijia Zhu, Zilin Li, Zipeng Zhang, Ziwei Xie,               //arxiv.org Most recent LLaMA model family at time of writing.
+     Ziyi Gao, Zizheng Pan, Zongqing Yao, Bei Feng, Hui Li, J. L. Cai, Jiaqi Ni, Lei       [33] Mistral AI. 2024. Mixtral of Experts. arXiv preprint (2024). https://arxiv.org
+     Xu, Meng Li, Ning Tian, R. J. Chen, R. L. Jin, S. S. Li, Shuang Zhou, Tianyu               Sparse mixture-of-experts language model.
+     Sun, X. Q. Li, Xiangyue Jin, Xiaojin Shen, Xiaosha Chen, Xinnan Song, Xinyi           [34] OpenAI. 2025. GPT-5: Technical Overview and Capabilities. Model documenta-
+     Zhou, Y. X. Zhu, Yanping Huang, Yaohui Li, Yi Zheng, Yuchen Zhu, Yunxian Ma,               tion and release notes. https://openai.com Large multimodal foundation model
+     Zhen Huang, Zhipeng Xu, Zhongyu Zhang, Dongjie Ji, Jian Liang, Jianzhong                   released by OpenAI.
+     Guo, Jin Chen, Leyi Xia, Miaojun Wang, Mingming Li, Peng Zhang, Ruyi Chen,            [35] OpenAI. 2025. OpenAI o3: Reasoning-Focused Large Language Model. Technical
+     Shangmian Sun, Shaoqing Wu, Shengfeng Ye, T. Wang, W. L. Xiao, Wei An,                     documentation and model card. https://openai.com Reasoning-optimized model
+     Xianzu Wang, Xiaowen Sun, Xiaoxiang Wang, Ying Tang, Yukun Zha, Zekai                      in the OpenAI o-series.
+     Zhang, Zhe Ju, Zhen Zhang, and Zihua Qu. 2025. DeepSeek-V3.2: Pushing the             [36] Aurora Papotti, Ranindya Paramitha, and Fabio Massacci. 2024. On the acceptance
+     Frontier of Open Large Language Models. arXiv preprint arXiv:2512.02556 (2025).            by code reviewers of candidate security patches suggested by Automated Program
+     https://arxiv.org/abs/2512.02556                                                           Repair tools. Empirical Software Engineering 29, 5 (2024), 1–35.
+[13] Zackary Okun Dunivin. 2024. Scalable qualitative coding with llms: Chain-of-          [37] Aurora Papotti, Katja Tuma, and Fabio Massacci. 2025. On the effects of program
+     thought reasoning matches human performance in some hermeneutic tasks.                     slicing for vulnerability detection during code inspection. Empirical Software
+     arXiv preprint arXiv:2401.15170 (2024).                                                    Engineering 30, 3 (2025), 1–37.
+[14] Denae Ford, Justin Smith, Philip J Guo, and Chris Parnin. 2016. Paradise un-          [38] Mohammad Masudur Rahman, Chanchal K Roy, and Raula G Kula. 2017. Predict-
+     plugged: Identifying barriers for female participation on stack overflow. In Pro-          ing usefulness of code review comments using textual features and developer
+     ceedings of the 2016 24th ACM SIGSOFT International symposium on foundations               experience. In 2017 IEEE/ACM 14th International Conference on Mining Software
+     of software engineering. 846–857.                                                          Repositories (MSR). IEEE, 215–226.
+[15] Robert Wayne Gregory, Mark Keil, Jan Muntermann, and Magnus Mähring.                  [39] Zeeshan Rasheed, Muhammad Waseem, Aakash Ahmad, Kai-Kristian Kemell,
+     2015. Paradoxes and the nature of ambidexterity in IT transformation programs.             Wang Xiaofeng, Anh Nguyen Duc, and Pekka Abrahamsson. 2024. Can large
+     Information Systems Research 26, 1 (2015), 57–80.                                          language models serve as data analysts? a multi-agent assisted approach for
+[16] Greg Guest, Kathleen M MacQueen, and Emily E Namey. 2011. Applied thematic                 qualitative data analysis. arXiv preprint arXiv:2402.01386 (2024).
+     analysis. sage publications.                                                          [40] Per Runeson and Martin Höst. 2009. Guidelines for conducting and reporting
+                                                                                                case study research in software engineering. Empirical software engineering 14
+ICPC ’26, April 12–13, 2026, Rio de Janeiro, Brazil                                                                                                       Maria Camporese et al.
+
+
+     (2009), 131–164.                                                                          arXiv:2406.19314 (2024).
+[41] Antonino Sabetta, Serena Elisa Ponta, Rocio Cabrera Lozoya, Michele Bezzi,           [49] Claes Wohlin, Per Runeson, Martin Höst, Magnus C Ohlsson, Björn Regnell,
+     Tommaso Sacchetti, Matteo Greco, Gergő Balogh, Péter Hegedűs, Rudolf Ferenc,              Anders Wesslén, et al. 2012. Experimentation in software engineering. Vol. 236.
+     Ranindya Paramitha, et al. 2024. Known vulnerabilities of open source projects:           Springer.
+     Where are the fixes? IEEE Security & Privacy 22, 2 (2024), 49–59.                    [50] xAI. 2024. Grok: A Large Language Model by xAI. Model documentation and
+[42] Hope Schroeder, Marianne Aubin Le Quéré, Casey Randazzo, David Mimno, and                 release announcement. https://x.ai Latest publicly released Grok model family
+     Sarita Schoenebeck. 2025. Large Language Models in Qualitative Research: Uses,            at time of writing.
+     Tensions, and Intentions. In Proceedings of the 2025 CHI Conference on Human         [51] Ziang Xiao, Xingdi Yuan, Q Vera Liao, Rania Abdelghani, and Pierre-Yves Oudeyer.
+     Factors in Computing Systems. 1–17.                                                       2023. Supporting qualitative analysis with large language models: Combining
+[43] Sander Schulhoff, Michael Ilie, Nishant Balepur, Konstantine Kahadze, Amanda              codebook with GPT-3 for deductive coding. In Companion proceedings of the 28th
+     Liu, Chenglei Si, Yinheng Li, Aayush Gupta, HyoJung Han, Sevien Schulhoff, et al.         international conference on intelligent user interfaces. 75–78.
+     2024. The prompt report: a systematic survey of prompt engineering techniques.       [52] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng,
+     arXiv preprint arXiv:2406.06608 (2024).                                                   Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, et al. 2025. Qwen3 technical
+[44] Carolyn B. Seaman. 1999. Qualitative methods in empirical studies of software             report. arXiv preprint arXiv:2505.09388 (2025).
+     engineering. IEEE Transactions on software engineering 25, 4 (1999), 557–572.        [53] Matthew D Zeiler and Rob Fergus. 2014. Visualizing and understanding con-
+[45] Kimi Team, Yifan Bai, Yiping Bao, Guanduo Chen, Jiahao Chen, Ningxin Chen,                volutional networks. In Computer Vision–ECCV 2014: 13th European Conference,
+     Ruijue Chen, Yanru Chen, Yuankun Chen, Yutian Chen, et al. 2025. Kimi k2:                 Zurich, Switzerland, September 6-12, 2014, Proceedings, Part I 13. Springer, 818–833.
+     Open agentic intelligence. arXiv preprint arXiv:2507.20534 (2025).                   [54] Yan Zhang and Barbara M Wildemuth. 2009. Qualitative analysis of content.
+[46] Mike Thelwall, Kevan Buckley, Georgios Paltoglou, Di Cai, and Arvid Kappas.               Applications of social research methods to questions in information and library
+     2010. Sentiment strength detection in short informal text. Journal of the American        science 308, 319 (2009), 1–12.
+     society for information science and technology 61, 12 (2010), 2544–2558.             [55] Wayne Xin Zhao, Jing Jiang, Jianshu Weng, Jing He, Ee-Peng Lim, Hongfei Yan,
+[47] Matthijs J Warrens. 2015. Five ways to look at Cohen’s kappa. Journal of                  and Xiaoming Li. 2011. Comparing twitter and traditional media using topic
+     Psychology & Psychotherapy 5 (2015).                                                      models. In Advances in Information Retrieval: 33rd European Conference on IR
+[48] Colin White, Samuel Dooley, Manley Roberts, Arka Pal, Ben Feuer, Siddhartha               Research, ECIR 2011, Dublin, Ireland, April 18-21, 2011. Proceedings 33. Springer,
+     Jain, Ravid Shwartz-Ziv, Neel Jain, Khalid Saifullah, Sreemanti Dey, et al. 2024.         338–349.
+     LiveBench: A challenging, contamination-limited LLM benchmark. arXiv preprint
+

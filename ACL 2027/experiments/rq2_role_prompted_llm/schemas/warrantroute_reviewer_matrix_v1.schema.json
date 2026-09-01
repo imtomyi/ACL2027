@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/reviewer-matrix-v1.json",
+  "title": "Source-free model-neutral reviewer matrix contract fixture",
+  "type": "object",
+  "required": [
+    "matrix_schema_version",
+    "reviewer_profile_id",
+    "adapter_freeze_sha256",
+    "reviewer_profile_sha256",
+    "study_id",
+    "item_id",
+    "evaluator_item_sha256",
+    "reviewer_model",
+    "role_observations",
+    "contains_source_text",
+    "contains_rationale",
+    "software_contract_fixture",
+    "manuscript_eligible"
+  ],
+  "properties": {
+    "matrix_schema_version": {"const": "warrantroute-reviewer-matrix-v1"},
+    "reviewer_profile_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"},
+    "adapter_freeze_sha256": {"$ref": "#/$defs/sha256"},
+    "reviewer_profile_sha256": {"$ref": "#/$defs/sha256"},
+    "study_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "item_id": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"},
+    "evaluator_item_sha256": {"$ref": "#/$defs/sha256"},
+    "reviewer_model": {
+      "type": "object",
+      "required": ["model_id", "model_snapshot_sha256"],
+      "properties": {
+        "model_id": {"$ref": "#/$defs/modelId"},
+        "model_snapshot_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "role_observations": {
+      "type": "object",
+      "required": ["researcher", "qualitative_methods", "domain"],
+      "properties": {
+        "researcher": {"$ref": "#/$defs/observationSet"},
+        "qualitative_methods": {"$ref": "#/$defs/observationSet"},
+        "domain": {"$ref": "#/$defs/observationSet"}
+      },
+      "additionalProperties": false
+    },
+    "contains_source_text": {"const": false},
+    "contains_rationale": {"const": false},
+    "software_contract_fixture": {"const": true},
+    "manuscript_eligible": {"const": false}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "modelId": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$"},
+    "actorId": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]{2,127}$"},
+    "role": {"enum": ["researcher", "qualitative_methods", "domain"]},
+    "flag": {
+      "enum": [
+        "fabricated_or_altered_quote",
+        "wrong_attribution",
+        "unsupported_inference",
+        "hidden_source_concentration",
+        "lost_negative_case",
+        "contextual_flattening",
+        "unsupported_abstraction",
+        "sensitive_or_diagnostic_inference",
+        "inconsistent_codebook",
+        "other"
+      ]
+    },
+    "ratingProjection": {
+      "type": "object",
+      "required": ["cannot_judge", "serious_error_flags"],
+      "properties": {
+        "cannot_judge": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 3,
+          "items": {
+            "enum": [
+              "evidential_credibility",
+              "voice_boundary_preservation",
+              "scope_calibration"
+            ]
+          }
+        },
+        "serious_error_flags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/flag"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "actor_id",
+        "prompted_role",
+        "model_id",
+        "model_snapshot_sha256",
+        "rating_repetition",
+        "item_id",
+        "evaluator_item_sha256",
+        "observation_status",
+        "rating",
+        "observation_sha256"
+      ],
+      "properties": {
+        "actor_id": {"$ref": "#/$defs/actorId"},
+        "prompted_role": {"$ref": "#/$defs/role"},
+        "model_id": {"$ref": "#/$defs/modelId"},
+        "model_snapshot_sha256": {"$ref": "#/$defs/sha256"},
+        "rating_repetition": {"type": "integer", "minimum": 1, "maximum": 3},
+        "item_id": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"},
+        "evaluator_item_sha256": {"$ref": "#/$defs/sha256"},
+        "observation_status": {
+          "enum": ["valid", "invalid_output", "content_filtered", "timeout", "terminal_failure", "missing"]
+        },
+        "rating": {
+          "oneOf": [
+            {"$ref": "#/$defs/ratingProjection"},
+            {"type": "null"}
+          ]
+        },
+        "observation_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"observation_status": {"const": "valid"}}, "required": ["observation_status"]},
+          "then": {"properties": {"rating": {"$ref": "#/$defs/ratingProjection"}}},
+          "else": {"properties": {"rating": {"type": "null"}}}
+        }
+      ],
+      "additionalProperties": false
+    },
+    "observationSet": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {"$ref": "#/$defs/observation"}
+    }
+  }
+}

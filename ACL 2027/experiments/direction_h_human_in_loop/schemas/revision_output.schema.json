@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-revision-output-v1.json",
+  "title": "Direction H revision-model output envelope",
+  "description": "Complete audit envelope for a preregistered revision attempt. Failed parses, schema failures, and runtime failures remain explicit denominator records rather than disappearing.",
+  "type": "object",
+  "required": [
+    "revision_output_version",
+    "revision_output_id",
+    "blinded_revision_id",
+    "revision_case_id",
+    "paired_case_group_id",
+    "repeat_index",
+    "task_id",
+    "packet_id",
+    "starting_output_id",
+    "freeze_id",
+    "feedback_arm",
+    "completion_status",
+    "generator_model_id",
+    "model_snapshot_id",
+    "attempt_index",
+    "generated_at_utc",
+    "raw_output_sha256",
+    "revised_output_sha256",
+    "revision_diagnosis",
+    "revised_output",
+    "failure_record",
+    "integrity_validation"
+  ],
+  "properties": {
+    "revision_output_version": {"const": "direction-h-revision-output-v1"},
+    "revision_output_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "blinded_revision_id": {
+      "description": "Coordinator-only revision-stage blind identifier. The repair-panel packager replaces it with a fresh random RPI identifier and keeps the source-to-panel join private.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "revision_case_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "paired_case_group_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "repeat_index": {"type": "integer", "minimum": 1},
+    "task_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "packet_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "starting_output_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "freeze_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "feedback_arm": {
+      "enum": ["no_feedback", "charlie_feedback", "independent_human_feedback"]
+    },
+    "completion_status": {
+      "enum": ["complete", "parse_failure", "schema_failure", "runtime_failure"]
+    },
+    "generator_model_id": {"type": "string", "minLength": 1, "maxLength": 300},
+    "model_snapshot_id": {"type": "string", "minLength": 1, "maxLength": 300},
+    "attempt_index": {"type": "integer", "minimum": 1},
+    "generated_at_utc": {"type": "string", "format": "date-time"},
+    "raw_output_sha256": {
+      "oneOf": [
+        {"$ref": "#/$defs/sha256"},
+        {"type": "null"}
+      ]
+    },
+    "revised_output_sha256": {
+      "oneOf": [
+        {"$ref": "#/$defs/sha256"},
+        {"type": "null"}
+      ]
+    },
+    "revision_diagnosis": {
+      "oneOf": [
+        {"$ref": "#/$defs/revisionDiagnosis"},
+        {"type": "null"}
+      ]
+    },
+    "revised_output": {
+      "oneOf": [
+        {"$ref": "https://warrantroute.local/schemas/qualitative-output-v1.json"},
+        {"type": "null"}
+      ]
+    },
+    "failure_record": {
+      "oneOf": [
+        {"$ref": "#/$defs/failureRecord"},
+        {"type": "null"}
+      ]
+    },
+    "integrity_validation": {"$ref": "#/$defs/integrityValidation"},
+    "latency_ms": {"type": ["integer", "null"], "minimum": 0},
+    "input_tokens": {"type": ["integer", "null"], "minimum": 0},
+    "output_tokens": {"type": ["integer", "null"], "minimum": 0}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"completion_status": {"const": "complete"}},
+        "required": ["completion_status"]
+      },
+      "then": {
+        "properties": {
+          "raw_output_sha256": {"$ref": "#/$defs/sha256"},
+          "revised_output_sha256": {"$ref": "#/$defs/sha256"},
+          "revision_diagnosis": {"$ref": "#/$defs/revisionDiagnosis"},
+          "revised_output": {
+            "$ref": "https://warrantroute.local/schemas/qualitative-output-v1.json"
+          },
+          "failure_record": {"type": "null"},
+          "integrity_validation": {
+            "properties": {"schema_valid": {"const": true}}
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "revised_output_sha256": {"type": "null"},
+          "revision_diagnosis": {"type": "null"},
+          "revised_output": {"type": "null"},
+          "failure_record": {"$ref": "#/$defs/failureRecord"},
+          "integrity_validation": {
+            "properties": {
+              "schema_valid": {"const": false},
+              "hard_gate_pass": {"const": false}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "errorFlag": {
+      "enum": [
+        "fabricated_or_altered_quote",
+        "wrong_attribution",
+        "unsupported_inference",
+        "hidden_source_concentration",
+        "lost_negative_case",
+        "contextual_flattening",
+        "unsupported_abstraction",
+        "sensitive_or_diagnostic_inference",
+        "inconsistent_codebook",
+        "other"
+      ]
+    },
+    "diagnosticFinding": {
+      "type": "object",
+      "required": [
+        "error_flag",
+        "output_locations",
+        "evidence_excerpt_ids",
+        "description"
+      ],
+      "properties": {
+        "error_flag": {"$ref": "#/$defs/errorFlag"},
+        "output_locations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {"type": "string", "pattern": "^/", "maxLength": 500},
+          "uniqueItems": true
+        },
+        "evidence_excerpt_ids": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {"type": "string", "minLength": 1, "maxLength": 160},
+          "uniqueItems": true
+        },
+        "description": {"type": "string", "minLength": 1, "maxLength": 3000}
+      },
+      "additionalProperties": false
+    },
+    "revisionDiagnosis": {
+      "type": "object",
+      "description": "Revision model's truth-blind diagnosis of the starting output, recorded before its revised output is interpreted or scored.",
+      "required": ["detected_error_flags", "findings", "rationale"],
+      "properties": {
+        "detected_error_flags": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/errorFlag"},
+          "uniqueItems": true
+        },
+        "findings": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {"$ref": "#/$defs/diagnosticFinding"}
+        },
+        "rationale": {"type": "string", "minLength": 1, "maxLength": 5000}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"detected_error_flags": {"minItems": 1}},
+            "required": ["detected_error_flags"]
+          },
+          "then": {"properties": {"findings": {"minItems": 1}}},
+          "else": {"properties": {"findings": {"maxItems": 0}}}
+        }
+      ],
+      "additionalProperties": false
+    },
+    "modelResponse": {
+      "type": "object",
+      "description": "The exact two-field JSON object requested from the revision model before coordinator provenance is added.",
+      "required": ["revision_diagnosis", "revised_output"],
+      "properties": {
+        "revision_diagnosis": {"$ref": "#/$defs/revisionDiagnosis"},
+        "revised_output": {
+          "$ref": "https://warrantroute.local/schemas/qualitative-output-v1.json"
+        }
+      },
+      "additionalProperties": false
+    },
+    "failureRecord": {
+      "type": "object",
+      "required": ["failure_code", "failure_detail"],
+      "properties": {
+        "failure_code": {
+          "enum": [
+            "no_response",
+            "runtime_error",
+            "invalid_json",
+            "schema_invalid",
+            "recording_error"
+          ]
+        },
+        "failure_detail": {"type": "string", "minLength": 1, "maxLength": 3000}
+      },
+      "additionalProperties": false
+    },
+    "integrityValidation": {
+      "type": "object",
+      "required": [
+        "schema_valid",
+        "hard_gate_pass",
+        "issue_codes",
+        "validated_at_utc"
+      ],
+      "properties": {
+        "schema_valid": {"type": "boolean"},
+        "hard_gate_pass": {"type": "boolean"},
+        "issue_codes": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {"type": "string", "minLength": 1, "maxLength": 300},
+          "uniqueItems": true
+        },
+        "validated_at_utc": {"type": "string", "format": "date-time"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

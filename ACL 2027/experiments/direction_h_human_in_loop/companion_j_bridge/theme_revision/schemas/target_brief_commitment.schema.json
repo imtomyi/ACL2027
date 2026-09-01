@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-j-theme/target-brief-commitment-v1.json",
+  "title": "Pre-revision exact-hash commitment to arm-blind target briefs",
+  "type": "object",
+  "required": ["commitment_version", "status", "target_briefs_path", "target_briefs_sha256", "item_ids", "committed_at_utc", "committed_before_any_revision_output"],
+  "properties": {
+    "commitment_version": {"const": "direction-h-j-theme-target-brief-commitment-v1"},
+    "status": {"enum": ["template_incomplete", "committed"]},
+    "target_briefs_path": {"const": "coordinator_only/target_briefs.json"},
+    "target_briefs_sha256": {
+      "oneOf": [{"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"}, {"type": "null"}]
+    },
+    "item_ids": {"type": "array", "items": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"}, "uniqueItems": true},
+    "committed_at_utc": {"type": ["string", "null"], "format": "date-time"},
+    "committed_before_any_revision_output": {"type": ["boolean", "null"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "committed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "target_briefs_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+          "item_ids": {"minItems": 1},
+          "committed_at_utc": {"type": "string"},
+          "committed_before_any_revision_output": {"const": true}
+        }
+      },
+      "else": {
+        "properties": {
+          "target_briefs_sha256": {"type": "null"},
+          "item_ids": {"maxItems": 0},
+          "committed_at_utc": {"type": "null"},
+          "committed_before_any_revision_output": {"type": "null"}
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

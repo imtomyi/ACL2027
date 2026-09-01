@@ -1,0 +1,619 @@
+            Proceedings of the 58th Hawaii International Conference on System Sciences | 2025
+
+
+
+
+     Unmasking Public Sentiment: A Sample Efficient Approach to Analyzing
+                   Twitter Opinion on U.S. Aid to Ukraine
+
+                          Satanu Ghosh                                   Nikhil Dewitt
+                   University of New Hampshire                University of California Los Angeles
+                      satanu.ghosh@unh.edu                         nikhildewitt@g.ucla.edu
+
+                          Souvick Ghosh                                    Denise McCoy
+                     San José State University                       San José State University
+                     souvick.ghosh@sjsu.edu                           denise.mccoy@sjsu.edu
+
+
+                       Abstract                           elections and aspirations of Ukraine, since 20141 .
+                                                          However, building international influence comes at a
+    The U.S. aid to Ukraine is a bipartisan topic of      significant cost. Since the start of the war in Ukraine
+extreme socio-political importance.      While several    in February 2022, the U.S. has sent significant monetary
+organizations have conducted surveys to understand        aid to Ukraine to thwart the Russian attempts at invasion.
+the public stance on this topic, there is no research     Providing such aid not only strengthens democratic
+to date that analyses public opinion on social media,     institutions in Ukraine but also supports humanitarian
+possibly due to the lack of annotated data. Therefore,    efforts to provide food, shelter, and medical assistance
+this research compares several sample-efficient methods   to those displaced in the conflict.
+(including in-context learning) to analyze tweet               When we look at public opinion within the United
+sentiments with minimal training data. First, we          States, we see that it presents an interesting picture.
+collect 11,289 tweets about the U.S. aid to Ukraine       While some sections of the U.S. population believe in
+and mapped them to U.S. states. Next, we explore          countering Russian aggression in Eastern Europe, others
+three different approaches to sentiment analysis:         question the necessity of providing aid to a foreign
+tool-based, embedding-based, and prompt-based.            country, arguing that resources should be prioritized for
+Our results indicate that GPT-4 Few Shot improves         domestic needs. In the initial phases of the war, support
+accuracy by 121.8% and 77.5% over TextBlob and            for military aid to Ukraine was largely bipartisan, as
+Vader, respectively. Our geospatial analysis shows that   81% of Democrats and 71% of Republicans supported
+Indiana has the most negative normalized net sentiment    the U.S. aid policy. However, towards the end 2022,
+(NNS) of -0.83, while Vermont has the most positive       attitudes began to shift, particularly with Republicans, as
+NNS of +0.33. Finally, we perform a detailed thematic     support for sending aid dropped from 80% in March to
+analysis to identify the common arguments that support    55% in December2 . Overall, Democrats and President
+or oppose the aid. We highlight that our results do       Biden have been more supportive of aid to Ukraine,
+not correlate with media surveys, possibly due to the     while the Republican Party has shown skepticism
+presence of echo chambers and algorithmic biases.         toward spending millions of dollars to sponsor military
+                                                          equipment for Ukraine.
+Keywords: Social Media, Twitter Data Analysis,                 Considering the polarization around the topic of U.S.
+Few-shot Learning, Zero-shot Learning, Sentiment          aid to Ukraine, and the partisan differences and the
+Analysis                                                  differential portrayal of the situation by various media
+                                                          outlets, it is timely to assess the public opinion on the
+                                                          situation, which could be particularly important for the
+1.    Introduction                                        Presidential election in 2024. Since the U.S. follow
+                                                          a federal system of governance with power divided
+   The Ukraine-Russian conflict has created a unique
+                                                             1 https://ua.usembassy.gov/fact-sheet-u-s-assistance-ukraine-sin
+geopolitical tension in the United States. The U.S.
+                                                          ce-february-2014/
+views the location of Ukraine as the key to maintaining      2 https://www.pewresearch.org/politics/2022/03/15/public-express
+peace in Eastern Europe and has supported democratic      es-mixed-views-of-u-s-response-to-russias-invasion-of-ukraine/
+
+
+
+URI: https://hdl.handle.net/10125/109140
+978-0-9981331-8-8                                                                                              Page 2463
+(CC BY-NC-ND 4.0)
+into national and individual state governments, it is                research on developing de-biasing methods for social
+also important to consider the sentiment expressed by                media-derived datasets.
+the different states. As of 20233 , Twitter has the                      To answer our RQs, we collected tweets on the topic
+largest representation from the U.S. ( 80 million) and               of U.S.-Ukraine aid (see Section 3.1) and geotagged
+is predominantly male-dominated (68.1%). Therefore,                  the collected tweets using location information. Then
+we lean on Twitter to assess the public opinion on the               we used sample-efficient approaches like Zero-Shot
+topic. While social media posts are a representation                 Learning (ZSL) and Few Shot Learning (FSL) (with five
+of the broader national sentiment, the algorithmic                   training examples) to predict the sentiment polarities
+recommendations (the tweets that show up on the                      for the tweets.       We compare the ZSL and FSL
+personalized “For You” feed) are not always unbiased                 predictions to traditional machine learning classifiers
+and often lead to echo chambers where social media                   using an embedding-based approach. The most accurate
+users subscribe to and interact with only content which              sentiment prediction model was used to explore how
+supports their particular belief system. Therefore,                  public opinion is divided across different states. Next,
+any attempt at deciphering public opinion on social                  we perform a deep dive into the dataset and identify
+media should be approached with a degree of scientific               the most common themes for the public to support or
+skepticism and a mixture of scientific approaches.                   oppose the U.S. aid to Ukraine. Lastly, we explore the
+    Another major challenge of performing such                       literature in relation to the ways in which social media
+sentiment analysis is the lack of labeled training                   recommender systems interact with human behavior to
+data (Birjali et al., 2021; Kanojia and Joshi, 2023).                assess why our data might support or differ from the
+With massive volumes of data generated on social                     perceived dominant narrative viewpoint of U.S. aid to
+media platforms, it is expensive and time-consuming                  Ukraine.
+to manually assess the sentiment polarity and develop                    The rest of the paper is organized as follows: In
+gold-standard data (Aqlan et al., 2019). However,                    section 2, we discuss some of the related research
+it is difficult to develop accurate prediction models                in social media and text mining, geotagging, and
+without adequate training data. The performance of                   generative large language models (LLMs). We cover
+most off-the-shelf sentiment classifiers are poor (Ghosh             the psycho-social structures of social media spaces and
+and Thajudeen, 2023), and most research approaches                   the current state of recommender systems. Section 3
+rely on annotating the data first and then performing                explains our methodology, including data collection and
+analyses, which delays the insights obtained.          A             augmentation. We present our results in section 4, and
+faster turnaround time could be significantly useful                 answer the research questions in section 5. Finally, we
+for emergency responses (e.g., COVID-19 pandemic),                   conclude the paper and discuss limitations and future
+natural disasters (e.g., California wildfires), or other             research directions in sections 6 and 7, respectively.
+important events (e.g., Presidential elections).
+    In this work, we consider the following research                 2.     Background
+questions:
+RQ1: For the collected tweets, how does public opinion                  To reach our research objective, it was important to
+vary across the U.S. states?                                         survey some pertinent research papers on social media
+RQ2: What are the most common reasons for supporting                 and analysis.
+or opposing U.S. aid to Ukraine?
+RQ3: Is our data reflective of the common perception                 2.1.    Social Media Analytics
+around support for U.S. aid to Ukraine?
+                                                                              Social Media as a Public Sphere:          Social media
+    We hypothesize that a multifaceted analysis of public
+                                                                              have redefined the idea of public sphere (Kruse et al.,
+opinion data can yield more comprehensive insights.
+                                                                              2018) in today’s age of information. The discourse
+The geographic analysis from RQ1 and the thematic
+                                                                              taking place on social media platforms help researchers
+understanding from RQ2 are crucial to this approach.
+                                                                              to explore socially relevant topics and measure public
+However, recognizing that results can be influenced by
+                                                                              opinions on topics like the COVID-19 pandemic (Jalil,
+inherent biases in the data source, RQ3 aims to validate
+                                                                              2022; Lanyi, 2022), political discourse (Noor and
+our findings by comparing social media opinions with
+                                                                              Turetken, 2023; Taillon and Mentzer, 2023), and
+more reliable public polls. This comparison helps draw
+                                                                              government decisions (Mane et al., 2022). Noor and
+more accurate inferences about national public opinion
+                                                                              Turetken (2023) investigated the keywords that drive
+and elucidate the unique characteristics of social media
+                                                                              the sentiment polarity in social media, while Taillon
+data/platforms. Furthermore, it paves the way for future
+                                                                              and Mentzer (2023) explored the effect of gender
+  3 https://www.searchlogistics.com/learn/statistics/twitter-user-statistics/ and political ideology on political sentiment. Several
+
+
+
+
+                                                                                                                        Page 2464
+researchers (V. Kumar, 2022; Vahdat-Nejad, 2023) have         a personalized experience to users by recommending
+also performed geospatial analysis to understand the          information that is more correlated to their preference
+variations of human perspective based on demographics.        (Li, 2024), leading to more engagement.                The
+Text Analytics: Text analytics is a common Natural            recommender system used in Twitter is a three-part
+Language Processing (NLP) task, and social media              system4 : a knowledge graph, a ranking system, and a
+text – which is often more faceted than regular text          heuristic-based filtering method (Satuluri, 2020). It is
+(S. Kumar et al., 2012) – has become a popular topic          important to note that there is a lack of transparency to
+of investigation in recent years. Opinion mining is           the inner workings of these models as they are supported
+a specific case of text analytics where the model is          by automatically created graph networks, unsupervised
+trained to predict the opinion expressed in the text.         neural clustering and ranking models (that are black
+However, training a model is a data-hungry process            boxes), and filtering rules set by the platform developers.
+that requires massive amounts of human-annotated data,        Echo Chambers: Algorithmic recommendations are
+and is, therefore, costly. For example, Jalil (2022)          prone to biases, thereby creating echo chambers,
+used 45,000 tweets annotated with sentiment labels for        where a group of users subscribes to content that
+training. The alternative to annotating data is to use        fits their belief system (Cinelli, 2021). These users
+off-the-shelf models (Al-Natour and Turetken, 2020;           exclude and discredit others, therefore exacerbating
+Elmitwalli and Mehegan, 2024; Lanyi, 2022) or publicly        political polarization and promoting the spread of
+available annotated datasets on similar topics (Mane          misinformation (Alatawi et al., 2021). Echo chambers
+et al., 2022). However, the annotation labels from            are caused and exacerbated by two areas of biases: 1)
+most off-the-shelf models lack specificity and need           internal biases and homophily, and 2) external biases,
+retroactive adaptation.                                       such as biased recommender systems and exposure
+Large Language Models (LLMs) as Knowledge Bases:              to biased communities. Cinelli (2021) demonstrated
+Pre-trained LLMs are considered to contain tacit              the existence of echo chambers for several topics on
+knowledge (Petroni, 2019) as they are trained in an           multiple social media sites, including Twitter/X. In such
+unsupervised fashion on massive text datasets. For            spaces where there is a lack of diverse content, there is
+example, BERT is a transformer-based model that               an increase in radical thoughts and behaviors from the
+is trained on English Wikipedia. The embeddings               users, highlighting the need for diverse media networks
+generated by these models perform very well for               (Atari et al., 2022). Tweets containing morally and
+tasks like clustering, classification, and ranked retrieval   emotionally volatile content are found to become more
+(Keraghel et al., 2024). More recent LLMs, like               popular (Brady et al., 2020) within an echo chamber as
+GPT-3 (Brown et al., 2020), are pre-trained on                they are more engaging (and algorithms are optimized
+Common Crawl, Book Corpus 1, Book Corpus 2,                   for higher engagement). It is also found that negative
+and Wikipedia, enabling them to assimilate the latent         language content spreads further and faster in echo
+structures and embedded knowledge on various topics.          chambers (Antypas et al., 2023; Schöne et al., 2021) in
+These developments have enabled generative LLMs               contrast to positive or neutral content.
+to follow instructions and work effectively in a
+more sample-efficient setting (Brown et al., 2020).           3.     Methodology
+Subsequently, the rise of prompt engineering and the
+concept of zero-shot and few-shot in-context learning            To analyze the public opinion on Twitter/X on the
+have been effectively used to classify tweets and other       U.S. aid to Ukraine, we employ a mixture of methods
+social media data (Mu, 2023) and analyze sentiments           which we explain in the following subsections.
+(Yadav and Chakraborty, 2021). One clear advantage
+of using generative LLMs is their adaptability to             3.1.    Data Collection and Preparation
+unseen annotation labels, along with their probabilistic
+understanding of natural language patterns.                       While there are some social-media datasets on the
+                                                              Ukraine-Russia conflict (Aslan, 2023; Chen and Ferrara,
+                                                              2023), they were not related to the U.S. aid to Ukraine
+2.2.   Social Media Recommender Systems &                     or the U.S. demographic. Therefore, we used Snscrape5
+       Echo Chambers                                          to scrape tweets related to the Ukraine Crisis for a
+                                                              period ranging from February 1, 2022, to December
+Recommender System: There is an overabundance of              21, 2022. To target tweets within the United States,
+data on social media platforms, and users often find             4 https://blog.x.com/engineering/en us/topics/open-source/2023/t
+it overwhelming to find information (Rodriguez et al.,        witter-recommendation-algorithm
+2014). As a solution, social media platforms provide             5 https://github.com/JustAnotherArchivist/snscrape
+
+
+
+
+                                                                                                                   Page 2465
+the geographic center of the continental United States,
+Lebanon K.S., was used with a radius of 10,000 km.A
+daily target of 1000 tweets was set, and the keyword
+‘Ukraine’ was used for the search. Later, to select the
+tweets pertaining to debates over U.S. aid to Ukraine,
+we filtered tweets using the following keywords: ‘aid,’
+‘40 billion’, ‘money,’ ‘spending,’ and ‘billion.’ After
+filtering for geolocation and aid-related tweets, our
+initial dataset contained 11,289 tweets. Next, we
+used Shapely6 to determine the state where the tweet
+originated from and added the information to the dataset.                    (a) Tweet Volume by Month.
+     We randomly selected 700 instances from the entire
+collection and split them into three parts: train,
+validation, and test sets. These tweets were annotated by
+human annotators. To replicate a data-scarce situation,
+our train and validation set only contained 100 tweets.
+The test set contained 424 tweets (76 tweets were
+removed as annotators could not agree on the sentiment
+labels). As seen in Figure 1a, the largest volume of
+tweets in our dataset was from May and December,
+followed by October and November. In late October
+and November, the Defense Department announced                            (b) Distribution of Tweets by State.
+that it would provide security assistance to Ukraine,
+which led to increased social media activity during these          Figure 1: Data Collection and Geo-tagging.
+months. Figure 1b shows the tweet volume by states
+in our dataset. Florida, Texas, and California show the
+maximum number of tweets, with 10.1%, 9.1%, and             3.2.   Sentiment Analysis
+7.3%, respectively, of total tweets.
+Geo-locating Tweets Once we collected the tweets, we            While world events influence the topics trending on
+used the GeoPandas7 and a GeoJSON file to match             social media, public opinion varies depending on the
+the coordinates in the tweet to a U.S. state. Many of       demographics of the posters and the consumers. To
+the tweets listed a state in the location attribute, but    analyze data and train prediction models, researchers
+we used the coordinates since it is more accurate and       different annotation labels with varying levels of
+reliable. Tweets in the continental U.S. were labeled       granularity. However, since the manual annotation
+with their state, and the tweets from outside the United    process is time-consuming and expensive, researchers
+States were removed from the dataset. Next, exploratory     rely on off-the-shelf classifiers. Recently, with the
+data analysis was used to determine the volume and          inception of pre-trained language models, some other
+relative volume of the tweets per state, calculated as a    methods have emerged, like word-embedding-based
+ratio of volume over state population. The GeoPandas        classification and in-context classification. For this task,
+library was used to convert the GeoJSON into individual     we investigated which approach would perform best in
+polygons, and the MapClassify library was used to           a data-scarce setting. We tested three different types of
+create maps for each state. The Plotly-Express Library,     classification strategies: tool-based, embedding-based,
+particularly the Mapbox Feature, was used to create         and prompt-based.
+the bubble plot for sentiment by state. It should be        Tool-based Approach: We used two off-the-shelf
+noted that the accuracy of geolocation data depends on      classification tools – TextBlob8 and Vader (Hutto and
+whether the user has allowed sharing precise location       Gilbert, 2014) – which are widely used for sentiment
+data. If precise location sharing is disabled, platforms    analysis (SA) and opinion mining tasks on social
+rely on IP-based geolocation, which might not be fully      media data (Al-Natour and Turetken, 2020; Elmitwalli
+accurate since IP addresses can be manipulated using        and Mehegan, 2024). Both tools use heuristics to
+VPNs and other location-spoofing tools.                     determine the sentiment of any given text and have been
+                                                            extensively validated in prior works. While VADER
+                                                            uses a rule-based approach, TextBlob is a hybrid tool
+  6 https://pypi.org/project/shapely/
+  7 https://geopandas.org/en/stable/                          8 https://textblob.readthedocs.io/en/dev/
+
+
+
+
+                                                                                                                 Page 2466
+using lexicon-based techniques and machine learning.           Table 1: Classification result on validation set.
+These tools are trained on SA datasets with some
+                                                                       Model Name                 Accuracy   Precision   Recall
+fixed labeling schema. While researchers do not need                               Tool-based Approach
+to provide annotated data to these tools, the tools                    TextBlob                      0.32      0.47       0.32
+                                                                         Vader                       0.40      0.48       0.40
+come with an inherent limitation: the labels are not                           Embedding-based Approach
+customizable in granularity and may not capture the             BERT Embeddings + SVM                0.58      0.34       0.43
+complexity and context of the text adequately.                  BERT Embeddings + KNN                0.58      0.34       0.58
+                                                            BERT Embeddings + Random Forest          0.59      0.63       0.59
+                                                           BERT Embeddings + Logistic Regression     0.60      0.68       0.60
+Embedding-based Approach: BERT is a pre-trained                                 Prompt-based Approached
+model that can be used to produce representation for               GPT-3.5 Zero Shot                 0.61      0.57       0.61
+                                                                   GPT-3.5 Few Shot                  0.60      0.59       0.60
+classification purposes (CLS embedding). Leveraging                 GPT-4 Zero Shot                  0.67      0.67       0.67
+this feature, we obtained a 256-dimension embedding of             GPT-4 Few Shot ∆                  0.71      0.73       0.71
+the tweets where the average length of tweets was 175
+words. We trained multiple machine learning classifiers
+– Support Vector Machine (SVM), K-Nearest Neighbor        4.    Results & Analysis
+(KNN), Random Forest and Logistic Regression – with
+BERT-embeddings of 100 tweets.                               In this section, we discuss the results of the different
+                                                          methods on our validation dataset and perform a
+Prompt-based Approach: Large language models like         detailed error analysis for the best-performing model on
+GPTs are capable of following human instruction, as       our test data.
+they are trained on various tasks grounded in language.
+Being generative in nature and following Markovian        Validation Results: The results of the sentiment
+assumptions, these models are very sensitive to the       classification approaches are reported in Table 1.
+instruction or prompt. An advantage of using GPT-like     Since our dataset contained an unbalanced class
+models is that they do not require much training data     representation, all the reported metrics are weighted
+(if any at all) to produce outputs. For our task, we      averages. GPT-4 Few Shots performed best in terms of
+tried two different types of prompting: zero-shot and     accuracy, precision, and recall. Although using BERT
+few-shot in-context learning with GPT-3.5-turbo and       embeddings as features for traditional machine learning
+GPT-4-0613. Zero-shot prompting only instructs the        algorithms is a fast and inexpensive way to analyze
+model to do a task, whereas few-shot prompting also       textual data, yet it was not very effective in a limited
+provides a few exemplars to the model to show how the     data scenario (with small gold standard annotations).
+task should be done. A batch of 10-tweets was passed to   However, it is important to note that BERT embeddings
+the model for classification. The same instruction was    and Logistic Regression outperform GPT-3.5 Zero
+provided to the model in both zero-shot and few-shot      Shot. Other off-the-shelf sentiment classification tools
+training. For the few-shot, we passed 5 exemplars         like Vader and TextBlob, popular among social science
+picked from the training collection (100 tweets), of      and information science researchers, were also used to
+which the “supports” and “irrelevant” labels had two      establish a baseline. However, their performance was
+instances each, and “opposes” had one instance.           much inferior compared to the other models.
+
+3.3.   Qualitative Analysis of Themes                     Test Prediction and Error Analysis: As our validation
+                                                          set was quite small (N=100) and the generation
+                                                          process of GPT-4 is non-deterministic in nature, we
+    While thematic analysis has its roots in              wanted to verify the generalizability of results for our
+psychological research (Braun and Clarke, 2006),          best-performing model (GPT-4 Few Shot). GPT-4 Few
+it has gained popularity for social media analysis        Shot achieved a prediction accuracy of 76.2%, precision
+(Xiong et al., 2019). We conducted a qualitative,         of 78%, and recall of 76.2%, all scores calculated as
+reflective thematic analysis of a randomly selected       a weighted average of the three classes. A detailed
+sample of 100 tweets (N=100) to identify the major        confusion matrix has been presented in Figure 2. This
+themes opposing and in support of the U.S. aid to         performance is slightly better than that achieved by the
+Ukraine. Two authors reviewed the tweets sample to        model for our validation set. Therefore, we can conclude
+develop independent codes associated with the tweets.     that for this particular setting (the prompt, the labels,
+Next, they compared notes and themes, ultimately          and the problem), the performance of GPT-4 Few Shot
+selecting five major themes supporting and opposing       is generalizable to larger samples.
+the aid (reported in Section 5.2).                            From the confusion matrix, we can see four major
+
+
+
+                                                                                                                 Page 2467
+                                                                           Table 2: Common Classification Errors.
+                                                                 Error Type          Example
+                                                                 Critique of a       Folks, do not let Republicans take over.             They would
+                                                                 Related Entity or   end Democracy, Cut Social Security, Cut Medicare, End
+                                                                 Double Negation     Reproductive Rights, Impeach Biden, Defund the DOJ & FBI,
+                                                                                     Cut off aid for Ukraine, & Keep Guns in the wrong hands.
+                                                                                     Please.
+                                                                 Lack of Semantic    Anyone have a fix on the amount of our money that has been
+                                                                 Correlation         sent out for laundry in Ukraine?
+                                                                 Use of Satire       Let’s fortify schools - we have billion for Ukraine.
+                                                                 Lack          of    Let’s not forget about the million Hunter got from Ukraine while
+                                                                 Specificity         Kushner got billion with a B from Saudi Arabia. I’ve rebranded
+                                                                                     this new Republican party as the Christian Nationalist Hypocrisy
+                                                                                     Party.
+
+
+
+
+Figure 2: Confusion Matrix for GPT-4 Few Shot for               5.     Findings
+Testset (N=424).
+                                                                    In this section, we answer the three research
+                                                                questions by qualitative analysis of predictions
+                                                                performed by GPT-4 Few Shot on the entire collection
+error types caused by Double Negation or Critique of            of tweets.
+a Related Entity, Lack of Semantic Correlation, Use of
+Satire, and Lack of Specificity. Examples of the errors         5.1.     Geographical Sentiment Trends (RQ1)
+can be found in Table 2.
+                                                                    To answer RQ1, we performed an exploratory data
+(1) “supports” predicted as “opposes”:            31 tweets
+                                                                analysis to determine the volume and the relative
+that supported U.S. aid to Ukraine were predicted to
+                                                                volume of the tweets per state, calculated as a ratio
+be “opposes.” Upon further investigation, we found
+                                                                of volume over state population. Unsurprisingly, for
+that most of these tweets did not explicitly mention
+                                                                volumetric analysis, states with the highest populations
+support for the aid. The tweets were criticizing people or
+                                                                had the highest amounts of tweets. For percentage
+entities who are against financial aid to Ukraine (Double
+                                                                analysis, West Virginia and Nevada, two states perceived
+Negation). We also found that “aid” was not the only
+                                                                as relatively isolationist, had the highest ratio of
+topic of interest in these tweets; other societal issues like
+                                                                tweets to state population. Once the tweets were
+social security, medicare, and reproductive rights were
+                                                                categorized, those labeled as neutral or inconclusive
+also mentioned (Critique of a Related Entity).
+                                                                were disregarded for analysis purposes. The remaining
+(2) “opposes” predicted as “irrelevant”:            About       tweets were grouped to calculate a normalized net
+30 tweets that were annotated as “opposes” were                 sentiment (NNS) rating of the state using the difference
+erroneously predicted as “irrelevant.” Upon further             of polarities (opposing minus supporting) divided by the
+checking, we found that most of these errors pertain            total number of tweets for the state. The lower the NNS
+to Natural Language Understanding. For example, the             rating, the higher the portion of tweets that opposed
+words “fix” or “laundry”, when used independently, are          aid to Ukraine. Indiana had the most negative NNS of
+not derogatory or negative, but their usage in the context      -0.8375, while Vermont had the most positive NNS of
+of the aid hints at corruption. GPT-4 did not understand        +0.3333. Of states with a larger population, Virginia had
+the subtle underlying nuances of human language,                an NNS of -0.02387, indicating a significantly higher
+which led to errors (Lack of Semantic Correlation).             portion of tweets favoring aid.
+                                                                    In Figure 3, the bubble size for each state represents
+(3) “opposes” predicted as “supports”: Among the
+                                                                the relative volume of total tweets analyzed (supporting
+18 tweets belonging to this error category, most were
+                                                                and opposing tweets), and the color represents the NNS
+satirical in tone (Use of Satire).
+                                                                rating on a sliding colormap scale where a -1 rating
+(4) “irrelevant” predicted as “opposes” or “support”:           corresponds to red, and a +1 rating corresponds to green,
+Tweets that were irrelevant to aid were mostly personal         with the intensity of the color signifying the strength of
+attacks on individual political personalities. These            the sentiment. As seen in the figure, almost all the states
+tweets mentioned the aid in the passing or as facts             show a net negative sentiment, with the exception of the
+related to the aid. The predictions made by the model           state of Virginia (including the Washington D.C. area),
+were incorrect because the model considered the overall         which is slightly positive in net sentiment. It should be
+sentiment of the tweet instead of the particular context        noted that the sentiment analysis is limited to this dataset
+(the U.S. aid to Ukraine) (Lack of Specificity).                only, which was scraped from Twitter and may not be an
+
+
+
+                                                                                                                                     Page 2468
+       Figure 3: Normalized Net Sentiment by State.
+
+                                                               Figure 4: Themes Supporting U.S. Aid to Ukraine.
+exhaustive collection of tweets on the topic.
+
+5.2.    Common Themes for Supporting/
+        Opposing Aid (RQ2)
+
+    The most common theme that we encountered in
+favor of the U.S. Aid (see Figure 4) was Humanitarian
+Reasons, using terms like “medical aid” and “supplies.”
+This theme supports general aid to help Ukraine as
+opposed to a particular legislative package (e.g., They
+have not forgotten. They are doing more to assist
+Ukraine than most countries. Medical aid, supplies,
+food, ambulances, and taking in refugees!). The
+second most common theme was Supports Aid-related
+Legislation (e.g., She was good at getting the squad in
+line to vote yes on sending money to Ukraine). In the
+above example, Squad refers to a group of progressive
+democrats that typically oppose excessive military aid          Figure 5: Themes Opposing U.S. Aid to Ukraine.
+and related legislation.
+    The next three frequent themes are: Highlights
+Opposition to Russian Aggression (e.g., At this point,
+the West cannot allow Russia to take control of East
+Ukraine & t/ corridor to the Baltic Sea. IF SO Russia        we have enough money to turn Ukraine into a Libya?
+would control all food attempting to leave the Bread         We have money for war but not the poor got it),
+Basket of Ukraine which feeds millions, if not billions of   Anti-Biden/Anti-Democrats (e.g., Every time I see Biden
+ppl, around t/ world.), Anti-GOP/Pro Democrats (e.g.,        ask more money for Ukraine, I get pissed off again.),
+Make no mistake. The Republican party wants to end           Lack of Accountability/Too Much Money (e.g., We must
+aid to Ukraine and let Russia illegally “annex” the entire   require an inspector general to ALL of the that has been
+country. Real American patriots remember Russia said         sent to Ukraine. There is no record of where the money
+they might want to take back Alaska too. American            has gone, and the bombs sent into Poland were from
+patriots are voting to stop Russia. We are angry and         Ukraine. Zsky immediately asked for more money for
+we are voting.), and Anti-Trump (e.g., Had Trump’s           [truncated].), America First (e.g., The hell with Ukraine,
+insurrection succeeded there is no doubt in my mind the      Worry about the citizens of this country first. Biden
+U.S. would have been included on this list. GOP doubles      has created the worst economy that I have ever seen.
+down on outright hostility towards Ukraine. If they take     People in this country can’t afford the essentials and you
+Congress in Nov will aid cease?).                            give billions to other countries. America should always
+    We also identified the major themes opposing             come first!), and Money Laundering (e.g., Finance our
+U.S. Aid to Ukraine (see Figure 5). These include            country, not Ukraine! You and McStain were involved
+Alternative Areas for Spending (e.g., We don’t have          in the corruption going way back. Nothing more than a
+money for infrastructure, education, or healthcare, but      quasi money laundering scheme!).
+
+
+
+                                                                                                           Page 2469
+5.3.   Analysis in Relation to Popular                               slightly negative or even neutral, possibly increasing
+       Perception (RQ3)                                              their capacity to go viral (Schöne et al., 2021) and at
+                                                                     a faster pace (Antypas et al., 2023).
+    As indicated by our geospatial analysis, nearly all                  We must also consider the potential effects of
+states displayed a negative net sentiment during the data            outside interference on our data and subsequent
+collection period. However, the popular perception of                analysis. Bot networks are now considered increasingly
+U.S. aid to Ukraine is slightly different. A series of polls         fundamental tools of the political machine and warfare
+conducted by Pew Research Center9 indicates a shifting               (Woolley, 2016). Shen (2023) identified 13.4% accounts
+but slightly positive sentiment during this time period:             producing 16.7% of tweets relative to the Ukraine
+from 74% who say that the level of support is “Just                  conflict as bot accounts, a significant portion of the
+right” or “Not enough” in March of 2022 to 51% who                   conversation. In addition, Additionally, on October 28,
+feel the same in January of 2023. In addition, those who             2022, Elon Musk purchased Twitter and immediately
+feel that the U.S. is providing “Too much” support rose              began making significant changes to the policies and
+from 7% to 26% during the same time. There is a divide               staffing of the organization, which could have impacted
+here between the Republicans and the Democrats as                    the user demographics significantly.
+well. Republicans who felt that too much aid was being
+provided rose from 9% to 40%, while Democrats went                   6.    Conclusion
+from 5% to 15%. However, the demographics of the
+Twitter/X user base differ significantly from those taking
+                                                                               Since the onset of the Russian-Ukraine conflict,
+national surveys, which could explain the difference in
+                                                                           the United States has countered Russian aggression in
+public opinion.
+                                                                           Eastern Europe through financial support. While the
+    The difference may also lie in biases found in                         aid allows the U.S. to support humanitarian efforts and
+Twitter/X’s recommender system and how it amplifies                        maintain regional stability, it divides the public opinion
+certain posts over others.         Twitter/X’s system of                   on the necessity of such spending on foreign conflicts.
+user communities anchored around influential users is                      In this paper, we collect tweets related to the U.S. aid
+designed to amplify echo chambers, and in a study of                       to Ukraine and analyze the public opinion through a
+2.7 million tweets, Corsi (2024) found that the system                     mixed methods approach. Our biggest contribution is in
+amplified low credibility and high toxicity content.                       terms of methodology, as we explore a novel approach
+This effect was largely attributable to high-engagement,                   to opinion mining using minimal training data. We
+high-follower tweets, reinforcing the echo chamber                         also compare various approaches to analyze Twitter
+effect by putting the voices of the few in the spotlight                   sentiment.
+for many. In addition, Twitter/X’s recommender system
+                                                                               We answer three research questions.               RQ1
+has favored the amplification of mainstream political
+                                                                           investigates how public opinion on the topic of U.S.
+right and right-leaning news sources, though there was
+                                                                           aid to Ukraine varies across the states. We select
+no difference for far-right or far-left in amplification
+                                                                           tweets belonging to the continental U.S. and match
+(Huszár, 2022).
+                                                                           the coordinates to corresponding states. We calculate
+    Moral outrage, anger, or disgust at the perceived                      the normalized net sentiment (NNS) rating for each
+violation of a moral norm is a way for humans to                           state, which reveals that Indiana has the most negative
+signal to others that they are part of a similar group                     NNS of -0.8375, while Vermont has the most positive
+with similar values and can indicate safety to other                       NNS of +0.3333. RQ2 looks at the major arguments
+members of the group. It can also be a measure of                          — emerging from a thematic analysis — supporting
+social currency, used to signal value as a potential social                or opposing U.S. aid to Ukraine.             Humanitarian
+or romantic partner. The lack of identifiable physical                     reasons are the most common theme for tweets favoring
+signals on text-based social media, such as Twitter/X,                     aid, while the most common themes against the aid
+can lead to the over-perception of moral outrage by                        highlight alternative areas of funding for domestic
+the observer, leading to increased interpersonal and                       issues and the potential misuse of funds due to
+inter-group hostility in interactions and amplifying echo                  corruption. RQ3 explores why our data reflects a
+chambers (Brady et al., 2023). This tendency to                            negative sentiment towards the aid while the general
+experience higher levels of moral outrage than intended                    opinion for the time frame, while declining over time,
+could also contribute to increased attribution of negative                 was generally in support. Possible reasons include
+emotions to tweets that would otherwise be considered                      Twitter’s recommender system and its potential biases,
+  9 https://www.pewresearch.org/short-reads/2023/02/23/                    the changing demographics of Twitter users, and the
+what-public-opinion-surveys-found-in-the-first-year-of-the-war-in-ukraine/ human tendency to interact more frequently with content
+
+
+
+
+                                                                                                                        Page 2470
+containing negative sentiment.                                Aslan, S. (2023). A deep learning-based sentiment
+                                                                       analysis approach (mf-cnn-bilstm) and
+7.   Limitations and Future Work                                       topic modeling of tweets related to
+                                                                       the ukraine–russia conflict. Applied Soft
+    There are some limitations to this work. The data                  Computing, 143, 110404.
+was scraped from Twitter and is a subset of tweets on         Atari, M., Davani, A. M., Kogon, D., Kennedy, B.,
+the topic. Therefore, our dataset (containing 11,289                   Saxena, N. A., Anderson, I., & Dehghani,
+tweets) is not an exhaustive representation of tweets on               M. (2022). Morally homogeneous networks
+the topic, and the public opinion assessed is specific to              and radicalism. Social Psychological and
+this dataset only. We aim to predict the tweet sentiments              Personality Science, 13(6), 999–1009.
+as accurately as possible in a sample-efficient situation     Birjali, M., Kasri, M., & Beni-Hssane, A. (2021).
+(limited annotation). While GPT-4 outperforms other                    A comprehensive survey on sentiment
+models, we do not perform any statistical significance                 analysis: Approaches, challenges, and trends.
+tests or compare the performance with other emerging                   Knowledge-Based Systems, 226, 107134.
+open-sourced LLMs. Also, Twitter/X limits the posts to        Brady, W. J., Gantman, A. P., & Van Bavel, J. J.
+280 characters. Due to the conciseness of the tweets, the              (2020). Attentional capture helps explain why
+underlying sentiment is not always articulated clearly                 moral and emotional content go viral. Journal
+and makes sense only when the user’s background                        of Experimental Psychology: General, 149(4),
+and context are known. The interaction of human                        746.
+psycho-social reactions to social media content and how       Brady, W. J., McLoughlin, K. L., Torres, M. P.,
+recommender systems intersect to decide what content                   Luo, K. F., Gendron, M., & Crockett, M. J.
+will become popular is still a nascent field of study. In              (2023). Overperception of moral outrage in
+addition, at this time, there is no requirement for systems            online social networks inflates beliefs about
+to address bias in their recommendations. In the future,               intergroup hostility. Nature Human Behaviour,
+we would like to analyze a larger sample of tweets for                 7(6), 917–927.
+themes, along with comments, to better understand the         Braun, V., & Clarke, V. (2006). Using thematic
+context involved and the biases in the recommended                     analysis in psychology. Qualitative Research in
+feed.                                                                  Psychology, 3(2), 77–101.
+                                                              Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan,
+References                                                             J. D., Dhariwal, P., Neelakantan, A., Shyam, P.,
+                                                                       Sastry, G., Askell, A., et al. (2020). Language
+Alatawi, F., Cheng, L., Tahir, A., Karami, M., Jiang, B.,              models are few-shot learners. Advances in
+         Black, T., & Liu, H. (2021). A survey on                      neural information processing systems, 33,
+         echo chambers on social media: Description,                   1877–1901.
+         detection and mitigation. arXiv preprint. https:     Chen, E., & Ferrara, E. (2023). Tweets in time of
+         //doi.org/10.48550/arXiv.2112.05084                           conflict: A public dataset tracking the twitter
+Al-Natour, S., & Turetken, O. (2020). A comparative                    discourse on the war between ukraine and
+         assessment of sentiment analysis and star                     russia. Proceedings of the International AAAI
+         ratings for consumer reviews. International                   Conference on Web and Social Media, 17,
+         Journal of Information Management, 54,                        1006–1013.
+         102132.                                              Cinelli, M. e. a. (2021). The echo chamber effect
+Antypas, D., Preece, A., & Camacho-Collados, J.                        on social media. Proceedings of the National
+         (2023). Negativity spreads faster: A large-scale              Academy of Sciences, 118(9).
+         multilingual twitter analysis on the role of         Corsi, G. (2024). Evaluating twitter’s algorithmic
+         sentiment in political communication. Online                  amplification of low-credibility content: An
+         Social Networks and Media, 33, 100242.                        observational study. EPJ Data Science, 13(1),
+Aqlan, A. A. Q., Manjula, B., & Lakshman Naik, R.                      18.
+         (2019). A study of sentiment analysis:               Elmitwalli, S., & Mehegan, J. (2024). Sentiment
+         Concepts, techniques, and challenges.                         analysis of cop9-related tweets: A comparative
+         Proceedings of International Conference                       study of pre-trained models and traditional
+         on Computational Intelligence and Data                        techniques. Frontiers in big Data, 7, 1357926.
+         Engineering (ICCIDE) 2018, 147–162.                  Ghosh, S., & Thajudeen, J. (2023). Voices of the
+                                                                       stacks: A multifaceted inquiry into academic
+
+
+
+
+                                                                                                           Page 2471
+           librarians’ tweets. Proceedings of the                            science. arXiv preprint. https : / / doi . org / 10 . 4
+           Association for Information Science and                           8550/arxiv.2305.14310
+           Technology, 60(1), 166–178.                             Noor, H. M., & Turetken, O. (2023). What drives
+Huszár, F. e. a. (2022). Algorithmic amplification of                       sentiments on social media? an exploratory
+           politics on twitter. Proceedings of the National                  study on the 2021 canadian federal election,
+           Academy of Sciences - PNAS, 119(1).                               2170–2180.
+Hutto, C., & Gilbert, E. (2014). Vader: A parsimonious             Petroni, F. e. a. (2019). Language models as knowledge
+           rule-based model for sentiment analysis                           bases? Proceedings of the 2019 Conference
+           of social media text. Proceedings of the                          on Empirical Methods in Natural Language
+           international AAAI conference on web and                          Processing and the 9th International Joint
+           social media, 8(1), 216–225.                                      Conference on Natural Language Processing
+Jalil, Z. e. a. (2022). Covid-19 related sentiment analysis                  (EMNLP-IJCNLP), 2463–2473.
+           using state-of-the-art machine learning and             Rodriguez, M. G., Gummadi, K., & Schoelkopf,
+           deep learning techniques. Frontiers in Public                     B. (2014). Quantifying information overload
+           Health, 9, 812735.                                                in social media and its impact on social
+Kanojia, D., & Joshi, A. (2023). Applications and                            contagions. Proceedings of the international
+           challenges of sentiment analysis in real-life                     AAAI conference on web and social media,
+           scenarios. arXiv preprint. https : / / doi . org / 10             8(1), 170–179.
+           .48550/arxiv.2301.09912                                 Satuluri, V. e. a. (2020). Simclusters: Community-based
+Keraghel, I., Morbieu, S., & Nadif, M. (2024).                               representations          for        heterogeneous
+           Beyond words: A comparative analysis of                           recommendations at twitter. Proceedings
+           llm embeddings for effective clustering.                          of the 26th ACM SIGKDD international
+           International Symposium on Intelligent Data                       conference on knowledge discovery & data
+           Analysis, 205–216.                                                mining, 3183–3193.
+Kruse, L. M., Norris, D. R., & Flinchum, J. R. (2018).             Schöne, J. P., Parkinson, B., & Goldenberg, A. (2021).
+           Social media as a public sphere? politics                         Negativity spreads more than positivity on
+           on social media. The Sociological Quarterly,                      twitter after both positive and negative political
+           59(1), 62–84.                                                     situations. Affective Science, 2(4), 379–390.
+Kumar, S., Morstatter, F., Marshall, G., Liu, H., &                Shen, F. e. a. (2023). Examining the differences between
+           Nambiar, U. (2012). Navigating information                        human and bot social media accounts: A case
+           facets on twitter (nif-t). Proceedings of the                     study of the russia-ukraine war. First Monday,
+           18th ACM SIGKDD international conference                          28(2).
+           on Knowledge discovery and data mining,                 Taillon, J. J., & Mentzer, K. D. (2023). Virtual
+           1548–1551.                                                        versus reality: How online communication has
+Kumar, V. (2022). Spatiotemporal sentiment variation                         impacted the way americans discuss politics.
+           analysis of geotagged covid-19 tweets from                        Issues in Information Systems, 24(3).
+           india using a hybrid deep learning model.               Vahdat-Nejad, H. e. a. (2023). Russia-ukraine war:
+           Scientific Reports, 12(1), 1849.                                  Modeling and clustering the sentiments trends
+Lanyi, K. e. a. (2022). Covid-19 vaccine hesitancy:                          of various countries. arXiv preprint. https://doi
+           Analysing twitter to identify barriers to                         .org/10.48550/arXiv:2301.00604
+           vaccination in a low uptake region of the uk.           Woolley, S. C. (2016). Automating power: Social bot
+           Frontiers in Digital Health, 3, 804855.                           interference in global politics. First Monday,
+Li, Y. e. a. (2024). Recent developments in                                  21(2).
+           recommender systems: A survey. IEEE                     Xiong, Y., Cho, M., & Boatwright, B. (2019). Hashtag
+           Computational Intelligence Magazine, 19(2),                       activism and message frames among social
+           78–95.                                                            movement organizations: Semantic network
+Mane, H., et al. (2022). Examination of the public’s                         analysis and thematic analysis of twitter during
+           reaction on twitter to the over-turning of roe                    the# metoo movement. Public relations review,
+           v wade and abortion bans. Healthcare, 10(12),                     45(1), 10–23.
+           2390.                                                   Yadav, S., & Chakraborty, T. (2021). Zero-shot
+Mu, Y. e. a. (2023). Navigating prompt complexity                            sentiment analysis for code-mixed data.
+           for zero-shot classification: A study of large                    Proceedings of the AAAI Conference on
+           language models in computational social                           Artificial Intelligence, 35(18), 15941–15942.
+
+
+
+
+                                                                                                                      Page 2472
+

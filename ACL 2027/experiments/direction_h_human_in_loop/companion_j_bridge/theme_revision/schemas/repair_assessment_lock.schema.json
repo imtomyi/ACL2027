@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-j-theme/repair-assessment-lock-v1.json",
+  "title": "Complete lock of exact Direction J repair assessments",
+  "type": "object",
+  "required": ["lock_version", "status", "assignment_plan_sha256", "expected_count", "received_count", "entries", "locked_at_utc", "arms_unblinded_before_lock"],
+  "properties": {
+    "lock_version": {"const": "direction-h-j-theme-repair-assessment-lock-v1"},
+    "status": {"enum": ["template_incomplete", "locked"]},
+    "assignment_plan_sha256": {
+      "oneOf": [{"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"}, {"type": "null"}]
+    },
+    "expected_count": {"type": ["integer", "null"], "minimum": 1},
+    "received_count": {"type": "integer", "minimum": 0},
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["assignment_id", "repair_packet_id", "evaluator_id", "assessment_path", "assessment_sha256"],
+        "properties": {
+          "assignment_id": {"type": "string", "pattern": "^DHJRA_[a-f0-9]{20}$"},
+          "repair_packet_id": {"type": "string", "pattern": "^DHJRP_[a-f0-9]{20}$"},
+          "evaluator_id": {"type": "string", "minLength": 1},
+          "assessment_path": {"type": "string", "minLength": 1},
+          "assessment_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "locked_at_utc": {"type": ["string", "null"], "format": "date-time"},
+    "arms_unblinded_before_lock": {"type": ["boolean", "null"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "locked"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "assignment_plan_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+          "expected_count": {"type": "integer"},
+          "locked_at_utc": {"type": "string"},
+          "arms_unblinded_before_lock": {"const": false}
+        }
+      },
+      "else": {
+        "properties": {
+          "assignment_plan_sha256": {"type": "null"},
+          "expected_count": {"type": "null"},
+          "received_count": {"const": 0},
+          "entries": {"maxItems": 0},
+          "locked_at_utc": {"type": "null"},
+          "arms_unblinded_before_lock": {"type": "null"}
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

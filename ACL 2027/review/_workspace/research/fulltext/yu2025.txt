@@ -1,0 +1,1330 @@
+                             Same Company, Same Signal:
+                    The Role of Identity in Earnings Call Transcripts
+
+                                   Ding Yu, Zhuo Liu, Hangfeng He
+                                         University of Rochester
+                             {ding.yu, zhuo.liu, hangfeng.he}@rochester.edu
+
+
+
+                      Abstract                                  Traditional finance methods primarily rely on
+                                                             volatility time series and statistical techniques such
+    Post-earnings volatility prediction is critical
+                                                             as GARCH and its variants (Engle, 1982; Boller-
+    for investors, with previous works often lever-
+    aging earnings call transcripts under the as-
+                                                             slev, 1986). However, with the rapid advance-
+    sumption that their rich semantics contribute            ments in natural language processing (NLP) and
+    significantly. To further investigate how tran-          audio processing, numerous studies have focused
+    scripts impact volatility, we introduce DEC,             on utilizing unstructured earnings call data, such as
+    a dataset featuring accurate volatility calcu-           transcripts and audio recordings, to enhance post-
+    lations enabled by the previously overlooked             earnings volatility prediction (Qin and Yang, 2019;
+    beforeAfterMarket attribute and dense ticker             Yang et al., 2020; Li et al., 2020). In this pur-
+    coverage. Unlike established benchmarks,
+                                                             suit, researchers have employed a variety of tech-
+    where each ticker has only around two earn-
+    ings, DEC provides 20 earnings records per               niques, including heterogeneous graphs (Sawhney
+    ticker. Using DEC, we reveal that post-earnings          et al., 2020a; Liu et al., 2024b), language model
+    volatility undergoes significant shifts, with each       pre-training (Yang et al., 2022; Niu et al., 2023)
+    ticker displaying a distinct volatility distri-          and Large Language Models (LLMs) (Cao et al.,
+    bution. To leverage historical post-earnings             2024a,b), to better address this complex problem.
+    volatility and capture ticker-specific patterns,            Delving deeper into the background of earn-
+    we propose two training-free baselines: Post-
+                                                             ings calls, we found that previous benchmarks,
+    earnings Volatility (PEV) and Same-ticker Post-
+    earnings Volatility (STPEV). These baselines             EC (Qin and Yang, 2019) and MAEC (Li
+    surpass all transcripts-based models on DEC              et al., 2020), have overlooked a crucial attribute:
+    as well as on established benchmarks. Addi-              beforeAfterMarket, which indicates whether
+    tionally, we demonstrate that current transcript         earnings are released before the market opens or af-
+    representations predominantly capture ticker             ter it closes. This attribute is indispensable for accu-
+    identity rather than offering financially mean-          rately calculating volatility. We also observed that
+    ingful insights specific to each earnings. This          EC and MAEC prioritize ticker2 coverage breadth
+    is evidenced by two key observations: earn-
+    ings representations from the same ticker ex-
+                                                             over density, as each ticker appears around twice in
+    hibit significantly higher similarity compared           these datasets. This limitation prevents tracking a
+    to those from different tickers, and predictions         company’s earnings over the long term. To address
+    from transcript-based models show strong cor-            this, we curated a dense earnings call dataset, DEC,
+    relations with prior post-earnings volatility1 .         where each ticker is represented with 20 earnings
+                                                             records. This enables robust long-term trend analy-
+1   Introduction                                             sis and detailed quarter-to-quarter comparisons.
+Post-earnings volatility prediction is crucial for in-          On DEC, we observe that post-earnings abso-
+vestors and an emerging trend in the field of finan-         lute returns—and consequently, volatility3 —are
+cial natural language processing (FinNLP). Volatil-          significantly higher than during normal periods,
+ity, defined as the standard deviation of returns            and that each ticker exhibits distinct post-earnings
+over a specific period—post earnings call in this            volatility patterns, we thus hypothesize that his-
+context—is a key financial metric for evaluating a           torical post-earnings volatility plays a dominant
+company’s performance.                                       role in volatility prediction. To this end, we in-
+   1                                                             2
+     Our dataset and code are publicly available at https:           In this work, “ticker” refers to a company.
+                                                                 3
+//github.com/piqueyd/Same-Company-Same-Signal                        The volatility calculation is detailed in Section 3.
+
+                                                         18403
+                Findings of the Association for Computational Linguistics: ACL 2025, pages 18403–18422
+                       July 27 - August 1, 2025 ©2025 Association for Computational Linguistics
+troduce two training-free baselines: PEV (Post-          300 word-embedding, and then integrates features
+earnings Volatility) and STPEV (Same-ticker Post-        across multiple granularities to predict volatility.
+earnings Volatility). Remarkably, even with a               Transcripts are often combined with audio
+simple mean-based implementation, our approach           recordings during earnings calls. The Multimodal
+achieves state-of-the-art (SOTA) performance on          Deep Regression Model (MDRM) (Qin and Yang,
+all datasets: EC, MAEC and DEC, compared to              2019) integrates transcript, embedded using GloVe-
+transcripts-based models. Through further com-           300, and audio information to forecast volatility.
+parisons at both the representation level and the           Building on MDRM, the Hierarchical
+prediction level, we find that transcripts from the      Transformer-based Model (HTML) (Yang
+same company exhibit high similarity, and the pre-       et al., 2020) employs a hierarchical transformer
+dictions of transcript-based models strongly corre-      framework to enhance performance. Addressing
+late with those of STPEV(Mean). This suggests            the limitations of language models in processing
+that, under mainstream NLP approaches—which              numerical information, which is critical in
+encode transcripts as embeddings to capture finan-       transcripts, Numerical HTML (NumHTML)
+cially meaningful semantics—the resulting repre-         (Yang et al., 2022) is developed. NumHTML
+sentations primarily reflect ticker identity and the     enhances BERT (Devlin, 2018) model’s ability
+historical distribution of post-earnings volatility.     to handle numerical data through tasks such as
+   Our contributions include:                            classifying numeral categories and comparing
+                                                         magnitudes, thereby improving the model’s overall
+    • We curated a dense dataset, DEC, where             effectiveness in representing numerical data.
+      each ticker includes 20 earnings, in con-             Additionally, VolTAGE (Sawhney et al., 2020a)
+      trast to the approximately two earnings per        and ECHO-GL (Liu et al., 2024b) demonstrate that
+      ticker in established datasets. Additionally,      correlations between stocks are beneficial for pre-
+      DEC incorporates the previously omitted            dicting volatility. These models derive stock rela-
+      beforeAfterMarket attribute, enabling accu-        tionships from the rich semantic content of earnings
+      rate volatility calculations.                      calls using a heterogeneous graph learning.
+                                                            In the era of LLM, RiskLabs (Cao et al., 2024a)
+    • We propose two training-free baselines, PEV        utilizes LLMs to encode transcripts and news ar-
+      and STPEV, which achieve SOTA perfor-              ticles, combining these with other modalities to
+      mance on EC, MAEC, and DEC, surpassing             deliver a comprehensive approach for volatility pre-
+      various transcripts-based models.                  diction. The ECC Analyzer (Cao et al., 2024b)
+                                                         employs LLMs to first extract paragraph-level gen-
+    • Through representation-level comparisons be-
+                                                         eral information by summarizing the text and sub-
+      tween examples from the same company
+                                                         sequently identifies fine-grained focus sentences
+      and those across all companies, as well as
+                                                         using Retrieval-Augmented Generation (RAG).
+      prediction-level comparisons between STPEV
+                                                         These two studies firstly utilize SimCSE (Gao
+      and transcript-based models, we find that:
+                                                         et al., 2021) for extracting sentence-level repre-
+      transcripts predominantly reflect ticker iden-
+                                                         sentations, followed by OpenAI’s 4 model for gen-
+      tity, rather than nuanced financial signals
+                                                         erating paragraph-level embeddings.
+      under typical transcripts representations.
+                                                            Liu et al. (2024a) highlight that existing pre-
+                                                         trained embedding models, including OpenAI’s
+2    Related Work
+                                                         Ada and SentenceBERT5 , often fail to capture sub-
+Considerable research efforts have been dedicated        tle shifts in financial narratives for the same com-
+to leveraging earnings call transcripts, often in com-   pany across different periods. To address this lim-
+bination with other modalities such as audio record-     itation, a LLM pipeline and a classic triplet net-
+ings or time-series data, to model financial risk.       work have been deployed, supported by both LLM-
+                                                         synthesized and human-annotated datasets, to iden-
+Transcripts-based models. A few models rely              tify nuanced changes in financial discourses.
+exclusively on transcripts for volatility prediction.       In this work, we use different LLM embeddings
+For instance, the Multi-Round QA Attention model            4
+                                                             OpenAI text-embedding-3-small.
+(Ye et al., 2020) extracts semantic information             5
+                                                             OpenAI text-ada-embedding-002 and SentenceBERT
+from each question-answer round, using Glove-            allMiniLM-L6-v2.
+
+                                                    18404
+to represent both vanilla transcripts and LLM fine-       Pre-earnings and post-earnings volatility time
+grained transcripts, which provide deeper insights        series Following the volatility definition, we as-
+and a more nuanced understanding.                         sume the earnings announcement occurs at day t.
+                                                          The pre-earnings volatility series represents volatil-
+Time series-based models The Knowledge-
+                                                          ity from day t − w to day t − 1, where w6 is a
+enhanced Financial Volatility Prediction (KeFVP)
+                                                          hyperparameter controlling the window size of the
+model (Niu et al., 2023) demonstrates the advan-
+                                                          pre-earnings series. This series reflects market ex-
+tages of integrating time-series data with textual
+                                                          pectations prior to the earnings release—higher
+information. Pre-earnings volatility series, is pro-
+                                                          pre-earnings volatility indicates greater market un-
+cessed by the Autoformer (Wu et al., 2021). The re-
+                                                          certainty about the upcoming announcement.
+sulting representations are then conditionally com-
+                                                             The post-earnings volatility time series captures
+bined with transcript representations, enhancing
+                                                          volatility from the i − k-th to the i − 1-th earnings
+the model’s predictive capabilities.
+                                                          announcements, where the focal earnings at time
+   In this work, we introduce a second type of
+                                                          t is the i-th announcement, and k 7 is a hyperpa-
+volatility series: the post-earnings volatility series,
+                                                          rameter determining the size of the post-earnings
+which comprises the volatility observed follow-
+                                                          series. This series reflects how the market histor-
+ing a series of prior earnings announcements from
+                                                          ically reacts to the company’s earnings—higher
+the same company. In contrast, the pre-earnings
+                                                          post-earnings volatility suggests persistent uncer-
+volatility series refers to the sequence of volatility
+                                                          tainty regarding the company’s financial reports.
+measured during the period leading up to a specific
+                                                             Pre-earnings and post-earnings volatility series
+earnings announcement. Further elaboration can
+                                                          are computed using the same approach but differ
+be found in Section 3.
+                                                          in their time intervals: the former is measured in
+3   Post Earnings Volatility Prediction                   trading days, while the latter is measured over quar-
+                                                          terly periods. Pre-earnings volatility captures short-
+Earnings call transcripts Earnings call tran-             term market behavior leading up to individual earn-
+scripts are written records of the earnings calls         ings events, while post-earnings volatility charac-
+held by companies at the end of each quarter or           terizes long-term market behavior across multiple
+fiscal year. These transcripts capture the detailed       earnings announcements for the same company.
+discussions about financial results, company per-         Notably, when pre-earnings window size, w, ex-
+formance, and future projections provided by the          ceeds the interval between consecutive earnings,
+company’s executives, as well as the question and         the pre-earnings volatility series encompasses the
+answer session with analysts and investors.               post-earnings volatility measure(s).
+Volatility In financial terms, volatility (Kogan          Task overview Figure 1 illustrates the common
+et al., 2009) represents the degree of variation of       paradigm for volatility prediction, which leverages
+a trading price series over time as measured by           both transcripts and volatility time series. These
+the standard deviation of returns. Let’s assume           two data sources are processed separately, and their
+the focal earnings is released at day t, and mathe-       resulting representations are subsequently com-
+matically, volatility can be defined over a specific      bined for post-earnings volatility prediction.
+interval, [t, t + τ ], as follows:
+                             √Pτ                          4       A Dense Dataset: DEC
+            v[t,t+τ ] =log                  2
+                               i=0 (rt+i −r) ,     (1)
+                                                          4.1      Two Widely-Used Datasets
+   where rt+i represents the return at time t + i,
+                                                          For the task of post-earnings volatility prediction,
+calculated as: rt+i = Ct+iCt+i−1
+                           −Ct+i−1
+                                   , and Ci denotes
+                                                          two datasets are commonly employed: EC (Qin
+the closing price on day i. Additionally, r is the
+                                                          and Yang, 2019) and MAEC (Li et al., 2020). The
+average return over the period from t to t + τ .
+                                                          MAEC dataset is further divided into two subsets,
+   Volatility is a critical measure in finance as it
+                                                          corresponding to the years 2015 and 2016.
+reflects the risk associated with the price move-
+ments of a security. In previous work, Qin and                6
+                                                                The pre-earnings window size w is typically set to either
+Yang (2019) utilized various time intervals, τ =          5 trading days (representing one trading week) or 22 trading
+                                                          days (representing one trading month).
+{3, 7, 15, 30}, to quantify volatility, capturing both        7
+                                                                The post-earnings window size k is usually small due to
+short-term and long-term market behaviors.                the sparsity of earnings events.
+
+                                                     18405
+Figure 1: Overview of Post-Earnings Volatility Prediction: Time-series data is processed using time-series forecast-
+ing (TSF) techniques such as Autoformer (Wu et al., 2021), while textual data is handled by language models like
+BERT (Devlin, 2018) and GPT (Radford, 2018). The resulting representations are then combined for prediction.
+
+
+4.2 Missing BeforeAfterMarket                                                  Table 1 shows the statistics for the EC and
+During our analysis of the EC and MAEC                                      MAEC datasets. Regrettably, all three datasets
+datasets, we identified a critical oversight regard-                        exhibit low OET values, indicating a limited num-
+ing the timing of earnings releases—specifically,                           ber of overlapping earnings. This limitation pre-
+the beforeAfterMarket attribute, which indicates                            vents investors from tracking a company’s long-
+whether the release occurs before or after the mar-                         term earnings performance, which provides valu-
+ket opens. This attribute is essential for accu-                            able insights into growth trends, financial health,
+rately calculating post-earnings volatility. Previous                       and management effectiveness.
+volatility calculations 8 fail to account for scenar-
+                                                                               Dataset     Cate     #E    #T    Ratio #E   # OE   OET
+ios where earnings are released before the mar-                                             All     559   272    2.055
+                                                                                                                      #T
+                                                                                                                             -      -
+ket opens, requiring the current trading day to be                                         Train    391   243    1.609       -      -
+                                                                                    EC
+treated as the starting point of the volatility cal-                                        Val      56    56      1.0       -      -
+                                                                                           Test     112   112      1.0      178   1.589
+culation period. A specific example is illustrated
+                                                                                            All     765   527    1.452       -      -
+in Section A.1. Unfortunately, previous studies                                            Train    535   409    1.308       -      -
+                                                                             MAEC-15
+have often neglected this critical factor, resulting                                        Val      76    76      1.0       -      -
+in inaccuracies in volatility measurements.                                                Test     154   154      1.0      94    0.61
+                                                                                            All    1400   908    1.542       -      -
+4.3 Sparse Same-ticker Representation                                                      Train    980   734    1.335       -      -
+                                                                             MAEC-16
+                                                                                            Val     140   140      1.0       -      -
+Tracking a company’s earnings call transcripts over                                        Test     280   277    1.011      215   0.768
+the long term provides valuable insights for in-
+                                                                            Table 1: Statistics for EC, MAEC-15, and MAEC-16. #
+vestors by offering a deeper understanding of the
+                                                                            E , # T and # OE defines the number of earnings, tick-
+company’s management, strategy, and market po-                              ers, and overlapping earnings respectively. OET is the
+sitioning. It also reveals key performance metrics,                         Overlapping Earnings per Ticker defined in equation 2.
+progress on stated goals, and emerging trends that
+could influence future growth. Comparing tran-
+scripts over time allows investors to detect shifts in                      4.4      A Dense Dataset: DEC
+narratives or priorities, which may signal potential                        To address these limitations, we curated a new
+challenges or opportunities.                                                dataset: DEC. The DEC dataset offers four key
+   To investigate whether the current datasets sup-                         advantages over the existing datasets:
+ports long-termism, we define the Overlapping
+Earnings per Ticker (OET) as follows:                                           • Correct Volatility Calculation: As described
+                                                                                  in Section 4.2, the beforeAfterMarket at-
+          OET= Count (testing Count
+                              tickers overlapped training earnings)
+                                     (testing tickers)
+                                                                      (2)         tribute is omitted in existing datasets. To ad-
+   This metric measures how well the training set9                                dress this, we collect this important attribute
+represents the testing set in terms of ticker overlap.                            from the financial data provider EOD: 10 to
+Generally, a higher OET value indicates a longer-                                 ensure accurate volatility calculation.
+term focus on the tickers’ earnings.
+                                                                                • Longitudinal Depth: DEC comprises 1,800
+   8
+     https://github.com/hankniu01/KeFVP/tree/main/                                earnings, providing a temporally dense focus
+price_data
+   9                                                                           10
+     Here, we include both the training set and validation set.                     https://eodhd.com/
+
+                                                                       18406
+      on 90 specific tickers over 20 quarters, span-     datasets12 , post-earnings volatility within a three-
+      ning the period from 2019 to 2023.                 day window is notably higher than the volatility
+                                                         observed on other trading days. This pattern re-
+    • Latitudinal Depth: The dataset includes            mains consistent across other time windows (7, 15,
+      representative tickers from various sectors11      and 30 days), with further details in Appendix B.1.
+      within the U.S. market, ensuring representa-          Given the pronounced differences in volatility
+      tion across a diverse range of industries.         distribution between post-earnings periods13 and
+    • Recency and Relevance: DEC is more recent          non-earnings periods, we hypothesis that:
+      compared to existing datasets, offering up-to-        Incorporating prior post-earnings volatility is
+      date information and reflecting the latest mar-             essential for volatility prediction.
+      ket dynamics. Notably, it also encompasses
+      the COVID-19 pandemic period, which trig-          5.2   Ticker-Specific Volatility Signature
+      gered a corporate finance crisis and resulted in   It also has been observed that the post-earnings
+      distinct patterns compared to typical market       volatility for each company tends to follow a dis-
+      conditions (Ellul et al., 2020).                   tinct distribution. As depicted in Figure 3, compa-
+                                                         nies such as JNJ, V, and TSLA14 exhibit markedly
+   Table 2 presents the OET statistics of the DEC        different three-day post-earnings volatility patterns.
+dataset. It is evident that the OET values in-              We term this phenomenon as Volatility Signature,
+crease over time, as indicated by the progression        reflecting the persistence of a company’s volatility
+from the top-left to the bottom-right of the table.      patterns over time. This signature likely arises from
+Further details regarding the curation process of        intrinsic company characteristics that remain rela-
+the DEC dataset can be found in Appendix A.2.            tively stable over short periods. These characteris-
+With its dense ticker coverage, DEC enables long-        tics may include industry and sector classification,
+term trend analysis and quarter-to-quarter analysis      operational dynamics, company size and market
+by comparing sequential performance, and under-          position, and financial structure. Motivated by the
+standing transitions between quarters.                   Volatility Signature, we refine our hypothesis:
+5    On the Importance of Prior                           Incorporating same-ticker prior post-earnings
+     Post-earnings Volatility                               volatility is critical for volatility prediction.
+5.1 Distribution Shift After Earnings
+                                                         5.3   Simple Baselines
+We observe a significant increase in absolute re-
+                                                         PEV Building on our analysis, we propose a
+turns following earnings announcements across
+                                                         training-free baseline for post-earnings volatility
+the EC, MAEC, and DEC datasets. Specifically,
+                                                         prediction, referred to as the Post-earnings Volatil-
+the absolute return on the first day after earn-
+                                                         ity (PEV) model. The PEV(X) model primarily
+ings, rf uture1 , is consistently higher than on pre-
+                                                         utilizes historical post-earnings volatility as input
+earnings days or other subsequent post-earnings
+                                                         and applies an aggregation function, X, which we
+days. We hypothesize that this phenomenon stems
+                                                         instantiate as the mean in this work.
+from the market’s reaction to freshly disclosed and
+potentially unexpected financial information from        STPEV To incorporate the concept of Volatility
+the company. Details are in Appendix B.1.                Signature, we introduce a refined variant of the
+   According to the definition of volatility in equa-    PEV, termed the Same-ticker Post-earnings Volatil-
+tion 1, we conclude that volatility calculations         ity (STPEV). This variant exclusively leverages
+involving the first daily return after earnings,         historical post-earnings volatility from the same
+rf uture1 , should be higher compared to periods         ticker, thereby improving its capacity to capture
+without it. Given τ as the volatility window, a total    the characteristics specific to each company.
+of τ days of volatility are directly influenced by          12
+                                                               The beforeAfterMarket attribute is adjusted based on
+rf uture1 . As illustrated in Figure 2, which com-       the original EC and MAEC datasets. The plot without
+pares three-day volatility before and after earnings     beforeAfterMarket adjustment is provided in Appendix B.1
+                                                            13
+announcements across the EC, MAEC and DEC                      Precisely, post-earnings periods here refer to the days
+                                                         where calculations involving the first return after earnings.
+  11                                                        14
+     https://seekingalpha.com/etfs-and-funds/                  JNJ, V, and TSLA refer to Johnson & Johnson, Visa, and
+etf-tables/key_markets                                   Tesla, respectively.
+
+                                                    18407
+                         First Quarter                             Second Quarter                               Third Quarter                              Fourth Quarter
+ Year     Count(Training)     Count(Testing)   OET    Count(Training)   Count(Testing)    OET     Count(Training)    Count(Testing)   OET    Count(Training)    Count(Testing)   OET
+ 2019           0                   90           0          90               90            1.0         180                90           2.0        270                 90          3.0
+ 2020          360                  90          4.0        450               90            5.0         540                90           6.0        630                 90          7.0
+ 2021          720                  90          8.0        810               90            9.0         900                90          10.0        990                 90         11.0
+ 2022         1080                  90         12.0       1170               90           13.0        1260                90          14.0       1350                 90         15.0
+ 2023         1440                  90         16.0       1530               90           17.0        1620                90          18.0       1710                 90         19.0
+
+
+Table 2: DEC Dataset Statistics. The dataset focuses on 90 tickers in the U.S. market, spanning 20 quarters. It is
+dense in ticker coverage and OET values, defined in equation 2, increase over time.
+
+
+
+
+                 (a) EC                                    (b) MAEC-15                                    (c) MAEC-16                                      (d) DEC
+
+Figure 2: Comparison of three-day volatility before and after earnings announcements. Earnings are released
+between the day labeled past_1 and the day labeled future_1. Days where the volatility calculation involves the
+return of future_1 exhibit significantly higher volatility compared to others. This pattern holds consistently across
+all windows {3, 7, 15, 30}. Further details are provided in Appendix B.1.
+
+
+                                                                                                 ability of the datasets for both PEV and STPEV.
+
+                                                                                                 Baselines To validate the effectiveness of PEV
+                                                                                                 and STPEV, we benchmark their performance
+                                                                                                 against several established methods. These base-
+                                                                                                 line methods include MDRM (Text+Audio) (Qin
+                                                                                                 and Yang, 2019), HTML (Text+Audio) (Yang
+                                                                                                 et al., 2020), VolTAGE (Sawhney et al., 2020a),
+                                                                                                 NumHTML (Text+Audio) (Yang et al., 2022), Ke-
+                                                                                                 FVP (Niu et al., 2023), RiskLabs (Cao et al.,
+                                                                                                 2024a), and ECC Analyzer (Cao et al., 2024b).
+                                                                                                    In addition to previous works, we also imple-
+Figure 3: Three-day post earnings volatility comparison                                          ment several transcripts-based baselines:
+across companies: JNJ(Johnson & Johnson), V(Visa),
+and TSLA(Tesla). Totally 20 earnings, from 2019 to                                                   • LLM Direct Prediction: We prompt the
+2023, are involved for plot.                                                                           LLMs16 using few-shot learning with the task
+                                                                                                       description and the previous (earnings call
+6        Main Results                                                                                  transcripts, volatility) pairs to directly predict
+                                                                                                       the volatility. Details are in Appendix D.2.
+6.1 Evaluations on EC and MAEC Datasets
+Augmentation on EC and MAEC datasets. As                                                             • Vanilla Text: Earnings call transcripts are
+shown in Table 1, EC, MAEC-15 and MAEC-16                                                              directly processed to generate text embed-
+datasets all suffer from a limited number of same-                                                     dings using various models, including OpenAI
+ticker earnings. To mitigate this limitation, we aug-                                                  embeddings, Gecko embeddings (Lee et al.,
+ment these datasets by extending their historical                                                      2024), and a financial-domain-specific model,
+range from the past 5 years.15 . Appendix C con-                                                       Voyage embeddings17 . These embeddings are
+trasts the data statistics between the original and                                                    processed by a simple 2-layer MLP model,
+augmented datasets. By augmenting the datasets,                                                        which is also used for LLM fine-grained text.
+we achieve higher OET values, enhancing the suit-                                                  16
+                                                                                                    GPT4o-2024-08-06 and Gemini-1.5-Flash
+    15                                                                                             17
+     We only extend the price records, such as close price, daily                                   Specifically, OpenAI text-embedding-3-large, Text-
+return, and volatility, without the earnings call transcripts.                                   embedding-005, and Voyage-Finance-2.
+
+                                                                                         18408
+                                              EC                                      MAEC-15                                    MAEC-16
+         Model                                                                                                                                             Average
+                           M SE    M SE3   M SE7   M SE15   M SE30   M SE    M SE3    M SE7 M SE15     M SE30   M SE    M SE3    M SE7 M SE15     M SE30
+           Vpast           1.12     2.99    0.83    0.42     0.23       -       -        -       -         -       -       -        -       -        -        -
+       Price LSTM          0.75     1.97    0.46     0.32     0.24      -       -        -       -         -       -       -        -       -        -        -
+     BiLSTM + ATT           0.74    1.98    0.44    0.30     0.23    0.696   1.599♯   0.560 ♯ 0.339♯   0.284♯   0.691   1.544♯   0.571 ♯ 0.362♯   0.288♯    0.709
+       HAN(Glove)          0.60     1.43    0.46     0.31     0.20      -       -        -       -         -       -       -        -       -        -        -
+     MDRM(Audio)            0.60    1.41    0.44    0.32     0.22       -       -        -       -         -       -       -        -       -        -        -
+  MDRM(Text+Audio)         0.58     1.37    0.42    0.30     0.22    0.630   1.425♯   0.488♯  0.320♯   0.285♯   0.618   1.426♯   0.476♯  0.311♯   0.259♯    0.609
+       HTML(Text)           0.46    1.18    0.37    0.15     0.13    0.514   1.199♯   0.440♯  0.231♯   0.187♯   0.579   1.287♯   0.479♯  0.300    0.249♯    0.518
+   HTML(Text+Audio)         0.40    0.85    0.35    0.25     0.16    0.487   1.065♯   0.416♯  0.272♯   0.196♯   0.556   1.160♯   0.515♯  0.314♯   0.236♯    0.481
+        VolTAGE            0.31     0.63    0.29     0.17     0.14      -       -        -       -         -       -       -        -       -        -        -
+         KeFVP
+                 [         0.300   0.610   0.291    0.183    0.114   0.204   0.418    0.187   0.122     0.087   0.318   0.445    0.279   0.303     0.177    0.274
+     SVM(TF-IDF)b          0.70     1.70    0.50     0.34     0.25      -       -        -       -         -       -       -        -       -        -        -
+        bc-LSTMb           0.59     1.42    0.44     0.30     0.22      -       -        -       -         -       -       -        -       -        -        -
+   Multi-Fusion CNNb       0.41     0.73    0.35     0.29     0.28      -       -        -       -         -       -       -        -       -        -        -
+NumHTML(Text+Audio)♮       0.31       -       -        -        -       -       -        -       -         -       -       -        -       -        -        -
+ Ensemble(Text+Audio)b     0.302   0.601   0.308    0.181    0.119      -       -        -       -         -       -       -        -       -        -        -
+        RiskLabs†          0.324   0.585   0.317    0.233    0.171      -       -        -       -         -       -       -        -       -        -        -
+     ECC Analyzer ‡        0.314   0.553   0.306    0.237    0.158      -       -        -       -         -       -       -        -       -        -        -
+  GPT4o Pred (3 shot) α    0.609   1.433   0.501     0.26    0.244   0.345   0.585    0.404    0.22     0.169   0.441   0.545    0.538    0.51     0.171    0.465
+ Gemini Pred (3 shot) α    0.592   1.368   0.487    0.251    0.263   0.451   0.824    0.598   0.219     0.163   0.337   0.475    0.404     0.3     0.171    0.466
+    Vanilla(Voyage) α      0.387   0.751   0.375    0.245    0.177    0.34   0.623    0.303   0.232     0.201   0.274   0.458    0.267   0.222     0.151    0.334
+     Vanilla(Gecko) α      0.36    0.664   0.356    0.237    0.182   0.283   0.513     0.27    0.19     0.159   0.254   0.402     0.25   0.249     0.116    0.299
+    Vanilla(OpenAI) α      0.339   0.682   0.311    0.209    0.155   0.319   0.596    0.290   0.206     0.184   0.235   0.402    0.232   0.177     0.127    0.298
+GPT4o(Summarization) α     0.299   0.585   0.283    0.188    0.142    0.3    0.548    0.274   0.204     0.174   0.246   0.405    0.236   0.221     0.124    0.282
+ GPT4o(Task-Specific) α    0.314   0.624   0.294    0.195    0.142   0.268   0.505    0.248   0.164     0.155   0.232   0.372    0.232   0.215     0.111    0.271
+Gemini(Summarization) α    0.275   0.568   0.244    0.167    0.122   0.268   0.494    0.254   0.165     0.158    0.23   0.372    0.236   0.202     0.109    0.258
+ Gemini(Task-Specific) α   0.284   0.583   0.252    0.175    0.128   0.276   0.508    0.262   0.176     0.158   0.235   0.383    0.229   0.212     0.115    0.265
+      PEV(Mean) α          0.399   0.743   0.389    0.262    0.201   0.305   0.532    0.301   0.209     0.177    0.23    0.38    0.229   0.173     0.139    0.311
+    STPEV(Mean) α          0.349   0.724    0.33    0.205    0.138   0.301   0.571    0.273    0.19      0.17   0.271   0.459    0.273   0.209     0.144    0.307
+   PEV(Mean)(Aug) α        0.367   0.712   0.351    0.235     0.17   0.283   0.514    0.271   0.188     0.157   0.229    0.37     0.24   0.168     0.139    0.293
+ STPEV(Mean)(Aug) α        0.296   0.569   0.293    0.201    0.122   0.225   0.443    0.214    0.13     0.112    0.25     0.5    0.237   0.159     0.103    0.257
+
+
+Table 3: The overall performance on EC, MAEC-15 and MAEC-16 datasets.The models below the double line and
+marked with α are implemented in this work. The results with ♮, ♯, b, , † and ‡ are retrieved from Yang et al. (2022),
+                                                                                                 [
+Li et al. (2020), Sawhney et al. (2020b), Niu et al. (2023), Cao et al. (2024a) and Cao et al. (2024b) respectively,
+and the remainder are from Sawhney et al. (2020a). The best results are in bold, and the second-best results are
+underlined. To ensure a fair comparison, the beforeAfterMarket is not adjusted for the results presented here.
+
+
+   • LLM Fine-Grained Text: Earnings call tran-                                       which are reasonable given the scarcity of prior
+     scripts are scrutinized using LLMs, specifi-                                     earnings, with details in Appendix C. However,
+     cally GPT-4o and Gemini-1.5-Flash, employ-                                       when applying the PEV(Mean) and STPEV(Mean)
+     ing two distinct strategies: Summarization and                                   to the augmented datasets, the MSEs decrease to
+     Task-Specific, to generate fine-grained sum-                                     0.293 and 0.257, with the latter achieving SOTA.
+     maries, which are then used to obtain embed-
+     dings18 . Details, such as prompt templates,                                     6.2     Evaluations on DEC Dataset
+     can be found in Appendix D.2.                                                    Evaluation settings. Following Section 6.1, we
+                                                                                      evaluate a range of transcript-based models on
+PEV and STPEV settings. We evaluate PEV
+                                                                                      DEC. These include LLM direct prediction, and
+and STPEV with the following two simple imple-
+                                                                                      six types of LLM embeddings19 . PEV(Mean) and
+mentations: PEV(Mean) and STPEV(Mean).
+                                                                                      STPEV(Mean) are also applied on DEC.
+Analysis. As shown in Table 3, direct predictions                                        We also introduce two random embed-
+from LLMs exhibit the worst performance, with                                         dings—Random(All) and Random(Ticker)—as
+MSEs of 0.465 and 0.466 for GPT4o and Gem-                                            baselines for comparison with transcript embed-
+ini, respectively, highlighting the limited ability of                                dings. This enables us to evaluate the role of
+LLMs to effectively handle regression tasks.                                          semantic content while investigating how ticker
+   The vanilla transcripts using OpenAI and Gecko                                     identity (i.e., information about which company the
+embeddings outperform all previous works except                                       transcripts belong to) is inherently captured at the
+KeFVP (Niu et al., 2023), demonstrating the supe-                                     transcript level. Crucially, ticker identity represents
+rior capability of LLM-based embeddings. Utiliz-                                      the primary distinction between PEV(Mean) and
+ing LLMs to process and analyze transcripts further                                   STPEV(Mean), reflecting differences in their
+improves performance, achieving the best MSE of                                       coverage of prior earnings examples.
+0.258 with the Gemini(summarization) strategy.                                            • Random(All): Each transcript is assigned a
+   The PEV(Mean) and STPEV(Mean) achieve                                                    random embedding. This approach effectively
+MSEs of 0.311 and 0.307 on original datasets,
+                                                                                         19
+                                                                                            Voyage has been shown to perform poorly in Table 3, we
+  18
+       OpenAI embeddings are used for fine-grained texts.                             thus report Vanilla(Voyage) results on DEC in Appendix D.3.
+
+                                                                             18409
+                                                 First Quarter                                 Second Quarter                               Third Quarter                                Fourth Quarter
+Year           Model                                                                                                                                                                                                   Average
+                                 M SE    M SE3    M SE7 M SE15        M SE30   M SE    M SE3     M SE7 M SE15      M SE30   M SE    M SE3    M SE7 M SE15       M SE30   M SE    M SE3     M SE7 M SE15       M SE30
+         GPT4o Pred (8 shot)     0.306   0.713     0.235      0.152    0.124   0.357   0.707      0.237    0.187    0.297   0.439   0.742     0.414     0.318    0.284   0.293   0.653     0.247      0.153     0.12    0.349
+         Gemini Pred (8 shot)    0.273   0.583     0.243      0.146    0.121   0.327   0.563      0.223    0.204    0.317   0.471   0.972      0.44     0.289    0.181   0.347   0.696     0.329      0.199    0.163    0.354
+           Vanilla (Gecko)       0.200   0.419     0.191      0.104    0.087   0.269   0.464      0.245    0.176    0.189   0.350   0.523     0.377     0.291    0.211   0.253   0.535     0.223      0.161    0.094    0.268
+          Vanilla (OpenAI)       0.170   0.357     0.148      0.079    0.097   0.250   0.457      0.212    0.145    0.185   0.372   0.547     0.462     0.285    0.194   0.213   0.501     0.173      0.109    0.068    0.251
+       GPT4o (Summarization)     0.183   0.390     0.162      0.097    0.084   0.277   0.482      0.252    0.171    0.204   0.353   0.549     0.430     0.278    0.156   0.234   0.544     0.190      0.124    0.079    0.262
+2021
+        GPT4o (Task-specific)    0.177   0.388     0.164      0.088    0.070   0.246   0.444      0.214    0.145    0.180   0.357   0.515     0.428     0.295    0.189   0.242   0.537     0.197      0.145    0.088    0.255
+       Gemini (Summarization)    0.175   0.356     0.153      0.083    0.106   0.246   0.454      0.212    0.144    0.173   0.322   0.502     0.394     0.240    0.151   0.255   0.553     0.215      0.142    0.109    0.249
+        Gemini (Task-specific)   0.176   0.384     0.159      0.094    0.067   0.249   0.435      0.210    0.156    0.197   0.347   0.503     0.407     0.286    0.190   0.248   0.548     0.215      0.140    0.088    0.255
+            Random (All)         0.249   0.472     0.231      0.150    0.143   0.294   0.497      0.291    0.189    0.201   0.433   0.603     0.512     0.359    0.259   0.300   0.577     0.280      0.212    0.132    0.319
+          Random (Ticker)        0.190   0.380     0.171      0.112    0.096   0.275   0.449      0.246    0.180    0.226   0.381   0.555     0.414     0.321    0.236   0.255   0.535     0.224      0.163    0.097    0.275
+            PEV(Mean)            0.216   0.433     0.209      0.115    0.105   0.271   0.451      0.239    0.184    0.209   0.405   0.580     0.429     0.342    0.270   0.288   0.568     0.260      0.199    0.127    0.295
+           STPEV(Mean)           0.156   0.368     0.149      0.067    0.041   0.249   0.463      0.209    0.150    0.173   0.333   0.525     0.353     0.260    0.196   0.222   0.536     0.177      0.114    0.062    0.240
+         GPT4o Pred (8 shot)     0.416   0.964     0.348      0.214    0.137    0.39   0.814      0.368    0.239    0.141   0.349    0.85     0.308     0.162    0.076   0.316   0.683     0.268      0.203    0.109    0.368
+         Gemini Pred (8 shot)    0.467   1.013      0.43      0.235     0.19   0.326   0.682      0.283    0.212    0.127    0.34   0.808     0.299     0.154    0.099   0.297    0.69     0.248       0.17    0.078    0.357
+           Vanilla (Gecko)       0.302   0.603     0.293      0.188    0.125   0.353   0.659      0.325    0.238    0.188   0.265   0.608     0.234     0.134    0.083   0.274   0.588     0.228      0.178    0.101    0.298
+          Vanilla (OpenAI)       0.258   0.523     0.253      0.160    0.095   0.354   0.671      0.251    0.260    0.235   0.261   0.622     0.237     0.112    0.072   0.256   0.585     0.195      0.156    0.088    0.282
+       GPT4o (Summarization)     0.332   0.641     0.311      0.225    0.149   0.317   0.656      0.273    0.174    0.164   0.239   0.586     0.195     0.107    0.069   0.291   0.629     0.217      0.201    0.118    0.295
+2022
+        GPT4o (Task-specific)    0.309   0.585     0.286      0.220    0.147   0.307   0.618      0.196    0.193    0.220   0.243   0.578     0.219     0.110    0.065   0.275   0.599     0.209      0.194    0.099    0.284
+       Gemini (Summarization)    0.297   0.591     0.269      0.208    0.119   0.348   0.660      0.240    0.244    0.246   0.252   0.605     0.220     0.109    0.073   0.250   0.573     0.180      0.151    0.094    0.287
+        Gemini (Task-specific)   0.291   0.599     0.276      0.169    0.120   0.314   0.656      0.254    0.187    0.157   0.243   0.584     0.216     0.109    0.065   0.267   0.604     0.191      0.174    0.098    0.279
+            Random (All)         0.316   0.614     0.326      0.203    0.121   0.410   0.746      0.390    0.291    0.213   0.324   0.674     0.298     0.195    0.131   0.324   0.597     0.304      0.231    0.163    0.343
+          Random (Ticker)        0.270   0.553     0.269      0.159    0.098   0.308   0.609      0.235    0.223    0.163   0.255   0.610     0.230     0.113    0.068   0.285   0.602     0.242      0.187    0.108    0.279
+            PEV(Mean)            0.326   0.619     0.326      0.215    0.146   0.380   0.719      0.343    0.272    0.185   0.310   0.647     0.285     0.185    0.121   0.316   0.618     0.283      0.220    0.143    0.333
+           STPEV(Mean)           0.270   0.584     0.245      0.152    0.099   0.310   0.640      0.270    0.201    0.129   0.243   0.592     0.219     0.104    0.057   0.278   0.599     0.236      0.183    0.095    0.275
+         GPT4o Pred (8 shot)      0.34    0.9      0.217      0.146    0.097   0.307   0.775      0.225    0.133    0.097   0.324   0.613     0.325     0.211    0.147   0.301   0.627     0.259      0.177    0.143    0.318
+         Gemini Pred (8 shot)    0.325   0.825      0.25      0.124    0.103   0.296   0.731      0.222    0.141    0.089    0.32   0.627     0.355     0.172    0.128   0.277   0.602     0.247      0.153    0.105    0.305
+           Vanilla (Gecko)       0.257   0.659     0.189      0.104    0.076   0.266   0.619      0.226    0.132    0.089   0.215   0.408     0.213     0.126    0.113   0.229   0.473     0.208      0.131    0.105    0.242
+          Vanilla (OpenAI)       0.268   0.663     0.197      0.109    0.104   0.274   0.643      0.235    0.134    0.084   0.226   0.439     0.249     0.129    0.088   0.258   0.557     0.222      0.142    0.111    0.257
+       GPT4o (Summarization)     0.262   0.642     0.202      0.108    0.097   0.266   0.634      0.233    0.121    0.076   0.220   0.405     0.226     0.144    0.103   0.250   0.542     0.214      0.145    0.098    0.249
+2023
+        GPT4o (Task-specific)    0.249   0.634     0.188      0.097    0.078   0.262   0.621      0.221    0.125    0.080   0.220   0.418     0.209     0.142    0.110   0.253   0.542     0.220      0.140    0.110    0.246
+       Gemini (Summarization)    0.262   0.629     0.194      0.113    0.114   0.260   0.624      0.213    0.129    0.074   0.210   0.415     0.224     0.119    0.083   0.238   0.523     0.210      0.127    0.092    0.243
+        Gemini (Task-specific)   0.262   0.637     0.204      0.115    0.092   0.269   0.622      0.228    0.136    0.088   0.210   0.408     0.205     0.126    0.102   0.244   0.528     0.211      0.133    0.105    0.246
+            Random (All)         0.317   0.729     0.248      0.163    0.130   0.352   0.752      0.290    0.213    0.152   0.280   0.481     0.265     0.193    0.182   0.279   0.566     0.251      0.155    0.143    0.307
+          Random (Ticker)        0.247   0.633     0.182      0.095    0.080   0.255   0.596      0.208    0.130    0.088   0.228   0.438     0.212     0.133    0.130   0.238   0.513     0.203      0.124    0.110    0.242
+            PEV(Mean)            0.309   0.725     0.236      0.150    0.124   0.330   0.723      0.279    0.186    0.134   0.262   0.463     0.249     0.172    0.166   0.278   0.584     0.245      0.148    0.134    0.295
+           STPEV(Mean)           0.239   0.611     0.180      0.093    0.074   0.253   0.601      0.209    0.122    0.081   0.227   0.432     0.215     0.132    0.130   0.246   0.520     0.215      0.133    0.118    0.242
+
+
+
+                                                                       Table 4: The overall performance on DEC.
+
+
+         removes both semantics and ticker identity.                                                                   These findings suggest that the semantic content
+       • Random(Ticker): Transcripts belonging to                                                                   of transcripts remains underexploited, while ticker
+         the same ticker are assigned the same ran-                                                                 identity plays a dominant role. This observation
+         domly generated embedding. This removes                                                                    motivates the following hypotheses:
+         semantics while preserving ticker identity.
+                                                                                                                            • (1) Do the representations prioritize ticker
+   We only report the results from 2021 to 2023
+                                                                                                                              identity over nuanced semantic information?
+in Table 4, as we suffer from sparse overlapping
+earnings for the years 2019 and 2020. The full                                                                              • (2) If so, do transcript-based models operate
+results can be found in Appendix D.3.                                                                                         primarily by leveraging the implicitly encoded
+Performance of different models. As shown                                                                                     and dominant ticker identity?
+in Table 4, direct prediction by GPT-4o and
+Gemini yield the worst performance with the                                                                           Ticker Identity                      Model
+                                                                                                                                                                                        Cosine Similarity
+                                                                                                                                                                                    Within-Ticker All-dataset
+MSEs of 0.345 and 0.339. Models based on                                                                                                          Vanilla (OpenAI)                       0.9           0.7
+transcript embeddings exhibit comparable per-                                                                                                      Vanilla (Gecko)                     0.958         0.865
+                                                                                                                                               GPT4o (Summarization)                    0.92         0.685
+formance among themselves: the best model,                                                                                                      GPT4o (Task-specific)                  0.929         0.724
+                                                                                                                             With
+Gemini(Summarization), and the worst model,                                                                                                    Gemini (Summarization)                  0.931         0.713
+                                                                                                                                                Gemini (Task-specific)                 0.918         0.728
+Vanilla(Gecko), achieve average MSEs of 0.260                                                                                                     Random (Ticker)                        1.0         0.752
+and 0.269, respectively. Further analysis in Ap-                                                                                                      Average                          0.937         0.738
+                                                                                                                            Without                 Random (All)                       0.765         0.753
+pendix D.5 shows that different LLMs fail to gener-
+ate distinct texts for the same transcripts, whereas                                                                Table 5: The mean cosine similarity between the within-
+two strategies, Summarization and task-specific,                                                                    ticker group and the all-dataset group.
+can differentiate transcripts effectively.
+   Despite containing only implicit ticker identity                                                                 Representation-level comparisons between within-
+and lacking any semantic content or insights, the                                                                   ticker group and all-dataset group. We compare
+Random(Ticker) and STPEV(Mean) achieve over-                                                                        the cosine similarity (for each earnings record)
+all MSEs of 0.265 and 0.252, respectively, with                                                                     within individual tickers and across the entire
+STPEV(Mean) outperforming all competing mod-                                                                        dataset for text embeddings. As shown in Table 5,
+els. In contrast, two approaches that exclude                                                                       the within-ticker similarity is consistently higher
+ticker identity—Random(All) and PEV(Mean),                                                                          than the overall similarity when ticker identity is
+with average MSEs of 0.323 and 0.307, respec-                                                                       present, even for texts scrutinized by LLMs. This
+tively—consistently underperform relative to all                                                                    observation aligns with the findings of Liu et al.
+other models that incorporate ticker identity.                                                                      (2024a): the semantics appear largely similar on
+                                                                                                          18410
+the surface for financial statements of the same                     a range of transcript-based models. We further
+company but correspond to different periods. For                     confirm that, under conventional NLP approaches,
+more details, please refer to Appendix D.6.                          which encode transcripts into embeddings intended
+   This finding is intuitive, as earnings calls for                  to capture financially meaningful semantics, the re-
+same company tend to follow consistent and struc-                    sulting representations primarily reflect ticker iden-
+tured patterns over time. This confirms our first hy-                tity and thereby the historical distribution of post-
+pothesis that the representations primarily capture                  earnings volatility specific to the same company.
+ticker identity, due to the repetitive and formulaic                 This is evidenced by representation-level similarity
+nature of transcripts from the same company.                         analyses between earnings from the same ticker
+                                                                     versus across tickers, as well as prediction-level
+Prediction-level comparisons between transcripts-
+                                                                     comparisons between transcript-based models and
+based models and STPEV(Mean). In the
+                                                                     STPEV(Mean).
+STPEV(Mean), the statistical mean is used as a
+                                                                        We conclude this work by highlighting two key
+proxy for the prior post-earnings volatility distri-
+                                                                     directions for future research:
+bution. We thus compare the predictions of dif-
+                                                                        First, earnings call records, including transcripts
+ferent transcripts-based models with those of the
+                                                                     and audio, are only part of the broader earnings
+STPEV(Mean) and calculate the Pearson correla-
+                                                                     event. An often-overlooked aspect is the earnings
+tion coefficients between them. As shown in Ta-
+                                                                     expectation, which is essential for contextualizing
+ble 6, The predictions of transcripts-based models
+                                                                     and interpreting the content of the call. Earnings
+and STPEV(Mean) are highly linearly correlated
+                                                                     outcomes should be understood in relation to these
+for all models that contain the ticker identity, with
+                                                                     expectations, which serve as ‘baselines,’ rather than
+an average correlation coefficient of 0.847 over 3
+                                                                     treating the transcripts as standalone inputs. More-
+years. This affirms our second hypothesis—that
+                                                                     over, temporal comparisons with a company’s his-
+the encoded ticker identity overwhelmingly drives
+                                                                     torical earnings, combined with horizontal com-
+the models to approximate historical post-earnings
+                                                                     parisons to peer companies, also offer meaningful
+volatility specific to the same company, thereby
+                                                                     context for interpreting the earnings event.
+overshadowing the contribution of nuanced seman-
+                                                                        The second direction concerns the importance
+tic content, building on the first hypothesis. Further
+                                                                     of financial numbers, such as earnings per share
+details are provided in Appendix D.7.
+                                                                     (EPS) and revenue. In this work, we observe that
+                                                 Yearly Average      text-driven embeddings tend to prioritize verbal
+ Ticker Identity           Model
+                                             2021 2022 2023          structures or ticker identity, while the true market-
+                      Vanilla (OpenAI)        0.87 0.873 0.866
+                       Vanilla (Gecko)       0.753 0.825 0.81        moving factors—often represented by quantitative
+                   GPT4o (Summarization)     0.799 0.792 0.848       metrics—are overshadowed. Although efforts have
+      With          GPT4o (Task-specific)    0.831 0.855 0.916
+                   Gemini (Summarization)    0.852 0.854 0.867
+                                                                     been made to address this issue, for example, Nu-
+                    Gemini (Task-specific)   0.816 0.843 0.867       merical HTML (NumHTML) (Yang et al., 2022)
+                      Random (Ticker)        0.786 0.925 0.946       has attempted to enhance language models’ abil-
+                          Average            0.815 0.852 0.874
+    Without             Random (All)         0.183 0.007 0.004       ity to represent numbers , we believe that a more
+                                                                     fundamental solution lies in performing Informa-
+Table 6: Pearson correlation coefficients between the                tion Extraction on transcripts and leveraging the
+predictions of transcripts models and of STPEV(Mean).
+                                                                     extracted numerical data directly for downstream
+                                                                     applications.
+7    Conclusion and Future Work                                      Acknowledgements
+In this work, we introduce a dense earnings call
+                                                                     We thank EOD20 for providing reliable earnings in-
+dataset: DEC, in which each ticker is represented
+                                                                     formation and price records. We also thank Roic21
+by 20 earnings, in contrast to the roughly two per
+                                                                     for providing access to major earnings call tran-
+ticker found in established datasets. Motivated
+                                                                     scripts, and Seeking Alpha22 for supplying sector
+by two key observations on DEC—the significant
+                                                                     information and partial earnings call transcripts.
+drift in post-earnings volatility and the presence
+of ticker-specific volatility regimes—we propose                          20
+                                                                             https://eodhd.com/
+two training-free baselines, PEV and STPEV. Re-                           21
+                                                                             https://www.roic.ai/
+markably, these simple statistical mean outperform                        22
+                                                                             https://seekingalpha.com/
+
+                                                                  18411
+References                                                Jiaxin Liu, Yi Yang, and Kar Yan Tam. 2024a. Beyond
+                                                             surface similarity: Detecting subtle semantic shifts
+Tim Bollerslev. 1986. Generalized autoregressive con-        in financial narratives. In Findings of the Association
+  ditional heteroskedasticity. Journal of Econometrics,      for Computational Linguistics: NAACL 2024, pages
+  31(3):307–327.                                             2641–2652, Mexico City, Mexico. Association for
+Yupeng Cao, Zhi Chen, Qingyun Pei, Fabrizio Dimino,          Computational Linguistics.
+  Lorenzo Ausiello, Prashant Kumar, KP Subbalak-
+  shmi, and Papa Momar Ndiaye. 2024a. Risklabs:           Mengpu Liu, Mengying Zhu, Xiuyuan Wang, Guofang
+  Predicting financial risk using large language model     Ma, Jianwei Yin, and Xiaolin Zheng. 2024b. Echo-
+  based on multi-sources data.          arXiv preprint     gl: Earnings calls-driven heterogeneous graph learn-
+  arXiv:2404.07452.                                        ing for stock movement prediction. Proceedings
+                                                           of the AAAI Conference on Artificial Intelligence,
+Yupeng Cao, Zhi Chen, Qingyun Pei, Nathan Jinseok          38(12):13972–13980.
+  Lee, KP Subbalakshmi, and Papa Momar Ndiaye.
+  2024b. Ecc analyzer: Extract trading signal from        Hao Niu, Yun Xiong, Xiaosu Wang, Wenjing Yu, Yao
+  earnings conference calls using large language model      Zhang, and Weizu Yang. 2023. KeFVP: Knowledge-
+  for stock performance prediction. arXiv preprint          enhanced financial volatility prediction. In Findings
+  arXiv:2404.18470.                                         of the Association for Computational Linguistics:
+                                                            EMNLP 2023, pages 11499–11513, Singapore. Asso-
+Si-An Chen, Chun-Liang Li, Nate Yoder, Sercan O.            ciation for Computational Linguistics.
+   Arik, and Tomas Pfister. 2023. Tsmixer: An all-mlp
+   architecture for time series forecasting.              Yu Qin and Yi Yang. 2019. What you say and how you
+                                                            say it matters: Predicting stock volatility using verbal
+Jacob Devlin. 2018. Bert: Pre-training of deep bidi-        and vocal cues. In Proceedings of the 57th Annual
+   rectional transformers for language understanding.       Meeting of the Association for Computational Lin-
+   arXiv preprint arXiv:1810.04805.                         guistics, pages 390–401, Florence, Italy. Association
+                                                            for Computational Linguistics.
+Andrew Ellul, Isil Erel, and Uday Rajan. 2020. The
+  covid-19 pandemic crisis and corporate finance.         Alec Radford. 2018. Improving language understanding
+                                                            by generative pre-training.
+Robert F Engle. 1982. Autoregressive conditional het-
+  eroscedasticity with estimates of the variance of       Ramit Sawhney, Piyush Khanna, Arshiya Aggarwal,
+  united kingdom inflation. Econometrica: Journal           Taru Jain, Puneet Mathur, and Rajiv Ratn Shah.
+  of the econometric society, pages 987–1007.               2020a. VolTAGE: Volatility forecasting via text au-
+Tianyu Gao, Xingcheng Yao, and Danqi Chen. 2021.            dio fusion with graph convolution networks for earn-
+  SimCSE: Simple contrastive learning of sentence           ings calls. In Proceedings of the 2020 Conference on
+  embeddings. In Empirical Methods in Natural Lan-          Empirical Methods in Natural Language Processing
+  guage Processing (EMNLP).                                 (EMNLP), pages 8001–8013, Online. Association for
+                                                            Computational Linguistics.
+Shimon Kogan, Dimitry Levin, Bryan R. Routledge,
+  Jacob S. Sagi, and Noah A. Smith. 2009. Pre-            Ramit Sawhney, Puneet Mathur, Ayush Mangal, Piyush
+  dicting risk from financial reports with regression.      Khanna, Rajiv Ratn Shah, and Roger Zimmermann.
+  In Proceedings of Human Language Technologies:            2020b. Multimodal multi-task financial risk forecast-
+  The 2009 Annual Conference of the North Ameri-            ing. In Proceedings of the 28th ACM International
+  can Chapter of the Association for Computational          Conference on Multimedia, MM ’20, page 456–465,
+  Linguistics, pages 272–280, Boulder, Colorado. As-        New York, NY, USA. Association for Computing
+  sociation for Computational Linguistics.                  Machinery.
+
+Jinhyuk Lee, Zhuyun Dai, Xiaoqi Ren, Blair Chen,          Haixu Wu, Tengge Hu, Yong Liu, Hang Zhou, Jianmin
+   Daniel Cer, Jeremy R. Cole, Kai Hui, Michael             Wang, and Mingsheng Long. 2022. Timesnet: Tem-
+   Boratko, Rajvi Kapadia, Wen Ding, Yi Luan, Sai           poral 2d-variation modeling for general time series
+   Meher Karthik Duddu, Gustavo Hernandez Abrego,           analysis. arXiv preprint arXiv:2210.02186.
+   Weiqiang Shi, Nithi Gupta, Aditya Kusupati, Pra-
+   teek Jain, Siddhartha Reddy Jonnalagadda, Ming-        Haixu Wu, Jiehui Xu, Jianmin Wang, and Mingsheng
+   Wei Chang, and Iftekhar Naim. 2024. Gecko: Ver-          Long. 2021. Autoformer: Decomposition transform-
+   satile text embeddings distilled from large language     ers with Auto-Correlation for long-term series fore-
+   models.                                                  casting. In Advances in Neural Information Process-
+                                                            ing Systems.
+Jiazheng Li, Linyi Yang, Barry Smyth, and Ruihai Dong.
+   2020. Maec: A multimodal aligned earnings confer-      Linyi Yang, Jiazheng Li, Ruihai Dong, Yue Zhang, and
+   ence call dataset for financial risk prediction. In      Barry Smyth. 2022. Numhtml: Numeric-oriented hi-
+   Proceedings of the 29th ACM International Confer-        erarchical transformer model for multi-task financial
+   ence on Information &amp; Knowledge Manage-              forecasting. In Proceedings of the AAAI Conference
+   ment, CIKM ’20, page 3063–3070, New York, NY,            on Artificial Intelligence, volume 36, pages 11604–
+   USA. Association for Computing Machinery.                11612.
+
+                                                     18412
+Linyi Yang, Tin Lok James Ng, Barry Smyth, and Rui-
+  hai Dong. 2020. Html: Hierarchical transformer-
+  based multi-task learning for volatility prediction.
+  In Proceedings of The Web Conference 2020, pages
+  441–451.
+Zhen Ye, Yu Qin, and Wei Xu. 2020. Financial risk
+  prediction with multi-round q&a attention network.
+  In Proceedings of the Twenty-Ninth International
+  Joint Conference on Artificial Intelligence, IJCAI-20,
+  pages 4576–4582. International Joint Conferences on
+  Artificial Intelligence Organization. Special Track
+  on AI in FinTech.
+Ailing Zeng, Muxi Chen, Lei Zhang, and Qiang Xu.
+  2023. Are transformers effective for time series fore-
+  casting? In Proceedings of the AAAI conference
+  on artificial intelligence, volume 37, pages 11121–
+  11128.
+
+Tian Zhou, Ziqing Ma, Qingsong Wen, Xue Wang,
+  Liang Sun, and Rong Jin. 2022. Fedformer: Fre-
+  quency enhanced decomposed transformer for long-
+  term series forecasting. In International conference
+  on machine learning, pages 27268–27286. PMLR.
+
+
+
+
+                                                      18413
+A        Dataset Details                                companies in the U.S. while maintaining diversity.
+                                                           After identifying 110 tickers, we merged earn-
+A.1 Missing BeforeAfterMarket: An Example
+                                                        ings call transcripts25 with price records26 . During
+Previous studies have overlooked the fact that earn-    this process, some tickers were excluded due to var-
+ings can be released before the market opens, which     ious reasons, such as incomplete earnings cycles
+is 9 AM in U.S. exchanges. Here is a specific exam-     (fewer than 20 earnings records) or missing price
+ple in EC dataset: Target (TGT) Q3 2017 Earnings        data or the beforeAfterMarket attribute.
+Call23 . This earnings release occurred at 8:00 AM
+ET on Nov. 15, 2017. Since market participants
+were provided with this earnings disclosures and
+traded based on it during trading hours on Nov. 15,
+the first post earnings day should be considered
+as Nov. 15 rather than Nov. 16. According to the
+definition of post-earnings volatility, the three-day
+volatility should account for the trading days {Nov.
+15, Nov. 16, and Nov. 17}, not {Nov. 16, Nov. 17,
+and Nov. 20}. Consequently, the volatility should
+be recalculated as -2.726, whereas previous studies
+incorrectly recorded it as -3.703.                                  Figure 4: DEC Sector Distribution
+   Regrettably, both the EC and MAEC datasets
+exhibit critical errors when calculating volatility        Ultimately, we retained 90 tickers across 11
+for earnings released before the market opening.        sectors, with each ticker containing 20 earnings
+Specifically, the EC, MAEC15, and MAEC16                records spanning from the first quarter of 2019 to
+datasets contain 368, 395, and 584 earnings re-         the last quarter of 2023, resulting in a total of 1,800
+leased before market opening, accounting for            earnings records. The sector distribution is illus-
+69.3%, 64.3%, and 64.2% of the datasets, respec-        trated in Figure 4.
+tively. Thus, we believe that the volatility values
+used in prior studies are unreliable.                   B        Two Observations from DEC
+A.2 DEC Dataset Details                                 B.1 Post Earnings Volatility Distribution Drift
+To ensure a diverse representation of tickers in the    Figure 5 compares the daily returns before and af-
+U.S. markets, we selected 11 sectors: Technology,       ter earnings for the EC, MAEC, and DEC datasets.
+Healthcare, Industrial, Utility, Real Estate, Basic     The absolute return on the first day after earnings,
+Materials, Financial Services, Consumer Discre-         rf uture_1 , is significantly higher than on other days.
+tionary, Consumer Staples, Communication Ser-           In contrast, Figure 6 compares the daily returns
+vices, and Energy. Each sector exhibits distinct        without beforeAfterMarket adjustment from the
+characteristics in response to earnings calls, driven   original EC and MAEC datasets27 . In this case,
+by differences in business models, investor expec-      the effect tends to diminish or disappear due to the
+tations, and macroeconomic influences.                  incorrect time used in identifying rf uture_1 . This
+   For each sector, we selected companies that are      observation further validates the importance of the
+among the top 10 holdings in sector-specific ETFs.      beforeAfterMarket attribute.
+For example, in the technology sector, the top 10          In Section 5.1, we conclude that days involving
+companies held by the XLK ETF24 include Apple           the volatility calculation of rf uture_1 (the first day
+Inc., NVIDIA Corp., Microsoft Corp., Broadcom           after earnings) exhibit significantly higher volatil-
+Inc., Salesforce Inc., Oracle Corp., Cisco Systems      ity compared to other days. Figure 2 illustrates
+Inc., Adobe Inc., Accenture PLC Class A, and Ad-        this pattern for a 3-day window. In contrast, Fig-
+vanced Micro Devices Inc. In this way, we further       ure 7 compares the same trend without the be-
+ensure that DEC includes most of the representative     foreAfterMarket adjustment using the original EC
+    23                                                      25
+     https://seekingalpha.com/article/                       https://www.roic.ai/
+                                                            26
+4125212-target-tgt-q3-2017-results-earnings-\                https://eodhd.com/
+call-transcript                                           27
+                                                             https://github.com/hankniu01/KeFVP/tree/main/
+  24
+     https://seekingalpha.com/symbol/XLK                price_data
+
+                                                   18414
+          (a) EC                   (b) MAEC-15                 (c) MAEC-16                   (d) DEC
+
+Figure 5: Comparison of returns before and after earnings announcements. Earnings are released between the day
+labeled past_1 and the day labeled future_1. The absolute return on future_1 is significantly higher than on
+pre-earnings days or other subsequent post-earnings days.
+
+
+
+
+              (a) EC                             (b) MAEC-15                          (c) MAEC-16
+
+Figure 6: Comparison of returns (without beforeAfterMarket adjustment) before and after earnings announcements.
+Earnings are released between the day labeled past_1 and the day labeled future_1. The increased absolute
+future_1 tends to diminish or disappear, compared to Figure 5.
+
+
+
+
+               (a) EC                            (b) MAEC-15                          (c) MAEC-16
+
+Figure 7: Comparison of three-day volatility (without beforeAfterMarket adjustment) before and after earnings
+announcements. Earnings are released between the day labeled past_1 and the day labeled future_1. Figure 2
+displays the same comparison except with beforeAfterMarket adjustment.
+
+
+and MAEC datasets, where the increased volatility        This further underscores the importance of incor-
+within the 3-day window is observed to dilute. This      porating the beforeAfterMarket attribute.
+further highlights the importance of incorporating
+the beforeAfterMarket attribute.
+  Furthermore, Figure 8 demonstrates that the post-         We do not present volatility comparisons for win-
+earnings volatility distribution drift persists for a    dow sizes of 15 and 30, as they could not fit into a
+7-day window. In contrast, Figure 9 presents the         single figure due to space constraints. Nevertheless,
+same comparison without the beforeAfterMarket            the same distribution drift is observed for these win-
+adjustment, where the phenomenon diminishes at           dow sizes due to the increased absolute values of
+the beginning and end of the volatility window.          rf uture_1 .
+                                                    18415
+          (a) EC                     (b) MAEC-15                   (c) MAEC-16                    (d) DEC
+
+Figure 8: Comparison of seven-day volatility before and after earnings announcements. Earnings are released
+between the day labeled past_1 and the day labeled future_1. Days where the volatility calculation involves the
+return of future_1 exhibit significantly higher volatility compared to others.
+
+
+
+
+                (a) EC                             (b) MAEC-15                            (c) MAEC-16
+
+Figure 9: Comparison of seven-day volatility (without beforeAfterMarket adjustment) before and after earnings
+announcements. Earnings are released between the day labeled past_1 and the day labeled future_1. Figure 8
+displays the same comparison except with beforeAfterMarket adjustment.
+
+
+
+
+          (a) EC                     (b) MAEC-15                   (c) MAEC-16                    (d) DEC
+
+Figure 10: Comparison of the mean of three-day volatility between the within-ticker group and the all-dataset group.
+
+
+B.2   Ticker-Specific Volatility Regime                     ure 10 compares the mean values of three-day
+The ticker-specific volatility regime posits that each      volatility between the within-ticker group and the
+company tends to follow a distinct post-earning             all-dataset group. This analysis is particularly rel-
+volatility distribution. We term this phenomenon            evant, as the mean function is primarily used and
+as Volatility Signature, which likely arises from           benchmarked against baselines in Section 6. The
+intrinsic company characteristics that remain rela-         figure reveals significant variation in mean values
+tively stable over short periods. These characteris-        across tickers (as shown on the y-axis), underscor-
+tics may include industry and sector classification,        ing the motivation for introducing STPEV as an
+operational dynamics, company size and market               enhancement to PEV.
+position, and financial structure. Such stable prop-
+                                                            C    Augmentation on EC and MAEC
+erties act as anchors, mitigating extreme volatility
+fluctuations and maintaining predictable patterns           Since the PEV and STPEV take historical post-
+of post-earnings volatility, even in response to peri-      earnings volatility as input, the current EC and
+odic financial disclosures.                                 MAEC datasets, which lack sufficient previous
+   To further illustrate the volatility signature, Fig-     same-ticker earnings records, must be left-extended
+                                                      18416
+  Dataset                   EC                   MAEC-15      |       MAEC-16      |
+   Type          Original     Augmented    Original Augmented   Original Augmented        Prompt for LLMs Direct Volatility Predic-
+   Range        2017-2017     2012-2017   2015-2015 2010-2015 2015-2016 2011-2016
+Count (Train)      179           2195         94       3192       215       5765          tion
+Count (Test)       112           112         154        154       280        280
+   OET            1.598         19.775       0.61     20.727     0.768     20.812
+                                                                                          Company ticker has just released its earnings transcript. Our primary
+                                                                                          goal is to predict the volatility for the next {prediction_window}
+Table 7: EC and MAEC statistics between the original                                      trading days.
+and the augmented for STPEV. OET is defined as the                                        Let me first clarify our target: volatility = log(std(r1, r2, ..., rn)),
+proportion of overlapping training earnings over testing                                  where ri is the return on day i in the future.
+                                                                                          In general, higher volatility means more dramatic price fluctuations,
+tickers defined in equation 2.                                                            indicating a more volatile market.
+
+                                                                                          To help you understand the task, here are some previous examples
+                                                                                          of earnings call transcripts and their corresponding volatility values
+to earlier years. Table 7 compares the data statis-                                       for ticker over the past 2 years (a total of 8 earnings). The most
+                                                                                          recent pair is labeled as previous 1, representing the latest past
+tics of testing tickers overlapped training earnings                                      earnings, while previous 8 refers to the oldest past earnings.
+relative to testing tickers (OET) before and after                                        Previous 1 (transcripts, volatility) pair for ticker: - Transcript
+augmentation. It is evident that the OET values are                                       (start):   - Transcript (end). - Target (volatility for the next
+                                                                                          extprediction_window trading days): volatility
+significantly improved by left-extension.
+                                                                                          Previous 2 (transcripts, volatility) pair for ticker: - Transcript
+                                                                                          (start):   - Transcript (end). - Target (volatility for the next
+D      Evaluations and Analysis on DEC                                                    extprediction_window trading days): volatility
+                                                                                          ...
+                                                                                          ...
+D.1 Implementation Details for                                                            ...
+    Transcripts-based Models                                                              Previous 8 (transcripts, volatility) pair for ticker: - Transcript
+                                                                                          (start):   - Transcript (end). - Target (volatility for the next
+                                                                                          extprediction_window trading days): volatility
+One NVIDIA L40 GPU is used for the transcript-
+based models. The learning rate is set to 1e-4, with                                      Now that you’ve reviewed the goal and examples, here’s the current
+                                                                                          earnings call transcript for analysis:
+a batch size of 32 and a random seed of 2021. The                                         - Transcript (start): current_transcripts - Transcript (end).
+models are trained for up to 10 epochs using early-                                       Let’s proceed step by step: 1. Recognize patterns for using the
+stopping techniques. All results are based on a                                           transcripts of ticker to predict volatility.
+                                                                                          2. Perform a comparative analysis of the current earnings transcript
+single run.                                                                               with the previous examples, as quarter-to-quarter performance is
+                                                                                          critical for earnings.
+   The embedding dimensions for OpenAI, Gecko,                                            3. Use your identified patterns and comparative analysis to predict
+                                                                                          the volatility for the next prediction_window days.
+and Voyage embeddings models are 3071, 768, and
+1024, respectively. The 2-layer MLP has a hidden                                          Details about your reasoning process are highly appreciated.
+
+size of 512 in the middle layer.
+   When evaluating a quarter on DEC, all previous
+                                                                                       Figure 11: Prompt for LLMs direct volatility prediction.
+quarters are randomly split into training and valida-
+tion sets with a 2:1 ratio, using a random state of
+42. The preliminary experiments demonstrate that                                       selected pairs are used as demonstrations, while
+this approach outperforms the following settings:                                      for DEC, eight ticker-specific prior pairs are in-
+                                                                                       cluded as demonstrations. The prompt template is
+    • Using all previous quarters, with the first two-
+                                                                                       illustrated in Figure 11.
+      thirds as the training set and the last one-third
+      as the validation set.                                                           LLM Fine-grained Text We also leverage LLMs
+                                                                                       to extract signals and insights from vanilla earnings
+    • Using the previous three quarters only, ran-                                     call transcripts. Specifically, we deploy two distinct
+      domly split into training and validation sets                                    prompt strategies:
+      with a 2:1 ratio and random state of 42.
+                                                                                          • Summarization: We prompt the LLMs to ex-
+    • Using the previous three quarters, with the                                           tract key points from the transcripts, focusing
+      first two-thirds as the training set and the last                                     on different perspectives such as financial per-
+      one-third as the validation set.                                                      formance metrics, management commentary,
+                                                                                            and operational updates. The prompt template
+D.2 Transcripts-based Models with LLM
+                                                                                            is illustrated in Figure 12.
+LLM Direct Prediction We utilize few-shot
+learning to prompt LLMs for direct volatility pre-                                        • Task-Specific: We provided the LLMs with the
+diction, providing the task description and prior                                           context of the post-earnings volatility predic-
+(earnings call transcripts, volatility) pairs within                                        tion task, requiring them to generate insight-
+the prompt. For EC and MAEC, three randomly                                                 ful comments tailored to this objective. The
+                                                                                  18417
+    Prompt with summarization strategy                                            Prompt with task-specific strategy
+    Company ticker released its earnings call transcripts just now. As            Company ticker released its earnings call transcripts just now. You
+    an earnings call transcripts analyzer, here are the key aspects you           are going to predict the volatility following the earnings, which is
+    need to focus on to gain meaningful insights:                                 defined as the log of the standard deviation of following n days
+                                                                                  returns, generally, the volatility is higher, the more dramatic the
+    1. Financial Performance Metrics                                              market reacts to the earnings.
+
+           • Revenue: Compare reported revenue against analyst esti-              Try to mine some cues from the earnings calls transcripts and clearly
+             mates and year-over-year (YoY) growth.                               state why these cues can affect the volatility post earnings. More
+                                                                                  details from the cues to volatility are appreciated. Below are some
+           • Earnings Per Share (EPS): Assess whether EPS met, ex-                possible key cues and explanations of their potential impact on
+             ceeded, or missed expectations.                                      volatility, you do not need to cover all aspects, just focus on those
+           • Profit Margins: Look at gross, operating, and net margins            occur in transcripts.
+             for any improvements or declines.
+                                                                                  1. Earnings Surprises
+           • Guidance: Check forward-looking revenue, EPS, and other
+             projections provided by the company.                                       • Magnitude of earnings per share (EPS) or revenue
+                                                                                          beats/misses relative to analyst estimates.
+    2. Management Commentary
+                                                                                        • Large surprises (positive or negative) often lead to dramatic
+           • Tone and Language: Analyze whether management is opti-                       market reactions due to adjustments in future expectations.
+             mistic, cautious, or defensive.                                            • A large miss might signal fundamental issues, triggering
+           • Key Themes: Identify recurring themes or buzzwords (e.g.,                    sell-offs, while a large beat might lead to euphoria, driving
+             cost-cutting, innovation, market expansion).                                 prices up significantly.
+
+           • Clarity: Observe if management clearly addresses concerns            2. Management Guidance
+             or uses vague language.
+                                                                                        • Updates to forward-looking revenue, earnings, or margin
+    3. Operational Updates                                                                expectations.
+
+           • Market Performance: Insights into geographic regions or                    • Upward guidance revision increases investor confidence,
+             product lines driving growth or underperformance.                            often reducing downside risk but amplifying upside potential,
+                                                                                          leading to volatility.
+           • New Initiatives: Details about product launches, partner-
+             ships, acquisitions, or market expansions.                                 • Downward revisions heighten uncertainty and can trigger
+                                                                                          aggressive revaluation.
+           • Challenges: Discussion of supply chain issues, regulatory
+             hurdles, or other headwinds.                                         3. Sentiment and Tone
+
+    ...                                                                                 • A confident tone with positive language like "record growth"
+    ...                                                                                   or "strong demand" reduces perceived risk but might create
+    ...                                                                                   higher expectations, increasing volatility if unmet.
+
+    Here    is    the    earnings       call   transcripts:     cur-                    • Defensive or overly cautious tone signals potential underly-
+    rent_earnings_call_transcripts.        Earnings call transcripts                      ing issues, creating fear or speculation.
+    ends.
+                                                                                  ...
+                                                                                  ...
+                                                                                  ...
+    Figure 12: Prompt with summarization strategy.                                Here     is     the    earnings      call    transcripts:        cur-
+                                                                                  rent_earnings_call_transcripts.
+                                                                                  Earnings call transcripts ends.
+          prompt template is illustrated in Figure 13.
+
+                                                                                   Figure 13: Prompt with task-specific strategy.
+D.3 Results for Transcripts-based Models.
+Due to the limited number of overlapping earn-
+ings in 2019 and 2020 within the DEC dataset28 ,                                As shown in Table 8, transcript-based models
+which affects the suitability of the STPEV base-                             and STPEV(Mean) underperform STPEV(LR) dur-
+line, we present results only for the years 2021 to                          ing the early years of 2019 and 2020, where the lim-
+2023 in Section 6.2. Here, we provide the com-                               ited number of previous earnings makes it challeng-
+plete results on DEC, including three additional                             ing to capture the prior post-earnings volatility dis-
+STPEV variants: STPEV(Median), STPEV(LR),                                    tribution. On the other hand, relatively complex im-
+and STPEV(MLP). The training-free median im-                                 plementations of STPEV, such as STPEV(LR) and
+plementation is similar to the mean approach. The                            STPEV(MLP), underperform simpler approaches
+linear regression and MLP require training and pa-                           like STPEV(Mean) and STPEV(Median) when suf-
+rameter selection. To address this, we use cross-                            ficient previous same-ticker earnings are available.
+validation for each quarter, as earnings released in
+the same quarter share the same number of prior                              D.4        Pre-earnings Volatility Series Prediction.
+post-earnings volatility.                                                    Since volatility prediction is a type of time-series
+   28
+      In real-world applications, it is typically possible to gather         forecasting problem, we follow KeFVP (Niu et al.,
+sufficient historical earnings data.                                         2023) and predict volatility using pre-earnings
+                                                                          18418
+                                                  First Quarter                                 second Quarter                                 Third Quarter                                Fourth Quarter
+Year            Model                                                                                                                                                                                                     Average
+                                  M SE    M SE3    M SE7 M SE15        M SE30   M SE    M SE3     M SE7 M SE15       M SE30   M SE     M SE3    M SE7 M SE15       M SE30   M SE    M SE3     M SE7 M SE15       M SE30
+           Vanilla (Voyage)          -      -          -         -        -      0.97   3.124      0.317     0.217    0.223   0.416    0.948     0.335     0.212     0.17   0.493   0.575     0.472      0.465     0.46    0.626
+           Vanilla (OpenAI)          -      -          -         -        -     0.550   0.693      0.763     0.446    0.296   0.258    0.563     0.245     0.130    0.092   0.266   0.466     0.263      0.196    0.140    0.358
+            Vanilla (Gecko)          -      -          -         -        -     0.376   0.563      0.385     0.287    0.268   0.316    0.603     0.270     0.219    0.173   0.241   0.425     0.217      0.170    0.154    0.311
+        GPT4o (Summarization)        -      -          -         -        -     0.317   0.596      0.398     0.168    0.104   0.279    0.585     0.272     0.155    0.104   0.247   0.433     0.227      0.171    0.159    0.281
+         GPT4o (Task-specific)       -      -          -         -        -     0.328   0.606      0.416     0.180    0.109   0.285    0.605     0.278     0.154    0.104   0.231   0.407     0.214      0.162    0.142    0.281
+        Gemini (Summarization)       -      -          -         -        -     0.349   0.646      0.444     0.193    0.112   0.277    0.585     0.268     0.153    0.102   0.230   0.409     0.218      0.157    0.138    0.285
+2019
+         Gemini (Task-specific)      -      -          -         -        -     0.324   0.617      0.408     0.173    0.099   0.291    0.596     0.280     0.170    0.119   0.233   0.404     0.223      0.161    0.143    0.283
+             Random (All)            -      -          -         -        -     0.326   0.603      0.376     0.197    0.129   0.358    0.623     0.328     0.288    0.191   0.276   0.448     0.256      0.206    0.192    0.320
+           Random (Ticker)           -      -          -         -        -     0.878   1.733      0.389     0.442    0.947   0.322    0.599     0.310     0.225    0.154   0.228   0.396     0.214      0.158    0.145    0.476
+              PEV(Mean)              -      -          -         -        -     0.266   0.522      0.288     0.149    0.107   0.294    0.574     0.279     0.188    0.133   0.221   0.394     0.208      0.151    0.130    0.260
+            STPEV(Mean)              -      -          -         -        -     0.415   0.902      0.442     0.198    0.118   0.299    0.638     0.295     0.159    0.105   0.272   0.523     0.265      0.181    0.119    0.329
+           STPEV(Median)             -      -          -         -        -     0.415   0.902      0.442     0.198    0.118   0.299    0.638     0.295     0.159    0.105   0.300   0.559     0.311      0.198    0.133    0.338
+             STPEV(LR)               -      -          -         -        -     0.227   0.488      0.254     0.108    0.059   0.229    0.522     0.241     0.102    0.051   0.200   0.383     0.195      0.135    0.086    0.219
+            STPEV(MLP)               -      -          -         -        -     0.648   1.122      0.665     0.459    0.348   0.305    0.671     0.330     0.150    0.068   0.259   0.504     0.259      0.174    0.099    0.404
+           Vanilla (Voyage)       0.782   0.695     0.422      0.662    1.351   0.594   0.791      0.438      0.4     0.748   0.574    0.879      0.47     0.501    0.445   0.335   0.616     0.259       0.24    0.225    0.571
+           Vanilla (OpenAI)       0.783   0.744     0.447      0.646    1.295   0.339   0.637      0.321     0.235    0.162   0.328    0.684     0.245     0.209    0.177   0.325   0.540     0.275      0.284    0.200    0.444
+            Vanilla (Gecko)       0.795   0.753     0.502      0.650    1.276   0.358   0.620      0.334     0.285    0.192   0.349    0.734     0.258     0.203    0.203   0.310   0.535     0.269      0.256    0.179    0.453
+        GPT4o (Summarization)     0.781   0.701     0.470      0.652    1.302   0.294   0.598      0.276     0.191    0.112   0.363    0.771     0.263     0.216    0.202   0.268   0.482     0.222      0.220    0.147    0.427
+         GPT4o (Task-specific)    0.787   0.733     0.479      0.648    1.286   0.342   0.619      0.329     0.261    0.159   0.311    0.690     0.209     0.169    0.176   0.280   0.508     0.225      0.234    0.153    0.430
+        Gemini (Summarization)    0.787   0.679     0.463      0.666    1.340   0.306   0.610      0.294     0.207    0.114   0.369    0.769     0.271     0.239    0.196   0.277   0.483     0.223      0.233    0.170    0.435
+2020
+         Gemini (Task-specific)   0.747   0.688     0.437      0.620    1.244   0.300   0.602      0.271     0.213    0.116   0.317    0.700     0.216     0.182    0.172   0.291   0.503     0.248      0.251    0.160    0.414
+             Random (All)         0.909   0.842     0.563      0.751    1.481   0.393   0.625      0.359     0.345    0.244   0.372    0.760     0.299     0.237    0.191   0.351   0.546     0.288      0.340    0.232    0.506
+           Random (Ticker)        0.810   0.756     0.496      0.680    1.308   0.437   0.694      0.413     0.379    0.262   0.351    0.760     0.271     0.204    0.171   0.346   0.551     0.304      0.310    0.221    0.486
+              PEV(Mean)           0.750   0.772     0.504      0.631    1.095   0.381   0.623      0.350     0.314    0.239   0.349    0.738     0.276     0.212    0.171   0.348   0.576     0.304      0.298    0.216    0.457
+            STPEV(Mean)           0.817   0.725     0.477      0.695    1.370   0.438   0.786      0.383     0.346    0.237   0.269    0.685     0.196     0.112    0.083   0.311   0.536     0.275      0.281    0.151    0.459
+           STPEV(Median)          0.814   0.735     0.480      0.684    1.358   0.495   0.798      0.441     0.396    0.345   0.283    0.700     0.201     0.128    0.103   0.337   0.519     0.295      0.318    0.215    0.482
+             STPEV(LR)            0.422   0.664     0.370      0.453    0.200   0.277   0.614      0.222     0.148    0.126   0.288    0.755     0.203     0.110    0.082   0.259   0.609     0.224      0.125    0.077    0.311
+            STPEV(MLP)            0.468   0.678     0.357      0.598    0.237   0.499   0.901      0.525     0.454    0.115   0.318    0.753     0.220     0.163    0.138   0.342   0.614     0.329      0.332    0.094    0.407
+           Vanilla (Voyage)       0.432   0.566     0.363      0.325    0.473   0.378   0.644      0.366     0.274    0.227   0.371    0.669     0.426     0.263    0.127   0.238   0.512     0.192      0.128     0.12    0.355
+           Vanilla (OpenAI)       0.170   0.357     0.148      0.079    0.097   0.250   0.457      0.212     0.145    0.185   0.372    0.547     0.462     0.285    0.194   0.213   0.501     0.173      0.109    0.068    0.251
+            Vanilla (Gecko)       0.200   0.419     0.191      0.104    0.087   0.269   0.464      0.245     0.176    0.189   0.350    0.523     0.377     0.291    0.211   0.253   0.535     0.223      0.161    0.094    0.268
+        GPT4o (Summarization)     0.183   0.390     0.162      0.097    0.084   0.277   0.482      0.252     0.171    0.204   0.353    0.549     0.430     0.278    0.156   0.234   0.544     0.190      0.124    0.079    0.262
+         GPT4o (Task-specific)    0.177   0.388     0.164      0.088    0.070   0.246   0.444      0.214     0.145    0.180   0.357    0.515     0.428     0.295    0.189   0.242   0.537     0.197      0.145    0.088    0.255
+        Gemini (Summarization)    0.175   0.356     0.153      0.083    0.106   0.246   0.454      0.212     0.144    0.173   0.322    0.502     0.394     0.240    0.151   0.255   0.553     0.215      0.142    0.109    0.249
+2021
+         Gemini (Task-specific)   0.176   0.384     0.159      0.094    0.067   0.249   0.435      0.210     0.156    0.197   0.347    0.503     0.407     0.286    0.190   0.248   0.548     0.215      0.140    0.088    0.255
+             Random (All)         0.249   0.472     0.231      0.150    0.143   0.294   0.497      0.291     0.189    0.201   0.433    0.603     0.512     0.359    0.259   0.300   0.577     0.280      0.212    0.132    0.319
+           Random (Ticker)        0.190   0.380     0.171      0.112    0.096   0.275   0.449      0.246     0.180    0.226   0.381    0.555     0.414     0.321    0.236   0.255   0.535     0.224      0.163    0.097    0.275
+              PEV(Mean)           0.216   0.433     0.209      0.115    0.105   0.271   0.451      0.239     0.184    0.209   0.405    0.580     0.429     0.342    0.270   0.288   0.568     0.260      0.199    0.127    0.295
+            STPEV(Mean)           0.156   0.368     0.149      0.067    0.041   0.249   0.463      0.209     0.150    0.173   0.333    0.525     0.353     0.260    0.196   0.222   0.536     0.177      0.114    0.062    0.240
+           STPEV(Median)          0.174   0.406     0.168      0.077    0.046   0.241   0.485      0.214     0.128    0.138   0.340    0.594     0.361     0.241    0.164   0.243   0.580     0.189      0.129    0.073    0.250
+             STPEV(LR)            0.185   0.443     0.180      0.073    0.045   0.191   0.412      0.170     0.114    0.069   0.277    0.602     0.249     0.158    0.099   0.248   0.548     0.235      0.139    0.072    0.225
+            STPEV(MLP)            0.230   0.537     0.194      0.125    0.063   0.402   0.458      0.182     0.142    0.827   0.315    0.537     0.362     0.161    0.200   0.268   0.527     0.220      0.167    0.159    0.304
+           Vanilla (Voyage)       0.247   0.522     0.231      0.135    0.101   0.237   0.535      0.174     0.132    0.108    0.33    0.713      0.29     0.184    0.131   0.241   0.543     0.177      0.135     0.11    0.264
+           Vanilla (OpenAI)       0.258   0.523     0.253      0.160    0.095   0.354   0.671      0.251     0.260    0.235   0.261    0.622     0.237     0.112    0.072   0.256   0.585     0.195      0.156    0.088    0.282
+            Vanilla (Gecko)       0.302   0.603     0.293      0.188    0.125   0.353   0.659      0.325     0.238    0.188   0.265    0.608     0.234     0.134    0.083   0.274   0.588     0.228      0.178    0.101    0.298
+        GPT4o (Summarization)     0.332   0.641     0.311      0.225    0.149   0.317   0.656      0.273     0.174    0.164   0.239    0.586     0.195     0.107    0.069   0.291   0.629     0.217      0.201    0.118    0.295
+         GPT4o (Task-specific)    0.309   0.585     0.286      0.220    0.147   0.307   0.618      0.196     0.193    0.220   0.243    0.578     0.219     0.110    0.065   0.275   0.599     0.209      0.194    0.099    0.284
+        Gemini (Summarization)    0.297   0.591     0.269      0.208    0.119   0.348   0.660      0.240     0.244    0.246   0.252    0.605     0.220     0.109    0.073   0.250   0.573     0.180      0.151    0.094    0.287
+2022
+         Gemini (Task-specific)   0.291   0.599     0.276      0.169    0.120   0.314   0.656      0.254     0.187    0.157   0.243    0.584     0.216     0.109    0.065   0.267   0.604     0.191      0.174    0.098    0.279
+             Random (All)         0.316   0.614     0.326      0.203    0.121   0.410   0.746      0.390     0.291    0.213   0.324    0.674     0.298     0.195    0.131   0.324   0.597     0.304      0.231    0.163    0.343
+           Random (Ticker)        0.270   0.553     0.269      0.159    0.098   0.308   0.609      0.235     0.223    0.163   0.255    0.610     0.230     0.113    0.068   0.285   0.602     0.242      0.187    0.108    0.279
+              PEV(Mean)           0.326   0.619     0.326      0.215    0.146   0.380   0.719      0.343     0.272    0.185   0.310    0.647     0.285     0.185    0.121   0.316   0.618     0.283      0.220    0.143    0.333
+            STPEV(Mean)           0.270   0.584     0.245      0.152    0.099   0.310   0.640      0.270     0.201    0.129   0.243    0.592     0.219     0.104    0.057   0.278   0.599     0.236      0.183    0.095    0.275
+           STPEV(Median)          0.268   0.544     0.245      0.164    0.119   0.320   0.623      0.273     0.228    0.154   0.237    0.576     0.210     0.101    0.061   0.282   0.592     0.233      0.199    0.102    0.277
+             STPEV(LR)            0.305   0.739     0.273      0.145    0.063   0.251   0.759      0.140     0.075    0.030   0.292    0.723     0.258     0.120    0.068   0.264   0.690     0.195      0.107    0.065    0.278
+            STPEV(MLP)            0.479   1.133     0.264      0.194    0.325   0.354   0.777      0.210     0.272    0.157   0.486    0.910     0.271     0.699    0.066   0.716   1.090     0.821      0.800    0.155    0.509
+           Vanilla (Voyage)        0.55   0.945     0.476      0.385    0.392   0.283   0.648      0.243     0.153    0.087    0.23    0.505     0.223     0.117    0.077    0.24   0.526     0.213      0.124    0.096    0.326
+           Vanilla (OpenAI)       0.268   0.663     0.197      0.109    0.104   0.274   0.643      0.235     0.134    0.084   0.226    0.439     0.249     0.129    0.088   0.258   0.557     0.222      0.142    0.111    0.257
+            Vanilla (Gecko)       0.257   0.659     0.189      0.104    0.076   0.266   0.619      0.226     0.132    0.089   0.215    0.408     0.213     0.126    0.113   0.229   0.473     0.208      0.131    0.105    0.242
+        GPT4o (Summarization)     0.262   0.642     0.202      0.108    0.097   0.266   0.634      0.233     0.121    0.076   0.220    0.405     0.226     0.144    0.103   0.250   0.542     0.214      0.145    0.098    0.249
+         GPT4o (Task-specific)    0.249   0.634     0.188      0.097    0.078   0.262   0.621      0.221     0.125    0.080   0.220    0.418     0.209     0.142    0.110   0.253   0.542     0.220      0.140    0.110    0.246
+        Gemini (Summarization)    0.262   0.629     0.194      0.113    0.114   0.260   0.624      0.213     0.129    0.074   0.210    0.415     0.224     0.119    0.083   0.238   0.523     0.210      0.127    0.092    0.243
+2023
+         Gemini (Task-specific)   0.262   0.637     0.204      0.115    0.092   0.269   0.622      0.228     0.136    0.088   0.210    0.408     0.205     0.126    0.102   0.244   0.528     0.211      0.133    0.105    0.246
+             Random (All)         0.317   0.729     0.248      0.163    0.130   0.352   0.752      0.290     0.213    0.152   0.280    0.481     0.265     0.193    0.182   0.279   0.566     0.251      0.155    0.143    0.307
+           Random (Ticker)        0.247   0.633     0.182      0.095    0.080   0.255   0.596      0.208     0.130    0.088   0.228    0.438     0.212     0.133    0.130   0.238   0.513     0.203      0.124    0.110    0.242
+              PEV(Mean)           0.309   0.725     0.236      0.150    0.124   0.330   0.723      0.279     0.186    0.134   0.262    0.463     0.249     0.172    0.166   0.278   0.584     0.245      0.148    0.134    0.295
+            STPEV(Mean)           0.239   0.611     0.180      0.093    0.074   0.253   0.601      0.209     0.122    0.081   0.227    0.432     0.215     0.132    0.130   0.246   0.520     0.215      0.133    0.118    0.242
+           STPEV(Median)          0.240   0.609     0.178      0.095    0.078   0.262   0.650      0.214     0.111    0.075   0.214    0.405     0.210     0.124    0.119   0.240   0.494     0.222      0.136    0.110    0.239
+             STPEV(LR)            0.332   0.851     0.272      0.127    0.078   0.290   0.714      0.231     0.142    0.071   0.293    0.542     0.342     0.175    0.112   0.333   0.767     0.311      0.157    0.097    0.312
+            STPEV(MLP)            0.820   1.263     1.280      0.394    0.345   0.565   1.031      0.605     0.431    0.195   0.397    0.446     0.275     0.557    0.311   0.490   0.625     0.526      0.469    0.341    0.568
+
+
+
+Table 8: The overall performance on DEC across transcript-based models and different PEV and STPEV variants.
+
+
+volatility series (with a window size of 2229 )                                                                       proved prediction accuracy.
+through various time-series forecasting models30 ,
+including DLinear (Zeng et al., 2023), TSMixer                                                                        D.5             Clustering of Different Transcripts
+(Chen et al., 2023), TimeNet (Wu et al., 2022),                                                                                       Embeddings
+and FEDformer (Zhou et al., 2022). Table 9                                                                            We compare three embedding models31 . for vanilla
+compares these time-series forecasting models                                                                         transcripts by sampling 10 earnings from each
+with STPEV(Mean). We observe that simpler                                                                             ticker, resulting in 900 earnings. We then perform
+models, such as DLinear and TSMixer, outper-                                                                          K-means clustering on 2,700 embeddings after t-
+form other forecasting models, though their perfor-                                                                   SNE dimensionality reduction. Figure 14a displays
+mance and that of STPEV(Mean) vary across dif-                                                                        the clustering results, showing that embeddings
+ferent years. This suggests that using pre-earnings                                                                   generated by the three models tend to mix with
+volatility time series is also an effective approach                                                                  one another. Additionally, all models exhibit ticker
+for post-earnings volatility prediction. Future re-                                                                   groupings, reflecting the inherent similarity among
+search could explore combining pre-earnings and                                                                       transcripts from the same company.
+textitpost-earnings volatility series to achieve im-
+                                                                                                                         We further compare the embeddings32 of vanilla
+   29                                                                                                                     31
+     In the United States, the number of trading days in a                                                                 Specifically, OpenAI text-embedding-3-large model, Text-
+month typically ranges from 20 to 22 days.                                                                            embedding-005 model, and Voyage-Finance-2 model.
+  30                                                                                                                    32
+     https://github.com/thuml/Time-Series-Library                                                                          The OpenAI text-embedding-3-large model is used.
+
+                                                                                                            18419
+                                     First Quarter                                 second Quarter                                Third Quarter                                Fourth Quarter
+Year      Model                                                                                                                                                                                             Average
+                     M SE    M SE3    M SE7 M SE15        M SE30   M SE    M SE3     M SE7 M SE15       M SE30   M SE    M SE3    M SE7 M SE15       M SE30   M SE    M SE3     M SE7 M SE15       M SE30
+          DLinear      -       -          -         -        -     0.438   0.500      0.370     0.435    0.449   0.322   0.567     0.284     0.258    0.178   0.235   0.456     0.220      0.147    0.117   0.332
+         TSMixer       -       -          -         -        -     0.413   0.535      0.244     0.278    0.595   0.330   0.554     0.299     0.392    0.076   0.224   0.399     0.220      0.148    0.130   0.322
+2019     TimesNet      -       -          -         -        -     0.394   0.628      0.331     0.410    0.208   0.358   0.593     0.366     0.301    0.171   0.230   0.395     0.268      0.153    0.102   0.327
+        FEDformer      -       -          -         -        -     0.706   0.743      0.733     0.982    0.366   0.325   0.724     0.270     0.177    0.128   0.267   0.459     0.283      0.178    0.149   0.433
+       STPEV(Mean)     -       -          -         -        -     0.415   0.902      0.442     0.198    0.118   0.299   0.638     0.295     0.159    0.105   0.272   0.523     0.265      0.181    0.119   0.329
+          DLinear    0.929   0.602     0.426      0.709    1.980   1.158   1.216      0.942     1.064    1.411   0.433   0.803     0.326     0.289    0.312   0.246   0.489     0.199      0.177    0.119   0.691
+         TSMixer     0.920   0.677     0.439      0.606    1.956   0.595   0.784      0.497     0.505    0.594   0.381   0.784     0.301     0.229    0.211   0.273   0.504     0.208      0.232    0.147   0.542
+2020     TimesNet    0.938   0.682     0.603      0.628    1.839   1.081   1.233      0.829     1.031    1.233   0.422   0.954     0.302     0.231    0.201   0.331   0.518     0.275      0.280    0.250   0.693
+        FEDformer    0.772   0.654     0.322      0.499    1.613   0.912   1.251      0.903     0.714    0.781   0.442   0.883     0.329     0.293    0.264   0.318   0.610     0.230      0.211    0.220   0.611
+       STPEV(Mean)   0.817   0.725     0.477      0.695    1.370   0.438   0.786      0.383     0.346    0.237   0.269   0.685     0.196     0.112    0.083   0.311   0.536     0.275      0.281    0.151   0.459
+          DLinear    0.192   0.434     0.188      0.086    0.061   0.215   0.422      0.190     0.124    0.123   0.256   0.498     0.267     0.161    0.097   0.248   0.549     0.207      0.146    0.092   0.228
+         TSMixer     0.191   0.434     0.193      0.083    0.053   0.226   0.401      0.162     0.141    0.199   0.275   0.461     0.293     0.208    0.140   0.246   0.542     0.207      0.149    0.087   0.235
+2021     TimesNet    0.221   0.409     0.226      0.170    0.078   0.223   0.409      0.229     0.147    0.106   0.290   0.490     0.285     0.250    0.136   0.259   0.520     0.225      0.169    0.121   0.248
+        FEDformer    0.254   0.463     0.235      0.175    0.141   0.267   0.472      0.233     0.187    0.177   0.305   0.553     0.292     0.203    0.173   0.272   0.540     0.277      0.175    0.095   0.274
+       STPEV(Mean)   0.156   0.368     0.149      0.067    0.041   0.249   0.463      0.209     0.150    0.173   0.333   0.525     0.353     0.260    0.196   0.222   0.536     0.177      0.114    0.062   0.240
+          DLinear    0.244   0.553     0.212      0.133    0.079   0.208   0.490      0.179     0.112    0.052   0.304   0.597     0.253     0.198    0.169   0.235   0.555     0.185      0.111    0.087   0.248
+         TSMixer     0.246   0.560     0.214      0.121    0.090   0.229   0.484      0.196     0.157    0.080   0.257   0.570     0.216     0.140    0.100   0.229   0.527     0.198      0.113    0.079   0.240
+2022     TimesNet    0.266   0.562     0.233      0.155    0.114   0.239   0.499      0.185     0.167    0.106   0.270   0.601     0.221     0.136    0.123   0.231   0.516     0.198      0.099    0.112   0.252
+        FEDformer    0.282   0.627     0.281      0.142    0.078   0.218   0.519      0.147     0.110    0.097   0.296   0.604     0.251     0.154    0.176   0.246   0.559     0.200      0.128    0.098   0.261
+       STPEV(Mean)   0.270   0.584     0.245      0.152    0.099   0.310   0.640      0.270     0.201    0.129   0.243   0.592     0.219     0.104    0.057   0.278   0.599     0.236      0.183    0.095   0.275
+          DLinear    0.254   0.667     0.171      0.106    0.072   0.336   0.789      0.291     0.163    0.101   0.254   0.519     0.259     0.147    0.089   0.299   0.666     0.279      0.157    0.094   0.286
+         TSMixer     0.255   0.671     0.183      0.102    0.064   0.304   0.724      0.262     0.142    0.088   0.223   0.456     0.223     0.122    0.090   0.265   0.592     0.241      0.137    0.091   0.262
+2023     TimesNet    0.268   0.652     0.189      0.117    0.116   0.365   0.838      0.325     0.169    0.128   0.296   0.599     0.302     0.177    0.107   0.341   0.741     0.322      0.182    0.119   0.318
+        FEDformer    0.273   0.702     0.186      0.117    0.087   0.363   0.863      0.309     0.168    0.113   0.282   0.571     0.294     0.163    0.101   0.316   0.712     0.281      0.158    0.115   0.309
+       STPEV(Mean)   0.239   0.611     0.180      0.093    0.074   0.253   0.601      0.209     0.122    0.081   0.227   0.432     0.215     0.132    0.130   0.246   0.520     0.215      0.133    0.118   0.242
+
+
+
+                              Table 9: The overall performance on DEC using pre-earnings volatility series.
+
+
+
+
+           (a) Three embeddings for vanilla transcripts.                                                         (b) Vanilla transcripts and four LLMs fine-grained texts.
+
+                                     Figure 14: Clustering results for different embeddding models and texts.
+
+
+transcripts with those of four types of LLM fine-                                                            dataset group, except for Random(All) represen-
+grained insights (two strategies and two LLMs).                                                              tations, where we intentionally remove the ticker
+Figure 14b presents the clustering results, show-                                                            identity. This finding indicates that transcripts from
+ing that vanilla transcripts, Summarization, and                                                             the same ticker, which implicitly contain the ticker
+textitTask-Specific texts are distinctly separated                                                           identity, are more similar than those from different
+from others. In contrast, the two LLMs—GPT4o-                                                                tickers.
+2024-08-06 and Gemini-1.5-Flash—struggle to dif-
+ferentiate from each other. Furthermore, secondary                                                           D.7          Predictions Correlation Analysis
+clusters emerge within the three main clusters, re-                                                          We also calculate and compare the Pearson cor-
+flecting ticker-specific groupings.                                                                          relation coefficients between the predictions of
+                                                                                                             various transcript-based models and those of
+D.6 Group Similarity Comparison                                                                              STPEV(Mean) across different windows and quar-
+                                                                                                             ters. From Table 10 to Table 17, We observe
+To evaluate how transcript representations correlate                                                         strong linear relationships between the predic-
+with other examples from the same-ticker group                                                               tions generated by transcript-based models and
+(comprising 1 ticker and 19 earnings) and the all-                                                           STPEV(Mean), typically beginning from the year
+dataset group (comprising all 90 tickers and 1799                                                            2021. Figure 16 further visualizes this relation-
+earnings), we compute the cosine similarity of each                                                          ship for the year 2023, comparing predictions
+earnings record with both groups. This analysis is                                                           from the Random(Ticker) model with those from
+performed across different transcript representa-                                                            STPEV(Mean). The points cluster closely around
+tions, including two vanilla embeddings and four                                                             the line y = x , highlighting a strong correlation.
+fine-grained LLM embeddings. As shown in Ta-
+ble 15, the cosine similarity for the same-ticker
+group is significantly higher than that for the all-
+                                                                                                    18420
+       (a) Vanilla (OpenAI)                                 (b) Vanilla (Gecko)                        (c) GPT4o (Summarization)                            (d) GPT4o (Task-Specific)
+
+
+
+
+(e) Gemini (Summarization)                           (f) Gemini (Task Specific)                                (g) Random Ticker                                    (h) Random All
+
+                  Figure 15: Cosine similarity comparison between same-ticker group and all-dataset group.
+
+
+
+
+               Figure 16: Predictions by Random(Ticker) - Predictions by STPEV(Mean) model for year 2023.
+
+                       First Quarter                              second Quarter                               Third Quarter                                Fourth Quarter
+Year                                                                                                                                                                                     Yearly Average
+       Coef    Coef3    Coef7 Coef15       Coef30   Coef    Coef3 Coef7 Coef15        Coef30   Coef    Coef3     Coef7 Coef15      Coef30   Coef    Coef3     Coef7 Coef15      Coef30
+2019      -      -          -         -       -     0.14    0.169    0.146    0.125    0.121   0.477   0.483     0.456     0.472    0.496   0.415   0.469      0.431     0.39    0.37        0.556
+2020   0.556   0.601     0.531     0.548    0.546   0.521    0.58    0.583    0.482    0.437   0.555   0.603     0.549     0.533    0.537    0.62   0.651      0.632    0.633    0.563       0.767
+2021   0.767   0.755     0.801     0.766    0.745     0.8   0.788    0.807    0.812    0.794   0.801   0.803     0.789     0.831    0.781   0.845   0.782       0.87    0.862    0.866        0.87
+2022    0.87   0.857     0.866     0.873    0.884    0.81   0.794    0.794    0.842    0.809   0.853    0.82     0.863     0.873    0.856   0.866   0.835      0.885    0.877    0.866       0.873
+2023   0.873   0.843     0.897      0.89    0.864   0.869   0.847    0.877    0.874    0.878   0.838   0.778     0.835     0.864    0.877   0.866   0.852      0.859     0.87     0.88       0.866
+
+
+   Table 10: The Pearson Correlation Coefficients between vanilla(OpenAI) model and STPEV(Mean) model.
+
+                                                                                               18421
+                           First Quarter                                second Quarter                                 Third Quarter                                 Fourth Quarter
+Year                                                                                                                                                                                              Yearly Average
+        Coef     Coef3      Coef7 Coef15        Coef30   Coef     Coef3 Coef7 Coef15        Coef30   Coef     Coef3      Coef7 Coef15      Coef30   Coef     Coef3     Coef7 Coef15      Coef30
+2019      -         -           -        -          -    0.113    0.128    0.119    0.091    0.114   -0.003   -0.076     0.092     0.022   -0.052   0.369    0.421      0.405    0.329    0.319       0.494
+2020    0.494    0.566       0.508     0.451      0.45   0.372    0.525    0.382    0.382    0.198   0.439     0.542     0.447      0.39    0.378   0.579    0.603      0.567    0.577     0.57       0.628
+2021    0.628    0.616       0.659     0.618      0.62   0.707    0.706    0.702    0.717    0.704   0.737     0.733     0.731     0.753    0.729   0.732    0.719      0.741    0.744    0.724       0.753
+2022    0.753     0.73       0.754     0.754     0.772   0.709    0.682    0.714    0.717     0.72   0.755     0.719     0.764      0.77    0.768   0.799    0.764      0.794    0.812    0.824       0.825
+2023    0.825    0.805       0.825     0.834     0.838   0.817    0.809    0.822    0.821    0.815   0.816      0.79     0.818     0.831    0.825    0.81    0.816      0.801    0.813     0.81        0.81
+
+
+       Table 11: The Pearson Correlation Coefficients between vanilla(Gecko) model and STPEV(Mean) model.
+
+
+
+                           First Quarter                                second Quarter                                 Third Quarter                                 Fourth Quarter
+Year                                                                                                                                                                                              Yearly Average
+        Coef     Coef3      Coef7 Coef15        Coef30   Coef     Coef3 Coef7 Coef15        Coef30   Coef     Coef3      Coef7 Coef15      Coef30   Coef     Coef3     Coef7 Coef15      Coef30
+2019      -        -            -         -        -     0.258    0.352     0.23    0.239    0.213   0.535    0.594      0.509     0.525    0.512   0.555    0.593      0.539    0.562    0.528       0.683
+2020    0.683    0.704       0.682      0.69     0.656   0.654     0.72    0.671    0.667    0.558   0.605    0.655      0.578     0.571    0.615   0.693    0.729      0.689    0.678    0.678       0.773
+2021    0.773    0.775       0.779      0.76     0.778   0.752    0.782    0.762    0.741    0.725   0.843    0.879      0.842     0.835    0.817   0.863    0.848      0.889    0.865    0.852       0.799
+2022    0.799    0.807       0.796     0.798     0.796   0.781    0.771    0.771    0.788    0.796   0.822    0.812      0.819     0.842    0.817   0.883    0.865      0.883    0.894    0.892       0.792
+2023    0.792    0.803       0.836     0.833     0.695   0.842    0.828    0.838    0.852    0.847   0.816    0.764      0.839     0.832    0.828   0.848    0.772      0.861    0.876    0.884       0.848
+
+
+  Table 12: The Pearson Correlation Coefficients between GPT-4o(Summarization) model and STPEV(Mean).
+
+
+
+                           First Quarter                                second Quarter                                 Third Quarter                                 Fourth Quarter
+Year                                                                                                                                                                                              Yearly Average
+        Coef     Coef3      Coef7 Coef15        Coef30   Coef     Coef3 Coef7 Coef15        Coef30   Coef     Coef3      Coef7 Coef15      Coef30   Coef     Coef3     Coef7 Coef15      Coef30
+2019      -         -           -        -         -     0.259    0.326    0.245    0.217    0.247   0.507     0.51      0.497     0.511    0.51    0.453    0.484      0.422    0.477    0.429       0.711
+2020    0.711    0.708       0.714     0.716     0.707   0.668    0.729    0.698    0.669    0.575   0.638    0.694      0.628     0.606    0.625   0.731    0.707      0.732    0.752    0.731       0.777
+2021    0.777    0.792       0.788     0.753     0.777    0.86     0.86    0.855    0.871    0.854   0.833    0.839       0.82     0.829    0.844   0.821    0.831      0.839    0.816    0.798       0.831
+2022    0.831     0.84       0.843     0.829     0.813    0.87    0.861    0.851    0.898    0.871   0.887    0.853      0.899     0.901    0.897   0.893    0.876      0.893    0.895    0.909       0.855
+2023    0.855    0.834       0.861     0.871     0.853   0.875    0.857    0.885    0.884    0.876   0.892    0.878      0.883     0.901    0.904   0.916    0.895      0.919    0.919     0.93       0.916
+
+
+       Table 13: The Pearson Correlation Coefficients between GPT-4o(Task-Specific) model and STPEV(Mean).
+
+
+
+                           First Quarter                                second Quarter                                 Third Quarter                                 Fourth Quarter
+Year                                                                                                                                                                                              Yearly Average
+        Coef     Coef3      Coef7 Coef15        Coef30   Coef     Coef3 Coef7 Coef15        Coef30   Coef     Coef3      Coef7 Coef15      Coef30   Coef     Coef3     Coef7 Coef15      Coef30
+2019      -        -            -        -         -      0.27    0.409    0.262    0.211    0.197   0.598    0.639        0.6     0.579    0.575   0.507    0.522      0.469     0.53    0.509       0.726
+2020    0.726    0.739       0.729     0.722     0.714   0.698    0.735    0.713     0.7     0.644   0.669    0.701      0.669     0.637    0.672   0.741    0.759      0.723    0.755    0.728       0.837
+2021    0.837    0.827       0.849     0.843     0.831   0.851    0.845    0.859    0.852    0.848   0.872    0.872       0.86     0.898    0.859   0.843    0.836      0.859     0.86    0.816       0.852
+2022    0.852    0.876       0.869     0.854     0.808   0.853    0.854    0.836    0.877    0.844   0.838    0.809      0.844     0.864    0.837   0.898    0.884      0.902    0.911    0.893       0.854
+2023    0.854    0.844       0.859     0.863     0.851   0.866    0.845    0.857    0.867    0.895   0.845     0.84      0.825      0.85    0.864   0.867    0.858      0.843     0.88    0.888       0.867
+
+
+   Table 14: The Pearson Correlation Coefficients between Gemini(Summarization) model and STPEV(Mean).
+
+
+
+                           First Quarter                                second Quarter                                 Third Quarter                                 Fourth Quarter
+Year                                                                                                                                                                                              Yearly Average
+        Coef     Coef3      Coef7 Coef15        Coef30   Coef     Coef3 Coef7 Coef15        Coef30   Coef     Coef3      Coef7 Coef15      Coef30   Coef     Coef3     Coef7 Coef15      Coef30
+2019      -         -           -        -          -    0.216     0.22    0.202    0.207    0.237   0.469    0.574      0.496     0.423    0.383   0.494    0.494      0.492     0.52    0.471       0.603
+2020    0.603    0.595       0.592     0.606      0.62   0.692    0.763    0.725    0.669    0.612   0.575    0.567      0.594     0.563    0.577   0.728     0.73      0.719    0.737    0.724       0.768
+2021    0.768     0.78       0.799     0.743     0.749   0.785    0.805    0.816    0.781    0.739   0.789     0.83      0.772     0.786    0.769   0.791    0.771      0.808    0.804    0.783       0.816
+2022    0.816    0.818       0.814     0.835     0.795   0.862    0.821    0.882    0.879    0.868   0.821     0.78      0.831     0.846    0.829   0.878    0.853      0.888    0.891    0.881       0.843
+2023    0.843    0.826       0.865     0.855     0.824   0.867    0.828    0.874     0.88    0.883   0.845    0.827      0.838     0.856    0.858   0.867    0.858      0.861    0.872    0.877       0.867
+
+
+       Table 15: The Pearson Correlation Coefficients between Gemini(Task-Specific) model and STPEV(Mean).
+
+
+
+                           First Quarter                                second Quarter                                 Third Quarter                                Fourth Quarter
+Year                                                                                                                                                                                              Yearly Average
+        Coef      Coef3      Coef7 Coef15       Coef30   Coef     Coef3 Coef7 Coef15        Coef30   Coef     Coef3      Coef7 Coef15      Coef30   Coef     Coef3 Coef7 Coef15          Coef30
+2019       -         -           -        -        -     0.101    0.064     0.11    0.113    0.118    0.025   0.014       0.054     0.03    0.003   -0.116   -0.018 -0.073 -0.142         -0.23       -0.162
+2020    -0.162    -0.158     -0.171     -0.17   -0.149   -0.014   -0.045 -0.043     0.019    0.013    0.102   0.086       0.127    0.118    0.075   -0.124   -0.139 -0.138 -0.121        -0.097       -0.082
+2021    -0.082     -0.03     -0.078 -0.109       -0.11   0.236    0.163    0.254    0.247    0.278   -0.106    -0.11     -0.082    -0.08   -0.149   0.119     0.069    0.111    0.173     0.124        0.183
+2022    0.183      0.172       0.19    0.179     0.192   0.059    0.088    0.044    0.056    0.047    0.111   0.116       0.094    0.114    0.122   -0.124   -0.072 -0.125 -0.134        -0.165        0.007
+2023    0.007     -0.111      0.026    0.036     0.075   0.096    0.065    0.142    0.092    0.084   -0.146   -0.091     -0.166 -0.169     -0.156   0.004     0.052 -0.019      0.006    -0.024        0.004
+
+
+                 Table 16: The Pearson Correlation Coefficients between Random(All) model and STPEV(Mean).
+
+
+
+                           First Quarter                                second Quarter                                 Third Quarter                                 Fourth Quarter
+Year                                                                                                                                                                                              Yearly Average
+        Coef     Coef3      Coef7 Coef15        Coef30   Coef     Coef3 Coef7 Coef15        Coef30   Coef     Coef3      Coef7 Coef15      Coef30   Coef     Coef3     Coef7 Coef15      Coef30
+2019       -       -            -        -         -     -0.071   -0.014 -0.099 -0.068      -0.103   0.055    0.096      0.069     0.041    0.015   0.222    0.367      0.223    0.175    0.125       0.169
+2020    0.169    0.253       0.154     0.138     0.133    0.316   0.499    0.358    0.219    0.189   0.308    0.379      0.342     0.273    0.238   0.506    0.606      0.541    0.481    0.395        0.47
+2021     0.47    0.637       0.657     0.318     0.267    0.587   0.637    0.617    0.575    0.519   0.641    0.624      0.706     0.665    0.569   0.726    0.765      0.749     0.71    0.682       0.786
+2022    0.786    0.913       0.788     0.753     0.691    0.878   0.885     0.89    0.879    0.859   0.912    0.896       0.92     0.927    0.907   0.898    0.905      0.877    0.912    0.899       0.925
+2023    0.925    0.885       0.946     0.932     0.938    0.949   0.929    0.955     0.96    0.951   0.916    0.888       0.92     0.926    0.931   0.946    0.939      0.952    0.952     0.94       0.946
+
+
+           Table 17: The Pearson Correlation Coefficients between Random(Ticker) model and STPEV(Mean).
+
+
+                                                                                                     18422
+

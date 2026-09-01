@@ -1,0 +1,1274 @@
+                                             Crystallizing Schemas with Teleoscope: Thematic Curation of
+                                                             Large Text Corpora on Reddit
+                                                     Patrick Yung Kang Lee∗                                                  Paul Hendrik Bucci∗                           Leo Itsuki Foord-Kelcey
+                                                             Computer Science                                                 Computer Science                                   Computer Science
+                                                           University of Toronto                                         University of British Columbia                     University of British Columbia
+                                                         Toronto, Ontario, Canada                                     Vancouver, British Columbia, Canada                Vancouver, British Columbia, Canada
+                                                         patricklee@cs.toronto.edu                                             pbucci@cs.ubc.ca                                    leofk@cs.ubc.ca
+
+                                                                                                Alamjeet Singh                                     Ivan Beschastnikh
+                                                                                             Computer Science                                        Computer Science
+                                                                                       University of British Columbia                           University of British Columbia
+
+
+
+
+arXiv:2402.06124v3 [cs.HC] 20 Apr 2026
+                                                                                    Vancouver, British Columbia, Canada                      Vancouver, British Columbia, Canada
+                                                                                        singhalamjeet18@gmail.com                                    bestchai@cs.ubc.ca
+
+
+
+                                                                                   SOURCES                            TA R G E T S
+
+
+
+
+                                                                                    B O O L EA N O P E R AT I O N S   ORDERING                                                P R EV I EW
+
+
+
+
+                                                                                    CHAINING
+
+
+
+
+                                                                 S O U R C E , CO N T R O L > TA R G E T
+
+
+
+
+                                         Figure 1: Teleoscope is a web-based interface for performing thematic curation of large text corpora, such as social media
+                                         data from Reddit. By iteratively refining user-defined metrics of similarity, Teleoscope supports an interpretivist approach to
+                                         data curation. This helps address the problem of ad-hoc workflows that rely on statistical sampling, which are epistemically
+                                         misaligned with interpretivist approaches to qualitative analysis.
+                                                                                                                                          Abstract
+                                         ∗ The first two authors contributed equally to this work.                                        Large text corpora, such as Reddit posts, have become an increas-
+                                                                                                                                          ingly prevalent site of qualitative inquiry. However, most large text
+                                                                                                                                          corpora are intractable for qualitative researchers. Instead, teams
+
+                                         This work is licensed under a Creative Commons Attribution-NonCommercial-                        © 2026 Copyright held by the owner/author(s).
+                                         NoDerivatives 4.0 International License.                                                         ACM ISBN 979-8-4007-2278-3/2026/04
+                                         CHI ’26, Barcelona, Spain                                                                        https://doi.org/10.1145/3772318.3791310
+CHI ’26, April 13–17, 2026, Barcelona, Spain                Patrick Yung Kang Lee, Paul Hendrik Bucci, Leo Itsuki Foord-Kelcey, Alamjeet Singh, and Ivan Beschastnikh
+
+
+rely on statistical subsampling to reduce corpora to a manageable                  the document-level rather than the dataset-level for curation) re-
+size for qualitative analysis. While previous work for navigating                  main relatively unexplored. In this paper, we introduce the idea
+large corpora involves visualizing the dataset at the corpus-level                 of thematic curation, an inductive, interpretivist approach to cor-
+using high-level statistical summaries, few systems offer the ability              pus construction. Using vector embeddings [20] between related
+to curate data using an interpretivist approach. To address this, we               documents, researchers can iteratively curate a large text corpus
+developed Teleoscope, a web-based interface designed to scaffold                   into a tractable collection of documents for downstream qualitative
+iterative, interactive, and reflexive refinement of a large corpus, in             analysis. We call this collection, supported by a traceable network
+a process we call thematic curation. Across three deployments, we                  of document interconnections, a thematic schema, which corre-
+learned that Teleoscope supports serendipitous discovery of new                    sponds to a researcher’s mental model (cognitive schema) of the
+keywords, results in greater feelings of confidence in search sat-                 relationships and meanings between documents.
+uration, and aids collaborative discussion of alternative curation                     To enable thematic curation, we built Teleoscope, a web-based sys-
+pathways. Teleoscope empowers researchers to stay "close to the                    tem designed to support multiple users interactively exploring and
+data" in order to make qualitative workflows methodologically                      refining a large corpus of Reddit documents (100K-1M posts). Be-
+coherent with large text corpora.                                                  fore conducting analysis proper [14, 15, 63], qualitative researchers
+                                                                                   working with large text corpora typically undertake data curation
+CCS Concepts                                                                       [43, 55], and sense-making [11]. Data curation involves the task of
+• Human-centered computing → Interactive systems and                               sampling that happens before any qualitative study of text. Sense-
+tools; Collaborative and social computing systems and tools;                       making refers to the process of an analyst "making sense" of the
+Visualization systems and tools.                                                   data in their own minds, which often happens in parallel with cura-
+                                                                                   tion and analysis. Teleoscope assists qualitative researchers during
+Keywords                                                                           the data curation and sense-making phases of a qualitative research
+Qualitative research, Data Curation, Thematic Curation, Interpre-                  study. Teleoscope functions by allowing researchers to browse and
+tivism, Information Search, Interactive Data Exploration, Sense-                   navigate their corpus on an infinite canvas via an initial keyword
+making                                                                             search and then refining opinionated, interpretive document group-
+                                                                                   ings. When using Teleoscope, a user’s curatorial process results in
+ACM Reference Format:
+                                                                                   visual artifacts that trace their thought process in the form of action
+Patrick Yung Kang Lee, Paul Hendrik Bucci, Leo Itsuki Foord-Kelcey, Alam-
+jeet Singh, and Ivan Beschastnikh. 2026. Crystallizing Schemas with Teleo-
+                                                                                   histories and the curated schemas, allowing researchers to compare
+scope: Thematic Curation of Large Text Corpora on Reddit. In Proceedings           their curation process with that of other research team members.
+of the 2026 CHI Conference on Human Factors in Computing Systems (CHI              The visual traces enable discussions of provenance, that is, how a
+’26), April 13–17, 2026, Barcelona, Spain. ACM, New York, NY, USA, 20 pages.       researcher curated their dataset according to their particular po-
+https://doi.org/10.1145/3772318.3791310                                            sitionality, helping to bring differences between team member’s
+                                                                                   interpretations to the surface for discussion before analysis begins.
+1    Introduction                                                                      The design process for Teleoscope spanned several years, includ-
+Exploring and analyzing large text corpora has become an increas-                  ing a series of prototypes, formative studies, and focus groups
+ingly prevalent mode of qualitative inquiry for researchers in HCI                 that informed the final system design. We conducted an extended
+[34], healthcare [54, 83], and the social sciences [57]. Qualitative               formative study with a "simulated" research team (n=5), asking
+research often focuses on contextual interpretation, reflexivity, and              qualitative researchers to use Teleoscope to explore a shared topic
+researcher positionality [39, 48, 79]. The primary goal of this ap-                over the course of six weeks. The simulated research team was
+proach is to provide rich, nuanced insights into social or cultural                then convened to discuss their experience and findings at a focus
+phenomena that more quantitative/positivist approaches fail to cap-                group. We then recruited a three-person qualitative research team
+ture. A popular data source for qualitative data is the social media               of nurses for a field deployment where they used Teleoscope as
+platform Reddit, since it contains many normative and descriptive                  part of their data curation and analysis process and responded to
+examples of social interaction and cultural norms. However, the                    their design requests. We have also released a public, cloud-native
+corpora present on Reddit are usually too large to be tractable for                version of Teleoscope [87, 88] that has had users in market research
+small qualitative research teams. Instead, researchers are forced to               and public policy who have provided feature requests.
+rely on ad-hoc or statistical sub-sampling strategies. This causes                     We learned through our deployments that Teleoscope was able to
+researchers to miss a powerful opportunity to qualitatively curate                 support serendipitous discovery of previously unknown keywords
+data based on an interpretive approach that better aligns with the                 and terms for phenomena of interest among qualitative researchers.
+core tenets of qualitative research .                                              It also resulted in greater feelings of confidence and rigour in search
+   In recent years, advances in AI and ML have opened up new, al-                  saturation among participants while assuaging feelings of interpre-
+beit somewhat controversial, opportunities for qualitative analysis                tive bias. In addition, being able to collaboratively explore alter-
+[41, 78]. In particular, modeling semantics using contextual depen-                native pathways to data curation opened up nuanced discussions
+dencies in language data is now being realized at scale with large                 about the role different interpretive lenses could have on the fi-
+language models (LLMs), providing an avenue for qualitatively cu-                  nal curated dataset. We discuss the implications of these findings
+rating data. Although prior work in semantic search interfaces has                 on working with large text corpora in interpretivist paradigms
+excelled at providing topic-based overviews of the entire dataset                  of qualitative research. We also discuss learnings from observing
+[40], inductive approaches to document curation (i.e., starting from
+Crystallizing Schemas with Teleoscope: Thematic Curation of Large Text Corpora on Reddit                                    CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+differences between top-down and bottom-up approaches to data                              present "rich descriptions of participant experiences, along with
+exploration more broadly.                                                                  the context specificity and depth associated with how participants
+   Our contributions in this paper include:                                                interpret and understand those experiences" [84]. Providing the
+★ C1. Methodological analysis of a highly interpretive sam-                                opportunity to scaffold iterative, interactive, and reflexive sampling
+  pling strategy we call thematic curation, resulting in out-                              that prioritizes the interpretive skills of the researcher while pro-
+  puts we call thematic schemas.                                                           viding them with computational and statistical tooling that allows
+★ C2. An interpretivist data curation platform that is open-                               them to meaningfully explore an otherwise intractable corpus is a
+  source and supports collaboration.                                                       gap in current qualitative approaches.
+★ C3. Empirical results of deployments with qualitative re-
+  searchers working with large text corpora.
+                                                                                           2.2    AI in Qualitative Analysis
+2     Related Work
+                                                                                           Due to rapid advances in NLP, machine learning, and LLM-powered
+We motivate the need for a system like Teleoscope by discussing                            tooling, developing AI-powered qualitative analysis tools has
+work related to the growing use of qualitative analysis techniques                         rapidly become an active area of research. Although many of these
+on large datasets, the role of computational methods in support-                           systems predate the advent of LLMs [32, 35, 52, 70], the ability of
+ing qualitative analysis, and the way Teleoscope builds on work in                         LLMs to model semantic context at-scale has spurred the develop-
+interactive data exploration systems.                                                      ment of many others [33, 80, 86]. The systems that are most similar
+                                                                                           to Teleoscope are Scholastic [40] and NEEDLE [26], which provide
+2.1     Qualitative Analysis on Large Datasets                                             novel ways for researchers to remain "close" to their datasets in
+Large text corpora, such as those created by social media plat-                            their workflows, by drilling down to individual documents or sup-
+forms, have become an increasingly prevalent site for qualitative                          porting claim-based document retrieval, respectively. Teleoscope
+research across disciplines [34, 54, 57, 83]. In particular, during the                    builds on these systems by providing a different orientation towards
+COVID-19 pandemic, when face-to-face research was not possible                             data, using machine learning workflows to iteratively curate the
+due to quarantine and stay-at-home measures, sites like Reddit                             document space into thematic schemas (defined below) using
+became an important source for qualitative academic work [69].                             user-selected examples, rather than through random sub-setting
+However, analyzing large text corpora, such as those found on Red-                         or by imposing a relational claims-based exploration of the cor-
+dit, presents significant scalability challenges for small qualitative                     pus. A system that shares similar design goals is the Apolo system
+research teams. Even a modestly-sized corpus, between 10K to 100K                          [19]. Like Teleoscope, Apolo provides an interactive visualization
+documents, is often intractable to a research team if they wish to                         system for sense-making with large network datasets. However,
+exhaustively examine its contents. As a result, some degree of data                        Teleoscope’s target datasets (unstructured social media data) are
+curation is required to make the dataset amenable to qualitative                           quite different from the networked datasets Apolo was designed to
+analysis.                                                                                  explore, though they share some interaction commonalities, par-
+   In practice however, the choice of data curation strategy is often                      ticularly the use of ML techniques to provide in-place ranking of
+highly specific to the research project, and ad-hoc sub-sampling or                        documents of interest to the user. In addition, Teleoscope builds
+partitioning strategies are often employed due to a lack of agreed                         upon a screen space limitation in the original Apolo interface by
+upon standards for curation. For example, Low et al. [54] use a ran-                       using an infinite canvas to help manage screen real estate, whereas
+dom sub-setting strategy on their datasets to significantly reduce                         the Apolo system could only handle two themes in their user study.
+the number of posts that need to be analyzed by their topic mod-                           While performing baseline comparisons, we found that, although
+eling system. More principled or semi-structured down-selection                            many commercial qualitative research tools like NVivo now in-
+strategies come with their own limitations — whether because they                          clude AI support, most focus on coding rather than curation (a full
+presuppose certain aspects of the document space, such as stratified                       comparison is available in the supplementary materials).
+sampling’s [82] assumption of the existence of discrete, mutually                             We draw on literature from psychology on cognitive schemas
+exclusive strata, or the active sampling [49] assumption of a learn-                       to define our concept of thematic schemas. In psychology, a cog-
+able decision boundary; or provide limited interpretive flexibility                        nitive schema is defined as a set of abstract beliefs that a person
+for human curatorial decisions, such as in diversity-based sam-                            develops in response to life experiences [11, 72]. We extend the
+pling [24] which prioritizes coverage of the document space rather                         idea of cognitive schemas to beliefs about data, resulting in the-
+than intentional curatorial decisions, or topic-guided sampling [8],                       matic schemas: Curated collections of documents supported by a
+which allows only for interpretation at the algorithmically-provided                       traceable network of document interconnections that correspond to
+topic level. These strategies introduce tensions between the way                           cognitive schemas/mental models a researcher has about the rela-
+the data is curated — often via a statistical, positivist approach —                       tionships and meanings between documents. Thematic schemas can
+and the way the data is later analyzed — via a qualitative, inter-                         then be used as the data source for a full-scale qualitative analysis
+pretivist approach. Positivist analysis aims to evaluate specific and                      downstream. To be clear, thematic schemas are not complete collec-
+objective hypotheses via observation and measurement, differing                            tions of evidentiary data for a theme of the sort that is conceived
+significantly from qualitative analysis in terms of how universality,                      as the end result of processes like reflexive thematic analysis [14].
+generalizability and rigour are conceived [84]. Qualitative work,                          Rather, they are the output of employing a principled and system-
+especially those drawing from an interpretivist paradigm, aim to                           atic data exploration and curation process on a much larger dataset
+CHI ’26, April 13–17, 2026, Barcelona, Spain                    Patrick Yung Kang Lee, Paul Hendrik Bucci, Leo Itsuki Foord-Kelcey, Alamjeet Singh, and Ivan Beschastnikh
+
+
+                                                  COLLECTION CURATION                                            ANALYSIS
+                                                                                                        annotations
+                                                               corpus            sample               codes              themes
+                  qualitative process                   1                 2                 3                    4                   5    paper
+                     for bigger data
+                                                     Collect            Curate             Code              Interpret             Report
+                                                      data               data
+                      usage scenario:                                                                                                            paper
+                            Lit review download skim for                                  read             group and make claims
+                                        ACM DL    abstract                               and tag           summarize     about
+                                        searches relevance                               papers            categories literature
+                      usage scenario:                                                                                                            paper
+                         social media scrape      filter by                               code at           structure            interpret
+                                       subreddits keyword                                sentence          codes into             themes
+                                                   search                                  level             themes             for reader
+
+
+
+                                                                 TELEOSCOPE PROCESS
+                                        discovered
+                                         keywords                                                                                  list ordered
+                                                                                     arranged                                      by similarity to
+                            corpus             doc list         docs            docs & groups                                      combined docs
+                                                                                                                                   & groups
+                            keyword             skim and        read and                            synthesize and
+                              search               select        arrange                               combine
+                                                                              curated sample
+                                                                        with theoretical saturation
+                                                                             and visualization
+                                                                           of thematic schema
+
+                     MOVING TOWARDS SATURATION
+                                                                                                                                keyword
+                                                                                                                                about policy A
+                                                                              group: representation
+                                                        posts that say
+                            twitter                <politician> is good                                              doc: policy A
+                             posts                                                  group: policy wins
+
+                         “<politican name>”                                          group: policy fails
+                                                                                                                     doc: policy B
+                                                        posts that say
+                                                     <politician> is bad
+                                                                                   group: hate speech
+
+
+
+
+Figure 2: The Teleoscope process is part of the data curation phase of qualitative research. Users start by a keyword search to
+filter the corpus and initially discover documents, which they skim and select the best ones to put on the workspace. They then
+read more closely and rearrange the documents on the workspace, eventually arranging some into groups, while leaving others
+nearby for re-discovery. Synthesizing their understanding of the documents, they choose documents or groups to combine into
+a similarity search, starting the process of skimming again. When a new keyword is discovered, the corpus can be filtered
+again. Saturation is achieved when no new keywords can be found; signpost documents show differences between groups are
+identified, and groups are thematically homogeneous.
+Crystallizing Schemas with Teleoscope: Thematic Curation of Large Text Corpora on Reddit                                    CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+that reify internal cognitive schemas/mental models a researcher                           tracking branching histories for actions on web-based visualizations
+possesses.                                                                                 [94]. This is a maximal approach for provenance, where every action
+   To facilitate the creation of thematic schemas, which possess                           is tracked and is reproducible.
+greater interpretive depth and semantic richness than simple topic                             Although Teleoscope logs every user action in its history system,
+categories, Teleoscope takes a modeling by example approach [53]                           most of this is hidden from the user. Instead, we present a sparse,
+to allow users to explore and structure their corpus. These sys-                           non-linear canvas interface where individual documents, group-
+tems [30, 53, 56] allow queries to be synthesized from examples.                           ings, and schemas can be directly manipulated by the user to foster
+In a similar fashion, Teleoscope uses semantic vector similarity to                        a sense of spontaneous and serendipitous sense-making in the data
+drive exploration. However, Teleoscope differs from these systems                          curation process for qualitative researchers. This allows users to
+by avoiding the construction of deterministic queries or by model-                         create iterative, comprehensible workflows that they commit to by
+ing the entirety of the corpus. Instead, it relies on the interaction                      grouping and connecting elements in a workflow graph. In Xu et
+process and the researcher’s own sense of information saturation                           al.’s taxonomy of topic model approaches [92], we are modeling cou-
+(see Figure 2) to determine the extent of exploration, in line with                        pled user and application state via an entity graph using semantic
+interpretivist values in qualitative research [16].                                        interactive visual analysis. This approach also has historical roots
+   In addition to the data curation step, LLMs are increasingly being                      in search and information seeking interfaces, such as the Yahoo
+used throughout the qualitative research life-cycle, from research                         Pipes system [73] and the work of Endert et al. on user-generated
+ideation, to the drafting of research materials, to qualitative coding                     spatializations of text documents [29].
+[78]. Teleoscope is meant to assist with the specific task of sub-                             The rest of the paper is organized as follows: Section 3 describes
+setting large datasets, such as those in public social media forums                        our use of Research through Design (RtD) principles [95] to conduct
+into tractable datasets that can then have more traditional qualita-                       a series of formative studies and design prototypes that led to our
+tive analysis methods applied to them. When a user has finished a                          design goals for Teleoscope. Section 4 then presents the system de-
+phase of exploration using semantic similarity (i.e., via Search and                       sign and usage metaphors of Teleoscope in full. Section 5 describes
+Rank operations, see Section 4.1), they can switch to structuring                          the results of evaluating Teleoscope with a second extended forma-
+the document space via semi-supervised dimensionality reduction.                           tive study over the course of several weeks and a field deployment
+Dimensionality reduction has been a popular technique in many                              of Teleoscope with a research team that used Teleoscope over several
+human-centered ML and visualization systems [6, 27, 62, 85] ow-                            months. All user studies conducted over the course of developing
+ing to its ability to make large datasets more tractable to human                          Teleoscope are summarized in Table 1. Section 6 discusses the role
+manipulation. Teleoscope leverages these techniques to provide a                           thematic curation has to play in interpretivist paradigms of qual-
+system for interactive and serendipitous data curation that fosters                        itative research that seek to use large text corpora as their main
+researcher agency [41]. The diagram in Figure 2 illustrates the phase                      data source and the affordances of top-down versus bottom-up
+in qualitative research workflows Teleoscope is meant to support,                          approaches to corpus visualization.
+relative to other common phases, such as data collection, coding,
+and analysis.                                                                              3     Interface Design Process
+                                                                                           We took inspiration from Research through Design (RtD) principles
+2.3     Interactive Data Exploration Systems &                                             [95] to iteratively explore the ideas that resulted in our eventual
+        Provenance                                                                         design goals and interface for a thematic curation system. In the
+The HCI community has developed a large body of work in interac-                           first year of developing this project, Teleoscope went through a
+tive systems for data visualization and exploration [23, 37, 42, 47].                      series of prototypes and design iterations. During this time, we
+However, in the context of qualitative analysis, existing systems                          experimented with features such as summary statistics, different
+are either primarily designed to assist with the analysis phase, or                        NLP approaches, and dashboard-style interfaces, but quickly found
+are incapable of scalable search to large corpora. Teleoscope focuses                      these were unsuitable for interpretivist approaches to data cura-
+on capturing and visualizing the exploratory process [38, 51] in-                          tion that qualitative researchers we talked to wanted. This was
+volved in data curation, an area referred to as provenance tracking                        due to a desire among qualitative researchers to remain "close to
+in systems and visualization literature [92, 94]. Teleoscope’s focus on                    the data" [18], rather than reading quantitative metrics or whole-
+visualizing provenance stems from a desire to make data curation                           sale summaries that deprive them of the opportunity to generate
+reproducible and explainable [4, 81, 93] to help with the process                          interpretive insights based on specific documents in the corpus.
+of analysis, publication, and review. In contrast, many topic model
+visualizations choose instead to directly visualize the underlying                         3.1    Formative Study
+document clusters, the result of clustering [68, 77].                                      3.1.1 Participants. For our formative study, the users we refer to
+   To make sense of qualitative data, it is important to not only                          were members of our design team and a larger set of lab members
+answer the question of “What are the results?” but also “How did                           who were not involved in Teleoscope development. In terms of
+we get here?”. This can be achieved by creating a visual trace or                          expertise, all users were trained computer scientists from the upper-
+history of user interactions with the data. In Teleoscope, keeping                         level undergraduate to post-doc level; some members of our team
+track of the provenance of a thematic schema involves tracking                             were trained UX and qualitative research practitioners from the
+the inputs and user-selected data processing elements in a chained                         upper-level undergraduate to PhD level. Several users we talked to
+workflow. The user is engaged in a process of data wrangling for                           had experience conducting thematic analysis in previous studies.
+sense-making [7, 12], i.e., exploration, annotation and curation of
+data [64]. In Trrack [22], Cutler et al. demonstrate a library for
+CHI ’26, April 13–17, 2026, Barcelona, Spain                     Patrick Yung Kang Lee, Paul Hendrik Bucci, Leo Itsuki Foord-Kelcey, Alamjeet Singh, and Ivan Beschastnikh
+
+
+ Study Type                            Participants                    Dataset/Topic                    Methods                           Takeaways
+ Formative Study
+                                       • Computer scientists           • Privacy and security           • Iterative prototyping           • Researchers want to
+                                         (undergraduate to               norms on r/AITA                • Low-cost UX                       work "close to the
+                                         post-doc)                       (∼350K documents)                evaluation                        data"
+                                                                                                        • Wizard-of-Oz testing            • Need support for
+                                                                                                                                            organizing corpora
+                                                                                                                                            interpretively
+ Extended Formative Study
+                                       • PI in Nursing                 • Critical and end of life       • Briefing session                • Quick, iterative
+                                       • PhD student in                  care on r/AITA                 • Diary study (10 hours             curation shows
+                                         sociology                       (∼350K documents)                of use)                           promise
+                                       • Three RAs                                                      • Post-study interviews           • Better support needed
+                                                                                                                                            for nuanced
+                                                                                                                                            interpretations
+ Field Deployment
+                                       • PI in nursing                 • Structural inequality          • Briefing session                • Helps discover
+                                       • Two graduate RAs                among nurses on                • In-the-wild study                 terminology
+                                         from schools of                 r/nursing (∼35K                • Semi-structured                 • Fosters discussion on
+                                         nursing                         documents)                       interviews                        alternative curation
+                                                                                                                                            pathways
+                                                                                                                                          • Speeds up saturation
+                                                                                                                                            on large datasets
+ Public Deployment
+                                       • Market research               • Excel spreadsheets             • Demo & co-design                • Supports new ways of
+                                         consultants                   • Social media data on             sessions                          thinking about
+                                       • Public policy advisors          X                              • Customer interviews               common business
+                                                                                                                                            analysis tasks such as
+                                                                                                                                            CSV labeling and
+                                                                                                                                            sentiment analysis
+    Table 1: Summary of studies, participant groups, datasets, methods, and takeaways from the Teleoscope design process
+
+
+
+3.1.2 Dataset. As described in Section 2.1, we were motivated by                        3.1.3 Methods. We used a variety of informal low-cost UX eval-
+the increasing amount of qualitative work that used Reddit as a                         uation methods to iterate on early design choices and prototypes,
+qualitative site of inquiry into social interaction and cultural norms.                 including cognitive walkthroughs, heuristic evaluations, and in-
+Prior to working on the Teleoscope system, members of our research                      formal observations with our users. After each round of informal
+team were interested in exploring social norms around account                           evaluation, we would incorporate user feedback into a subsequent
+sharing within the context of Internet security and privacy. For                        design prototype. The cognitive walkthroughs and heuristic evalu-
+this reason, we used Reddit’s "Am I the Asshole" (r/AITA) advice                        ations were performed with standard methods and heuristics taken
+forum [75] as the data source for our formative studies as it was                       from the Nielsen Norman group [65–67]. Informal observations
+both (a) one of the largest and most active sub-communities, or                         were performed on low-level system interactions such as menu
+sub-Reddits as they are known on the platform, and (b) because                          clicking and basic keyword searches to discover and amend heuris-
+it contained many interesting, explicitly normative accounts of                         tic violations.
+conflicts regarding social behaviour and cultural norms (some of                           In these formative stages, the Teleoscope interface changed drasti-
+which had to do with our original research questions around digital                     cally from an interface and visualization standpoint, moving from a
+security/privacy). The r/AITA corpus is also too large to be tractable                  "top-down" approach where the entire corpus was visualized on the
+for a small research team, which fit our problem domain well. It                        screen to a more "bottom-up" approach where only documents of
+contains nearly 1 million top-level documents, or posts, which we                       interest were displayed on the interface. The research team would
+filtered down to around 350K usable documents by removing posts                         convene at least once a week to discuss results of formative proto-
+that were removed by moderators or otherwise corrupted1 .                               types and design choices. After a few months of prototyping in this
+                                                                                        manner, the research team collated a series of user metaphors and
+                                                                                        design goals for the rapidly maturing interface. We then decided to
+1 At the moment, Teleoscope does not support nested document display such as with
+                                                                                        transition to a more longitudinal evaluation of the interface after
+Reddit’s comment threads, although the interface can display URLs to the original       the research team was satisfied the interface was robust enough
+post should the user be interested in this information.
+Crystallizing Schemas with Teleoscope: Thematic Curation of Large Text Corpora on Reddit                                    CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+and had met the established design goals to a standard that allowed                        a non-linear canvas interface. By moving commands and system
+for more in-depth user testing.                                                            state out of menus and collapsible dashboard modules, we felt we
+                                                                                           were able to better provide a feeling of working "close to the data".
+3.2     Results                                                                            A design with a minimum display of information was also able to
+The results of our formative study were a set of design goals and                          better facilitate drawing connections between groups of documents
+system metaphors to support an interpretivist approach to data cu-                         that were user-defined.
+ration (i.e., thematic curation) on large text corpora. It also resulted                   3.2.2 Document Grouping: Initial Forays into Curation. Using
+in an interface for visualizing the process of conducting thematic                         our new prototype, users explored the r/AITA dataset for pri-
+curation and the resulting artifacts (thematic schemas). We report                         vacy/security conflicts using keyword searches. This quickly raised
+these results by walking through a usage scenario for Teleoscope                           another important question from our users: How did the user know
+using examples based on the r/AITA dataset throughout to provide                           they had the right keywords? Concerns about biasing the curatorial
+commentary on and trace through our design decisions throughout                            process through the choice of inappropriate or a priori keywords
+the initial development of Teleoscope. The process is summarized in                        arose. Another drawback of using keywords was the lack of con-
+Figure 3 and additional usage scenarios provided in Figure 2.                              textual differentiation. For example, using the keyword privacy
+                                                                                           brought up relevant documents, such as those about changing pass-
+3.2.1 Keyword searches: Schema nucleation. Our original proto-
+                                                                                           words following an account sharing conflict, but also less relevant
+types for Teleoscope used dashboard metaphors [21, 31, 46, 50, 89]
+                                                                                           documents in the corpus, such as using the bathroom in private. We
+where each module displayed elements such as included or ex-
+                                                                                           realized the interface needed to provide a mechanism to annotate,
+cluded keywords, document similarity statistics, and topic clusters.
+                                                                                           group together, and differentiate relevant and irrelevant documents
+Initial corpus visualization attempts drew inspiration from com-
+                                                                                           to the researcher. In this initial phase of curation, these document
+mon visualization solutions such as weighted adjacency matrices
+                                                                                           groups often captured vague ideas about under-determined con-
+of keywords and documents [5, 10, 54], but due to the size of the
+                                                                                           cepts in the dataset and the researcher’s mind. Although this inter-
+corpus, screen pixel overlap quickly made this approach intractable.
+                                                                                           active process helped researcher’s refine ideas about their internal
+In addition, our users felt the relationship between the different
+                                                                                           schemas, they did not yet have strong commitments to the external
+dashboard modules were disjointed from the way they conceptual-
+                                                                                           schemas represented in the interface.
+ized data. Instead, many users who had experience in conducting
+                                                                                              Eventually, as the concepts in document groupings became
+qualitative work on large text corpora told us they tended to begin
+                                                                                           clearer to the user, the interface became a visual artifact, or ex-
+their workflow by quickly skimming through the dataset in order
+                                                                                           ternalization of the ambiguous internal schema. At this point, the
+to begin building up mental "schemas".
+                                                                                           interface could often become cluttered, with many annotated doc-
+   Probing further, we learned that these mental schemas were
+                                                                                           uments "in staging" with no clear meaningful arrangement. We
+similar to the concept of schemas in psychology, which refer to
+                                                                                           therefore implemented an action history system where every sys-
+a set of beliefs, attitudes, and emotional responses related to an
+                                                                                           tem action was logged and could be rolled back. We opted for an
+archetypal situation [11]. Berret and Munzner appropriated the
+                                                                                           algebraic workflow metaphor to allow the user to directly manipu-
+concept of schemas in their work on sense-making processes with
+                                                                                           late the history of their actions on the interface via the windowing
+data visualization [11] by arguing that data visualization provides a
+                                                                                           elements.
+method by which a user can externalize internal schemas, allowing
+                                                                                              At this stage, users might be curious about whether their initial
+them to inspect, amend, and refine internal schemas alongside
+                                                                                           document groupings represented meaningful, substantiated pat-
+externalized artifacts of the schema. For our users, this process
+                                                                                           terns in the larger text corpus and not just isolated examples. To
+of schema "nucleation" had to begin with some entry point into
+                                                                                           allow users to discover this information, we experimented with
+the dataset. The most common approach was either by skimming
+                                                                                           various NLP approaches that allowed users to make sense of their
+documents or keyword search, as many of our users with qualitative
+                                                                                           keyword searches and initial groupings at scale. We settled on us-
+research backgrounds had formal training in methodologies for
+                                                                                           ing vector similarity search provided by LLM embeddings as an
+managing keyword searches, such as boolean search strategies [3].
+                                                                                           approximation of semantic similarity (see also Section 2.2) within
+   They also explained that every keyword search or pass at the
+                                                                                           a group of documents. Although vector similarity is not a perfect
+data allowed them to iteratively subset, facet, or create "views" on
+                                                                                           analogue to the thematic similarity being developed in the user’s
+the data. This is similar to the process of crystallization described
+                                                                                           mind, since the former is statistical and the latter interpretive, our
+by Ellingson [28], where triangulation of a phenomena many times
+                                                                                           users reported a sense of interactive, serendipitous discovery that
+results in more nuanced interpretations of the data, akin to a more
+                                                                                           the research team found satisfactory and wanted to substantiate
+complex crystalline structure. This insight also supports a nice
+                                                                                           throughout the data curation process.
+metaphorical similarity to graph visualizations that informed our
+subsequent design of Teleoscope’s data structures, which we expand                         3.2.3 Information Saturation in Corpus Construction. By leverag-
+on in Section 4.2. As a result, Teleoscope supports standard fuzzy key-                    ing the NLP features in Teleoscope, users were now able to iteratively
+word search operations and windows for dataset skimming to en-                             refine their document groupings, receiving automated suggestions
+able schema nucleation. We felt these were suitable user metaphors                         on-demand for new documents to add to their document groups.
+for initial corpus exploration due to user familiarity. After these                        These changes would subsequently propagate to our backend in
+conversations, we also abandoned the dashboard metaphors in                                order to provide increasingly user-driven suggestions based on the
+favour of a windowing system with visible input/output areas on                            vector relatedness of documents users placed in the same group
+                                                                                           (see Section 4.2 for system details). Eventually, we hoped that users
+CHI ’26, April 13–17, 2026, Barcelona, Spain               Patrick Yung Kang Lee, Paul Hendrik Bucci, Leo Itsuki Foord-Kelcey, Alamjeet Singh, and Ivan Beschastnikh
+
+
+           search using keywords                            explore by grouping                             iteratively create schemas
+      1                                                2                                               3
+           to find interesting documents                    document meanings                               by mixing more documents together
+
+
+
+
+Figure 3: The core Teleoscope workflow: Beginning with keyword searches, researchers can iteratively select and mix groups of
+documents together in a process we call thematic curation, then explore NLP-based document suggestions from the larger
+corpus to conduct interpretive data curation and achieve information saturation on resultant thematic schemas.
+
+
+would feel a sense of information saturation in their curation pro-               solidify thematic curation around the concept of "ambiguous pri-
+cess. Richness and saturation are two concepts used to discuss                    vacy/security violations that challenge the accepted value systems
+rigour during qualitative analysis [58]. In contrast with quantita-               of current privacy models". Needless to say, this is an extremely
+tive research paradigms, rather than valuing many data points (i.e.,              difficult concept to search for using keywords, and requires care-
+through statistical power), qualitative researchers are particularly              fully reading through most of a NLP-generated document group
+interested in having many unique data points (i.e., through infor-                provided by the system. This is because the content of the post is a
+mation power [90]). As users continued to curate their thematic                   nuanced problem about digital privacy, which is rarely surfaced by
+schemas, we observed there came a point when new documents                        a statistical vector similarity search. This example helped inform
+surfaced by the Teleoscope system did not provide new insights into               the fundamental difference between what a system could easily do
+a particular phenomena the researcher was interested in, indicating               with a vector search versus the value of human interpretation of
+thematic curation was complete.                                                   the data.
+   Determining when this point has arrived is one of the chief diffi-                Our saturation goal therefore became to find the largest num-
+culties of working with large text corpora, since it is often unfeasible,         ber of thematically unique examples of nuanced situations such as
+and sometimes impossible, to read every relevant document within                  these. Semantic vector similarity search gave us a recursive pro-
+a dataset. As mentioned in Section 2, ad-hoc sub-sampling or data                 cess, allowing researchers to partition datasets into large groups of
+partitioning strategies are often employed as a result. With Teleo-               documents that represented the same thematic concept, documents
+scope, the NLP features were able to group together large numbers                 that were not thematically relevant, and special signposting exam-
+of thematically similar posts for the researcher to examine. We re-               ples. Based on our formative study, we determined that saturation
+alized during our formative study that there were three archetypal                had been achieved when further faceting could not meaningfully
+kinds of document groups: (1) Groups of documents that could                      differentiate groups of documents; as a corollary, saturation had
+be analyzed in "batches" since they contained thematically similar                occurred when we could not find any further examples that could
+content; (2) groups of documents that could be confidently ignored                signpost differentiating aspects in our thematic schemas.
+by the researchers since they were not thematically relevant; and
+(3) special example posts that we called signposts. Signposts were
+nuanced "exceptions that proved the rule" that warranted further                  3.3      Design Goals
+interpretive focus and attention.                                                 Having surfaced the usage metaphors that needed to be supported
+   For example, one user read a post titled "AITA for secretly muting             in a qualitative approach to data curation through our formative
+my wife’s emails while on vacation?". The researcher’s interpreta-                study, the research team collated them into a set of design goals
+tion of the post was that there existed conflicting value systems                 based on our observations of the data curation process with the
+at play. On the one hand, the husband was clearly violating a pri-                r/AITA dataset.
+vacy norm by altering his wife’s email settings without her permis-                  Our design goals target live, qualitative interactions (DG1) with
+sion. On the other, he seemed to believe that he was doing her a                  data, as opposed to statistical topic modeling packages that run as
+favour, and quite possibly improving their vacation experiences.                  terminal-based Python programs [25, 27, 71, 76]. We also visual-
+This signpost, along with other signposts, helped the researcher to               ize the process of thematic data exploration and curation so that
+                                                                                  collaborators can share their thought processes and interpretive
+Crystallizing Schemas with Teleoscope: Thematic Curation of Large Text Corpora on Reddit                                     CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+conclusions (DG2). This is different than topic modeling visualiza-                        flow into targets (other nodes, see also Figure 1). Data sources are
+tion systems that focus on high-level statistics, topic hierarchies,                       arbitrarily-long document lists that subset the full corpus. The
+word counts, and labels [27, 45, 89], which we discarded after com-                        Search node (Figure 4-1) allows the full dataset to be filtered based
+pleting our formative study. To support our downstream target                              on a fuzzy keyword search (along with basic boolean text search
+users — who were trained in qualitative methods but not computer                           operations). Group nodes (Figure 4-3) are document lists that
+experts — we created a web platform to facilitate "fast enough"                            contain documents users have explicitly selected for inclusion.
+interaction so that target users could feel as if they were having a                          The search and group nodes can also be used as input to control
+creative and improvisational experience with the data (DG3).                               NLP operations. If a user creates a group of documents, it can be
+   To summarize, our design goals for the system were:                                     fed into the     Rank (Figure 4-4) node by connecting the Group
+• DG1. Imbue large-scale data curation with familiar qual-                                 node to a target Rank node. The Rank node will then perform a
+  itative interactions Qualitative researchers are familiar with                           vector similarity search of the full corpus based on the average of
+  arranging, annotating, and grouping of documents physically                              the vectors in the Group node and return an ordered list of the most
+  in their data sense-making. We borrow from these interaction                             similar documents up to a user-defined threshold. By default, this is
+  paradigms and imbue them with computational power to enable                              an equal weighting of the documents in the Group node, although
+  interpretive data curation with large-scale datasets.                                    both documents and groups housed within groups can have their
+• DG2. Help researchers externalize their internal schemas                                 weights increased to emphasize certain documents during a re-
+  as visual artifacts that can be retraced, modified, and in-                              rank operation. Negative examples were not needed as users could
+  spected by collaborators. When curating data, capturing the                              directly remove collections of the corpus that were not of interest
+  steps of the interpretive thought process through our action his-                        using the regular Group mechanisms. Feedback dynamics are not
+  tory is important in fostering collaboration with team members,                          directly exposed to the user. If a specific data source, like the results
+  who can inspect, share and modify workflows and understand-                              of a Search node, are connected, then the Rank node will only order
+  ings of the corpus.                                                                      that source. Custom user annotations, represented by               Note
+• DG3. Facilitate an on-going feeling of interpretive, creative,                           nodes (Figure 4-6), can also be used as input to Rank nodes. Note
+  and serendipitous sensemaking for researchers. The feeling                               nodes are arbitrary text that the user enters which are immediately
+  of continuous interactivity was important for us to facilitate                           vectorized. A creative way to use Note nodes is to "take on the voice
+  through our low-level system design choices in order to foster                           of the documents" to create "synthetic" archetypal data examples.
+  a sense of interpretive immersion and to avoid letting users get                         These synthetic examples can then be used as an input to the Rank
+  creatively blocked waiting for long computations on the entire                           node in order to explore whether these synthetic data examples are
+  corpus.                                                                                  actually substantiated by real documents in the corpus. This is a
+                                                                                           novel search mechanism based in creative arts practices that has
+4     System Specification                                                                 essentially not been enabled with prior technology.
+In this section, we outline the system features and implementation                            In addition, Teleoscope supports automatic document clustering
+of the Teleoscope system. An overview of the system features is                            operations through the Projection node (Figure 4-5). Projection
+presented in Figure 4. The word “Teleoscope” is a portmanteau                              nodes take data sources and create low-dimension projections of
+of the Greek word teleology and telescope. Teleoscope is a way for                         the source documents by instantiating a custom distance metric.
+researchers to interpretively explore and curate a large, intractable                      Technically, the "metric" is a function over a matrix customized by
+corpus in an opinionated fashion, resulting in thematic schemas,                           the user by using documents within the data source as the input to
+groups of documents from the overall corpus that have been suf-                            the function, we use the term "metric" to be consistent with UMAP
+ficiently "downsized" to be amenable downstream to canonical                               terminology [61]. For each Projection node, the custom distance
+approaches in qualitative analysis, such as reflexive thematic analy-                      metric is created by calculating the minimum distance between each
+sis [15] or grounded theory [63]. Thematic schemas can be thought                          document within the data source and a maximum distance between
+of as occupying the space on a spectrum between topic categories                           documents in other data source nodes currently on the interface.
+on one end (which usually have little to no interpretive input from                        This custom metric is then used to cluster the remaining documents
+a human in their creation process) and the final data examples or                          in the full corpus. In practice, this means that the Projection node
+quotations (which are used in a report or publication to substantiate                      attempts to group all the documents in the corpus as if they were
+a theme) in a qualitative/empirical work on the other.                                     in the same Group nodes that the user has defined. In this way,
+                                                                                           Teleoscope supports the archetypal interactions of a qualitative
+4.1     System Features                                                                    researcher when curating documents such as arranging, annotating,
+                                                                                           and grouping while enabling this work at scale via NLP operations
+In Teleoscope, the act of data curation takes place within a node-
+                                                                                           that allow the corpus to be quickly explored and faceted.
+based visual data-flow editor. Users are initially presented with a
+                                                                                              Teleoscope also supports collaborative inspection of workspaces,
+blank, infinite canvas workspace, similar to those seen in white-
+                                                                                           allowing members of a research team to share their workspaces
+boarding applications such as Miro [1]. Users are then able to create
+                                                                                           with one another in order to inspect, trace, and re-compute thematic
+individual nodes that represent key operations in the system, such
+                                                                                           schemas. Team members can synchronously share workspaces with
+as keyword searches or NLP-powered recommendation. Nodes can
+                                                                                           one another, allowing them to make all the same actions as they
+be arbitrarily arranged on the interface via drag-and-drop oper-
+ations. The basic interaction premise is that data source nodes
+CHI ’26, April 13–17, 2026, Barcelona, Spain            Patrick Yung Kang Lee, Paul Hendrik Bucci, Leo Itsuki Foord-Kelcey, Alamjeet Singh, and Ivan Beschastnikh
+
+
+                                                                                                                   4
+                                                                                          Rank
+
+
+
+
+                                               1
+                                                                               3
+
+                                                   2                                                               5         7
+
+
+
+                                                                           6
+
+
+
+
+Figure 4: An image of the Teleoscope workspace. (1) Users start by performing a keyword search to explore documents using the
+Search node; (2) Documents are dragged onto the workspace; (3) Documents can be put into Group nodes for organization; (4)
+Rank nodes can use documents, Notes or Groups as control inputs; (5) Projection nodes create clusters using Groups as control
+input; (6) Note nodes contain arbitrary text which is also vectorized and can be used as an input to Rank nodes; (7) the sidebar
+has a quick viewer for documents, saved items, bookmarks, and settings. Keyboard navigation is used for quick exploration
+and group creation.
+
+
+would on their own workspaces, including moving nodes, com-                        Projection (UMAP) for reduction to five dimensions [60] with hyper-
+menting, and comparing schemas. Workspaces can also be cloned.                     parameters n_neighbors=100 and min_dist=0.05 . The Projec-
+This allows members of a collaborative research team to experiment                 tion nodes that provide clustering functionality are implemented
+with each other’s thematic curation processes as digital artifacts                 using Hierarchical Density-Based clustering (HDBSCAN*) [59] with
+and surface discussions about curatorial decisions made over the                   hyper-parameters min_cluster_size=5 and min_samples=5.
+course of refining the corpus.
+                                                                                   5   Evaluation & Deployments
+4.2     Implementation
+                                                                               This section outlines our evaluation processes and results. In ad-
+4.2.1 Visualization Interface. To implement our visualization inter-           dition to the formative study described in Section 3, we evaluated
+face, we used ReactFlow, a React library for constructing node-based           Teleoscope by conducting (1) a second, multi-week formative study
+editors on top of NextJS. Interface state is managed through mid-              using a "simulated research team" of trained qualitative researchers
+dleware that routes to a MongoDB database, allowing us to inspect              (N=5), followed by a post-hoc review of our interface and data
+user action histories, although these were not directly exposed to             with a group of visualization experts; (2) a multi-month field de-
+users in our evaluations.                                                      ployment within a qualitative research group; and (3) an on-going
+4.2.2 NLP Operations. Teleoscope can be "hot-swapped" for any                  public release as we continue developing the tool. Evaluations are
+off-the-shelf exogeneous model, such as those available on the                 summarized in Table 1. We opted to conduct a second formative
+HuggingFace repository [91]: In our user evaluations, Teleoscope               study as part of our evaluation as we found it difficult to make
+uses FlagEmbedding’s BGE-M3 model [20]. We use Group nodes                     informative baseline comparisons between Teleoscope and other
+(a collection of user-specified documents) as control inputs to de-            interactive data exploration tools. This was due to the order of
+fine a similarity metric (i.e., the "supervision" portion of our semi-         magnitudes difference in the scale of data typically being ingested
+supervised approach). The similarity metric situates documents                 and manipulated by Teleoscope versus other existing tools used
+within the same Group node near 0 and are normalized to 1 be-                  by qualitative researchers, and the manner in which the data was
+tween Group nodes. As mentioned in Section 3, users are also able              handled at the document rather than corpus level (we expand on
+to create their own examples of synthetic data and add these to                this in Section 6). Although the number of participants in these de-
+document Groups to verify hypotheses about the kinds of data con-              ployments was relatively small, we followed their use of the system
+tained in the corpus. We use Universal Manifold Approximation and              for a much longer period of time than in a traditional system eval-
+                                                                               uation. Part of the motivation for this was our aim to understand
+Crystallizing Schemas with Teleoscope: Thematic Curation of Large Text Corpora on Reddit                                     CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+and support how qualitative researchers actually got work done,                            this extended formative study, but minor bugs were fixed. System
+and also in light of the fact that we were not comparing Teleoscope                        logs were kept throughout the study, which we verified to confirm
+to some experimental baseline system. It was therefore paramount                           participants used the system for a minimum of 10 hours before the
+for us to observe whether Teleoscope was relevant to our target                            focus group.
+user population (in line with RtD evaluation criteria) to evaluate                            We collected the diary entries and analyzed them using affin-
+whether the system was successful. User studies were conducted                             ity diagrams before the participant focus group, which took three
+under the approval of our institution’s research ethics board; we                          hours, including a lunch break. The focus group involved (1) di-
+obtained participant consent forms and reminded participants of                            ary discussion; (2) brainstorming on problems encountered; (3)
+their right to cease participation in the studies if desired.                              brainstorm on feature requests and design solutions to identified
+                                                                                           problems; and (4) explanation of ML concepts unfamiliar to par-
+5.1     Extended Formative Study with "Simulated"                                          ticipants and brainstorming on better alignment between visual
+        Research Team                                                                      and interaction metaphors. We video and audio recorded the focus
+                                                                                           group and used large printouts of the Teleoscope interface to draw
+Once our system implementation had stabilized, we released the
+                                                                                           and annotate problems and design ideas (see Figure 5).
+first version of Teleoscope for a second, multi-week formative study
+                                                                                              Post-hoc Analysis by Visualization Group After we had analyzed
+with representative target users. The premise was to simulate a
+                                                                                           and summarized participant results, we presented Teleoscope in two
+research team working on the same research question with a large
+                                                                                           multi-hour analysis sessions with a visualization research group.
+text corpus that we provided. We were interested in the following
+                                                                                           Our results reflect the analysis of that group along with our own
+research questions:
+                                                                                           analysis and solution brainstorming.
+• RQ1. In what ways did participants understand and use Teleo-
+  scope’s system features such as Search, Rank, and Projection?
+• RQ2. How did participants incorporate Teleoscope into their un-                          5.1.4 Results. Diary Results. Using Teleoscope differed from
+  derstanding of qualitative research processes?                                           keyword search paradigms. Participants found that the Rank
+   We were also interested in observing the extent to which Teleo-                         operation differed significantly from keyword search operations
+scope could hold up in a simulated production environment and                              they had previously used. For many participants, it took some time
+welcomed ongoing bug reports from participants. We therefore had                           to (1) differentiate the output of a keyword search from the output
+to ensure the interface was robust enough for participants to use                          of a Rank operation; and (2) to differentiate valid results that did
+on their own devices, outside of a lab environment.                                        not meet their expectations due to the documents that existed
+                                                                                           in the corpus from invalid results due to bugs in the system or
+5.1.1 Participants. We recruited participants who were familiar                            mental model inconsistencies. There were negative transfer effects
+with qualitative methods: at least an upper-level undergraduate                            from prior familiarity with keyword searches that we noticed took
+course and/or equivalent research experience. Eight participants                           participants multiple sessions to unlearn.
+were recruited; three dropped out before the multi-week study                                 For example, P1 searched for “palliative” and was “...surprised by
+was set to conclude (final count 𝑛 = 5). Of the participants who                           how many posts were about animals at end of life, which does not fit
+remained, one was a PI at a university who led qualitative research                        our defined research topic.” P1 then wished “...there was a feature that
+in the School of Nursing; one was a senior PhD student in Sociology;                       would take everything I had already put within one group and give me
+two were upper-level undergraduates in Sociology working on self-                          ‘more like this’”, which was exactly what the Rank operation was
+directed projects in a qualitative methods course; and one was an                          designed to do. Multiple participants corroborated this sentiment in
+upper-level undergraduate in Psychology who had experience with                            their diaries (P5, P7, P8). This indicated problems in the participants’
+qualitative work. Participants were reimbursed at a rate of twice                          mental model, likely due to (1) how we were representing the Rank
+the local minimum wage owing to their status as expert users.                              operation on the workspace; (2) our training, documentation and
+5.1.2 Dataset. The topic that was chosen by study participants                             support materials; and (3) not enough time to learn the tool.
+for investigation was Critical and end of life care within the                                However, P1 reported for their third session that they spent a
+r/AmItheAsshole dataset (see Section 3). The group brainstormed                            long time looking through the documentation and support videos
+seed keyword searches such as Medical Assistance in Dying (MAID),                          the research team developed to understand the possibilities of Teleo-
+End of life care, Palliative, ICU, Failures, Emergency rooms, Emergency                    scope:
+care, Lack of beds, and Overcrowding.                                                          Today I also spent time trying to go down the rabbit hole of
+                                                                                               different searches to try to gain a true appreciation for how
+5.1.3 Methods. Participants were introduced to Teleoscope and                                  this machine learning approach to data collection differs from
+each other during a one-hour training session where we brain-                                  just keyword searching within the Reddit search. This was
+stormed a shared research topic. Participants were then instructed                             really evident to me when I found a post where the OP had a
+to use Teleoscope for at least 10 hours before a focus group scheduled                         palliative/terminal illness, and I wanted to find others where
+three weeks later. For each session that they used the system, they                            this was the case. I made a new folder for this category, then
+wrote a diary entry detailing (1) the concepts that they explored;                             used the [Rank] feature, and immediately found one other
+(2) the process by which they explored the theme; (3) any collab-                              post where the OP has cancer and was asking a friend to not
+oration features they used; and (4) any bugs or features requests.                             mourn their death. It would be extremely difficult to keyword
+No significant interface changes were made during the course of                                search for this type of topic, but it’s a very interesting and
+CHI ’26, April 13–17, 2026, Barcelona, Spain          Patrick Yung Kang Lee, Paul Hendrik Bucci, Leo Itsuki Foord-Kelcey, Alamjeet Singh, and Ivan Beschastnikh
+
+
+
+
+Figure 5: Large printouts of the Teleoscope interface were used to draw and annotate problems and design ideas with both the
+focus group (left), and the visualization group during a post-hoc analysis (right).
+
+
+    important area to capture (OPs with terminal illnesses). This            and changing the groups as they developed their understanding
+    was a great exploration! (P1)                                            of the corpus and the tool. Then, they switched between using the
+   This indicated that it was possible to learn the difference be-           Rank operation and the group feature to find relevant documents:
+tween keyword search and Rank operations, but that the learning                  After adding about half a dozen documents to the group ‘gay
+curve was steep enough to require multiple hours of usage and                    stuff’, I noticed that many of the documents are about gay
+documentation review.                                                            panic. That is, the fear of being (wrongly or correctly) as gay,
+   Teleoscope can support quick, iterative curation strategies.                  the dislike of anything perceived as gay, and an aversion
+P7 articulated a very clear document review strategy and seemed to               from being around gay people. I changed the group name
+understand the tool very quickly. Ignoring the group topic, they be-             to ‘gay panic‘ to reflect this...once I had about 13–14 results,
+gan searching for documents related to their own research program                I opened the [Rank] window for the group. Looking at the
+by skimming titles:                                                              first two pages of results, none of them that weren’t already
+    I was interested in [AITA] posts about gay marriage, which is                in the group seemed very relevant, mostly judging by their
+    a topic tangentially related to my own research. I populated                 titles and occasionally by the first couple of sentences in the
+    the [gay wedding] group with results whose titles caught my                  document. I refined the search...[with a] couple of documents
+    eye. I should note that I very rarely read the actual documents.             that I thought particularly demonstrated gay panic. (P7)
+    If the title was vague, I occasionally skimmed the first few                Positive and negative transfer effects from other qualita-
+    lines. (P7)                                                              tive research software. Participants’ extensive prior experience
+   They further suggested adding a document quick viewer to aid in           with qualitative research software allowed them to have a much
+skimming. They then organized documents into groups, re-labelling            clearer mental model of the tool without extensive training, which
+Crystallizing Schemas with Teleoscope: Thematic Curation of Large Text Corpora on Reddit                                    CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+indicates the possibility of positive transfer effects. Many desired                          Concerns over the methodology supported by Teleoscope. Partici-
+features were given as examples from tools that they had experience                        pants agreed that they did not need to show total path exhaustion,
+with, such as Google Docs, MaxQDA, and NVivo. Unsurprisingly,                              but instead a sense of saturation (see Section 3) and demonstrable
+they mostly expected Teleoscope to work like other interfaces they                         information power. One issue with this is that although participants
+had previously used. To our surprise, none of the participants used                        had no issues with the Teleoscope process, they expressed concerns
+any of the collaboration features embedded in the system during                            about how to explain the Teleoscope process to reviewers at a high
+this deployment.                                                                           level. Some participants shared experiences with defensive publica-
+   P7 noticed many problems with the interface and made sug-                               tion strategies: in some qualitative papers, keyword searches are re-
+gestions for design changes that were brought to the focus group,                          ported on directly to demonstrate that they had reached saturation
+including (at this stage), a lack of annotation and data coding fea-                       or sufficient information power within their dataset. Teleoscope’s
+tures, document export features, and overall corpus visualization                          radically different approach to document curation introduced con-
+features: “At this point of my exploration of this theme, being able to                    cerns around methodological reporting, especially since there was
+play around with how [documents] connect to one another [...] might                        no clear literature to point reviewers to that demonstrated the
+have helped refine my thinking.” Participant diary results were sum-                       efficacy of Teleoscope’s curation strategy (see Section 6).
+marized and presented at the focus group, motivating our central                              Participants were also unsure whether using Teleoscope consti-
+discussion points during the session.                                                      tuted a violation of rigour in that it seemed to mix the data curation
+   System Log Results. During the user study, the system maintained                        and analysis phases in a qualitative research lifecycle. If text-level
+a log of user actions as they interacted with the system. Across the                       analysis in particular was supported, some participants felt that it
+5 participants, 7 sessions with the Rank operations were tracked                           might not be appropriate to allow for both aspects to be supported
+(one participant created 3 separate sessions for themselves). The                          in the interface at once. Despite this, we found that participants
+mean number of actions tracked per session was approximately 310                           used Teleoscope as we had intended: they explored data in a manner
+(median = 286, minimum = 97, maximum = 684). Actions included                              that extended beyond keywords searches. For example, participants
+such things as session initialization, creation/movement/deletion                          reported the following:
+of nodes, keyword searches, instantiation of ranking and results, in                            I was excited when the tool came up with things about the
+short, any conditions where the state of the workspace was altered.                             topic, but not including keywords that I used. (P1)
+   The actions were logged and then visualized to better understand                             I use it to find [documents] that I wouldn’t have found. (P7)
+user interactions. Overall, users made use of an iterative process to                      This led us to believe that Teleoscope could be used for a longer and
+find documents of interest, alternating between putting documents                          more in-depth research project, which motivated our subsequent
+into groups and instantiating new Rank operations to find new                              field deployment.
+documents relevant to their queries and then sorting them into their
+groups. The number of Rank operations created across the study                             5.1.5 Post-Hoc Analysis and Recommendations from Visualization
+were however, relatively small (between 2 and 4), but indicated                            Group. We presented our results and current interface to a visu-
+that the iterative curation strategy supported by Teleoscope showed                        alization group at our institution. After two multi-hour analysis
+promise for interpretivist-style curation.                                                 sessions, the visualization group recommended the following:
+   Focus Group Results. The focus group provided insight into the                              Visualize workspace relations. Up until this point, our inter-
+needs of qualitative researchers with different levels of expertise                        face did not include any visual graph concepts since our original
+with computer supported analysis. We used a thematic analysis                              abandoning of adjacency matrices. The recommendation was to
+approach to review the focus group results. We report here on the                          clarify system state further by treating windows as nodes which
+most prominent themes from our analysis.                                                   could be used as input sources for operations.
+   Mental model confusion regarding the limits of system operations.                           Clarify data type representation. Since the results of
+In the system deployed to the participants of our extended for-                            workspace operations were effectively variations on ordered lists,
+mative study, Rank nodes were originally coupled directly to a                             the recommendation was to create visual homogeneity where data
+singular Group node. When documents were added to the Group                                types were the same, and visual differentiation where they were
+node, the changes were propagated to the Rank node. This led to                            different. From this, we developed our current paradigm of source,
+confusion about the state of the Rank node and participants ex-                            control, and target data types, and a unified output datatype of a
+pressed a desire for more explicit visual representation of the Rank                       list of documents.
+operation and the ability for more fine-grained control of the Rank                            Create a quick-viewer to allow for minimized windows.
+operation, for example by allowing multiple input sources into the                         A sidebar was recommended to allow documents to remain as
+Rank node. Participants also wanted some visualization support                             minimized pills on the interface while users reminded themselves
+for understanding how they were “going down different paths” (P7)                          of document contents.
+in their curatorial process. Participants agreed that “seeing it” and                          Allow for multiple workflows. Users wanted to simultane-
+“understanding how close documents are to each other in space [is                          ously pursue multiple explorations with quickly accessible work-
+important].” (P1). In addition, since participants were most familiar                      flows. They further recommended that we create workflows that
+with and had prior training in keyword manipulation, set opera-                            could be chained to target both provenance and re-usability.
+tions were desired to give users confidence that they were being                               Our main takeaways from the visualization group recommen-
+thorough in their curation process.                                                        dations were to move our original window metaphor into a node-
+                                                                                           based metaphor with simplified workspace objects. This required a
+CHI ’26, April 13–17, 2026, Barcelona, Spain            Patrick Yung Kang Lee, Paul Hendrik Bucci, Leo Itsuki Foord-Kelcey, Alamjeet Singh, and Ivan Beschastnikh
+
+
+major redesign of both our front and backend systems to support                one successful security breach which was dealt with and mitigated;
+graph operations. It also introduced questions of concurrency and              the number of unsuccessful attacks were unknown.
+graph directionality. For example, our first iterations of this design
+introduced cycles into the graph; as such, we made the decision                5.2.1 Participants. Three PIs and research groups were recruited;
+to make sources strictly “left-handed” and targets “right handed”              only one research group was able to commit to long-term use of
+with the exception of set operations. This had further impacts on              Teleoscope. The final team comprised the PI from our extended
+our state management system, which had to be redesigned to work                formative study and two of their graduate RAs that were recruited
+with a graph-based structure.                                                  specifically to use Teleoscope. Participants were not reimbursed for
+                                                                               their time by us since they were being supported extensively by
+5.1.6 Extended Formative Study: Conclusion. In this deployment,                our design team for their own research projects; we understand
+we investigated how real qualitative researchers would use Teleo-              that the RAs were compensated in accordance with their regular
+scope in a simulated research environment. Coming back to our                  duties by their PI.
+research questions and summarizing our findings:
+                                                                               5.2.2 Dataset. The research team used Teleoscope to perform data
+• RQ1 Result. Participants understood the overall concept of the               curation for a research project on nurses and structural inequality
+  Rank operation and the workspace as a whole, likening it to                  as articulated on Reddit’s r/nursing sub-Reddit, a forum for working
+  walking down different paths in an unknown region. Even though               nurses to post about their day-to-day problems. On their own ini-
+  this metaphor came from the participants, the operation inputs               tiative and in alignment with their own qualitative methodological
+  and system state were often unclear. We decided that the path                practices, the team’s main conceptualization of data curation was
+  metaphor should therefore be visualized as directly as possible.             via an external Google document that contained a set of keywords
+  Participants did not use any collaboration features of Teleoscope,           to be used in searches (see Figure 6). After exploring the data us-
+  which may be due to a lack of impetus, our study environment,                ing a variety of features in the Teleoscope workspace (described
+  or because of our design. In the next evaluation, we addressed               below), they would update their keyword list with successful and
+  these possibilities to ensure collaboration features were used.              unsuccessful searches.
+• RQ2 Result. Participants interpreted Teleoscope primarily as
+  a data curation tool. Further, they were unsure about whether                5.2.3 Methods. Teleoscope was deployed in a standard beta release
+  it infringed on the analytic phase of qualitative work and had               manner where participants were given a private link to Teleoscope
+  concerns about academic rigour if it did.                                    until we transitioned to a full public release. Participants were in-
+                                                                               vited to participate in a Discord server to make bug reports and
+                                                                               feature requests. Depending on the request, occasional emails and
+5.2     Field Deployment                                                       video interviews were conducted. Logs were kept of system use to
+After completing an additional system redesign after our second                compare with study results. For the purposes of this paper, we "ter-
+formative study with the simulated research team, we were inter-               minated" data collection after six months, but their usage continues
+ested in a focussed, long-term field deployment with real qualitative          to be supported by the research team.
+research groups who could bring their own research needs to us.
+In a similar vein, we wanted to move Teleoscope out of a simulated             5.2.4 Results. Our field deployment helped us confirm and dis-
+environment and into a production environment where real-world                 cover the following insights: Teleoscope helped discover un-
+motivations and difficulties would be encountered. Our extended                known terminology. Even though the research team was com-
+formative study had many artificial contrivances, such as a research           posed of people experienced in nursing culture, they were not
+topic that none of the participants were using for their own research.         always aware of the terms that were used by on-the-ground nurses.
+We felt it was important to see how Teleoscope would perform when                  We search based on these weird, predefined keywords that
+participants were subjected to all the benefits, consequences and                  we think relate to structural inequities. But we also have to
+costs of real research. We also committed to providing ongoing fea-                guess in advance what language people might be using...We
+ture development and bug fixes for the field deployment, drawing                   didn’t think that people would delicately [post using the term]
+inspiration from co-design methodologies in HCI.                                   ‘people who experience structural inequities‘...But we did try a
+   For the field deployment, we were interested in the following                   lot of words we wouldn’t use, you know, like addict, junkie...We
+research questions:                                                                were trying to use the system in a way that would get us
+                                                                                   further than those keywords alone. (P1)
+• RQ3. When put in a real-world environment, how do researchers
+                                                                                  Teleoscope helped to populate their keyword search document
+  incorporate Teleoscope into their research practices?
+                                                                               with search terms that they would not have predicted a priori
+• RQ4. Using Teleoscope, to what extent are researchers able to
+                                                                               and helped them discover terms for phenomena of interest the
+  feel confident that they were able to retrieve data using crite-
+                                                                               researchers had not thought of.
+  ria that are important to qualitative researchers, i.e., richness,
+  information power, saturation, etc.?
+                                                                               Teleoscope helped with search saturation. The researchers re-
+  During this period, we also moved Teleoscope out of a test envi-             ported (1) making groups from documents from their keyword
+ronment into a publicly-available production release. This involved            searches; (2) piping the groups into the Ranking operation as con-
+adding many security features and backup systems which were                    trols; (3) determining which documents they had not yet read and
+exposed to the threat of arbitrary internet attacks. We had at least           (4) adding those documents to the groups. This helped uncover
+Crystallizing Schemas with Teleoscope: Thematic Curation of Large Text Corpora on Reddit                                          CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+
+                                                                                                      K E Y WO R D E X P LO R A T I O N S
+
+                                                                                                      Participants began by choosing particular
+                                                                                                      keywords that they found
+                                                                                                      interesting/relevant to their research
+                                                                                                      topic. Then, they found example
+                                                                                                      documents that they used as input into
+                                                                                                      the Teleoscope Rank and Projection.
+                                                                                                      Documents deemed interesting were
+                                                                                                      entered into groups.
+
+
+
+                                                                                                                       Exploration happened in private
+                                                                                                                     workspaces until groups stabilized.
+                                                                                                                     Then, groups were imported into a
+                                                                                                                             second shared workspace.
+
+                                                                                                                  G R O U P D E N S I F I C AT I O N
+                                                                                                                  Groups were then fed back into the
+                                                                                                                  Teleoscope Rank to ensure that there was
+                                                                                                                  sufficient coverage for a schema. Missing
+                                                                                                                  documents were read and evaluated for
+                                                                                                                  relevance by the research team, then
+                                                                                                                  added into the group.
+
+    T H E M E D EV E LO P M E N T
+    External to Teleoscope, the research team
+    maintained a list of groups (which
+    correspeonded to broad themes), keywords
+    that worked, keywords that didn’t work, and
+    keywords to be tried. New keywords would be
+    discovered while reading documents and
+    added to the appropriate list.
+
+
+
+Figure 6: An example of a workflow from our long-term field deployment. Pictures are actual screenshots of research artifacts
+from our participant research team’s data curation phase. Participants worked both individually and collaboratively on the
+Teleoscope interface, and collaboratively on Google Docs, Zoom, and in-person. Due to the existing qualitative research culture
+in their research group, keyword searches were the focus of their data curation approach. ML features were used to discover
+new keywords, find thematically similar documents that did not have specific keywords, and to saturate groups with relevant
+documents.
+
+
+parts of the document space that they had not yet captured with a                          of being dropped off multiple times in a mountainous landscape,
+keyword search.                                                                            using certain documents as signposts along a pathway.
+    Putting each one of our single groups like indigenous,                                 Working iteratively between keyword searches and ML func-
+    vulnerable disabilities, [an RA] put them into the [Rank]                              tionality was important for exploring and structuring the
+    and then basically went through to see like which ones we                              research topic. The researchers reported that they used the system
+    hadn’t read...We were just trying to expand our data set and                           to iterate and structure their ideas about their research topic.
+    be exhaustive. (P1)                                                                         It was actually really helpful to start with keyword searches.
+                                                                                                And to be able to build out this groups structure, and then
+   We found that a process of crystallization [28] took place. Start-                           [Rank] from there. Whereas maybe if we’d had a more like
+ing from a single document as a nucleation site, researchers started                            drilled in topic, we could have just gone from there.(P1)
+“growing” a more complex and interrelated document structure.                                 The researchers used Teleoscope to develop increasingly sophis-
+Some documents were signposts (exceptions that proved a rule)                              ticated schemas that gradually superseded their original topical
+which acted as inflection points. One researcher used a metaphor                           approach as their understandings of the target data grew:
+CHI ’26, April 13–17, 2026, Barcelona, Spain               Patrick Yung Kang Lee, Paul Hendrik Bucci, Leo Itsuki Foord-Kelcey, Alamjeet Singh, and Ivan Beschastnikh
+
+
+    There are a bunch of different like origin categories we needed               feature to be developed after some discussion and redesign of our
+    to go off of because of the way our topic is. We couldn’t                     backend graph processing system.
+    even [try to search for categorical terms such as] ‘Oh, this
+    is about emergency departments...vulnerable [people] or                       5.2.5 Field Deployment: Conclusion. In this evaluation, we per-
+    inequities‘...because when people are dragging on someone                     formed a customized field deployment for a real qualitative re-
+    who uses drugs, who comes to the emergency department                         search team and took ongoing bug reports and design feedback.
+    every week. That’s not the words they’re going to use. They’re                Summarizing our findings in relation to our research questions:
+    going to use super stigmatizing language, probably like what
+    we’ve seen in a lot of cases and be like, ‘I’m so frustrated. This            • RQ3 Result. Researchers incorporated Teleoscope into their re-
+    junkie comes into work all the time. He’s just drug seeking.                    search practice as a data curation tool, working between an exter-
+    He’s like plugging up a bed for everyone else who needs it.’ (P1)               nal Google doc for keywords and the interface itself. Teleoscope
+                                                                                    was used to explore parts of the document space where keywords
+Projections operations can allay methodological concerns.                           would not be easy or obvious to find.
+In the focus group, it was noted that using Teleoscope might be too               • RQ4 Result. Teleoscope helped researchers feel confident that a
+close to performing analysis rather than just curation, confound-                   corpus was being more comprehensively and rigorously explored
+ing methodological rigour (data curation and analysis stages are                    by providing both familiar and signpost example documents.
+usually kept distinct so as not to predetermine results). However,
+the projection operation, which was added as a feature after the
+focus group, seemed to have potential to populate the interface                   5.3      Continued Public Release
+with unexpected results (e.g., the signposts discussed in Section 3):             Teleoscope continues to be maintained for use by the original re-
+    One of the things that I had really worried about method-                     search team, who partnered with their institution to evaluate poten-
+    ologically was that with Teleoscope, I almost felt like you                   tial market opportunities for Teleoscope as a commercial system. We
+    were kind of like deciding what your findings might be...I feel               provide a brief account of our market explorations here to demon-
+    like [the projection operation] is really addressing some of                  strate that the core concept of thematic curation uncovered in the
+    that for me, because I feel like it’s bringing you all these like             Teleoscope design process met the extensibility criterion of RtD
+    adjacent topics to what you’re looking for. And I feel like it                [95] and users in domains other than the ones listed in the above
+    really broadens your idea so much further in the potential                    evaluations envisioned being able to use the system to support their
+    data [since] you’re exposed to so much more of the subreddit                  own data sense-making needs.
+    than you would be through just keyword searching. And I feel                     We provided demos of Teleoscope and solicited feedback on
+    like that’s really methodologically sound. (P1)                               whether users within a market research consultancy firm and a
+   The speed and ease of use of the Projection operation helped                   public policy think tank could envision using Teleoscope to support
+with researchers’ sense of completion as well:                                    their daily work with data. The authors of the system were also
+    When it comes to big data sets, it takes way too long to get a                provided with some archetypal data sense-making tasks conducted
+    sense of what’s going on. [The projection operation] is really                by these organizations and used Teleoscope to accomplish them.
+    nice, quick [and has] potential to expose that kind of stuff                  For market researchers, primary datasets consisted of large tabular
+    so that your findings aren’t [close to the] single keyword                    Excel spreadsheets of market data that required an associated label
+    that you put out...With qualitative research that’s a really                  to be assigned to them, in a process akin to sentiment analysis.
+    interesting and powerful thing to be able to do. (P1)                         When using Teleoscope, the mental model of thematic curation al-
+                                                                                  tered the way in which this labeling work was done. By iteratively
+Multiple workflows/workspaces allowed for reproducible                            refining thematic schemas, labels could be assigned to a group of
+exploration and collaboration. The research team approached                       documents at once, rather than row-by-row processing. However,
+collaboration by exploring on their own in independent workspaces,                one challenge was to associate this kind of interpretive work back
+discussing their results, and then collating the results into a single            into the original tabular format to enable downstream business
+shared workspace. Outside collaboration tools were also used, such                decision-making, so we implemented interfaces into Teleoscope that
+as email, Zoom, and Google Docs. The independent workspaces                       allowed ingesting more archetypal data sources used by such orga-
+served as drafting areas, where individual researchers could explore              nizations such as Excel spreadsheets and CSV files. Analysts from
+many ideas without committing to the larger team’s conception of                  the public policy think tank had the research team use Teleoscope
+the dataset, then came together with refined groups and keywords.                 on a different pool of social media data that came from X.
+After they collated their results, they performed further data explo-
+ration as a team on a single workspace by systematically using our
+ML operations to ensure completeness. Researchers were also able                  6     Discussion
+to compare their curation strategies and pathways with one an-                    In this section, we discuss how Teleoscope’s approach to data cu-
+other in order to surface different interpretive positions towards the            ration helps support greater epistemological coherence between
+data and examine how different curatorial choices led to resultant                interpretivist research paradigms and working with large text cor-
+schemas.                                                                          pora; how Teleoscope’s visualization approach affords qualitative
+   Along with the above findings, researchers submitted a variety                 approaches to data curation; and limitations and future directions
+of feature requests and bug reports. Set operations were the last                 for developing the core concepts of Teleoscope.
+Crystallizing Schemas with Teleoscope: Thematic Curation of Large Text Corpora on Reddit                                     CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+6.1     Supporting epistemologically coherent                                              6.2    Deductive vs. Inductive Approaches to
+        research with Teleoscope                                                                  Corpus Exploration
+Part of the motivation for developing Teleoscope stemmed from a                            Over the course of working on Teleoscope, the research team realized
+desire to provide an interpretivist approach to curating large text                        that supporting an interpretivist approach to data curation required
+corpora from social media platforms like Reddit. Currently, curation                       a fundamental shift in the kind of visualization support provided
+and partitioning strategies in the literature [34, 54, 83] often employ                    to the researcher. Prior systems for large-scale data exploration,
+ad-hoc strategies for curation prior to the main interpretive phase of                     such as Scholastic [40], Serendip [2], and TopicSifter [45], focus on
+their work in the analysis. In recent years, there have been concerns                      "top-down" or deductive approaches to developing schemas about
+that interpretive HCI work is being increasingly evaluated and                             the corpus. They typically rely on visualization at the "corpus-level",
+framed from a positivist position [13, 84], resulting in inappropriate                     presenting broad visual overviews of the dataset before allowing
+and incoherent critiques of interpretivist research questions. We                          user’s to drill down or converge to specific documents or topics. In
+observed a similar problem of epistemic incoherence stemming                               contrast, Teleoscope takes a "bottom-up" or inductive approach to
+from the use of statistical approaches to data curation followed by                        assisting with schema development, which influenced the sparse,
+interpretivist approaches to data analysis. This was exemplified                           canvas style interface we deployed to participants. By visualizing
+even in our own design process in our move away from dashboard-                            the corpus at the "document-level", researchers are able to curate at a
+style interfaces over the course of our first formative study.                             level close to the data itself and explore in a divergent manner, rather
+   Borrowing terminology from Kidder & Fine [44], statistical sub-                         than having to make interpretive jumps by reasoning about the
+sampling approaches to data curation align more with what the                              specific documents that might be contained within a large collection,
+authors refer to as "small-q" qualitative research: Qualitative re-                        as is typical with the more deductive/convergent approach.
+search conducted within a quantitative paradigm, as opposed to                                 Another advantage of a more inductive approach to corpus vi-
+"Big-Q" qualitative research that embraces a "fully qualitative" ap-                       sualization and curation is the interpretive flexibility and freedom
+proach. Teleoscope aims to support qualitative methods within a                            it affords to users. Instead of working with overviews of the full
+qualitative paradigm, embracing researcher subjectivity as a fun-                          corpus, which might be unwieldy, or machine-generated topic clus-
+damental part of knowledge construction [13], or in Teleoscope’s                           ters, which might not have any relation to the actual interpretive
+case, knowledge curation. Without this, the combination of a "small-                       categories of interest for a researcher [29], the inductive approach
+q" approach to data curation followed by a "Big-Q" approach to                             allows researchers to iteratively explore data without foreclosing
+analysis might result in what Braun, Clarke, & Hayfield describe                           any particular curative pathways. This ability to support immer-
+as "confused q" qualitative research [17], "research that seems to                         sion within the data [15] can lead to creative and serendipitous
+unknowingly, unreflexively and incoherently combine elements of                            encounters with the data, an important aspect identified by Jiang
+qualitative positivism with the values and assumptions of a qualita-                       et. al [41] when introducing AI-powered assistance into the qual-
+tive paradigm". Teleoscope’s aims to support a "Big-Q" approach to                         itative research life-cycle. This again helps Teleoscope support an
+data curation, enabling a consistent and coherent epistemological                          "end-to-end" interpretivist approach to qualitative research from
+foundation for interpretivist research projects that wish to make                          the curation to the analysis stage.
+use of large text corpora as their site of inquiry.
+   However, it would be over-claiming to state that Teleoscope en-                         6.3    Benefits and Limitations of Teleoscope’s
+sures full interpretivist rigour in the traditional sense. After all,                             usage metaphor and workflow
+this would necessitate manually examining the full dataset, the
+                                                                                           We found that the core benefit of Teleoscope was that it provided re-
+original problem Teleoscope was trying to probe a solution to. In-
+                                                                                           searchers with confidence that they had explored a large document
+stead, we see the Teleoscope design process as a response to the
+                                                                                           space with confidence, and apply the values of thematic analysis to
+call by Baumer to develop systems that "provide a scaffolding for
+                                                                                           curation. By using a visible trace of thematic schemas, they could
+human interpretation" [9], which is exactly what thematic schemas
+                                                                                           re-inspect and share their thinking processes, ensuring that their
+are intended to do, allowing for model outputs that "may actually
+                                                                                           curated documents provided saturation and that their curation was
+be more valuable if they provide some uncertainty and interpretive
+                                                                                           rigorous. Through working directly with qualitative researchers
+flexibility" [9]. Teleoscope is intentionally designed not to over-step
+                                                                                           in an extended design process, we discovered methodological pro-
+into the qualitative analysis process (see Figure2), allowing qualita-
+                                                                                           cesses unique to large-scale semantic search for thematic curation,
+tive researchers full interpretive control over their actual analysis
+                                                                                           such as signposting and crystallization to describe boundaries and
+procedure. It is true that Teleoscope still requires researchers to
+                                                                                           inflection points between document sets.
+imbue the "impressionistic" process [74] of interpretivist data cura-
+                                                                                              Like an affinity diagram at scale, Teleoscope facilitated trust
+tion with computational notions of similarity (via vector similarity).
+                                                                                           through the process of arranging documents. Rather than "offload-
+However, the core human-in-the-loop interaction of iteratively re-
+                                                                                           ing the work" to an LLM, Teleoscope provided the virtual material
+fining abstract mental models about data and reifying them into
+                                                                                           for researchers to manipulate, structure and capture their thought
+thematic schemas remains fundamentally committed to interpre-
+                                                                                           processes at a scale that would not be possible by hand. By allowing
+tivist approaches of working with data.
+                                                                                           researchers to impose their own meaning on document similarity
+                                                                                           searches, Teleoscope allowed interpretivist approaches to make
+                                                                                           headway into statistical—often hidden—curation methodologies at
+                                                                                           scale.
+CHI ’26, April 13–17, 2026, Barcelona, Spain            Patrick Yung Kang Lee, Paul Hendrik Bucci, Leo Itsuki Foord-Kelcey, Alamjeet Singh, and Ivan Beschastnikh
+
+
+   Through our studies and design work, we settled on a process-               7     Conclusion
+focused graph-based workflow metaphor rather than a dashboard                  We present Teleoscope, a web-based system that supports inter-
+metaphor (DG2). This was due to our focus on the process of                    pretivist approaches to curation of large text corpora for down-
+arranging and connecting documents as being the most important                 stream analysis, a process we call thematic curation. We developed
+interaction focus (DG1, DG3); it also increased visibility of system           the system in response to the needs of qualitative researchers to
+state and allowed for direct inspection of computational elements.             explore large corpora in ways that were coherent with interpre-
+However, one limitation of a workflow metaphor is that it does not             tivist paradigms of HCI research. Teleoscope provides NLP-based
+visually model the unknown document space very well. In part, this             operations on a visualization interface that supports many of the
+helps manage cognitive overload since users are only shown what                interaction patterns familiar to qualitative researchers. Teleoscope
+they have explicitly searched for themselves (as we argue above).              facilitates the creation of thematic schemas from large text corpora
+However, some dashboard elements, such as summary statistics of                in a way that allows researchers to retrace, share, and recompute
+corpus exploration relative to selected groups, could provide some             their sense-making process to other researchers. We reported on
+assistance to users if they are presented on-demand in response                the design process, engineering, evaluation, and deployment of our
+to curatorial needs. Due to our users’ use of an external keyword              system. Our public deployment of Teleoscope is ongoing [87] and
+Google doc in the field deployment, an open question is how and                we plan to continue improving Teleoscope and to maintain it for use
+whether to incorporate keywords back into Teleoscope as a primary              by the broad community of qualitative researchers.
+interaction element (CS2.RQ1). Perhaps with more experience with
+Teleoscope, set operations could be used to manage keywords more
+directly.                                                                      Acknowledgments
+   In addition, the implementation of Teleoscope explored in this pa-          We would like to thank our study participants, without whom this
+per does not make use of general-purpose LLMs (such as OpenAI’s                work would not have been possible. A heartful thanks also to the
+GPT or Anthropic’s Claude family of models) to our computational               numerous individuals who worked on the Teleoscope project over
+features such as Search, Rank, and Projection. That being said, the            the years, including Aanandi Sidharth, Qiyu Zhou, Kenny Averna,
+Teleoscope code base is open-source [88] and supports the ability to           Dhruv Khanna, Sol Lee, Crystal Lee, Prayus Shrestha, Florentina
+"plug and play" other models. Examining whether the incorporation              Simlinger, and Vita Chan.
+of lightweight, general-purpose LLMs improves semantic filtering                  We acknowledge the Natural Sciences and Engineering Research
+quality while continuing to support our design goals of continuous             Council of Canada (NSERC), [grant number RGPIN-2020-05203,
+interactivity and interpretive immersion is a logical next step for fu-        CGS-D, CGS-M] for their support. This work was also supported
+ture work. Another surprising limitation we uncovered through our              by the DFP Project Stimulus Grant, the British Columbia Graduate
+deployments of Teleoscope (particularly the second, extended for-              Scholarship, and Huawei Research.
+mative study) was how steep the learning curve of the interaction
+metaphors seemed to be for qualitative researchers, a notion that
+has been empirically supported by research on qualitative research             References
+processes [41]. Qualitative researchers are somewhat resistant to               [1] [n. d.]. Miro. https://miro.com/. Accessed: 2025-08-14.
+                                                                                [2] Eric Alexander, Joe Kohlmann, Robin Valenza, Michael Witmore, and Michael
+learning new computational tooling. We conjecture this could pos-                   Gleicher. 2014. Serendip: Topic model-driven visual exploration of text corpora. In
+sibly be due to a lack of proper incentive structures (reporting using              2014 IEEE Conference on Visual Analytics Science and Technology (VAST). 173–182.
+                                                                                    https://doi.org/10.1109/VAST.2014.7042493
+a relatively unproven and new method can be challenging for a                   [3] Muhammad Bello Aliyu. 2017. Efficiency of Boolean search strings for Informa-
+researcher to justify, particular researcher’s early in their career).              tion retrieval. American Journal of Engineering Research 6, 11 (2017), 216–222.
+With the advent of LLMs, we might also consider providing some                  [4] Alejandro Barredo Arrieta, Natalia Díaz-Rodríguez, Javier Del Ser, Adrien Ben-
+                                                                                    netot, Siham Tabik, Alberto Barbado, Salvador García, Sergio Gil-López, Daniel
+interactive ways of on-boarding new users into the system, as some                  Molina, Richard Benjamins, et al. 2020. Explainable Artificial Intelligence (XAI):
+researchers have proposed for qualitative analysis tasks [36].                      Concepts, taxonomies, opportunities and challenges toward responsible AI. In-
+   Lastly, although the paper used Reddit as the primary example                    formation fusion 58 (2020), 82–115.
+                                                                                [5] Humberto Arruda, Edison Renato Silva, Marcus Lessa, Domício Proença Jr, and
+of a qualitative site containing large text corpora, the authors rec-               Roberto Bartholo. 2022. VOSviewer and bibliometrix. Journal of the Medical
+ognize that significant changes to its API since 2023 as a result of                Library Association: JMLA 110, 3 (2022), 392.
+                                                                                [6] Deepak Suresh Asudani, Naresh Kumar Nagwani, and Pradeep Singh. 2023.
+the advent of ChatGPT have severely limited researcher access to                    Impact of word embedding models on text analytics in deep learning environment:
+site data. Despite this restriction, Teleoscope is not designed specif-             a review. Artificial Intelligence Review 56 (2023), 1–81.
+ically for use with Reddit data, and the research team has since                [7] Rajiv Badi, Soonil Bae, J Michael Moore, Konstantinos Meintanis, Anna Zacchi,
+                                                                                    Haowei Hsieh, Frank Shipman, and Catherine C Marshall. 2006. Recognizing
+implemented the ability for users to upload their own data sources                  user interest and document value from reading and organizing activities in
+and corpora in response to changes in Reddit’s API. In our opin-                    document triage. In Proceedings of the 11th international conference on Intelligent
+ion, a large part of Teleoscope’s success is also demonstrated by                   user interfaces. 218–225.
+                                                                                [8] Aneesha Bakharia, Peter Bruza, Jim Watters, Bhuva Narayan, and Laurianne
+its on-going public release and use by the research team that we                    Sitbon. 2016. Interactive topic modeling for aiding qualitative content analysis.
+recruited for our field deployment. We are continuing to recruit                    In Proceedings of the 2016 ACM on conference on human information interaction
+                                                                                    and retrieval. 213–222.
+more research teams and hope to see Teleoscope develop into a more              [9] Eric P S Baumer, David Mimno, Shion Guha, Emily Quan, and Geri K Gay. 2017.
+mature product as researchers adopt it.                                             Comparing grounded theory and topic modeling: Extreme divergence or unlikely
+                                                                                    convergence? Journal of the Association for Information Science and Technology
+                                                                                    68 (4 2017), 1397–1410. Issue 6. https://doi.org/10.1002/asi.23786
+                                                                               [10] Michael Behrisch, Benjamin Bach, Nathalie Henry Riche, Tobias Schreck, and
+                                                                                    Jean-Daniel Fekete. 2016. Matrix reordering methods for table and network
+Crystallizing Schemas with Teleoscope: Thematic Curation of Large Text Corpora on Reddit                                              CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+     visualization. In Computer Graphics Forum, Vol. 35. Wiley Online Library, 693–              Systems. 1–17.
+     716.                                                                                   [35] Simret Araya Gebreegziabher, Zheng Zhang, Xiaohang Tang, Yihao Meng, Elena L
+[11] C. Berret and T. Munzner. 2022. Iceberg Sensemaking: A Process Model for                    Glassman, and Toby Jia-Jun Li. 2023. Patat: Human-ai collaborative qualitative
+     Critical Data Analysis and Visualization. arXiv preprint arXiv:2204.00000 (2022).           coding with explainable interactive rule synthesis. In Proceedings of the 2023 CHI
+[12] Christian Bors, Theresia Gschwandtner, and Silvia Miksch. 2019. Capturing                   Conference on Human Factors in Computing Systems. 1–19.
+     and visualizing provenance from data wrangling. IEEE computer graphics and             [36] Adam S Hayes. 2025. “Conversing” With Qualitative Data: Enhancing Qualitative
+     applications 39, 6 (2019), 61–75.                                                           Research Through Large Language Models (LLMs). International Journal of
+[13] Robert Bowman, Camille Nadal, Kellie Morrissey, Anja Thieme, and Gavin Do-                  Qualitative Methods 24 (2025), 16094069251322346.
+     herty. 2023. Using thematic analysis in healthcare HCI at CHI: A scoping review.       [37] Marti Hearst. 2009. Search user interfaces. Cambridge university press.
+     In Proceedings of the 2023 CHI Conference on Human Factors in Computing Systems.       [38] Marti A Hearst and Duane Degler. 2013. Sewing the seams of sensemaking: A
+     1–18.                                                                                       practical interface for tagging and organizing saved search results. In Proceedings
+[14] Virginia Braun and Victoria Clarke. 2006. Using thematic analysis in psychology.            of the symposium on human-computer interaction and information retrieval. 1–10.
+     Qualitative research in psychology 3, 2 (2006), 77–101.                                [39] Monique M Hennink, Bonnie N Kaiser, and Vincent C Marconi. 2017. Code satu-
+[15] Virginia Braun and Victoria Clarke. 2012. Thematic analysis. American Psycho-               ration versus meaning saturation: how many interviews are enough? Qualitative
+     logical Association.                                                                        health research 27, 4 (2017), 591–608.
+[16] Virginia Braun and Victoria Clarke. 2019. Reflecting on reflexive thematic analysis.   [40] Matt-Heun Hong, Lauren A Marsh, Jessica L Feuston, Janet Ruppert, Jed R
+     Qualitative research in sport, exercise and health 11, 4 (2019), 589–597.                   Brubaker, and Danielle Albers Szafir. 2022. Scholastic: Graphical Human-AI
+[17] Virginia Braun and Victoria Clarke. 2021. One size fits all? What counts as quality         Collaboration for Inductive and Interpretive Text Analysis. The 35th Annual ACM
+     practice in (reflexive) thematic analysis? Qualitative research in psychology 18, 3         Symposium on User Interface Software and Technology. https://doi.org/10.1145/
+     (2021), 328–352.                                                                            3526113.3545681
+[18] David Byrne. 2022. A worked example of Braun and Clarke’s approach to reflexive        [41] Jialun Aaron Jiang, Kandrea Wade, Casey Fiesler, and Jed R. Brubaker. 2021. Sup-
+     thematic analysis. Quality & quantity 56, 3 (2022), 1391–1412.                              porting Serendipity: Opportunities and Challenges for Human-AI Collaboration
+[19] Duen Horng Chau, Aniket Kittur, Jason I Hong, and Christos Faloutsos. 2011.                 in Qualitative Analysis. Proc. ACM Hum.-Comput. Interact. 5, CSCW1, Article 94
+     Apolo: making sense of large network data by combining rich user interaction                (April 2021), 23 pages. https://doi.org/10.1145/3449168
+     and machine learning. In Proceedings of the SIGCHI conference on human factors         [42] Steve Jones, Shona McInnes, and Mark S Staveley. 1999. A graphical user interface
+     in computing systems. 167–176.                                                              for Boolean query specification. International Journal on Digital Libraries 2 (1999),
+[20] Jianlv Chen, Shitao Xiao, Peitian Zhang, Kun Luo, Defu Lian, and Zheng Liu.                 207–223.
+     2023. BGE M3-Embedding: Multi-Lingual, Multi-Functionality, Multi-Granularity          [43] Sebastian Karcher, Dessislava Kirilova, Christiane Pagé, and Nic Weber. 2021.
+     Text Embeddings Through Self-Knowledge Distillation. arXiv:2309.07597 [cs.CL]               How data curation enables epistemically responsible reuse of qualitative data.
+[21] Jaegul Choo, Changhyun Lee, Chandan K Reddy, and Haesun Park. 2013. Utopian:                The Qualitative Report (2021).
+     User-driven topic modeling based on interactive nonnegative matrix factorization.      [44] Louise H Kidder and Michelle Fine. 1987. Qualitative and quantitative methods:
+     IEEE transactions on visualization and computer graphics 19, 12 (2013), 1992–2001.          When stories converge. New directions for program evaluation 1987, 35 (1987),
+[22] Zach Cutler, Kiran Gadhave, and Alexander Lex. 2020. Trrack: A Library for                  57–75.
+     Provenance-Tracking in Web-Based Visualizations, In IEEE Visualization Confer-         [45] Hannah Kim, Dongjin Choi, Barry Drake, Alex Endert, and Haesun Park. 2019.
+     ence (VIS). 116–120. https://doi.org/10.1109/VIS47514.2020.00030                            TopicSifter: Interactive search space reduction through targeted topic modeling.
+[23] Douglass R Cutting, David R Karger, Jan O Pedersen, and John W Tukey. 2017.                 In 2019 IEEE Conference on Visual Analytics Science and Technology (VAST). IEEE,
+     Scatter/gather: A cluster-based approach to browsing large document collections.            IEEE, Vancouver, Canada, 35–45.
+     In ACM SIGIR Forum, Vol. 51. ACM New York, NY, USA, 148–159.                           [46] Hannah Kim, Barry Drake, Alex Endert, and Haesun Park. 2020. Architext:
+[24] Munmun De Choudhury, Scott Counts, and Mary Czerwinski. 2011. Find me the                   Interactive hierarchical topic modeling. IEEE transactions on visualization and
+     right content! Diversity-based sampling of social media spaces for topic-centric            computer graphics 27, 9 (2020), 3644–3655.
+     search. In Proceedings of the International AAAI Conference on Web and Social          [47] Kostiantyn Kucher and Andreas Kerren. 2015. Text visualization techniques: Tax-
+     Media, Vol. 5. 129–136.                                                                     onomy, visual survey, and community insights. In 2015 IEEE Pacific visualization
+[25] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. 2019. BERT:               symposium (pacificVis). IEEE, 117–121.
+     Pre-training of Deep Bidirectional Transformers for Language Understanding.            [48] Kori A LaDonna, Anthony R Artino Jr, and Dorene F Balmer. 2021. Beyond the
+     arXiv:1810.04805 [cs.CL]                                                                    guise of saturation: rigor and qualitative interview data. , 607–611 pages.
+[26] Moritz Dück, Steffen Holter, Robin Shing Moon Chan, Rita Sevastjanova, and             [49] Florian Laws, Christian Scheible, and Hinrich Schütze. 2011. Active learning
+     Mennatallah El-Assady. 2025. Finding Needles in Document Haystacks: Aug-                    with amazon mechanical turk. In Proceedings of the 2011 Conference on Empirical
+     menting Serendipitous Claim Retrieval Workflows. In Proceedings of the 2025                 Methods in Natural Language Processing. 1546–1556.
+     CHI Conference on Human Factors in Computing Systems (CHI ’25). Associa-               [50] Ching-Hung Lee, Chien-Liang Liu, Amy JC Trappey, John PT Mo, and Kevin C
+     tion for Computing Machinery, New York, NY, USA, Article 1003, 17 pages.                    Desouza. 2021. Understanding digital transformation in advanced manufacturing
+     https://doi.org/10.1145/3706598.3713715                                                     and engineering: A bibliometric analysis, topic modeling and research trend
+[27] Mennatallah El-Assady, Rebecca Kehlbeck, Christopher Collins, Daniel Keim,                  discovery. Advanced Engineering Informatics 50 (2021), 101428.
+     and Oliver Deussen. 2019. Semantic concept spaces: Guided topic model refine-          [51] Yuan Li, Anita Crescenzi, Austin R Ward, and Rob Capra. 2023. Thinking inside
+     ment using word-embedding projections. IEEE transactions on visualization and               the box: An evaluation of a novel search-assisting tool for supporting (meta)
+     computer graphics 26, 1 (2019), 1001–1011.                                                  cognition during exploratory search. Journal of the Association for Information
+[28] Laura L Ellingson. 2009. Engaging crystallization in qualitative research: An               Science and Technology (2023).
+     introduction. Sage.                                                                    [52] Jasy Suet Yan Liew, Nancy McCracken, Shichun Zhou, and Kevin Crowston. 2014.
+[29] Alex Endert, Seth Fox, Dipayan Maiti, Scotland Leman, and Chris North. 2012.                Optimizing features in active machine learning for complex qualitative content
+     The semantics of clustering: analysis of user-generated spatializations of text             analysis. In Proceedings of the ACL 2014 Workshop on Language Technologies and
+     documents. In Proceedings of the International Working Conference on Advanced               Computational Social Science. 44–48.
+     Visual Interfaces. 555–562.                                                            [53] Matteo Lissandrini, Davide Mottin, Themis Palpanas, Yannis Velegrakis, and HV
+[30] Anna Fariha and Alexandra Meliou. 2019. Example-driven query intent discovery:              Jagadish. 2019. Data Exploration Using Example-Based Methods. Springer.
+     Abductive reasoning using semantic similarity. arXiv preprint arXiv:1906.10322         [54] Daniel M Low, Laurie Rumker, Tanya Talkar, John Torous, Guillermo Cecchi, and
+     (2019).                                                                                     Satrajit S Ghosh. 2020. Natural language processing reveals vulnerable mental
+[31] Samah Gad, Waqas Javed, Sohaib Ghani, Niklas Elmqvist, Tom Ewing, Keith N                   health support groups and heightened health anxiety on reddit during covid-19:
+     Hampton, and Naren Ramakrishnan. 2015. ThemeDelta: Dynamic segmentations                    Observational study. Journal of medical Internet research 22, 10 (2020), e22635.
+     over temporal topic models. IEEE transactions on visualization and computer            [55] Sara Mannheimer. 2021. Data curation implications of qualitative data reuse and
+     graphics 21, 5 (2015), 672–685.                                                             big social research. Journal of eScience Librarianship 10, 4 (2021).
+[32] J. Gao, K.T.W. Choo, J. Cao, R.K.-W. Lee, and S. Perrault. 2023. CoAIcoder: Examin-    [56] Denis Mayr Lima Martins. 2019. Reverse engineering database queries from
+     ing the effectiveness of AI-assisted human-to-human collaboration in qualitative            examples: State-of-the-art, challenges, and research opportunities. Information
+     analysis. ACM Transactions on Computer-Human Interaction 31, 1 (2023), 1–38.                Systems 83 (2019), 89–100.
+[33] Jie Gao, Yuchen Guo, Gionnieve Lim, Tianqin Zhang, Zheng Zhang, Toby Jia-Jun           [57] December Maxwell, Sarah R Robinson, Jessica R Williams, and Craig Keaton. 2020.
+     Li, and Simon Tangi Perrault. 2024. CollabCoder: A Lower-barrier, Rigorous                  “A short story of a lonely guy”: A qualitative thematic analysis of involuntary
+     Workflow for Inductive Collaborative Qualitative Analysis with Large Language               celibacy using Reddit. Sexuality & Culture 24, 6 (2020), 1852–1874.
+     Models. arXiv:2304.07366 [cs.HC]                                                       [58] Nora McDonald, Sarita Schoenebeck, and Andrea Forte. 2019. Reliability and
+[34] Robert P Gauthier, Mary Jean Costello, and James R Wallace. 2022. “I will not               inter-rater reliability in qualitative research: Norms and guidelines for CSCW and
+     drink with you today”: a topic-guided thematic analysis of addiction recovery on            HCI practice. Proceedings of the ACM on human-computer interaction 3, CSCW
+     Reddit. In Proceedings of the 2022 CHI Conference on Human Factors in Computing             (2019), 1–23.
+CHI ’26, April 13–17, 2026, Barcelona, Spain                         Patrick Yung Kang Lee, Paul Hendrik Bucci, Leo Itsuki Foord-Kelcey, Alamjeet Singh, and Ivan Beschastnikh
+
+
+[59] Leland McInnes, John Healy, and Steve Astels. 2017. hdbscan: Hierarchical density           technology. 1–18.
+     based clustering. J. Open Source Softw. 2, 11 (2017), 205.                             [87] Teleoscope.ca. 2024. Teleoscope. https://teleoscope.ca.
+[60] Leland McInnes, John Healy, Nathaniel Saul, and Lukas Grossberger. 2018. UMAP:         [88] Teleoscope.ca.         2024.                             Teleoscope       GitHub.
+     Uniform Manifold Approximation and Projection. The Journal of Open Source                   https://github.com/Teleoscope/Teleoscope.
+     Software 3, 29 (2018), 861.                                                            [89] Silvia Terragni, Elisabetta Fersini, Bruno Giovanni Galuzzi, Pietro Tropeano, and
+[61] Leland McInnes, John Healy, Nathaniel Saul, and Lukas Grossberger. 2025.                    Antonio Candelieri. 2021. OCTIS: Comparing and Optimizing Topic models
+     Embedding to non-Euclidean spaces — UMAP documentation. https://umap-                       is Simple!. In Proceedings of the 16th Conference of the European Chapter of the
+     learn.readthedocs.io/en/latest/embedding_space.html. Accessed: 2025-12-04.                  Association for Computational Linguistics: System Demonstrations. Association for
+[62] Christofer Meinecke, David Joseph Wrisley, and Stefan Jänicke. 2021. Explaining             Computational Linguistics, Online, 263–270. https://doi.org/10.18653/v1/2021.
+     semi-supervised text alignment through visualization. IEEE Transactions on                  eacl-demos.31
+     Visualization and Computer Graphics 28, 12 (2021), 4797–4809.                          [90] G.A. Tobin and C.M. Begley. 2004. Methodological rigour within a qualitative
+[63] Michael Muller. 2014. Curiosity, creativity, and surprise as analytic tools:                framework. Journal of Advanced Nursing 48, 4 (2004), 388–396.
+     Grounded theory method. In Ways of Knowing in HCI. Springer, 25–48.                    [91] T Wolf. 2019. Huggingface’s transformers: State-of-the-art natural language
+[64] Tamara Munzner. 2014. Visualization analysis and design. CRC press.                         processing. arXiv preprint arXiv:1910.03771 (2019).
+[65] Jakob Neilson. [n. d.]. 10 usability heuristics for user interface design. https:      [92] Kai Xu, Alvitta Ottley, Conny Walchshofer, Marc Streit, Remco Chang, and John
+     //www.nngroup.com/articles/ten-usability-heuristics/                                        Wenskovitch. 2020. Survey on the analysis of user interactions and visualization
+[66] Jakob Nielsen. 1992. Finding Usability Problems through Heuristic Evaluation.               provenance. In Computer Graphics Forum, Vol. 39. Wiley Online Library, 757–783.
+     In Proceedings of the SIGCHI Conference on Human Factors in Computing Systems.         [93] Qian Yang, Aaron Steinfeld, and John Zimmerman. 2019. Unremarkable AI: Fitting
+     373–380. https://doi.org/10.1145/142750.142834                                              intelligent decision support into critical, clinical decision-making processes. In
+[67] Jakob Nielsen and Rolf Molich. 1990. Heuristic Evaluation of User Interfaces. In            Proceedings of the 2019 CHI conference on human factors in computing systems.
+     Proceedings of the SIGCHI Conference on Human Factors in Computing Systems.                 1–11.
+     249–256. https://doi.org/10.1145/97243.97281                                           [94] Jun Yuan, Changjian Chen, Weikai Yang, Mengchen Liu, Jiazhi Xia, and Shixia Liu.
+[68] Sergey I Nikolenko, Sergei Koltcov, and Olessia Koltsova. 2017. Topic modelling             2021. A survey of visual analytics techniques for machine learning. Computational
+     for qualitative studies. Journal of Information Science 43, 1 (2017), 88–102.               Visual Media 7 (2021), 3–36.
+[69] Nicholas Norman Adams. 2024. ‘Scraping’Reddit posts for academic research? Ad-         [95] John Zimmerman, Jodi Forlizzi, and Shelley Evenson. 2007. Research through
+     dressing some blurred lines of consent in growing internet-based research trend             design as a method for interaction design research in HCI. In Proceedings of the
+     during the time of Covid-19. International journal of social research methodology           SIGCHI conference on Human factors in computing systems. 493–502.
+     27, 1 (2024), 47–62.
+[70] Cassandra Overney, Belén Saldías, Dimitra Dimitrakopoulou, and Deb Roy. 2024.
+     Sensemate: An accessible and beginner-friendly human-ai platform for qualitative
+     data analysis. In Proceedings of the 29th International Conference on Intelligent
+     User Interfaces. 922–939.
+[71] F. Pedregosa, G. Varoquaux, A. Gramfort, V. Michel, B. Thirion, O. Grisel, M.
+     Blondel, P. Prettenhofer, R. Weiss, V. Dubourg, J. Vanderplas, A. Passos, D. Cour-
+     napeau, M. Brucher, M. Perrot, and E. Duchesnay. 2011. Scikit-learn: Machine
+     Learning in Python. Journal of Machine Learning Research 12 (2011), 2825–2830.
+[72] Jean Piaget. 2005. Language and Thought of the Child: Selected Works vol 5.
+     Routledge.
+[73] Mark Pruett. 2007. Yahoo! pipes. O’Reilly.
+[74] Stephen Ramsay. 2003. Reconceiving text analysis: Toward an algorithmic criti-
+     cism. Literary and Linguistic Computing 18, 2 (2003), 167–174.
+[75] Reddit.com. 2024. Am I the Asshole? https://www.reddit.com/r/AmItheAsshole/.
+[76] Radim Rehurek and Petr Sojka. 2011. Gensim–python framework for vector
+     space modelling. NLP Centre, Faculty of Informatics, Masaryk University, Brno,
+     Czech Republic 3, 2 (2011).
+[77] Matthias Rüdiger, David Antons, Amol M Joshi, and Torsten-Oliver Salge. 2022.
+     Topic modeling revisited: New evidence on algorithm performance and quality
+     metrics. Plos one 17, 4 (2022), e0266325.
+[78] Hope Schroeder, Marianne Aubin Le Quéré, Casey Randazzo, David Mimno, and
+     Sarita Schoenebeck. 2025. Large Language Models in Qualitative Research: Uses,
+     Tensions, and Intentions. In Proceedings of the 2025 CHI Conference on Human
+     Factors in Computing Systems (CHI ’25). Association for Computing Machinery,
+     New York, NY, USA, Article 481, 17 pages. https://doi.org/10.1145/3706598.
+     3713120
+[79] Favourate Y Sebele-Mpofu. 2020. Saturation controversy in qualitative research:
+     Complexities and underlying assumptions. A literature review. Cogent Social
+     Sciences 6, 1 (2020), 1838706.
+[80] Ansh Sharma and James R Wallace. 2025. DeTAILS: Deep Thematic Analysis with
+     Iterative LLM Support. In Proceedings of the 7th ACM Conference on Conversational
+     User Interfaces. 1–7.
+[81] Claudio T Silva, Juliana Freire, and Steven P Callahan. 2007. Provenance for
+     visualizations: Reproducibility and beyond. Computing in Science & Engineering
+     9, 5 (2007), 82–89.
+[82] Ravindra Singh and Naurang Singh Mangat. 1996. Stratified sampling. In Elements
+     of survey sampling. Springer, 102–144.
+[83] Allie Slemon, Corey McAuliffe, Trevor Goodyear, Liza McGuinness, Elizabeth
+     Shaffer, and Emily K Jenkins. 2021. Reddit users’ experiences of suicidal thoughts
+     during the COVID-19 pandemic: a qualitative analysis of r/Covid19_support
+     posts. Frontiers in public health 9 (2021), 693153.
+[84] Robert Soden, Austin Toombs, and Michaelanne Thomas. 2024. Evaluating
+     interpretive research in HCI. Interactions 31, 1 (2024), 38–42.
+[85] Fabian Sperrle, Mennatallah El-Assady, Grace Guo, Rita Borgo, D Horng Chau,
+     Alex Endert, and Daniel Keim. 2021. A Survey of Human-Centered Evaluations
+     in Human-Centered Machine Learning. In Computer Graphics Forum, Vol. 40.3.
+     Wiley Online Library, 543–568.
+[86] Sangho Suh, Bryan Min, Srishti Palani, and Haijun Xia. 2023. Sensecape: En-
+     abling multilevel exploration and sensemaking with large language models. In
+     Proceedings of the 36th annual ACM symposium on user interface software and
+

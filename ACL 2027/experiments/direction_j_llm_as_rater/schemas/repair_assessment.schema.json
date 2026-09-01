@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-j/repair-assessment-v1.json",
+  "title": "Direction J blinded downstream repair assessment",
+  "type": "object",
+  "required": [
+    "repair_assessment_version",
+    "repair_packet_id",
+    "item_id",
+    "revision_id",
+    "evaluator_id",
+    "rated_at_utc",
+    "targeted_defect_repaired",
+    "accurate_material_preserved",
+    "collateral_error_flags",
+    "cannot_judge",
+    "successful_repair_without_collateral_error",
+    "review_seconds",
+    "rationale"
+  ],
+  "properties": {
+    "repair_assessment_version": {
+      "const": "direction-j-repair-assessment-v1"
+    },
+    "repair_packet_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "item_id": {
+      "type": "string",
+      "pattern": "^DJI_[a-f0-9]{16}$"
+    },
+    "revision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluator_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "targeted_defect_repaired": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "accurate_material_preserved": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "collateral_error_flags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "new_unsupported_claim",
+          "new_omission",
+          "new_distortion",
+          "new_quote_error",
+          "new_attribution_error",
+          "new_lost_negative_case",
+          "new_contextual_flattening",
+          "other"
+        ]
+      }
+    },
+    "cannot_judge": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "targeted_defect_repaired",
+          "accurate_material_preserved",
+          "collateral_error"
+        ]
+      }
+    },
+    "successful_repair_without_collateral_error": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "review_seconds": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 3600
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 3000
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "cannot_judge": {
+            "contains": {
+              "const": "targeted_defect_repaired"
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "targeted_defect_repaired": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "targeted_defect_repaired": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cannot_judge": {
+            "contains": {
+              "const": "accurate_material_preserved"
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "accurate_material_preserved": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "accurate_material_preserved": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cannot_judge": {
+            "minItems": 1
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "successful_repair_without_collateral_error": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "if": {
+          "properties": {
+            "targeted_defect_repaired": {
+              "const": true
+            },
+            "accurate_material_preserved": {
+              "const": true
+            },
+            "collateral_error_flags": {
+              "maxItems": 0
+            }
+          },
+          "required": [
+            "targeted_defect_repaired",
+            "accurate_material_preserved",
+            "collateral_error_flags"
+          ]
+        },
+        "then": {
+          "properties": {
+            "successful_repair_without_collateral_error": {
+              "const": true
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "successful_repair_without_collateral_error": {
+              "const": false
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

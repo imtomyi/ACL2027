@@ -1,0 +1,893 @@
+                                         Proceedings of Machine Learning Research XXX, 2025                                     Machine Learning for Health (ML4H) 2025
+
+
+
+
+                                            SFT-TA: Supervised Fine-Tuned Agents in Multi-Agent LLMs
+                                                   for Automated Inductive Thematic Analysis
+                                         Seungjun Yi                                                                                        charlie.yi@utexas.edu
+                                         Department of Biomedical Engineering, University of Texas at Austin, Austin, TX, USA
+                                         Joakim Nguyen                                                                                           jhn001@utexas.edu
+                                         Department of Computer Science, University of Texas at Austin, Austin, TX, USA
+                                         Huimin Xu                                                                                            huiminxu@utexas.edu
+                                         School of Information, University of Texas at Austin, Austin, TX, USA
+
+
+
+
+arXiv:2509.17167v1 [cs.CL] 21 Sep 2025
+                                         Terence Lim                                                                                      terence.lim@utexas.edu
+                                         College of Natural Sciences, University of Texas at Austin, Austin, TX, USA
+                                         Graphen, Inc., New York, NY, USA
+                                         Joseph Skrovan                                                                                      jskrovan@fastmail.fm
+                                         School of Information, University of Texas at Austin, Austin, TX, USA
+                                         Mehak Beri                                                                                       mb72384@eid.utexas.edu
+                                         School of Information, University of Texas at Austin, Austin, TX, USA
+                                         Hitakshi Modi                                                                          hitakshi.modi@austin.utexas.edu
+                                         Department of Pediatrics, University of Texas at Austin, Austin, TX, USA
+                                         Andrew Well                                                                               andrew.well@vumc.org
+                                         Department of Cardiac Surgery, Division of Pediatric Cardiac Surgery,
+                                         Vanderbilt University School of Medicine, Nashville, TN, USA
+                                         Pediatric Heart Institute, Monroe Carell Jr. Children’s Hospital at Vanderbilt, Nashville, TN, USA
+                                         Liu Leqi                                                                    leqi.liu@mccombs.utexas.edu
+                                         Department of Information, Risk, and Operations Management, McCombs School of Business,
+                                         University of Texas at Austin, Austin, TX, USA
+                                         Machine Learning Laboratory, University of Texas at Austin, Austin, TX, USA
+
+
+                                         Mia Markey                                                                                        mia.markey@utexas.edu
+                                         Department of Biomedical Engineering, University of Texas at Austin, Austin, TX, USA
+                                         Ying Ding                                                                         ying.ding@ischool.utexas.edu
+                                         Bill & Lewis Suit Professor, School of Information, University of Texas at Austin, Austin, TX, USA
+                                         Department of Population Health, Dell Medical School, University of Texas at Austin, Austin, TX, USA
+
+
+
+
+                                                                 Abstract                                      vised fine-tuned (SFT) agents within a multi-
+                                              Thematic Analysis (TA) is a widely used qual-                    agent system. Our framework outperforms ex-
+                                              itative method that provides a structured yet                    isting frameworks and the gpt-4o baseline in
+                                              flexible framework for identifying and report-                   alignment with human reference themes. We
+                                              ing patterns in clinical interview transcripts.                  observed that SFT agents alone may underper-
+                                              However, manual thematic analysis is time-                       form, but achieve better results than the base-
+                                              consuming and limits scalability. Recent ad-                     line when embedded within a multi-agent sys-
+                                              vances in LLMs offer a pathway to automate                       tem. Our results highlight that embedding SFT
+                                              thematic analysis, but alignment with human                      agents in specific roles within a multi-agent sys-
+                                              results remains limited. To address these limi-                  tem is a promising pathway to improve align-
+                                              tations, we propose SFT-TA, an automated the-                    ment with desired outputs for thematic analy-
+                                              matic analysis framework that embeds super-                      sis.
+
+
+                                         © 2025 S. Yi, J. Nguyen, H. Xu, T. Lim, J. Skrovan, M. Beri, H. Modi, A. Well, L. Leqi, M. Markey & Y. Ding.
+                     SFT-TA: Supervised Fine-Tuned Agents for Thematic Analysis
+
+
+
+
+    Keywords: Thematic Analysis, Multi-Agent                  ation (Campbell et al., 2021). Automating thematic
+    Systems, Large Language Models, Supervised                analysis and reducing manual workload are essential
+    Fine-tuning                                               for timely, scalable, and reproducible theme genera-
+                                                              tion.
+Data and Code Availability The dataset con-
+sists of de-identified interview transcripts from nine           Recent advances in large language models (LLMs)
+focus groups with 42 parents of children diagnosed            offer a promising alternative for automating key com-
+with anomalous aortic origin of a coronary artery             ponents of the six-step inductive thematic analysis
+(AAOCA). Sessions were lightly moderated to elicit            process. LLMs can generate initial codes (Step 2) (Yi
+open-ended discussions about parents’ lived experi-           et al., 2025a,c) and candidate themes (Steps 3–5) (Xu
+ences. The transcripts, collected between August              et al., 2025; Raza et al., 2025) from interview tran-
+2021 and May 2022, had an average length of 10,987            scripts within minutes, representing a substantial re-
+words. The dataset originates from Mery et al.                duction compared to the several hours typically re-
+(2023), and is not publicly available due to privacy          quired by human analysts. However, the alignment
+concerns. However, it may be made available upon              between generated results and manual thematic anal-
+reasonable request. The code is not publicly available        ysis (human reference themes) remains limited.
+due to dataset privacy restrictions but may be shared            To address these limitations, we introduce SFT-
+upon reasonable request.                                      TA (Figure 1), an automated thematic analysis
+                                                              framework inspired by the collaborative nature of
+Institutional Review Board (IRB) Data col-                    manual triangulation (Braun and Clarke, 2006). In
+lection for the dataset used in this study was ap-            qualitative research, triangulation refers to the in-
+proved by the Institutional Review Board (IRB#                corporation of multiple perspectives to interpret the
+2019080031). The study is registered at ClinicalTri-          same dataset, thereby ensuring that no single view-
+als.gov (NCT04613934).                                        point dominates the analysis. Motivated by this
+                                                              principle, we posed the question: Could introduc-
+                                                              ing an agent with prior knowledge of the dataset and
+1. Introduction                                               the analytic process improve alignment with human-
+Thematic Analysis (TA) is one of the most widely              generated themes? By analogy, SFT-TA embeds su-
+used methods for qualitative data analysis, offer-            pervised fine-tuned (SFT) agents into the generation
+ing a structured yet flexible framework for identify-         step within a multi-agent system, enabling diverse
+ing, analyzing, and reporting patterns within inter-          “voices” within the system to collaboratively analyze
+view transcripts. Since its formalization by Braun            transcripts and reduce bias of individual models.
+and Clarke (2006), inductive thematic analysis has               In summary, our main contributions can be sum-
+been the predominant method for analyzing interview           marized as:
+transcripts to uncover actionable insights that inform
+decision-making across research and applied fields              • Introducing SFT Agents into Multi-Agent
+such as education, transportation, and customer ex-               Systems. We introduce SFT-TA, a framework
+perience. Manual thematic analysis begins with re-                that embeds supervised fine-tuned (SFT) agents
+searchers immersing themselves in the data through                into multi-agent systems. In particular, we in-
+repeated readings and noting initial ideas (Steps 1–2).           corporate SFT agents into the generation phase,
+From these, systematic codes are generated (Step 3)               specifically within the coding and theme gener-
+to capture salient features of the data, which then               ation steps.
+serve as the foundation for searching for candidate
+themes (Step 4). These themes are subsequently re-              • Substantial Performance Gains. We pro-
+viewed, refined, and clearly defined and named (Step              pose SFT-TA, a novel framework that integrates
+5), before producing the final report in the form of a            supervised fine-tuned agents into multi-agent
+structured thematic framework that conveys the re-                systems, achieving significant improvements over
+lationships and underlying meanings (Step 6). How-                the gpt-4o baseline: Fuzzy Match +10.3%, Co-
+ever, this process remains highly resource-intensive              sine Similarity +15.3%, and METEOR +22.8%.
+and inefficient, consuming an estimated 6.1 million
+hours annually in the U.S. alone and posing a signif-           • Collaboration Transforms SFT Agent Per-
+icant barrier to scalability and timely insight gener-            formance. We discover a notable phenomenon:
+
+
+                                                          2
+                    SFT-TA: Supervised Fine-Tuned Agents for Thematic Analysis
+
+
+
+
+Figure 1: Overview of the SFT-TA Framework. Clinical focus group interview transcripts are pro-
+          cessed through coding, aggregation, and theme generation, with the key novelty of embedding
+          SFT agents alongside other identites (e.g., researcher, laypersons) in the generation steps. This
+          is followed by three rounds of iterative refinement with the evaluation and refinement agents, ul-
+          timately yielding 12 themes. Each arrow represents a transformation from input a → b, reflecting
+          the role of the LLM and guided by a prompting template. Orange arrows denote generation
+          agents, blue arrows the evaluation agent, and green arrows the refinement agent. Labels
+          above the arrows indicate the agent responsible for each transformation.
+
+
+
+    while SFT agents alone may underperform rela-          they often require manual intervention at multiple
+    tive to the baseline (e.g., Fuzzy Match –1.2%, C       stages, constraining scalability. Notably, only a small
+    –7.6%), their integration within our multi-agent       number of studies support all three core phases of
+    system yields substantial improvements, achiev-        ITA: initial coding, theme generation, and theme re-
+    ing +10.3% in Fuzzy Match and +22.6% in C.             finement or validation (Raza et al., 2025; De Paoli,
+                                                           2023; Yi et al., 2025c).
+   • Optimal Dataset Size for SFT. We identify
+     a ”golden point” in dataset size for SFT agents
+                                                       Multi-Agent Systems for Thematic Analysis
+     in thematic analysis, at which performance sat-
+                                                       Recent advances in thematic analysis increasingly
+     urates, consistent with prior findings (Parfenova
+                                                       leverage multi-agent systems integrated with llms
+     et al., 2025).
+                                                       to enhance scalability, diversity, and methodologi-
+                                                       cal rigor in processing large datasets. For example,
+2. Related Work                                        Thematic-LM (Qiao et al., 2025) presents a multi-
+                                                       agent architecture where specialized coder agents,
+Automating Thematic Analysis (TA) with each embodying distinct identity perspectives, col-
+LLMs Recent efforts have explored the use of laborate to code, aggregate, and update a shared
+LLMs to automate various components of inductive codebook across large corpora data, thereby foster-
+thematic analysis (ITA), motivated by the need to ing divergent thematic interpretations and address-
+reduce the manual workload involved in the pro- ing limitations of sequential and human-biased anal-
+cess (Yi et al., 2025b). Most existing frameworks yses. Complementing this, TAMA (Xu et al., 2025)
+target specific stages of the ITA workflow: typically offers a human-AI collaborative framework tailored
+coding (Prescott et al., 2024; Katz et al., 2024) or to clinical interviews: multi-agent LLMs generate
+theme generation (Mannstadt et al., 2024; Deiner and refine themes under expert oversight, yielding
+et al., 2024). Additionally, most approaches rely on superior thematic hit rate, coverage, and distinctive-
+single-agent LLMs without role specialization or su- ness compared to single-agent approaches. Follow-
+pervision. While a few hybrid frameworks integrate ing the work, Auto-TA (Yi et al., 2025c) advances
+human oversight (Dai et al., 2023; Xu et al., 2025), toward fully automated analysis by deploying multi-
+
+
+                                                       3
+                    SFT-TA: Supervised Fine-Tuned Agents for Thematic Analysis
+
+
+
+
+agent LLMs augmented with reinforcement learning           In the coding phase, the full dataset was dis-
+from human feedback. Earlier, (Rasheed et al., 2024)    tributed to multiple coder agents, each of which in-
+demonstrated that functional diversity among agents,    dependently processed all transcripts. As each of the
+such as summarizers, coders, and categorizers, can      nine transcripts represented a distinct context with
+enrich interpretive depth in qualitative coding. To-    different participants, they were also processed inde-
+gether, these systems demonstrate a clear progression   pendently during the coding stage. Their outputs
+from human-in-the-loop to autonomous multi-agent        were then consolidated by a coder aggregator. The
+implementations, each tackling challenges of scalabil-  aggregated codes are then passed to multiple theme-
+ity, coder bias, and codebook management.               generation agents, which also operate independently
+                                                        across agents, and their outputs are consolidated by
+SFT-TA: Supervised Fine-tuning for Multi-
+                                                        a theme aggregator to produce the final twelve set of
+Agents Supervised fine-tuning (SFT) has emerged
+                                                        themes. Among the multiple coder agents and theme-
+as a key technique to enhance the performance
+                                                        generation agents, a single SFT agent was incorpo-
+and coordination of multi-agent systems, particularly
+                                                        rated at each stage (one within the coding phase and
+those integrating LLMs for complex tasks such as
+                                                        one within the theme-generation phase). After gener-
+thematic analysis. In SFT, each agent is trained
+                                                        ating twelve themes, the framework undergoes three
+on labeled data to optimize its behavior or decision-
+                                                        iterative refinement rounds, guided by an evaluation
+making within a team, ensuring consistent adher-
+                                                        agent and a refinement agent. During this process,
+ence to task-specific standards while preserving inter-
+                                                        limited human oversight is applied: themes deemed
+agent diversity (Brown et al., 2020; Ouyang et al.,
+                                                        entirely off-topic are removed, and in practice some
+2022). This approach has been applied in multi-
+                                                        themes may undergo more or fewer than three refine-
+agent systems for collaborative coding, where indi-
+                                                        ment iterations.
+vidual agents learn from human-annotated examples
+to produce more accurate, coherent, and reliable the-
+matic outputs (Qiao et al., 2025). By fine-tuning 3.2. Dataset
+agents in a supervised manner, systems can achieve This study uses a subset of interview transcripts de-
+better alignment with human interpretive practices, scribed in the Data and Code Availability section. For
+reduce coding errors, and maintain complementary analysis, the transcripts were manually condensed to
+behaviors across agents, which is crucial for mitigat- reduce token costs while preserving semantic con-
+ing redundancy and bias in multi-agent analyses (Xu tent. Each quote was indexed with a unique Quote
+et al., 2025; Yi et al., 2025c). SFT accelerates con- ID to support reproducible evaluation and consistent
+vergence and provides a foundation for reinforcement referencing in LLM-generated outputs. To bench-
+learning or human-in-the-loop refinement, enabling mark performance, we use twelve human-generated
+multi-agent systems to scale to large, heterogeneous themes from Mery et al. (2023) as reference annota-
+datasets while preserving interpretive depth and rigor tions. These human-generated themes, produced via
+(Drápal et al., 2023; Dai et al., 2023).               inductive thematic analysis, serve as the ground truth
+                                                        against which we compare LLM-generated themes,
+                                                        hereafter referred to as the human reference themes.
+3. Method                                               The complete list of twelve human reference themes
+3.1. The SFT-TA Framework.                              is provided in Table 3.
+
+We introduce SFT-TA, an automated inductive the-
+                                                             3.3. Supervised Fine-Tuned (SFT) Agents
+matic analysis framework that embeds supervised
+                                                                  and Dataset Augmentation
+fine-tuned (SFT) agents in the generation step (Fig-
+ure 1). The pipeline mimics the six-phase framework          We performed supervised fine-tuning of gpt-4o via
+of Braun and Clarke (2006), with a focus on the cod-         the OpenAI API using a pairwise dataset molded into
+ing and theme-generation phases. Specifically, inter-        a single .jsonl format. Each datapoint consisted of a
+view transcripts are processed through two sub-steps:        prompt–answer pair, where the prompt was designed
+(1) Coding, corresponding to Step 2 (generating ini-         to perform inductive thematic analysis and generate
+tial codes), and (2) Theme Generation, corresponding         themes from the original transcripts (see 3.4 for de-
+to Steps 3–5 (searching for themes, reviewing themes,        tails), and the answer was a set of human-generated
+and defining/naming themes).                                 themes. In total, twelve human reference themes
+
+
+                                                         4
+                     SFT-TA: Supervised Fine-Tuned Agents for Thematic Analysis
+
+
+
+
+served as examples of desired output, with ten used            3.5. Experiments
+for training and two reserved for validation. The ten
+themes were each paraphrased into thirty variants us-          We conducted an ablation study to evaluate the im-
+ing multiple LLMs1 and reviewed by human annota-               pact of incorporating SFT agents. A total of ten ex-
+tors; based on this review, the gpt-4o paraphrased             perimental conditions were tested, each correspond-
+versions were selected for inclusion in the final fine-        ing to each row in Table 1 and Table 2. Here, ”ð”
+tuning dataset. An example of a paraphrased theme              denotes a SFT agent.
+is provided in Appendix B.
+                                                                 • Baselines: (i) single-agent gpt-4o, (ii) single-
+   Following Parfenova et al. (2025), which reports
+                                                                   agent gpt-5, and existing automated thematic
+that fine-tuning performance saturates around 200-
+                                                                   analysis frameworks (iii) Xu et al. (2025) and
+300 datapoints across diverse LLMs, we adopt a sim-
+                                                                   (iv) Raza et al. (2025) all without SFT agents.
+ilar scale to mitigate annotation burdens—a key ad-
+vantage in clinical domains where large, high-quality
+                                                                 • Vanilla (only ð): SFT agents incorporated in
+datasets are scarce. To validate this choice, we con-
+                                                                   both coding and theme-generation stages.
+ducted an ablation study on SFT dataset size, which
+showed that performance peaked at approximately                  • Frameworks w/ ð: Xu et al. (2025) and Raza
+300 datapoints. Full results are provided in Ap-                   et al. (2025) with SFT agents added in the
+pendix D.                                                          theme-generation stage.
+
+                                                                 • Selective SFT Placement: SFT agents incor-
+3.4. Implementation Details.
+                                                                   porated exclusively in (i) coding or (ii) theme
+Prompt Optimization. We incorporated the fol-                      generation.
+lowing prompt optimization strategies to derive the
+maximum gains prompt engineering itself. Our main              3.6. Evaluation
+strategy is to replicate the six-phase procedures out-
+lined in Braun and Clarke (2006) through Chain-of-             We evaluate the alignment between LLM-generated
+Thought (CoT) reasoning, explicitly specify the eval-          themes and human reference themes (see Section 3.2
+uation criteria defined by the cardiac surgeon as the          for details) using both traditional metrics and the-
+desired output, and employ a a structured prompt               matic analysis (TA)-specific metrics. For traditional
+format (e.g., using tags such as “< >“) to increase            metrics, we report both lexical-overlap and semantic-
+the likelihood that LLMs will generate the intended            similarity measures. Formally, let H = {h1 , . . . , h12 }
+outcomes. At the final step, the model was explicitly          denote the 12 human reference themes and G =
+prompted to generate exactly 12 themes. In addi-               {g1 , . . . , g12 } denote the 12 LLM-generated themes.
+tion, a cardiac surgeon provided a set of eight criteria       For a given evaluation metric M (·, ·), we compute
+for coders to consider during the inductive thematic           M (hi , gj ) for every pair (hi , gj ), yielding 12 × 12 =
+analysis process, consistent with those empirically ap-        144 values in total. For each reference theme hi , we
+plied in prior work Mery et al. (2023). These crite-           take the maximum score across all generated themes,
+ria were incorporated into the prompting procedure,            maxj M (hi , gj ), and then average across all reference
+and LLMs were explicitly instructed that each gener-           themes:
+                                                                                           12
+ation step would be evaluated against them. The full                                    1 X
+list of criteria is presented in Appendix A. Also, we                              S=         max M (hi , gj ).
+                                                                                       12 i=1 j
+incorporated role identities in our prompts. For all
+generation tasks, the model was assigned the role of a         Thus, each reference theme is aligned with its best-
+qualitative researcher, reflecting the nature of induc-        matching generated theme according to the chosen
+tive thematic analysis. Specifically, it was instructed        metric, and the final score S is the average over all
+to act as an expert qualitative researcher trained in          12 reference themes. The detailed definitions of each
+the inductive thematic analysis framework of Braun             evaluation metric are provided below.
+and Clarke (2006).
+                                                               Traditional Metrics. Traditional metrics can be
+ 1. gpt-4o, gpt-o4-mini-high, gemini-2.5-flash,     and        grouped into two categories: (i) lexical-overlap
+    TextGrad (Yuksekgonul et al., 2024)                        metrics and (ii) semantic-similarity metrics. (i)
+
+
+                                                           5
+                     SFT-TA: Supervised Fine-Tuned Agents for Thematic Analysis
+
+
+
+
+Lexical-overlap metrics evaluate surface-level similar-        the directional and averaged scores are defined as:
+ity. Fuzzy Match captures string-level overlap us-                              |n-grams(A) ∩ n-grams(B)|
+ing edit-distance–based alignment, while BLEU (Pa-                     RA→B
+                                                                        n   =
+                                                                                        |n-grams(A)|
+pineni et al., 2002), METEOR (Banerjee and Lavie,
+                                                                                   A→B
+2005), and ROUGE-L (Lin, 2004) provide widely                                   R        + RB→A
+                                                                          Rn = n             n
+adopted measures of n-gram overlap. (ii) Semantic-                                       2
+similarity metrics assess meanings beyond surface                               R1 + R2
+                                                                            D=
+form. Cosine Similarity measures closeness in vector                                 2
+space using sentence embeddings. All metrics yield             We compute D over five independent runs and re-
+scores in the range [0,1], with higher values indicating       port the mean across all runs. Higher D values cor-
+greater similarity. Full mathematical definitions and          respond to greater stability between runs. We report
+implementation details are provided in Appendix F.             the improvement (∆D) over a baseline configuration
+These metrics complement each other but remain lim-            where one agent performs coding and another gener-
+ited in capturing the conceptual focus of inductive            ates themes.
+thematic analysis beyond surface form. Therefore,
+                                                        Transferability (T ) measures how well themes Θ
+we introduce additional metrics tailored specifically
+                                                        generated from one dataset D apply to a new but con-
+for evaluating thematic analysis, as described below.
+                                                        textually similar dataset D′ . In our framework, we
+                                                        assess T by splitting the corpus into a training set
+                                                        (7 transcripts) and a validation set (2 transcripts),
+Metrics Specific to Inductive Thematic Anal- producing Θtrain and Θval separately. The compu-
+ysis: C, D, T . We adopt the methodology of pre- tation follows the same bidirectional ROUGE proce-
+vious work Qiao et al. (2025), which applied the four dure as for D, except here A = Θtrain and B 9= Θval ,
+                                                                       A→B
+trustworthiness principles commonly used to evaluate with Rn = Rn            . We evaluate T over all 2 = 36
+thematic analysis (TA) results from Stahl and King      possible splits, reporting   the mean across these runs.
+(2020). These principles include credibility, confirma- Higher  T  values  indicate  that themes generalize well
+bility, dependability, and transferability, and were    between   subsets,  reflecting stronger transfer.
+consolidated into the following three evaluation met- Human Evaluation. We evaluated the generated
+rics.                                                   themes with four human raters: a cardiac surgeon,
+                                                               a qualitative analyst with extensive experience in
+                                                               inductive thematic analysis, and two independent
+                                                               laypersons. The laypersons had no professional qual-
+Credibility and Confirmability (C) measures
+                                                               itative analysis experience and were only provided
+whether the generated themes accurately represent
+                                                               general information about the dataset2 . All raters
+the underlying data rather than being influenced by
+                                                               received written definitions of the evaluation crite-
+biases. Each quote in the transcript is assigned a
+                                                               ria but were not shown examples to avoid bias. The
+unique identifier, referred to as a Quote ID (e.g.,
+                                                               theme-generation method was blinded: raters were
+[P1 S002] for Participant 1, Sentence 2). We link
+                                                               not informed about which model or baseline produced
+each theme to its associated data segments through
+                                                               a given theme set, nor were they given any method-
+these quote IDs and assign an evaluator agent to cal-
+                                                               ological details (e.g., prompts, number of agents, or
+culate the percentage of cases where the quotes and
+                                                               training). Each set of themes was presented in a ran-
+themes are consistent. Inconsistencies may arise from
+                                                               domized order with only the definitions of the evalua-
+hallucinations or internal biases within the LLM.
+                                                               tion criteria provided. Evaluators were instructed to
+                                                               assess the quality of themes according to four crite-
+                                                               ria, each rated on a 5-point Likert scale (1 = strongly
+Dependability (D) measures the consistency of                  disagree, 5 = strongly agree):
+theme generation across multiple independent runs.              1. Coverage. Whether the 12 generated themes
+To quantify this, we calculate bidirectional ROUGE                 collectively captured the breadth of parents’
+scores (Lin, 2004) for both ROUGE-1 (n=1, uni-
+                                                                2. Includes the main disease (AAOCA), the participant group
+grams) and ROUGE-2 (n=2, bigrams) overlaps. For                    (parents of affected children), and the purpose of the in-
+two theme sets A and B produced from separate runs,                terviews.
+
+
+                                                           6
+                       SFT-TA: Supervised Fine-Tuned Agents for Thematic Analysis
+
+
+
+
+Table 1: Evaluation results on traditional and TA metrics. Best values are in bold. ð denotes the
+         SFT Agent. Delta values are relative to the Vanilla baseline, highlighted in gray. Results for the
+         full SFT-TA pipeline are highlighted in yellow. Deltas in subscripts are computed relative to the
+         gpt-4o baseline. Bolded values indicate the largest positive improvement in each column.
+
+                                            Traditional Metrics                                   TA Metrics
+  Method
+                              Fuzzy         Cosine        BLEU        METEOR            C             D             T
+  Baseline (w/o ð)
+  Vanilla (gpt-4o)             .457          .115          .058          .120        .557(.000)    .407(.000)    .308(.000)
+  Vanilla (gpt-5)           .416(−.041)   .078(−.037)   .068(+.010)   .084(−.036)   .439(−.118)   .273(−.134)   .293(−.015)
+  Xu et al. (2025)          .495(+.038)   .144(+.029)   .040(−.018)   .144(+.024)   .592(+.035)   .191(−.216)   .251(−.057)
+  Raza et al. (2025)        .497(+.040)   .167(+.052)   .040(−.018)   .184(+.064)   .635(+.078)   .176(−.231)   .301(−.007)
+  Fine-tuned (w/ ð)
+  Vanilla (only ð)          .445(−.012)   .124(+.009)   .072(+.014)   .179(+.059)   .481(−.076)   .104(−.303)   .281(−.027)
+  Xu et al. (2025) w/ ð     .453(−.004)   .143(+.028)    .058(.000)   .187(+.067)   .503(−.054)   .214(−.193)   .315(+.007)
+  Raza et al. (2025) w/ ð   .483(+.026)   .161(+.046)   .056(−.002)   .276(+.156)   .636(+.079)   .182(−.225)   .265(−.043)
+  ð in coding only          .518(+.061)   .225(+.110)   .072(+.014)   .274(+.154)   .752(+.195)   .217(−.190)   .297(−.011)
+  ð in TG only              .530(+.073)   .254(+.139)   .094(+.036)   .338(+.218)   .787(+.230)   .322(−.085)   .292(−.016)
+  ð in Coding & TG          .560(+.103)   .268(+.153)   .080(+.022)   .348(+.228)   .783(+.226)   .394(−.013)   .303(−.005)
+
+
+
+
+     lived experiences. This was assessed only by Table 3 presents the two generated themes corre-
+     raters familiar with the dataset, with one rating sponding to the final row of Tables 1 and 2. Our
+     assigned per theme set.                            framework achieved the best improvements across
+                                                        Fuzzy Match, Cosine Similarity, and METEOR,
+  2. Actionability. Whether each theme encapsu- yielding performance gains of +10.3%, +15.3%, and
+     lated a clear, specific, and meaningful insight +22.8%, respectively (highlighted in yellow). Com-
+     that could inform interventions, resources, or fu- pared to the vanilla gpt-4o baseline, the SFT agent
+     ture research.                                     alone did not improve performance and in some
+                                                        cases performed worse (e.g., D = 0.104). However,
+  3. Distinctiveness. Whether each theme was when integrated into the coding step, results ex-
+     unique, avoiding overlaps or redundancies.         ceeded prior frameworks (Raza et al., 2025; Xu et al.,
+                                                        2025). Incorporation in the theme generation step
+  4. Relevance. Whether each theme accurately re- further improved performance . Our SFT-TA frame-
+     flected parents’ concerns and needs, without con- work with SFT agents in both coding and theme
+     flating them with patient perspectives.            generation achieved the best outcomes across tradi-
+                                                        tional metrics—Fuzzy = 0.560 (+0.103), Cosine =
+   The full guiding statements used for each criterion
+                                                        0.268 (+0.153), METEOR = 0.348 (+0.228)—and
+are provided in Appendix G. For Actionability, Dis-
+                                                        also yielded the strongest dependability score D =
+tinctiveness, and Relevance, raters scored each theme
+                                                        0.394. These results demonstrate that while fine-
+individually; scores were then averaged across themes
+                                                        tuning alone is insufficient, embedding SFT agents
+and raters to represent the set. Coverage was scored
+                                                        into both coding and theme generation step in the-
+once per set of themes. The criteria were adapted
+                                                        matic analysis yields the largest overall improve-
+from prior manual thematic analysis of the same
+                                                        ments.
+dataset Mery et al. (2023) and align with established
+evaluation practices in thematic analysis (Xu et al.,      For TA-specific metrics, we also observe that De-
+2025). The aggregated ratings, averaged across all      pendability  (D) decreases relative to the baseline.
+raters, are reported in Table 2.                        For  example,  the Vanilla (gpt-4o) baseline achieves
+                                                        D = .407, whereas the best-performing full SFT-TA
+                                                        pipeline (SFT in Coding & TG) yields D = .394,
+4. Results                                              a slight decline (−0.013). This degradation may
+                                                        stem from additional complexity or stochasticity in-
+Evaluation results on traditional and TA met- troduced by increasing the number of agents, which
+rics. We report evaluation results in Table 1, while in turn reduces reproducibility. Future work should
+
+
+                                                              7
+                    SFT-TA: Supervised Fine-Tuned Agents for Thematic Analysis
+
+
+
+
+Table 2: Human Evaluation. Comparison across coverage, actionability, distinctiveness, and relevance
+         using a 1–5 Likert scale, where 1 = Completely disagree, 2 = Disagree, 3 = Neither agree nor
+         disagree, 4 = Agree, and 5 = Completely agree (relative to the statement in Appendix G). TG
+         denotes the theme-generation stage. Deltas (in subscripts) are computed relative to the baseline
+         gpt-4o. Bolded values indicate the largest positive improvement in each column.
+
+ Methods                         Coverage         Actionability            Distinctiveness         Relevance
+ Baseline (w/o ð)
+ Vanilla (gpt-4o)                    4.00               2.80                       3.58                4.38
+ Vanilla (gpt-5)                  2.50(-1.50)        3.79(+0.99)                3.65(+0.07)         3.74(-0.64)
+ Xu et al. (2025)                 3.50(-0.50)        3.50(+0.70)                4.50(+0.92)         4.34(-0.04)
+ Raza et al. (2025)               4.50(+0.50)        3.61(+0.81)                4.66(+1.08)         4.30(-0.08)
+ Fine-tuned (w/ ð)
+ Vanilla (only ð)                 4.00(0.00)         3.47(+0.67)                4.82(+1.24)         4.00(-0.38)
+ Xu et al. (2025) w/ ð            4.00(0.00)         3.53(+0.73)               4.86(+1.28)          3.97(-0.41)
+ Raza et al. (2025) w/ ð          3.50(-0.50)        3.31(+0.51)                4.64(+1.06)         4.05(-0.33)
+ ð in coding only                 4.00(0.00)         3.41(+0.61)                3.91(+0.33)         4.50(+0.12)
+ ð in TG only                     3.50(-0.50)        3.56(+0.76)                3.94(+0.36)         4.28(-0.10)
+ ð in Coding & TG                5.00(+1.00)        4.28(+1.48)                 4.35(+0.77)        4.63(+0.25)
+
+
+examine the underlying causes of this degradation, man evaluation results do not consistently align with
+including whether tuning parameters of individual traditional or TA-specific metrics.
+agents can mitigate its impact on D.
+                                                       Conclusion. We introduced a novel framework for
+Human Evaluation Results. Table 2 presents automating inductive thematic analysis of clinical
+the results of the human evaluation. Our frame- transcripts, centered on the integration of SFT agents
+work obtained the highest scores across coverage, within a multi-agent architecture. Our experiments
+actionability, and relevance, with Coverage = 5.00 across ten conditions demonstrate that while SFT
+(+1.00), Actionability = 4.28 (+1.48), and Rele- agents alone may not outperform existing baselines,
+vance = 4.63 (+0.25), as shown in Table 2 (high- their incorporation into the full pipeline yields sub-
+lighted in yellow). However, we observed a degra- stantial improvements on traditional metrics, high-
+dation in distinctiveness (4.35, +0.77), the underly- lighting their value in complex qualitative analysis
+ing cause of which remains unclear. One possible tasks. Although this study focused on clinical tran-
+explanation is that prior studies on multi-agent sys- scripts related to AAOCA, the framework general-
+tems for thematic analysis Qiao et al. (2025) have fo- izes to other domains and datasets, offering a scalable
+cused primarily on short-context datasets (e.g., Red- path toward LLM-assisted qualitative research.
+dit threads), whereas our framework operates on sub-         Limitations and Future Work. The scope of this
+stantially longer transcripts. In this setting, TA-          study is limited to nine clinical transcripts pertain-
+specific metrics (C, D, T ) may be less well-suited          ing to AAOCA. Consequently, the transferability of
+for evaluating long-context data, such as the clinical       the proposed framework to other datasets remains
+transcripts used here. This remains a hypothesis, and        uncertain. The human reference themes are not ex-
+further investigation is needed to better understand         haustive. Although they were generated by domain
+the observed phenomenon.                                     experts following the procedures of inductive the-
+   Incorporating SFT agents into prior frameworks,           matic analysis outlined in the original work (Braun
+or limiting them to either the coding or theme-              and Clarke, 2006), they should not be considered the
+generation stage, resulted in lower performance than         definitive output of such an analysis. We also ob-
+existing methods across coverage, actionability, and         served that some LLM-generated themes represent
+relevance. Moreover, our findings indicate that hu-          lower-level or more granular interpretations of the
+
+
+                                                         8
+                       SFT-TA: Supervised Fine-Tuned Agents for Thematic Analysis
+
+
+
+
+Table 3: Human reference vs. SFT-TA generated themes. Each SFT-TA theme is paired with its
+         closest human theme based on cosine similarity, with minor manual reordering applied.
+
+Human Reference Themes                                      SFT-TA Themes
+
+Worrying too much lessened when risks are explained         Clarity of potential risks and outcomes
+Diagnosis told with care and kindness                       The diagnosis given in a compassionate and empathic way
+Families want steady information that makes sense           Being appropriately informed
+Feeling in control of decisions about future                A sense of control over the future
+Having trust and respect from doctors                       Being heard and taken seriously by clinicians
+Parents needing comfort and support from peers              Receiving support from others
+Stress, anxiety, and sadness are still common               Appropriately coping with stress, anxiety and depression
+Not blaming self for when or why diagnosis happened         Not feeling responsible for the diagnosis and its timing
+Confidence that child is protected and safe                 Feeling that my child is safe
+Parents and clinicians working together as partners         Partnership with the care team
+Guidance that fits family’s own choices                     Individualized support for management decision-making
+Support from faith or community when needed                 Freedom from hypervigilance related to the condition
+
+
+
+
+corresponding human-derived themes. Future direc-
+tions include integrating SFT agents into additional
+components of the pipeline—particularly evaluation
+and refinement agents—and conducting further ab-
+lation studies on the effect of varying the number of
+SFT agents. For the baselines, future work should ex-
+plore additional single-agent models beyond the gpt
+variants. Another direction for future work is to ex-
+plore LLM-as-a-judge approaches as a part of evalu-
+ation, such as Win Rate (see Appendix C), to eval-
+uate theme quality without relying solely on human
+ground truth. This would also enable investigation of
+the correlation between human judgments and these
+automated metrics.
+
+
+
+
+                                                        9
+                    SFT-TA: Supervised Fine-Tuned Agents for Thematic Analysis
+
+
+
+
+References                                           Jakub Drápal, Hannes Westermann, and Jaromir
+                                                       Savelka. Using large language models to support
+Satanjeev Banerjee and Alon Lavie. METEOR: An          thematic analysis in empirical legal studies. arXiv
+  automatic metric for MT evaluation with improved     preprint arXiv:2310.18729, 2023. URL https:
+  correlation with human judgments. In Jade Gold-      //arxiv.org/abs/2310.18729.
+  stein, Alon Lavie, Chin-Yew Lin, and Clare Voss,
+  editors, Proceedings of the ACL Workshop on In- Andrew Katz, Gabriella Coloyan Fleming, and Joyce
+  trinsic and Extrinsic Evaluation Measures for Ma-    Main. Thematic analysis with open-source gener-
+  chine Translation and/or Summarization, pages        ative ai and machine learning: A new method for
+  65–72, Ann Arbor, Michigan, June 2005. Associ-       inductive qualitative codebook development, 2024.
+  ation for Computational Linguistics. URL https:      URL https://arxiv.org/abs/2410.03721.
+  //aclanthology.org/W05-0909/.
+                                                     Chin-Yew Lin. ROUGE: A package for automatic
+Virginia Braun and Victoria Clarke. Using the-         evaluation of summaries. In Text summarization
+  matic analysis in psychology. Qualitative Research   branches out: Proceedings of the ACL-04 workshop,
+  in Psychology, 3(2):77–101, 2006. doi: 10.1191/      pages 74–81. Barcelona, Spain, 2004.
+  1478088706qp063oa. URL https://doi.org/10.
+  1191/1478088706qp063oa.                            Insa Mannstadt, Susan M. Goodman, Man-
+                                                           gala Rajan, Sarah R. Young, Fei Wang, Iris
+Tom B. Brown, Benjamin Mann, Nick Ryder, and
+                                                           Navarro-Millán, and Bella Mehta.       A novel
+  et al. Language models are few-shot learners. Ad-
+                                                           approach for mixed-methods research using
+  vances in Neural Information Processing Systems,
+                                                           large language models: A report using pa-
+  2020. URL https://arxiv.org/abs/2005.14165.
+                                                           tients’ perspectives on barriers to arthroplasty.
+Kaitlyn A. Campbell, Elizabeth Orr, Pauline Dure-          ACR Open Rheumatology, 6(6):375–379, 2024.
+  pos, Linh Nguyen, Lanting Li, Caitlin Whitmore,          doi: https://doi.org/10.1002/acr2.11662. URL
+  Paula Gehrke, Lorraine Graham, and Susan M.              https://acrjournals.onlinelibrary.wiley.
+  Jack. Reflexive thematic analysis for applied qual-      com/doi/abs/10.1002/acr2.11662.
+  itative health research. The Qualitative Report,
+                                                      C.M. Mery, A. Well, K. Taylor, K. Carberry,
+  26(6):2011–2028, 2021. doi: 10.46743/2160-3715/
+                                                        J. Colucci, C. Ulack, A. Zeiner, M. Mizrahi,
+  2021.5010.    URL https://doi.org/10.46743/
+                                                        E. Stewart, C. Dillingham, T. Cook, A. Hartou-
+  2160-3715/2021.5010.
+                                                        nian, E. McCullum, J.T. Affolter, H. Van Diest,
+Shih-Chieh Dai, Aiping Xiong, and Lun-Wei Ku.           A. Lamari-Fisher, S. Chang, S. Wallace, E. Teis-
+  Llm-in-the-loop: Leveraging large language model      berg, and C.D. Jr Fraser. Examining the real-
+  for thematic analysis, 2023. URL https://arxiv.       life journey of individuals and families affected by
+  org/abs/2310.15100.                                   single-ventricle congenital heart disease. Journal
+                                                        of the American Heart Association, 12(5):e027556,
+Stefano De Paoli. Performing an inductive the-          March 2023.       doi: 10.1161/JAHA.122.027556.
+  matic analysis of semi-structured interviews with a   Epub 2023 Feb 21.
+  large language model: An exploration and provo-
+  cation on the limits of the approach. Social Sci- Long Ouyang, Jeff Wu, Xu Jiang, and et al. Training
+  ence Computer Review, 42(4):997–1019, 2023. doi:      language models to follow instructions with human
+  10.1177/08944393231220483. Original work pub-         feedback. Advances in Neural Information Pro-
+  lished 2024.                                          cessing Systems, 2022. URL https://arxiv.org/
+                                                        abs/2203.02155.
+M Deiner, V Honcharov, J Li, T Mackey, T Porco,
+  and U Sarkar. Large language models can en- Kishore Papineni, Salim Roukos, Todd Ward, and
+  able inductive thematic analysis of a social me-      Wei-Jing Zhu. Bleu: a method for automatic eval-
+  dia corpus in a single prompt: Human validation       uation of machine translation. In Proceedings of the
+  study. JMIR Infodemiology, 4:e59641, 2024. doi:       40th annual meeting of the Association for Compu-
+  10.2196/59641. URL https://infodemiology.             tational Linguistics, pages 311–318. Association for
+  jmir.org/2024/1/e59641.                               Computational Linguistics, 2002.
+
+
+                                                      10
+                    SFT-TA: Supervised Fine-Tuned Agents for Thematic Analysis
+
+
+
+
+Angelina Parfenova, Andreas Marfurt, Jürgen Pf-       Ying Ding. Tama: A human-ai collaborative the-
+  effer, and Alexander Denzler. Text annotation        matic analysis framework using multi-agent llms
+  via inductive coding: Comparing human experts        for clinical interviews, 2025. URL https://arxiv.
+  to LLMs in qualitative data analysis. In Luis        org/abs/2503.20666.
+  Chiruzzo, Alan Ritter, and Lu Wang, editors,
+  Findings of the Association for Computational Lin- Seungjun Yi, Jaeyoung Lim, and Juyong Yoon.
+  guistics: NAACL 2025, pages 6456–6469, Albu-         Protomed-llm: An automatic evaluation frame-
+  querque, New Mexico, April 2025. Association for     work for large language models in medical proto-
+  Computational Linguistics. ISBN 979-8-89176-         col formulation, 2025a. URL https://arxiv.org/
+  195-7.     doi: 10.18653/v1/2025.findings-naacl.     abs/2410.04601.
+  361.     URL https://aclanthology.org/2025.
+  findings-naacl.361/.                               Seungjun Yi, Joakim Nguyen, Terence Lim, Andrew
+                                                       Well, Joseph Skrovan, Mehak Beri, YongGeon Lee,
+M Prescott, S Yeager, L Ham, C Rivera Saldana,         Kavita Radhakrishnan, Liu Leqi, Mia Markey, and
+  V Serrano, J Narez, D Paltin, J Delgado, D Moore,    Ying Ding. Position: Thematic analysis of unstruc-
+  and J Montoya. Comparing the efficacy and ef-        tured clinical transcripts with large language mod-
+  ficiency of human and generative ai: Qualita-        els, 2025b. URL https://arxiv.org/abs/2509.
+  tive thematic analyses. JMIR AI, 3:e54482, 2024.     14597.
+  doi: 10.2196/54482. URL https://ai.jmir.org/
+  2024/1/e54482.                                     Seungjun Yi, Joakim Nguyen, Huimin Xu, Terence
+                                                       Lim, Andrew Well, Mia Markey, and Ying Ding.
+Tingrui Qiao, Caroline Walker, Chris W Cunning-        Auto-TA: Towards scalable automated thematic
+  ham, and Yun Sing Koh. Thematic-LM: a LLM-           analysis (TA) via multi-agent large language mod-
+  based multi-agent system for large-scale thematic    els with reinforcement learning. In ACL 2025
+  analysis. In THE WEB CONFERENCE 2025,                Student Research Workshop, 2025c. URL https:
+  2025. URL https://openreview.net/forum?id=           //openreview.net/forum?id=vWVXGfwONH.
+  jiv0Gl6sto.
+                                                     Mert Yuksekgonul, Federico Bianchi, Joseph Boen,
+Zeeshan Rasheed, Muhammad Waseem, Aakash Ah-           Sheng Liu, Zhi Huang, Carlos Guestrin, and James
+  mad, Kai-Kristian Kemell, Wang Xiaofeng, Anh         Zou. Textgrad: Automatic ”differentiation” via
+  Nguyen Duc, and Pekka Abrahamsson. Can large         text, 2024. URL https://arxiv.org/abs/2406.
+  language models serve as data analysts? a multi-     07496.
+  agent assisted approach for qualitative data anal-
+  ysis. arXiv preprint arXiv:2402.01386, 2024. URL
+  https://arxiv.org/abs/2402.01386.
+                                                          Appendix A. Criteria for Evaluating
+Muhammad Zain Raza, Jiawei Xu, Terence Lim, Lily                          Generated Themes
+  Boddy, Carlos M. Mery, Andrew Well, and Ying
+  Ding. Llm-ta: An llm-enhanced thematic anal- The following eight criteria, adapted from Mery et al.
+  ysis pipeline for transcripts from parents of chil- (2023), were used to assess the quality of generated
+  dren with congenital heart disease, 2025. URL themes:
+  https://arxiv.org/abs/2502.01620.
+                                                        1. Uniqueness – Each theme represents a distinct
+Norman A. Stahl and James R. King. Expanding               idea.
+  approaches for research: Understanding and using
+  trustworthiness in qualitative research. Journal of   2. Actionability – Each theme can inform inter-
+  Developmental Education, 44(1):26–28, 2020. URL          ventions, support strategies, or policy decisions.
+  http://www.jstor.org/stable/45381095. Ac-
+  cessed: 2025-09-09.                                   3. Specificity – Each theme is concrete and not
+                                                           overly general.
+Huimin Xu, Seungjun Yi, Terence Lim, Jiawei Xu,
+  Andrew Well, Carlos Mery, Aidong Zhang, Yuji          4. Condition Relevance – The theme clearly re-
+  Zhang, Heng Ji, Keshav Pingali, Yan Leng, and            lates to the target condition (i.e., AAOCA).
+
+
+                                                     11
+                     SFT-TA: Supervised Fine-Tuned Agents for Thematic Analysis
+
+
+
+
+ 5. Segment Focus – The theme captures the per- that effects of roughly 20 points above chance are de-
+    spective of the specified participant group (e.g., tectable at α = 0.05. Accordingly, we set a threshold
+    patient, parent).                                  of >0.70 as the criterion for declaring reliable perfor-
+                                                       mance gains over the human baseline. Full calcula-
+ 6. Clarity – The theme is easily understandable.      tion details are provided in Appendix E.
+ 7. Plausibility – The theme is thematically con-
+    sistent and reasonable for this topic.
+                                                               Appendix D. Effect of Dataset Size on
+ 8. Overall Quality – The theme demonstrates
+    high conceptual and linguistic quality.
+                                                                           SFT Performance
+                                                               Data Scaling and Saturation. Generation agents
+Appendix B. Examples of                                        are fine-tuned with training subsets of size N ∈
+            Paraphrased Human                                  {100, 200, 300, 600, 900} to examine the relationship
+                                                               between dataset size and performance, and to identify
+            Reference Themes                                   the saturation point at which additional data yield
+Original: Clarity of potential risks and outcomes.             diminishing returns.
+Paraphrases: Clear understanding of possible dan-                 Increasing the number of supervised fine-tuning
+gers and results; Clear insight into foreseeable risks         examples led to steady improvements in win rate
+and implications; Transparency regarding expected              (W), with performance reliably exceeding chance
+risks and consequences; Awareness of potential haz-            once training size surpassed a few hundred examples.
+ards and their effects; Comprehension of likely threats        The most notable gain occurred between 100 and 300
+and outcomes; Recognition of possible negative out-            samples, after which improvements diminished, indi-
+comes and associated risks; Knowledge of potential             cating diminishing returns from additional data. This
+challenges and their consequences; Clear depiction of          trend suggests that approximately 300 labeled exam-
+likely risks and results; Understanding the implica-           ples are sufficient to reach stable performance, while
+tions of possible risks; Clear communication about             larger datasets contribute primarily to reducing vari-
+risks and expected consequences.                               ability across runs rather than to further accuracy
+                                                               gains.
+Appendix C. Definition of Win Rate
+            (W)
+Win Rate (W) is the proportion of evaluation in-
+stances in which the model’s output is preferred over
+a baseline according to a specified evaluation crite-
+rion. In our setting, gpt-4o served as the evalua-
+tor, was explicitly informed that the task concerned
+the generation of themes, and received the outputs
+in a randomized order (i.e., A vs. B) to mitigate po-
+sition bias. Formally, if Nwin denotes the number
+of instances where the model’s output is preferred
+and Ntotal is the total number of evaluated instances, Figure 2: Win rate (W) as a function of supervised
+then:                                                            fine-tuning (SFT) training examples (N ).
+                           Nwin                                  Dashed lines mark the chance level (0.50)
+                     W=           .
+                           Ntotal                                and reliability threshold (0.70). A satura-
+   To evaluate whether observed win rates dif-                   tion point appears near N ≈ 300. Error
+fered from chance, we computed Wilson 95% con-                   bars denote 95% confidence intervals. The
+fidence intervals and conducted one-sided bino-                  rationale for selecting 0.70 as the threshold
+mial tests against a 50% null hypothesis, applying               is provided in Appendix E.
+Holm–Bonferroni correction across conditions. With
+N = 100 paired outputs, power analyses indicated
+
+
+                                                          12
+                     SFT-TA: Supervised Fine-Tuned Agents for Thematic Analysis
+
+
+
+
+Appendix E. Statistical Basis for                             analysis), ensuring that reported improvements re-
+            Threshold                                         flect robust evidence rather than chance fluctuations.
+            Determination
+Observed win rates p̂ based on n paired compar-               Appendix F. Lexical Overlap Metrics
+isons were evaluated through a combination of confi-                      Details
+dence intervals, hypothesis testing, and power anal-
+                                                              Fuzzy Match. We use fuzzy string matching
+ysis. Confidence intervals were estimated using the
+                                                              to quantify the lexical similarity between LLM-
+Wilson score method rather than the normal approx-
+                                                              generated and human-generated reference themes.
+imation, as Wilson intervals are known to provide
+                                                              Specifically, we leverage the fuzzy match metric im-
+more accurate coverage probabilities for moderate
+                                                              plemented in OpenAI Evals, which is built on nor-
+sample sizes and probabilities near the boundaries of
+                                                              malized Levenshtein distance and token alignment
+0 and 1. For a two-sided 95% interval, the formula is
+                                                              heuristics. This allows for partial credit when the
+                   z2
+                         q
+                                       z2
+                                                              model output closely resembles the reference theme.
+              p̂ + 2n ± z p̂(1−
+                              n
+                                p̂)
+                                    + 4n 2                    The definition for mathematical notations is as fol-
+   p̂Wilson =                              , z = 1.96.
+                           z2                                 lows. Let s1 , s2 ∈ S be two strings. The fuzzy match
+                        1+ n
+                                                              score F (s1 , s2 ) ∈ [0, 1] is computed as:
+Intervals not containing 0.50 are interpreted as evi-
+dence that performance differs from chance at the 5%                                     Dlev (s1 , s2 )
+                                                                     F (s1 , s2 ) = 1 −
+level.                                                                                  max(|s 1 |, |s2 |)
+   For formal hypothesis testing, we applied exact         where Dlev denotes the Levenshtein distance. A
+one-sided binomial tests to assess whether observed score of 1.0 implies an exact match, while lower
+win counts exceeded chance. Specifically, if x out of scores reflect the degree of edit distance required.
+n outputs favored the model, the p-value is             This metric is robust to minor lexical variations
+                        n
+                       X n                            (e.g., ”parental concern” vs. ”concerns of parents”)
+                                     n                  and is particularly useful when evaluating generated
+                  p=            (0.5) .
+                             k                          themes that are semantically close but not identical
+                       k=x
+                                                        in form. All evaluations were performed using Ope-
+This formulation directly evaluates the probability of nAI’s fuzzy match implementation.
+observing at least x wins under the null hypothesis
+that each trial has probability 0.5. To account for Cosine Similarity. We use cosine similarity to
+testing across multiple experimental conditions, we evaluate the semantic closeness between LLM-
+applied Holm–Bonferroni correction, which sequen- generated and human-generated reference themes
+tially adjusts significance thresholds while maintain- based on their vector representations. Specifically,
+ing familywise error control.                           we embed each string using a pre-trained sentence
+   To determine appropriate sample sizes, we con- encoder and compute the cosine of the angle between
+                                                                                                  d
+ducted power analyses for the one-sided binomial the resulting vectors. Let u, v ∈ R be the embed-
+test. Power calculations indicated that with n = 100 dings of two theme strings. The cosine similarity
+paired outputs, the smallest reliably detectable effect score C(u, v) ∈ [−1, 1] is defined as:
+size at α = 0.05 with 95% power is approximately                                         u·v
+0.20, corresponding to a difference between a 0.50 null                      C(u, v) =
+                                                                                        ∥u∥∥v∥
+rate and a 0.70 observed rate. Thus, effects smaller
+than 70% vs. 50% would be underpowered with this           where · denotes the dot product and ∥ · ∥ the
+design, whereas effects at or above this level are de- Euclidean norm. A score of 1.0 indicates per-
+tectable with high confidence.                          fect alignment, 0 implies orthogonality (no se-
+   Based on these considerations, we adopted a mantic overlap), and –1 reflects diametrically op-
+threshold of > 0.70 win rate as the criterion for posed meanings. We use encoder models such as
+declaring reliable performance gains relative to the text-embedding-3-large3 to obtain dense represen-
+human baseline. This choice integrates both statis- 3. Text embedding model from OpenAI, which supports up
+tical significance (through binomial testing with cor-      to 3072-dimensional embeddings and shows strong bench-
+rection) and practical detectability (through power         mark performance.
+
+
+                                                         13
+                     SFT-TA: Supervised Fine-Tuned Agents for Thematic Analysis
+
+
+
+
+tations of text. This metric captures meaning beyond
+surface-level form and is especially valuable when
+comparing paraphrased or reworded themes that dif-
+fer lexically but align semantically (e.g., “navigat-
+ing complex medical decisions” vs. “making difficult
+treatment choices”, or “emotional response to diag-
+nosis” vs. “coping with the news”).
+   BLEU (Papineni et al., 2002) computes the pre-
+cision of overlapping n-grams, applying a brevity
+penalty to discourage short outputs. It tends to
+under-reward paraphrases or semantically aligned
+variants due to its strict reliance on exact matches.
+For example, “managing stress and anxiety” vs.
+“handling emotional pressure” would receive a low
+BLEU score despite similar meaning.
+   METEOR (Banerjee and Lavie, 2005) addresses
+BLEU’s limitations by incorporating unigram recall,
+stemming, synonym matching (via WordNet), and a
+fragmentation penalty. It can give partial credit to
+pairs like “healthcare access barriers” and “difficulty
+reaching medical services” even without exact word
+matches.
+   ROUGE-L (Lin, 2004) measures the longest com-
+mon subsequence between reference and candidate
+texts, capturing both content and order overlap. For
+instance, “struggles after diagnosis” and “challenges
+following diagnosis” would yield moderate ROUGE-
+L scores due to shared sequential structure.
+
+
+Appendix G. Human Evaluation
+            Guiding Statements
+For the human evaluation, raters were instructed to
+assess themes on a 5-point Likert scale (1 = strongly
+disagree, 5 = strongly agree) according to the follow-
+ing guiding statements:
+
+  • Coverage: These themes comprehensively cap-
+    ture parents’ lived experiences and are supported
+    by multiple participants.
+
+  • Actionability: This theme provides clear, spe-
+    cific insights that can inform interventions, re-
+    sources, or research.
+
+  • Distinctiveness: This theme is clearly distinct
+    from other themes, with no major overlaps or
+    redundancies.
+
+  • Relevance: This theme accurately reflects par-
+    ents’ lived experiences and is directly related to
+    having a child with AAOCA.
+
+
+                                                          14
+

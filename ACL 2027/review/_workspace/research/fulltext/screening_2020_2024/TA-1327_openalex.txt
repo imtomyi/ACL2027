@@ -1,0 +1,1787 @@
+                                         Paid Voices vs. Public Feeds: Interpretable Cross-Platform Theme-Based
+                                                               Analysis of Climate Discourse
+
+                                                     Samantha Sudhoff* , Pranav Perumal, Zhaoqing Wu, Tunazzina Islam*
+                                                   Department of Computer Science, Purdue University, West Lafayette, IN 47907
+                                                                           {ssudhoff, pperuma, wu1828, islam32} @purdue.edu
+
+
+
+
+                                                                  Abstract
+                                              Climate discourse online shapes public under-
+
+
+
+
+arXiv:2601.13317v2 [cs.CL] 24 Jun 2026
+                                              standing of climate change and informs polit-
+                                              ical and policy debate, yet it unfolds across
+                                              structurally different environments: paid adver-
+                                              tising platforms host targeted, institutionally
+                                              produced messaging, while public social me-
+                                              dia reflects largely organic, user-driven discus-
+                                              sion. We present a comparative analysis of cli-       Figure 1: Examples of climate discourse across paid
+                                              mate discourse across paid advertisements on          and public platforms (paraphrased and anonymized).
+                                              Meta (previously Facebook) and public posts
+                                              on Bluesky from July 2024 to September 2025.
+                                                                                                    Holder et al., 2023; Treen et al., 2020; Lejano and
+                                              To support it, we develop an interpretable the-
+                                              matic discovery pipeline that clusters texts by
+                                                                                                    Nero, 2020; Walter et al., 2018; Gupta et al., 2018),
+                                              semantic similarity and uses large language           making climate discourse a central object of study
+                                              models (LLMs) to label clusters with concise,         for computational social science (CSS) and natural
+                                              human-interpretable themes, requiring no pre-         language processing (NLP).
+                                              defined topic inventory or seed set. Using                However, climate communication does not un-
+                                              these themes, we find the two environments            fold in a uniform online environment. Paid ad-
+                                              diverge systematically: paid advertising cen-
+                                                                                                    vertising ecosystems such as Meta’s advertising
+                                              ters on strategic promotion of specific solutions
+                                              in a formal, forward-looking register, whereas        platform (Meta Platforms, Inc., 2025) are designed
+                                              organic discourse centers on systemic critique        for strategic, targeted persuasion in service of po-
+                                              in a crisis-oriented, scientifically grounded one.    litical or economic goals (Islam et al., 2023b,a;
+                                              We also evaluate the utility of the discovered        Islam and Goldwasser, 2022; Capozzi et al., 2021;
+                                              themes through downstream stance prediction           Ribeiro et al., 2019), while public social media
+                                              and theme-guided retrieval tasks. While our           platforms such as Bluesky (Bluesky Public Social
+                                              analysis focuses on climate communication, the
+                                                                                                    Network, 2025) host largely user-driven discourse
+                                              framework generalizes to comparative thematic
+                                              analysis across heterogeneous communication
+                                                                                                    shaped by personal expression and grassroots in-
+                                              environments.                                         teraction (Quelle and Bovet, 2024). We treat paid
+                                                                                                    advertising as a proxy for institutionally produced,
+                                         1    Introduction                                          resource-backed messaging and public posting as
+                                                                                                    a proxy for organic, user-driven discourse; Fig. 1
+                                         Online platforms have become a primary arena               illustrates the contrast (motivation only—all em-
+                                         for climate communication, shaping how climate             pirical claims come from later analyses). Prior
+                                         change is discussed, debated, and acted upon by the        computational works have examined climate dis-
+                                         public (Pera and Aiello, 2024; Islam et al., 2023b;        course within individual platforms, focusing on
+                                         Bloomfield and Tillery, 2019; Pearce et al., 2019;         tasks such as topic modeling (Dahal et al., 2019),
+                                         Abbar et al., 2016). Climate narratives circulated         stance detection (Upadhyaya et al., 2023; Luo et al.,
+                                         through social media influence political attitudes,        2020), and targeted messaging analysis (Islam and
+                                         policy preferences, and perceptions of scientific          Goldwasser, 2025b,c,a; Islam et al., 2023b), leav-
+                                         credibility (Liu et al., 2025; Vivion et al., 2024;        ing unclear whether thematic patterns are shared
+                                             * These authors contributed equally.                   across communication environments or specific to
+                                                        contracts following the 2024 U.S. election while
+                                                        public discourse expands.
+                                                           In summary, this paper makes three primary con-
+                                                        tributions1 :
+                                                        (1) We construct and release the first multi-platform
+                                                        dataset enabling direct comparison between paid
+                                                        climate advertising and public climate discourse.
+                                                        (2) We develop an interpretable thematic discov-
+                                                        ery pipeline for cross-platform thematic analysis
+       Figure 2: Overview of our framework.             that does not require predefined topic inventories
+                                                        or seed themes.
+where they emerge.                                      (3) We conduct quantitative and qualitative analy-
+   In this paper, we conduct a comparative analysis     sis. Our findings show that paid and public climate
+of climate discourse across paid advertisements         discourse differ systematically in thematic struc-
+on Meta and public posts on Bluesky. Rather             ture, stance alignment, and temporal responsive-
+than proposing a new topic modeling algorithm,          ness, illustrating the value of comparative thematic
+we develop a measurement framework that sup-            analysis across heterogeneous communication en-
+ports cross-platform thematic analysis despite dif-     vironments.
+ferences in vocabulary, style, and communicative
+norms. Our approach first discovers latent seman-       2       Related Work
+tic clusters and then uses large language models
+(LLMs) (Brown et al., 2020) to generate concise,        Climate communication and political advertis-
+human-interpretable theme labels. By separating         ing. Prior works examine how climate and political
+semantic discovery from linguistic interpretation,      campaigns operate in paid advertising ecosystems.
+the framework keeps themes grounded in the data         Studies analyze messaging strategies, stance, and
+while making them accessible for substantive anal-      targeting in climate-related ads using weak supervi-
+ysis and downstream use. It also avoids reliance on     sion, graph-based advertiser–ad models, and LLM-
+predefined topic inventories or seed sets (Fig. 2).     based analysis (Islam and Goldwasser, 2025b;
+We evaluate the resulting themes against standard       Rowlands et al., 2024; Islam et al., 2023b,a). The
+topic modeling baselines—LDA (Blei et al., 2003),       most closely related concurrent work is (Anony-
+BERTopic (Grootendorst, 2022), and TopicGPT             mous, 2026), which analyzes cross-platform cli-
+(Pham et al., 2024)—using both human judgments          mate discourse by extracting and classifying claims
+and an LLM-based evaluator, and probe their util-       using a Toulmin-inspired argumentative framework
+ity on two downstream tasks, stance prediction          (Toulmin, 1958). In contrast, our work takes a
+and theme-guided retrieval, as validation probes        coarser-grained, theme-level perspective, examin-
+for whether the themes are coherent semantic ab-        ing how climate messaging strategies rather than
+stractions. We then use the themes to examine           individual argumentative moves differ across plat-
+thematic prevalence across platforms and how dis-       form contexts. These studies motivate treating paid
+course shifts around major real-world events. Our       advertising as a distinct, strategically and institu-
+goal is not to make causal claims about platform        tionally produced communication environment.
+effects or speaker intent, but to descriptively char-   LLMs for theme and narrative discovery. Re-
+acterize how climate discourse differs across two       cent work uses LLMs to discover interpretable la-
+communication environments.                             tent structure in large corpora (Islam, 2026a; Brady
+   Across our analyses, we find that the two envi-      and Islam, 2025; Nakshatri et al., 2025). Islam
+ronments reflect distinct communicative orienta-        and Goldwasser (2025a) cluster documents from
+tions. Paid advertising concentrates on the strategic   an initial seed and use LLMs to summarize clus-
+promotion of specific solutions, whereas organic        ters and label themes; others uncover finer-grained
+discourse concentrates on the systemic critique of      units such as arguments from a predefined theme
+corporate and political actors. This contrast recurs    set (Islam and Goldwasser, 2025c), and concept-
+across thematic structure, rhetorical register, and     induction methods like LLooM (Lam et al., 2024)
+stance alignment, and the two platforms respond             1
+                                                            Our datasets and code are publicly available here: https:
+to major events in opposite directions: advertising     //github.com/srs827/PaidVoices-vs-PublicFeeds
+incorporate human-provided seed concepts. In            gic persuasion and includes disclosed advertiser
+contrast, our pipeline performs thematic discov-        identities and metadata (e.g., impressions, spend,
+ery without any seed set.                               targeting). In contrast, Bluesky is a decentralized
+Framing analysis of climate discourse. Framing          social media platform where climate-related con-
+theory (Entman, 1993) describes how communi-            tent is generated organically by users without mon-
+cators emphasize certain aspects of reality to pro-     etary promotion or targeting, reflecting grassroots
+mote particular framing functions. Computational        discussion and personal expression.
+work operationalizes framing through cross-issue           We collect2 a set of over 113K climate-related
+codebooks and annotated corpora (Boydstun et al.,       ads from Meta Ad Library and 1.3M Bluesky cli-
+2014; Card et al., 2015) and (weakly) supervised        mate posts from July 2024 to September 2025 using
+frame classification (Roy and Goldwasser, 2020;         a curated set of climate-related keywords shown in
+Field et al., 2018). In the climate domain, framing     Table 4 App. A. The climate keywords are taken
+analyses examine climate and energy policy narra-       from a selection constructed by Islam et al. (2023b)
+tives (Vikström et al., 2023) and how multimodal        and modified to reflect recent shifts in climate-
+climate communication shapes public understand-         change related topics. Using the Meta Ad Library,
+ing (Dancygier, 2023). We adopt Entman’s four           a total of 113, 493 climate related ads are collected,
+functions across two communicative environments.        which is then reduced to a dataset of size 17, 026
+Linguistic and psycholinguistic analysis. Be-           upon using SentenceBERT (Reimers and Gurevych,
+yond framing, computational social science has          2019) with a cosine similarity threshold of 0.80 to
+used psycholinguistic features—particularly LIWC        eliminate highly similar ads.
+(Boyd et al., 2022)—to characterize how climate            Bluesky, due to its nature as a social networking
+discourse varies across regional and organizational     platform, has many more posts (≈ 1.3 million) that
+contexts (Wuraola et al., 2023; Gulliver et al.,        match our keywords within the same time frame.
+2021). We extend this work by applying framing          From the obtained post database, we randomly
+lexicons and LIWC variables to enable theme-level       sample 20, 000 posts to serve as a similarly-sized
+rhetorical-register comparison across paid and or-      comparison to the retrieved Meta dataset. We fur-
+ganic communication.                                    thermore apply the same deduplication procedure,
+Stance detection. Stance detection is widely used       yielding 19, 182 unique Bluesky posts. We apply
+to analyze climate narratives and ideological fram-     a greedy deduplication strategy for both Meta and
+ing (Luo et al., 2020), including detection of denial   Bluesky: for each text, all subsequent texts ex-
+and neutralization techniques in climate skepticism     ceeding the similarity threshold are removed, re-
+(Bhatia et al., 2021). This motivates our stance-       taining the first occurring text. The Bluesky sam-
+based validation: meaningful themes should align        ple maintains temporal representativeness of the
+systematically with stance labels.                      full corpus. Across all months, the absolute dif-
+Cross-platform discourse analysis. Recent               ference between population and sample propor-
+datasets enable comparison of political advertising     tions ≤ 0.39%. Furthermore, human validation on
+across platforms such as Meta and Google (Zhang         500 ads and 500 posts confirms 94.6% are climate-
+et al., 2025), and other work tracks how climate        relevant (App. A).
+communication shifts across ecosystems such as
+YouTube and TikTok (Pera and Aiello, 2024) or           4       Methodology
+within decentralized platforms like Bluesky (Quelle
+and Bovet, 2024). However, paid advertising and         We develop a multi-stage pipeline for discovering
+organic discourse are typically studied separately.     the thematic structure of climate-related social-
+We bridge this gap by jointly analyzing themes,         media posts and advertisements (Fig. 2). This
+framing, register, and temporal dynamics in Meta        process is done independently per-platform as de-
+ads and Bluesky posts.                                  scribed below.
+                                                           We first embed texts into a shared semantic space
+                                                        using SentenceBERT (all-MiniLM-L6-v2) with L2
+3   Dataset
+                                                        normalization, followed by dimensionality reduc-
+We analyze climate discourse across two struc-          tion via Principal Component Analysis (PCA) and
+turally distinct platforms. The Meta Ad Library             2
+                                                            The social media data used in this study may contain
+contains paid advertisements designed for strate-       offensive, biased, toxic, or harmful language.
+                       Meta           Bluesky          5     Results
+ Method           Human LLM        Human LLM
+ LDA               0.25     0.43    0.35    0.44
+ BERTopic          0.25     0.37    0.26    0.25
+ TopicGPT          0.95     0.96    0.93    0.88       5.1    Results: Meta
+ LLM Summary       0.45     0.60    0.62    0.46
+ LLM Theme         0.67     0.46    0.67    0.51
+
+Table 1: Accuracy comparison across methods for Meta   For each ad, we compare theme assignments pro-
+and Bluesky data under human and LLM evaluations.      duced by our two assignment strategies of Text-to-
+                                                       Theme and Text-to-Summary against keywords in-
+Uniform Manifold Approximation and Projection          ferred by three baseline methods: LDA, BERTopic,
+(UMAP) (McInnes et al., 2018). Density-based           and TopicGPT. We randomly sample 500 Meta
+clustering (HDBSCAN) (McInnes et al., 2017) is         ads and assess the correctness of each method’s
+applied to group semantically similar texts. To        assigned theme or keyword set. Each sample is
+characterize each cluster, we rank members by          independently evaluated by (1) human annotators
+their probability scores and extract the top-k (k=5)   (App. C.3) and (2) an LLM-based judge (Qwen3-
+texts from each cluster as representatives for down-   235b-a22b) (Yang et al., 2025). The prompt given
+stream processing. Because automatically discov-       to the LLM judge is shown in Fig. 14 App. B.4.
+ered clusters may be noisy, we filter them for se-     Annotators determine whether the assigned theme
+mantic coherence with an LLM, prompting it to          or keyword set accurately reflects the central topic
+judge whether each cluster’s representative texts      and framing of the ad (App. C.3). Representative
+reflect a single underlying theme (few-shot details    annotation examples are shown in Tables 7 and 8
+in App. B.1). Coherence filtering retains 69.1% of     App. C.1. We quantify the level of agreement be-
+the 97 initial Meta clusters and 52.6% of the 97       tween the two judges by computing Cohen’s Kappa
+Bluesky clusters.                                      (Cohen, 1960) across both evaluation conditions.
+   For each retained cluster we generate a concise     For summary-based judgments, we observe 79.23%
+LLM summary capturing its shared theme and in-         raw agreement (κ = 0.58) between the human and
+tent, using the five texts with highest probability    LLM annotator. For theme-based judgments, we
+score as few-shot examples (App. B.4 Fig. 10). We      see 77.42% agreement (κ = 0.50). Both Cohen’s
+then merge clusters whose summaries exceed a           Kappa scores fall in the moderate agreement range,
+tuned embedding-similarity threshold and assign        which is consistent with what is typically reported
+each merged cluster a short (1–3 word), human-         for semantic-level annotation tasks of this nature.
+interpretable theme label (merging and labeling        Results are shown in Table 1.
+details in App. B.2, App. B.3).                           TopicGPT achieves high surface-level accuracy
+   Finally, texts are assigned to themes via two       (96% for the LLM judge) However, this result is
+complementary strategies: (i) matching a text to its   largely driven by the generality of the topics it
+most similar cluster summary and inheriting that       produces (e.g., “Environment,” “Energy,” “Climate
+summary’s theme, and (ii) directly assigning the       Change”), which broadly match most posts in a
+text to one of the generated theme labels. This        climate-focused corpus. This is reflected in a low
+yields 47 themes for Meta (after de-duplication;       Cohen’s κ of 0.19, indicating only slight agreement
+App. B.3) and 46 for Bluesky (Table 6, App. B.5).      once chance overlap is accounted for. However,
+   All LLM steps (coherence filtering, summariza-      there is 93.19% raw agreement for this dataset.
+tion, theme labeling) use Mistral-Large-Instruct-      The near-collapse of Kappa to Slight agreement
+2407 with few-shot prompting, chosen for its           despite high raw agreement score is attributable to
+strong performance on structured annotation tasks      the highly skewed label distribution: 94.99% of
+among comparably sized open-weight models              human annotations and 96.19% of LLM annota-
+within our compute budget (Islam and Goldwasser,       tions are marked “True”. In contrast to TopicGPT,
+2025b). Full prompts and implementation details        our methods produce more specific and semanti-
+are in App. B.4, App. B. We compare our two            cally targeted themes (“Water Resilience,” “Cli-
+assignment variants against three topic-modeling       mate Legal Accountability,” and “Capitalism’s Cli-
+baselines: LDA, BERTopic, and TopicGPT. As-            mate Doom”) while achieving higher accuracy than
+signments are evaluated by both human annotators       LDA and BERTopic across both evaluation settings.
+(App. C.3) and an LLM judge (Fig. 14, App. B.4).       App. C.1 provides additional details.
+5.2    Results: Bluesky                                  motional topics such as Affordable solar adoption,
+We evaluate theme assignment on a randomly sam-          whereas Bluesky topics are heavily concentrated
+pled set of 500 Bluesky posts using both human           on a few critique-oriented themes. We include a
+and LLM-based judges. Across both evaluation set-        list of shared themes for Bluesky and Meta in App.
+tings (Table 1), our methods outperform both LDA         D.1 (Fig. 18), where each cluster in this cate-
+and BERTopic, with our Text-to-Theme variant             gory is neither predominantly comprised of Meta
+achieving the highest accuracy among our meth-           or Bluesky texts. A supplementary named-entity
+ods. TopicGPT again achieves high surface-level          analysis (App. E.2) further reinforces this topi-
+accuracy (88% for LLM judge) due to its broader          cal contrast: Meta-dominant clusters emphasize
+topic labels. App. C.2 provides a detailed discus-       U.S. states and named individuals consistent with
+sion of systematic differences between human and         targeted promotional campaigns, whereas Bluesky-
+LLM-based judgments on the Bluesky dataset.              dominant clusters emphasize countries and collec-
+                                                         tive actors consistent with larger-scale critique and
+6     Analysis                                           structural framing.
+
+Through our analysis, we explore how paid adver-
+tising on Meta and organic discourse on Bluesky
+reflect fundamentally different communicative ori-
+entations: strategic persuasion and systemic cri-
+tique. We see these orientations manifest them-
+selves consistently across thematic structure (§6.1),
+rhetorical register (§6.2), stance alignment (§6.3),
+and responsiveness to events (§6.4).
+
+6.1    Thematic Structure                                Figure 3: Top 10 themes (joint-clustering) which are
+                                                         Meta-Dominant, meaning that over 70% of texts in each
+To enable direct cross-platform comparison, we           given theme cluster is a Meta theme.
+re-run our pipeline on the joint combination of
+all Meta and Bluesky texts (36, 206 total texts).
+Modified experimental details are provided in App.
+D. The resulting 354 coherent themes split into
+three categories based on within-theme platform
+composition (70% threshold): 145 Meta-dominant,
+112 Bluesky-dominant, and 97 shared themes.The
+top Meta-dominant themes by cluster size are So-
+lar incentive urgency (296 Meta texts), Offshore
+wind momentum (248), and Grassroots solar em-
+powerment (259)—all renewable-energy promo-
+tion (Fig. 3). Meta texts are distributed relatively     Figure 4: Top 10 themes (joint-clustering) which are
+evenly across the top themes, forming a diverse set      Bluesky-Dominant, meaning that over 70% of texts in
+of topics for campaign.                                  each given theme cluster is a Bluesky theme.
+   The Bluesky-dominant distribution differs
+greatly from the Meta-dominant distribution. A sin-
+                                                         6.2   Rhetorical Register
+gle theme, Corporate climate sabotage, accounts
+for 5, 599 Bluesky texts; This number is larger          We next characterize how the two platforms talk
+than the entire top-four Meta-dominant cluster size      about climate using two different lenses: an Ent-
+combined (Fig. 4). The remaining top Bluesky-            man framing lexicon (Entman, 1993) operational-
+dominant themes (Greenwashing exposed, Anti-             izing the four framing functions across eight sub-
+capitalist resistance, etc.) are organized around sys-   categories (crisis/solution, institutional/individual
+temic critique of corporate, political, and economic     actor, economic/moral, scientific authority/populist
+actors. The full theme-size distribution is found in     skepticism), and the Linguistic Inquiry and Word
+App. D.1 Fig. 19. Topically, we see that Meta-           Count (LIWC-22) framework (Boyd et al., 2022)
+dominant clusters focus on a diverse set of pro-         summary variables. Lexicon construction, cluster-
+and demographic-level breakdowns, and theme-
+level LIWC profiles are provided in App. F. To-
+gether, these lenses show an asymmetric register.
+Paid communication leans formal, authoritative,
+and solution-oriented; Organic discourse leans per-
+sonal, crisis-oriented, and scientifically grounded.
+Framing. Fig. 5 (a) presents mean lexical fram-                                               (a) Mean Entman framing scores by platform.
+ing scores across the eight subcategories. Meta
+ads score substantially higher on solution and
+individual-actor framing, consistent with calls-to-
+action targeting the individual viewer. Bluesky
+posts score higher on crisis framing, scientific au-
+thority, and (apparent) populist skepticism—the                                                      (b) LIWC summary variables by platform.
+last likely reflecting criticism of skeptics rather
+than skepticism itself. Cluster-level analysis (App.   Figure 5: Rhetorical register comparison: paid cli-
+F) shows Bluesky-dominant clusters peak on emo-        mate communication is forward-looking, authoritative,
+tional urgency (0.79) and institutional actor (0.71)   and emotionally positive; organic discourse is crisis-
+framing, while Meta-dominant clusters score low-       oriented, scientifically grounded, and affectively mixed.
+est on scientific framing (0.33) and highest on emo-                                                                          Baseline: LDA topic                                                                   Ours: Theme-Based Assignment
+                                                                                                                       -0.05             0.22     -0.09                                 Oil industry promotion              -0.29          0.48       -0.01
+tional hope (0.75) and future framing (0.70), sug-                            tax, energy, bill, credit, cost
+                                                                         stronger, building, smart, resi               -0.07             0.15     -0.02
+                                                                                                                                                          0.4
+                                                                                                                                                                                           Energy cost alarm                -0.20
+                                                                                                                                                                                                                            -0.21
+                                                                                                                                                                                                                                           0.27
+                                                                                                                                                                                                                                           0.26
+                                                                                                                                                                                                                                                       0.04
+                                                                                                                                                                                                                                                       0.06   0.4
+                                                                       nuclear, choice, standard, dese                 -0.07             0.15     -0.02                          Pro-infrastructure investment
+
+gesting paid climate advertising favors emotive and                    planning, property, development                 -0.09             0.13      0.01   0.2                         Local civic engagement                -0.17         -0.07        0.24   0.2
+
+
+                                                       Theme / Topic                                                                                             Theme / Topic
+                                                                       work, need, working, people, be                 -0.13             0.01      0.13                              Anti-Harris energy attack              -0.10          0.21       -0.03
+                                                                                                                                                          0.0                                                                                                 0.0
+                                                                               tell, say, ballot, add, name            -0.10            -0.02      0.13                              Pro-childcare candidates               -0.14         -0.03        0.18
+future-focused persuasion as opposed to evidence-                          national, week, bold, july, http
+                                                                            solar, panel, home, must, get
+                                                                                                                       -0.10
+                                                                                                                       -0.03
+                                                                                                                                        -0.02
+                                                                                                                                         0.11
+                                                                                                                                                   0.13
+                                                                                                                                                  -0.05
+                                                                                                                                                           0.2                        Clean energy advocacy
+                                                                                                                                                                                       Solar energy advocacy
+                                                                                                                                                                                                                             0.14
+                                                                                                                                                                                                                             0.11
+                                                                                                                                                                                                                                          -0.04
+                                                                                                                                                                                                                                          -0.04
+                                                                                                                                                                                                                                                      -0.13
+                                                                                                                                                                                                                                                      -0.09
+                                                                                                                                                                                                                                                               0.2
+                                                                                                                                                           0.4                                                                                                 0.4
+                                                                         county, project, revenue, local               -0.07             0.11     -0.00                              Pro-forest climate action               0.11         -0.05       -0.09
+heavy rhetoric.                                                          climate, change, action, crisis                0.11            -0.09     -0.07                                  Big Oil accountability              0.10         -0.05       -0.08
+                                                                                                                        ate             erg
+                                                                                                                                           y       tral                                                                  ma
+                                                                                                                                                                                                                             te           erg
+                                                                                                                                                                                                                                             y        tral
+                                                                                                                   -Clim            -En         Neu                                                                  -Cli              -En         Neu
+                                                                                                                Pro              Pro                                                                              Pro               Pro
+                                                                                                                                       Stance                                                                                             Stance
+LIWC. Fig. 5 (b) shows Mann-Whitney U com-
+parisons across four LIWC summary variables,                                       (a) Baseline: LDA.                                                                                (b) Ours: LLM Theme.
+with effect sizes via rank-biserial correlation (r).   Figure 6: Theme–stance correlation on Meta. Our
+Meta ads score significantly higher on Analytic        themes produce concentrated, interpretable stance align-
+(r = −0.189, p < .001) and Clout (r = −0.440,          ment, while baselines yield diffuse correlations.
+p < .001), indicating a more formal, categorical,
+and authoritative register. The Clout difference is
+the largest effect observed. By contrast, Bluesky      constrained by the platform’s stance imbalance
+posts score higher on Authentic (r = +0.103,           but remain directionally consistent, whereas LDA
+p < .001). Meta ads also exhibit more positive         baseline correlations are more sensitive to noise.
+Tone (r = −0.310, p < .001), with a median near        Overall, we find the themes encode stance-relevant
+75 compared to roughly 52 for Bluesky.                 structure, and the platforms differ not only what
+                                                       they discuss, but also in stance-balance of their
+6.3   Stance Alignment                                 discourse.
+If induced themes capture meaningful discourse
+structure, they should be stance-aligned. We manu-     6.4                                 Temporal Responsiveness
+ally annotate 500 Meta ads and 500 Bluesky posts       Finally, we examine how the two platforms respond
+as Pro-Climate, Pro-Energy, or Neutral, with break-    to external climate-relevant events: the Novem-
+downs found in App. G.2.                               ber 5, 2024 U.S. presidential election and the Jan-
+   Fig. 6 presents theme–stance correlations on        uary 2025 Southern California wildfires. The two
+Meta for LDA and our Text-to-Theme variant;            platforms respond to the same events in oppo-
+full panels for BERTopic, Text-to-Summary, and         site directions: Paid climate advertising contracts
+Bluesky are provided in App. G.2. The LDA base-        post-election and shifts toward attribution-heavy,
+line produces diffuse, weak correlations across        less future-oriented framing; Organic discourse ex-
+stances. Our themes produce markedly more con-         pands. These divergent responses are consistent
+centrated correlations: Pro-Climate themes align       with the platform orientations established in §6.1.
+with Pro-Climate stance, and Pro-Energy themes         We report text-volume shifts here; corresponding
+with Pro-Energy stance. Bluesky correlations are       spend, impression, and detailed LIWC dynamics
+                                                             (a) Top Bluesky themes ±30 days around U.S. election.
+
+
+Figure 7: Top Meta themes 30 days before and after the
+November 2024 U.S. election. All five top-shift themes
+contract post-election.
+
+
+are provided in App. G.4 and App. G.5.                       (b) Top Bluesky themes ±30 days around CA wildfires.
+Meta contracts. As shown in Fig. 7, the 2024
+U.S. election is followed by a sharp decline in          Figure 8: Thematic shifts on Bluesky surrounding major
+                                                         events: rapid emergence of critique-oriented themes that
+climate-related advertising across the five themes       were absent pre-event.
+with the largest pre/post shifts. These five themes
+span both Pro-Climate topics, such as clean-energy
+advocacy, and Pro-Energy topics, such as oil-            bution and responsibility.
+industry promotion. This suggests that the post-
+election pullback is not necessarily stance-specific.    7     Downstream Tasks
+Linguistically, we see that Cause language in-
+                                                         We evaluate the utility of generated themes on two
+creases significantly post-election, whereas moral,
+                                                         downstream tasks:
+risk, and focusfuture all decline (App. G.4 Fig. 33).
+                                                         (i) A classification task where models predict
+The urgency and consequence-driven appeals used
+                                                         stance (e.g., Pro-Climate, Pro-Energy, and Neu-
+to promote candidates pre-election are dampened
+                                                         tral) based on content. We compare performance
+once the electoral cycle closes. Interestingly, a
+                                                         using (a) text-only, (b) theme-only, and (c) com-
+decreased power and increased tentat suggest un-
+                                                         bined features.
+certainty post-election. The 2025 wildfire window
+                                                         (ii) A retrieval task where themes act as queries to
+produces a different linguistic signature: power
+                                                         retrieve semantically relevant posts using dense em-
+language characteristic of heightened institutional
+                                                         bedding similarity. Precision@k is used to assess
+action rises sharply, while Tone becomes more neg-
+                                                         how often retrieved posts reflect theme-relevant
+ative (App. G.5).
+                                                         content, using automatic keyword overlap for eval-
+Bluesky amplifies. Fig. 8 illustrates the inverse        uation.
+pattern. Within the ±30-day window around the
+2024 U.S. election, every one of the top-shift           7.1     Stance Prediction
+themes—Climate rollbacks, Science under attack,          Stance Prediction is designed as a three-way clas-
+Climate unease, Renewable Energy Momentum,               sification task. We use stratified sampling to
+and Climate Denial Backlash—rises sharply post-          construct train, validation, and test splits (80/20
+election. The same expansion pattern recurs around       train–test, then 80/20 train–validation), preserv-
+the 2025 California wildfires, with Climate roll-        ing stance label distributions. Across model fami-
+backs and Science under attack again among the           lies and platforms, incorporating themes provides
+steepest risers. Linguistically, the two Bluesky         complementary signals and yields stronger gains
+events diverge (App. G.3 Fig. 31). Around the            in more balanced settings (e.g., Meta), while re-
+election, LIWC register variables (Analytic, Clout,      maining competitive under severe class imbalance
+Authentic, Tone) remain stable, and only cause           (Bluesky), as shown in Table 2. Theme-only mod-
+shifts significantly. Around the wildfires, Tone de-     els perform competitively, indicating that themes
+clines and cause increases, indicating that organic      capture stance-relevant signal beyond surface text.
+discourse around this acute disaster is both more        On Bluesky, where class imbalance is more severe,
+negatively valenced and more oriented toward attri-      improvements are smaller but remain consistent
+      M ODEL                  M ETA         B LUESKY       dinated and campaign-driven (Table 15 App. H.2),
+                            ACC      F1     ACC    F1      while Bluesky posts reflect diverse, user-driven dis-
+      LRtf-idf txt          0.78     0.53   0.89   0.46    course (Table 16 App. H.2).
+      LRtf-idf thm          0.72     0.59   0.90   0.47       We additionally perform small-scale human rele-
+      LRtf-idf txt+thm      0.75     0.61   0.91   0.52
+                                                           vance assessment on a random sample of 20 themes
+      RoBERT atxt           0.73     0.63   0.88   0.82    (top-5 retrieved posts per theme) for each platform.
+      RoBERT athm           0.72     0.60   0.88   0.82
+      RoBERT atxt+thm       0.75     0.67   0.88   0.82    Using a rubric (2 = clearly relevant, 1 = partially
+      Kimitxt               0.85     0.74   0.84   0.52    relevant, 0 = not relevant), the resulting P@5 (bi-
+      Kimithm               0.80     0.63   0.83   0.41    nary ≥ 1) is 0.60 for Meta and 0.73 for Bluesky,
+      Kimitxt+thm           0.86     0.75   0.86   0.51    with mean relevance scores of 0.68 and 0.88, re-
+      Llama3txt             0.76     0.58   0.66   0.41    spectively. For Meta, the result is comparable but
+      Llama3thm             0.66     0.54   0.73   0.36    more conservative than the keyword-based estimate
+      Llama3txt+thm         0.78     0.63   0.81   0.42
+                                                           reported in Table 3. Notably, the semantic P@5
+Table 2: Contribution of theme to stance classification    for Bluesky closely matches the keyword-based
+on test data. txt: text, thm: theme.                       estimate reported in Table 3, indicating that theme-
+                                                           guided retrieval captures semantic alignment be-
+                Platform     P@1        P@5                yond keyword overlap.
+                Meta         0.783     0.691
+                Bluesky      0.818     0.736
+                                                           8   Conclusion
+         Table 3: Precision@k for retrieving texts.
+                                                           We present a comparative analysis of climate dis-
+for simpler models. Full experimental details are          course across paid advertising and public social me-
+provided in the App. H.1.                                  dia, examining Meta advertisements and Bluesky
+                                                           posts from July 2024 to September 2025 through
+7.2     Theme-Guided Retrieval
+                                                           an interpretable thematic discovery framework
+We assess the semantic alignment between LLM-              that labels semantic clusters with concise, human-
+derived themes and content (texts) via a retrieval-        interpretable themes. Under both human and LLM-
+based evaluation. For each unique theme, we                based evaluation, the induced themes are more co-
+embed both the theme and all ads/posts using               herent and stance-consistent than standard topic-
+SBERT. To qualitatively assess the alignment be-           modeling baselines, and downstream stance predic-
+tween theme and text embeddings, we project their          tion and retrieval confirm they capture meaningful
+vector representations into 2D using t-SNE (van der        semantic structure rather than surface lexical pat-
+Maaten and Hinton, 2008) (Fig. 37 App. H.2).               terns. Applying these themes, we find the two en-
+Across both datasets, theme embeddings (×) clus-           vironments reflect fundamentally different commu-
+ter near semantically related texts (•), visually sup-     nicative orientations. Paid advertising concentrates
+porting their utility for semantic retrieval. Meta         on the strategic promotion of specific solutions in
+shows a denser, centralized theme-ad structure,            a formal, future-focused register, while organic
+suggesting more coordinated messaging; while               discourse concentrates on the systemic critique of
+Bluesky reveals broader dispersion, reflecting di-         corporate and political actors in a crisis-oriented,
+verse, user-driven discourse (Fig. 37 App. H.2).           scientifically grounded one. This contrast prop-
+   We then compute cosine similarity and retrieve          agates consistently across thematic structure and
+the top-k most similar posts per theme. Relevance          responsiveness to events—most strikingly, the two
+is evaluated by checking whether retrieved posts           move in opposite directions around the 2024 U.S.
+contain keywords extracted from the theme (sim-            election, where advertising contracts and public
+ple frequency-based filtering over normalized to-          discourse expands. More broadly, this work demon-
+kens). Table 3 reports Precision@1 and Preci-              strates the value of interpretable theme modeling
+sion@5 as aggregate metrics. These results indicate        for comparative thematic analysis across hetero-
+that theme embeddings effectively retrieve seman-          geneous communication environments. While our
+tically relevant content, even when evaluated with         analysis focuses on climate discourse, the frame-
+simple unsupervised metrics. Retrieved examples            work can support cross-platform studies of narra-
+illustrate stylistic contrasts, i.e., Meta ads are coor-   tives in other domains.
+9   Limitations                                         designs to further investigate these mechanisms.
+
+While our framework enables interpretable cross-        10    Ethics Statement
+platform analysis of climate discourse, several limi-
+tations remain. First, our study focuses on two plat-   To the best of our knowledge, we did not violate any
+forms: Meta’s advertising ecosystem and Bluesky         ethical code while conducting the research work
+as representative cases of paid and organic commu-      described in this paper. We report the technical
+nication environments. Although these platforms         details for the reproducibility of the results, as well
+exhibit clear structural differences, our findings      as release the datasets and codes publicly. The
+may not directly generalize to other advertising        author’s personal views are not represented in any
+systems or social media platforms due to differ-        results we report, as it is solely outcomes derived
+ent user bases, moderation policies, or affordances.    from machine learning or AI models.
+We acknowledge the existence of confounding fac-           The social media data used in this study may con-
+tors, and that the two platforms differ across many     tain offensive, biased, toxic, or harmful language.
+dimensions beyond simply paid versus organic dis-       Such content reflects user-generated discourse and
+cussion. These dimensions include user demo-            does not represent the views of the authors or insti-
+graphics, moderation policies, platform age, and        tutions. All analyses were conducted for research
+more. To account for these compounds, we in-            purposes only.
+clude supplemental demographic-level analyses on           We used LIWC-22 under a research license. Our
+the Meta dataset, as well as note confounds for         use is consistent with its intended academic re-
+which no comparable data is available—such as           search purpose. Any derivatives or outputs involv-
+per-user demographics on Bluesky—limit the in-          ing LIWC features should not be used outside of
+terpretability of cross-platform comparisons, and       research contexts.
+that observed differences should not be attributed
+to the paid versus organic distinction alone.
+                                                        References
+   Second, our thematic modeling pipeline relies
+on pre-trained large language models for cluster        Sofiane Abbar, Tahar Zanouda, Laure Berti-Equille, and
+coherence filtering, summarization, and theme la-         Javier Borge-Holthoefer. 2016. Using twitter to un-
+                                                          derstand public interest in climate change: The case
+beling. While we employ open-source LLMs to               of qatar. In Proceedings of the International AAAI
+promote reproducibility and reduce cost barriers,         Conference on Web and Social Media, volume 10,
+these models may encode biases present in their           pages 168–177.
+training data (Islam, 2026b; Blodgett et al., 2020;
+                                                        Anonymous. 2026. Cross-platform analysis of claims
+Brown et al., 2020), which could influence theme
+                                                          in climate discourse. Under review.
+interpretation. We do not explicitly measure or
+mitigate such biases in this work. Besides, we          Shraey Bhatia, Jey Han Lau, and Timothy Baldwin.
+only used pre-trained LLMs and did not consider           2021. Automatic classification of neutralization tech-
+fine-tuning due to the resource constraints. Re-          niques in the narrative of climate change scepticism.
+                                                          In Proceedings of the 2021 Conference of the North
+latedly, our coherence filtering combines LLM-            American Chapter of the Association for Computa-
+based judgments with quantitative cluster cohesion        tional Linguistics: Human Language Technologies,
+(mean pairwise cosine similarity), but the underly-       pages 2167–2175.
+ing model choices and thresholds were calibrated
+                                                        David M Blei, Andrew Y Ng, and Michael I Jordan.
+on our climate corpus; because LLM-based coher-           2003. Latent dirichlet allocation. the Journal of
+ence judgments are model- and prompt-dependent,           machine Learning research, 3:993–1022.
+the procedure may require re-tuning to generalize
+to other domains, platforms, or datasets.               Su Lin Blodgett, Solon Barocas, Hal Daumé III, and
+                                                          Hanna Wallach. 2020. Language (technology) is
+   Lastly, our analysis is descriptive rather than        power: A critical survey of “bias” in nlp. In Proceed-
+causal. Although we identify systematic differ-           ings of the 58th Annual Meeting of the Association
+ences in thematic structure and temporal dynamics         for Computational Linguistics, pages 5454–5476.
+across platforms, we do not attribute intent to in-
+                                                        Emma Frances Bloomfield and Denise Tillery. 2019.
+dividual actors or infer causal effects of platform       The circulation of climate change denial online:
+incentives on discourse. Future work could com-           Rhetorical and networking strategies on facebook.
+bine our framework with causal or experimental            Environmental Communication, 13(1):23–34.
+Bluesky Public Social Network. 2025. Bluesky social            Maarten Grootendorst. 2022. Bertopic: Neural topic
+  platform. https://bsky.app/.                                  modeling with a class-based tf-idf procedure. arXiv
+                                                                preprint arXiv:2203.05794.
+R. L. Boyd, A. Ashokkumar, S. Seraj, and J. W. Pen-
+   nebaker. 2022. LIWC-22 Manual.                              Robyn Gulliver, Kelly S. Fielding, and Winnifred R.
+                                                                 Louis. 2021. Assessing the mobilization potential of
+Amber Boydstun, Dallas Card, Justin H. Gross, Philip             environmental advocacy communication. Journal of
+ Resnik, and Noah A. Smith. 2014. Tracking the de-               Environmental Psychology, 74:101563.
+ velopment of media frames within and across policy
+ issues.                                                       Kuhika Gupta, Joseph Ripberger, and Wesley Wehde.
+                                                                 2018. Advocacy group messaging on social media:
+Alexander Brady and Tunazzina Islam. 2025. Latent                Using the narrative policy framework to study twitter
+  topic synthesis: Leveraging llms for electoral ad anal-        messages about nuclear energy policy in the united
+  ysis. arXiv preprint arXiv:2510.15125.                         states. Policy studies journal, 46(1):119–136.
+
+Tom Brown, Benjamin Mann, Nick Ryder, Melanie                  Faye Holder, Sanober Mirza, Jake Carbone, and Ruth E
+  Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind             McKie. 2023. Climate obstruction and facebook ad-
+  Neelakantan, Pranav Shyam, Girish Sastry, Amanda               vertising: how a sample of climate obstruction orga-
+  Askell, and 1 others. 2020. Language models are                nizations use social media to disseminate discourses
+  few-shot learners. Advances in neural information              of delay. Climatic Change, 176(2):16.
+  processing systems, 33:1877–1901.
+                                                               Tunazzina Islam. 2026a. Reasoning-based refinement
+Arthur Capozzi, Gianmarco De Francisci Morales, Ye-              of unsupervised text clusters with llms. arXiv
+  lena Mejova, Corrado Monti, André Panisson, and                preprint arXiv:2604.07562.
+  Daniela Paolotti. 2021. Clandestino or rifugiato?
+  anti-immigration facebook ad targeting in italy. In          Tunazzina Islam. 2026b. Who gets which message?
+  CHI.                                                           auditing demographic bias in llm-generated targeted
+                                                                 text. arXiv preprint arXiv:2601.17172.
+Dallas Card, Amber Boydstun, Justin H Gross, Philip
+                                                               Tunazzina Islam and Dan Goldwasser. 2022. Under-
+  Resnik, and Noah A Smith. 2015. The media frames
+                                                                 standing covid-19 vaccine campaign on facebook us-
+  corpus: Annotations of frames across issues. In Pro-
+                                                                 ing minimal supervision. In 2022 IEEE International
+  ceedings of the 53rd Annual Meeting of the Asso-
+                                                                 Conference on Big Data (Big Data), pages 585–595.
+  ciation for Computational Linguistics and the 7th
+                                                                 IEEE.
+  International Joint Conference on Natural Language
+  Processing (Volume 2: Short Papers), pages 438–              Tunazzina Islam and Dan Goldwasser. 2025a. Discov-
+  444.                                                           ering latent themes in social media messaging: A
+                                                                 machine-in-the-loop approach integrating llms. In
+Jacob Cohen. 1960. A coefficient of agreement for                Proceedings of the International AAAI Conference on
+   nominal scales. Educational and psychological mea-            Web and Social Media, volume 19, pages 859–884.
+   surement, 20(1):37–46.
+                                                               Tunazzina Islam and Dan Goldwasser. 2025b. Post-hoc
+David R Cox. 1958. The regression analysis of binary             study of climate microtargeting on social media ads
+  sequences. Journal of the Royal Statistical Society:           with llms: Thematic insights and fairness evaluation.
+  Series B (Methodological), 20(2):215–232.                      In Findings of the Association for Computational
+                                                                 Linguistics: EMNLP 2025.
+Biraj Dahal, Sathish AP Kumar, and Zhenlong Li. 2019.
+  Topic modeling and sentiment analysis of global cli-         Tunazzina Islam and Dan Goldwasser. 2025c. Uncov-
+   mate change tweets. Social network analysis and               ering latent arguments in social media messaging by
+   mining, 9(1):24.                                              employing llms-in-the-loop strategy. In Findings
+                                                                 of the Association for Computational Linguistics:
+Barbara Dancygier. 2023. Multimodal media: Framing               NAACL 2025, pages 7397–7429.
+  climate change. Discourse Studies, 25(2):220–236.
+                                                               Tunazzina Islam, Shamik Roy, and Dan Goldwasser.
+Robert M Entman. 1993. Framing: Toward clarification             2023a. Weakly supervised learning for analyzing
+  of a fractured paradigm. Journal of communication,             political campaigns on facebook. In Proceedings
+  43(4):51–58.                                                   of the International AAAI Conference on Web and
+                                                                 Social Media, volume 17, pages 411–422.
+Anjalie Field, Doron Kliger, Shuly Wintner, Jennifer
+  Pan, Dan Jurafsky, and Yulia Tsvetkov. 2018. Fram-           Tunazzina Islam, Ruqi Zhang, and Dan Goldwasser.
+  ing and agenda-setting in russian news: a computa-             2023b. Analysis of climate campaigns on social me-
+  tional analysis of intricate political strategies. In Pro-     dia using bayesian model averaging. In Proceedings
+  ceedings of the 2018 Conference on Empirical Meth-             of the 2023 AAAI/ACM Conference on AI, Ethics, and
+  ods in Natural Language Processing, pages 3570–                Society, AIES ’23, page 15–25, New York, NY, USA.
+  3580.                                                          Association for Computing Machinery.
+Michelle S Lam, Janice Teoh, James A Landay, Jeffrey       Nils Reimers and Iryna Gurevych. 2019. Sentence-bert:
+  Heer, and Michael S Bernstein. 2024. Concept in-           Sentence embeddings using siamese bert-networks.
+  duction: Analyzing unstructured text with high-level       In Proceedings of the 2019 Conference on Empirical
+  concepts using lloom. In Proceedings of the 2024           Methods in Natural Language Processing. Associa-
+  CHI Conference on Human Factors in Computing               tion for Computational Linguistics.
+  Systems, pages 1–28.
+                                                           Filipe N Ribeiro, Koustuv Saha, Mahmoudreza Babaei,
+Raul P Lejano and Shondel J Nero. 2020. The power of          Lucas Henrique, Johnnatan Messias, Fabricio Ben-
+  narrative: Climate skepticism and the deconstruction        evenuto, Oana Goga, Krishna P Gummadi, and
+  of science. Oxford University Press.                        Elissa M Redmiles. 2019. On microtargeting so-
+                                                              cially divisive ads: A case study of russia-linked ad
+Qiaoyi Liu, Yuheun Kim, and Jeff Hemsley. 2025. Sci-          campaigns on facebook. In ACM FAccT.
+  entists, but deny science? climate change sceptics
+  networks on youtube led by scientists. Informa-          Harri Rowlands, Gaku Morio, Dylan Tanner, and
+  tion Research an international electronic journal,         Christopher D Manning. 2024. Predicting narratives
+  30(iConf):741–751.                                         of climate obstruction in social media advertising.
+                                                             In Findings of the Association for Computational
+Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Man-          Linguistics ACL 2024, pages 5547–5558.
+  dar Joshi, Danqi Chen, Omer Levy, Mike Lewis,
+  Luke Zettlemoyer, and Veselin Stoyanov. 2019.            Shamik Roy and Dan Goldwasser. 2020. Weakly su-
+  Roberta: A robustly optimized bert pretraining ap-         pervised learning of nuanced frames for analyzing
+  proach. arXiv preprint arXiv:1907.11692.                   polarization in news media. In EMNLP.
+
+Yiwei Luo, Dallas Card, and Dan Jurafsky. 2020. De-        Kimi Team, Yifan Bai, Yiping Bao, Guanduo Chen,
+  tecting stance in media on global warming. In Find-        Jiahao Chen, Ningxin Chen, Ruijue Chen, Yanru
+  ings of the Association for Computational Linguistics:     Chen, Yuankun Chen, Yutian Chen, and 1 others.
+  EMNLP 2020, pages 3296–3315, Online. Association           2025. Kimi k2: Open agentic intelligence. arXiv
+  for Computational Linguistics.                             preprint arXiv:2507.20534.
+
+                                                           Stephen E Toulmin. 1958. The Uses of Argument. Cam-
+Leland McInnes, John Healy, and Steve Astels. 2017.
+                                                              bridge University Press.
+  hdbscan: Hierarchical density based clustering. The
+  Journal of Open Source Software, 2(11):205.              Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+                                                             Martinet, Marie-Anne Lachaux, Timothée Lacroix,
+Leland McInnes, John Healy, and James Melville. 2018.        Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal
+  Umap: Uniform manifold approximation and projec-           Azhar, and 1 others. 2023. Llama: Open and effi-
+  tion for dimension reduction. JOSS.                        cient foundation language models. arXiv preprint
+                                                             arXiv:2302.13971.
+Meta Platforms, Inc. 2025. Meta ad library. https:
+ //www.facebook.com/ads/library/.                          Kathie M d’I Treen, Hywel TP Williams, and Saffron J
+                                                             O’Neill. 2020. Online misinformation about climate
+Nishanth Nakshatri, Nikhil Mehta, Siyi Liu, Sihao Chen,      change. Wiley Interdisciplinary Reviews: Climate
+  Daniel J. Hopkins, Dan Roth, and Dan Goldwasser.           Change, 11(5):e665.
+  2025. Talking point based ideological discourse anal-
+  ysis in news events. Preprint, arXiv:2504.07400.         Apoorva Upadhyaya, Marco Fisichella, and Wolfgang
+                                                             Nejdl. 2023. Intensity-valued emotions help stance
+Warren Pearce, Sabine Niederer, Suay Melisa Özkula,          detection of climate change twitter data. In IJCAI,
+ and Natalia Sánchez Querubín. 2019. The social              pages 6246–6254.
+ media life of climate change: Platforms, publics, and
+ future imaginaries. Wiley interdisciplinary reviews:      Laurens van der Maaten and Geoffrey Hinton. 2008.
+ Climate change, 10(2):e569.                                 Visualizing data using t-SNE. Journal of Machine
+                                                             Learning Research, 9:2579–2605.
+Arianna Pera and Luca Maria Aiello. 2024. Shifting cli-
+  mates: Climate change communication from youtube         Suvi Vikström, Erkki Mervaala, Hanna-Liisa Kangas,
+  to tiktok. In Proceedings of the 16th ACM Web Sci-         and Jari Lyytimäki. 2023. Framing climate futures:
+  ence Conference, pages 376–381.                            the media representations of climate and energy poli-
+                                                             cies in finnish broadcasting company news. Journal
+Chau Minh Pham, Alexander Hoyle, Simeng Sun,                 of Integrative Environmental Sciences, 20.
+  Philip Resnik, and Mohit Iyyer. 2024. Topicgpt: A
+  prompt-based topic modeling framework. Preprint,         Maryline Vivion, Valérie Trottier, Ève Bouhêlier, Is-
+  arXiv:2311.01449.                                         abelle Goupil-Sormany, Thierno Diallo, and 1 others.
+                                                            2024. Misinformation about climate change and re-
+Dorian Quelle and Alexandre Bovet. 2024. Bluesky:           lated environmental events on social media: Proto-
+  Network topology, polarization, and algorithmic cu-       col for a scoping review. JMIR Research Protocols,
+  ration. CoRR.                                             13(1):e59345.
+Stefanie Walter, Michael Brüggemann, and Sven En-        around the observed proportions, and so the high
+   gesser. 2018. Echo chambers of denial: Explaining     climate-relevance rates observed in our samples are
+   user comments on climate change. Environmental
+                                                         reliable estimates of the relevance rates in the full
+  Communication, 12(2):204–217.
+                                                         datasets.
+Ifeoluwa Wuraola, Nina Dethlefs, and Daniel Marciniak.
+   2023. Linguistic pattern analysis in the climate      B     Experimental Details
+   change-related tweets from UK and Nigeria. In Pro-
+   ceedings of the 2023 CLASP Conference on Learning     In this section, we now describe the experimental
+   with Small Data (LSD), pages 90–97, Gothenburg,       configuration used to instantiate and evaluate the
+   Sweden. Association for Computational Linguistics.    proposed framework. We compute sentence-level
+An Yang, Anfeng Li, Baosong Yang, Beichen Zhang,         embeddings using SentenceBERT (all-MiniLM-L6-
+  Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao,            v2) and then applying L2-normalization on each
+  Chengen Huang, Chenxu Lv, Chujie Zheng, Day-           row. We then reduce dimensionality of the origi-
+  iheng Liu, Fan Zhou, Fei Huang, Feng Hu, Hao
+  Ge, Haoran Wei, Huan Lin, Jialong Tang, and 41
+                                                         nal embeddings by first applying Principle Com-
+  others. 2025. Qwen3 technical report. Preprint,        ponent Analysis (PCA) and retaining the top 100
+  arXiv:2505.09388.                                      components, and then applying Uniform Manifold
+                                                         Approximation and Projection (UMAP) to project
+Meiqing Zhang, Furkan Cakmak, Markus Neumann, Se-
+  bastian Zimmeck, Pavel Oleinikov, Jielu Yao, Harry     the data to 20 dimensions. Through this two-step
+ Yu, Aleks Jacewicz, Isabella Tassone, Breeze Floyd,     dimensionality reduction, we suppress noise and
+  and 1 others. 2025. Comparable 2022 general elec-      outlier sensitivity, allowing for a more easily sepa-
+  tion advertising datasets from meta and google. Sci-   rable representation to be used for clustering. We
+  entific Data, 12(1):968.
+                                                         perform density-based clustering using HDBSCAN
+A    Curated Keywords                                    using a minimum cluster size of 20 and a minimum
+                                                         number of samples of five. Clusters are character-
+The curated set of climate-related keywords shown        ized using membership probabilities, and the top-5
+in Table 4 was collected from (Islam et al., 2023b)      texts per cluster are selected as representatives.
+and modified to reflect recent shifts in climate-
+change related topics.                                   B.1    Cluster Coherency and Summarization
+                                                         Cluster coherency checking and cluster summariza-
+            Climate-Related Keywords
+ climate change, climate denial, sustainable,            tion are performed using Mistral-Large-Instruct-
+ fossil fuel, green new deal, oil and gas industry,      2407. We provide few-shot examples for coher-
+ solar energy, renewable energy, greenhouse gas,         ence evaluation. We look at the texts with the five
+ pollution, clean energy, green energy,                  highest probabilities per cluster and use them to
+ global warming, deforestation, carbon emission,         determine whether the text is coherent or incoher-
+ drilling, fracking, coal mining, junk science,          ent. A few-shot example given to LLM is shown
+ climate misinformation, greenwashing                    in Table 5. We provide the LLM with three coher-
+                                                         ent examples and three incoherent examples. Then
+Table 4: Climate change related keywords for Meta and    LLM labels cluster coherence based on the prompt
+Bluesky data collection.                                 shown in Fig. 9. Upon removing incoherent exam-
+                                                         ples, we prompt the LLM to generate a summary
+   To evaluate resulting relevance of the datasets       from the top five texts from each coherent cluster
+obtained through keyword extraction, we conduct          (Fig. 10).
+human validation on a random sample of 500 Meta
+ads and 500 Bluesky posts. Among the Meta sam-           B.2    Cluster Merging
+ple, 23 items (4.6%) are judged to be irrelevant to      We use cosine similarity with SBERT (all-mpnet-
+climate-related content. Among the Bluesky sam-          base-v2) to determine which clusters are se-
+ple, 31 items (6.2%) are judged irrelevant. As such,     mantically similar and should be merged. We
+94.6% of sampled items across both platforms are         perform a grid search with threshold (τ ∈
+confirmed to be substantively climate-related. Note      {0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90}) and use
+that for Meta, the estimated relevance rate of 95.4%     Silhouette Score (S) and Davies-Bouldin Index
+yields a 95% CI of (93.6%, 97.2%). For Bluesky,          (DBI) as guideline metrics for determining best
+the estimated relevance rate of 93.8% yields a 95%       threshold value upon merging. For the Meta data,
+CI of (91.7%, 95.9%). These intervals are tight          we find that a threshold value of 0.8 (S=0.161,
+DBI=0.665) obtains the best merging results. We          B.4   Prompting
+began with 67 total clusters and merged 16 clusters      Table 5 shows the few-shot example given to LLM
+for a total of 51 clusters. This clustering resulted     as a prompt for the coherency check. We provide
+in 3 duplicate themes, which are also removed (see       the LLM with three coherent examples and three
+B.3). For the Bluesky data, we also find that a          incoherent examples. LLM then labels cluster co-
+threshold value of 0.8 (S=0.484, DBI=0.444) ob-          herence based on the prompt shown in Fig. 9.
+tains the best merging results. We began with 51
+                                                            Upon removing incoherent examples, we prompt
+total clusters and merged 5 of them, for a final total
+                                                         Mistral-Large-Instruct-2407 with the prompt
+of 46 clusters.
+                                                         shown in Fig. 10. Each one-sentence summary
+                                                         is generated from the bodies of the top five texts
+B.3   Theme Labeling and Assignment                      from each coherent cluster. The prompt for gener-
+                                                         ating themes is shown in Fig. 11, and the prompt
+Theme labels are generated from cluster summaries        used for assigning ads to corresponding summaries
+using few-shot prompting with Mistral-Large-2407.        is shown in Fig. 12. Fig. 13 shows the prompt to
+The prompt used to generate each theme is the            assign each text to its corresponding theme. Lastly,
+following: “Produce a short theme label in 1–3           Fig. 14 shows the prompt to evaluate results using
+words for the given summary.       This theme label      an LLM-based judge.
+should capture the central idea, stance, and/or
+topic of the text.     Examples: ‘Against climate
+policy’......" shown in Fig. 11. As a final pre-
+processing step, clusters with duplicate themes are
+removed. This yields no removals for Bluesky and
+eliminates 3 clusters from Meta. We have a total
+of 47 themes for Meta and 46 themes for Bluesky.
+Our final themes for Meta and Bluesky datasets are
+shown in Table 6. Once we obtain summaries and
+themes for each coherent cluster, we assign each
+text to its best-fitting theme through the following
+two methods:
+   (i) Text to Summary where we prompt LLM               Figure 9: Coherency prompt with example response
+with the full set of cluster-level summaries. The        from LLM.
+model selects the single summary which best-fits
+the text. Because each summary was previously
+mapped to a theme during the Theme Label Genera-
+tion step, the ad/post automatically inherits the cor-
+responding theme once its summary is chosen. For
+efficiency, assignments are processed in batches of
+ten texts per LLM call. The exact prompt used for
+this procedure is shown in Fig. 12.
+   (ii) Text to Theme where we assign each ad to
+a theme directly by providing Mistral-Large-2407
+the full set of cluster themes. This step is analogous
+to the summary assignment but uses cluster themes
+rather than cluster summaries. Again, a batch size
+of ten ads per LLM call is used. The prompt given        Figure 10: Prompt used for generating cluster sum-
+to the LLM for this step is shown in Fig. 13.            maries.
+   We assign by semantic fit rather than original
+cluster membership, since geometric proximity
+in embedding space does not always match the             B.5   Discovered Themes
+most appropriate theme, particularly for boundary-       Table 6 shows the resulting themes using our
+spanning texts.                                          method on Meta and Bluesky datasets. To analyze
+   #     Paragraph                                                         Label
+   1     Copper has become the world’s third most consumed metal, but Against copper mining
+         uncertain demand levels and supply constraints have created a
+         volatile outlook.
+   2     Highlights widespread support for copper mining in Arizona, Supports copper mining
+         emphasizing its role in renewable energy, national security, and
+         supply chain resilience.
+   3     Describes the Kennecott Mine’s long history, production levels, Supports copper mining
+         and contribution to sustainable technologies like wind turbines
+         and electric vehicles.
+   4     Discusses Alaska’s Estelle Gold Project and its potential for Promotes gold mining
+         gold and antimony production.
+   5     Promotes mining in Minnesota as a modern STEM career, fo- Supports iron mining
+         cusing on innovation in iron mining.
+   Cluster Coherency: Incoherent
+   Reasoning: The cluster is incoherent because the labels are inconsistent.
+
+                            Table 5: Few-shot example for coherency prompting.
+
+
+
+
+Figure 11: Prompt used for generating cluster themes
+                                                       Figure 12: Prompt used for assigning text to correspond-
+from cluster summaries.
+                                                       ing summaries.
+
+
+redundancy of the derived theme sets, we compute
+pairwise cosine similarities between theme labels
+using SentenceBERT (sentence-transformers/all-         theme that receives the least number of assignments
+mpnet-base-v2) and we find mean cosine similarity      is “Donziger vs. Big Oil” with 29 assignments,
+of 0.31 for the Meta theme set and 0.26 for the        whereas the theme with the greatest number of
+Bluesky theme set. From this evaluation, we find       assignments is “Local civic engagement: with 1365
+that the vast majority of theme pairs are semanti-     assignments. We see a mean of 354.4 assignments
+cally distinct. In total, only 3 theme pairs out of    per theme. 23 themes are needed to cover 80%
+2116 total possible pairs combined across the two      of the Meta dataset, whereas 9 themes are needed
+theme sets are flagged for high similarity above a     to cover 50% of the dataset. Respectively, we see
+threshold value of 0.80, which is a redundancy rate    a minimum number of assignments of 78 for the
+of 0.14%. The distribution of pairwise similarities    Bluesky dataset with the theme “Marine Climate
+and correlation matrices for both datasets can be      Crisis” and a maximum of 2051 with “Climate
+found in Fig. 15.                                      rollbacks”. For this theme set, the average number
+   In Fig. 27 and Fig. 28, the distribution of texts   of texts per theme is 416.9, where 23 themes are
+into each theme from the full theme sets is shown      needed to cover 80% of the Bluesky dataset and 10
+for Meta and Bluesky, respectively. For Meta, the      themes are needed to cover 50%.
+P LATFORMS T HEMES
+          Agriculture policy updates, Anti-coal advocacy, Anti-fracking activism, Anti-Harris
+          energy attack, Anti-offshore drilling, Big Oil accountability, Clean air advocacy, Clean
+          energy advocacy, Clean energy boom, Clean water advocacy, Climate crisis advocacy,
+          Climate education advocacy, Climate voter mobilization, Data center reform, Donziger
+          vs. Big Oil, Energy cost alarm, Ethanol advocacy, Ethical fashion advocacy, Farmland
+          renewables boost, Green building advocacy, Green construction reform, Hydrogen as
+          solution, Local civic engagement, Local food advocacy, Methane regulation push, Ocean
+Meta      conservation call, Oil industry promotion, Pro-BESS advocacy, Pro-childcare candidates,
+          Pro-clean energy, Pro-climate candidate, Pro-forest climate action, Pro-infrastructure
+          investment, Pro-nuclear advocacy, Pro-recycling advocacy, Pro-solar advocacy, Pro-wind
+          energy, Propane advocacy, Public climate input, SAF advocacy push, Save the Arctic,
+          Save the pollinators, Solar emergency power, Solar energy advocacy, Sustainable farming
+          progress, Wildfire recovery advocacy, Women-led climate action.
+           Anti-renewable hypocrisy, Aviation decarbonization, Capitalism’s climate doom, China’s
+           green leap, Clean Energy Push, Cleaning fatigue, Climate Denial Backlash, Climate
+           action collaboration, Climate injustice exposed, Climate justice action, Climate legal
+           accountability, Climate migration crisis, Climate rollbacks, Climate unease, Climate-
+           fueled wildfires, Coffee climate crisis, Corporate Climate Accountability, Deadly Heat
+           Crisis, Deforestation & Wildlife Crisis, EV transition barriers, End fossil fuels, Fascism’s
+           fatal flaws, Fossil Fuel Overreach, Fossil fuel corruption, Fossil fuel deception, Green
+Bluesky    Energy Sovereignty, Greenwashing deception, Independent investigative journalism,
+           Insurance Climate Urgency, MAGA Climate Deception, Marine climate crisis, Oil’s
+           Deceptive Greed, Plastic treaty failure, Renewable Energy Momentum, Renewable energy
+           surge, Resource expansion drilling, Responsible tourism future, Science under attack,
+           Sound’s dual impact, Starry night preservation, Sustainable luxury fashion, Trees for
+           Climate, Water pollution crisis, Water resilience, Wealth vs. Welfare, Wildlife climate
+           crisis
+
+                  Table 6: Resulting themes on Meta and Bluesky datasets.
+                                                           difference in interpretability should be considered
+                                                           when examining the results. BERTopic performs
+                                                           poorly under both evaluation settings, likely due
+                                                           to its high proportion of outlier assignments. Top-
+                                                           icGPT performs best overall; however, much of this
+                                                           accuracy might be attributed to the generic themes
+                                                           derived from the TopicGPT assignments, as shown
+                                                           in Tables 11, 12.
+                                                              In contrast to the human evaluation results, the
+                                                           LLM judge assigns the highest accuracy to Text-
+                                                           to-Summary (0.598), followed by Text-to-Theme
+                                                           (0.456), despite both methods ultimately assign-
+                                                           ing labels from the same fixed theme set. Con-
+Figure 13: Prompt to assign each text to its correspond-
+ing theme.                                                 sequently, the observed difference in LLM-based
+                                                           accuracy does not stem from lexical differences in
+                                                           the presented labels, but rather from differences in
+                                                           the upstream assignment process.
+                                                              Specifically, Text-to-Summary relies on an inter-
+                                                           mediate and implicit summary-to-theme mapping
+                                                           that is influenced by large context windows dur-
+                                                           ing summary assignment. This design can degrade
+                                                           assignment accuracy, as shown by the LLM and
+                                                           human evaluation results for Bluesky, as well as
+                                                           for the human annotation results for Meta. How-
+                                                           ever, the Text-to-Summary method may also in-
+                                                           troduce patterns that align more closely with the
+                                                           LLM judge’s internal decision heuristics, leading
+                                                           to higher apparent accuracy under LLM evaluation.
+                                                           As such, the LLM judge may be sensitive to sys-
+Figure 14: Prompt for LLM-based judge to anno-             tematic properties of the assignment pipeline rather
+tate results based on the correctness of assigned key-
+                                                           than to true semantic alignment between the text
+words/theme.
+                                                           and the assigned theme. For this reason, we treat
+                                                           human annotation as the primary and more reliable
+C     Evaluations                                          evaluation signal.
+
+C.1    Evaluation on Meta Dataset                          C.2    Evaluation on Bluesky Dataset
+Table 8 shows representative annotation examples.          Table 1 shows the human and LLM judge evalu-
+Table 1 reports quantitative results across both eval-     ation results of theme-assignment on the Bluesky
+uation settings (human and LLM judges). Un-                dataset. According to both the human and LLM
+der human evaluation, Text-to-Theme achieves               judgment settings, our Text-to-Theme method out-
+the highest accuracy (0.673) of our methods, sub-          performs Text-to-Summary, as well as the LDA and
+stantially outperforming Text-to-Summary (0.452),          BERTopic baseline methods of assignment. This
+LDA (0.25), and BERTopic (0.25). While LDA                 result mirrors the core finding that we obtain from
+attains comparatively higher accuracy under LLM-           our Meta dataset that concise, theme-level labels
+based evaluation, its performance drops under hu-          and prompting often provide a more robust map-
+man judgment. Because LDA, BERTopic, and Top-              ping than the full cluster summaries.
+icGPT each assign multiple keywords or topics                 Another key point is that BERTopic’s lower (and
+per document, LLM-based evaluation scores may              in some cases comparative) accuracy to LDA is of-
+vary depending on how the judge interprets partial         ten a result of its high rate of outliers or clusters that
+correctness — for instance, whether a label set is         do not map cleanly to topics. One such topic that
+marked correct only when all assigned topics are           exemplifies this is: [‘alt’, ‘alt text’, ‘note’, ‘text’,
+relevant, or when at least one is. This potential          ‘spicy’, ‘plan fix’, ‘ouch’, ‘aim make’, ‘salty’,
+Figure 15: Correlation between and distribution of pairwise similarities for themes of the Meta and Bluesky datasets.
+   ad_text                 lda_keywords          bert_keywords                     LLM-Assigned Themes            LLM Judge Assignments
+                                                                                   Theme-     Summary- lda_correct bert_correct Theme   Summary
+                                                                                   Based      Based                             Correct Correct
+   Data can’t tell the whole free, call, tool, genera- students,        teaching, Climate ed- Climate ed- No       Yes          Yes     Yes
+   story, but it’s a power- tion, receive              teaching          climate, ucation ad- ucation ad-
+   ful tool for understand-                            climate        education, vocacy       vocacy
+   ing changes on our planet.                          classroom,         climate
+   Grab this article from                              project, teach, educa-
+   our free collection of re-                          tors, lesson, prep
+   sources to teach your stu-
+   dents essential data liter-
+   acy skills.
+   Stop Kamala’s Radical american, job, econ- kamala, kamala harris, Anti-                    Anti-       No       No           Yes     Yes
+   Plan for America Before omy, america, michi- harris, fracking, fighter, Harris             Harris
+   It’s Too Late. Kamala Har- gan                      abolishing, ban frack- energy          energy
+   ris is dangerously liberal,                         ing, vote harris, patsy, attack        attack
+   and her extreme policies                            liberal
+   threaten to fundamentally
+   weaken our nation. She
+   advocates for abolishing
+   fracking, vote harris, patsy,
+   liberal.
+   Whether you’ve been con- program, wind, pro- infrastructure, invest- Clean                 Clean       Yes      No           Yes     Yes
+   sidering solar panels, har- vide, grant, farming    ment, clean energy energy              energy
+   nessing the power of the                            projects, rural amer- advocacy advocacy
+   wind, upgrading to energy-                          ica,       infrastructure
+   efficient equipment, or                             investment and jobs
+   taking advantage of fed-                            act, bipartisan infras-
+   eral rebate programs, learn                         tructure law, rural
+   how clean energy can ben-                           clean energy, credits,
+   efit your household.                                investment, projects
+   Utah families are being tax, energy, bill, credit, utah, investinginamer- Energy           Energy      Yes      No           Yes     Yes
+   charged for lawmakers’ cost                         ica, iija, act utah, legis- cost alarm cost alarm
+   fossil fuel favoritism. Con-                        lation, legislature, law-
+   tact your legislator today                          makers, legislature’s
+   before it’s too late.                               decision, act, bill
+   Already struggling with tax, energy, bill, credit, credits, rural energy, Solar            Energy      Yes      No           No      Yes
+   your electrical bill? It cost                       energy tax, legislation, energy        cost alarm
+   might get worse if law-                             credit, act, taxes, utah, advocacy
+   makers roll back clean en-                          bill, change
+   ergy incentives. Call your
+   legislator today to protect
+   American energy innova-
+   tion.
+
+
+       Table 7: Evaluation of topic-model keywords and LLM theme assignments using LLM judge (Meta).
+
+
+‘thank doing’]. In total, 9418 posts were assigned as                      such the corresponding summary sets differ in both
+ outliers using BERTopic, whereas for our summary-                         size and informational density. Because summary-
+ based assignment, only 1 post is left unassigned,                         based assignment requires presenting the LLM
+ and for the theme-based assignment, only 6 posts                          with a list of candidate summaries during text-to-
+ are unassigned. For LDA, each post gets assigned                          summary matching, a smaller summary set effec-
+ a set of keywords, even if this set is not necessar-                      tively reduces the prompt context window and the
+ ily fitting to the post text. Therefore, the overall                      number of competing semantic options the model
+ accuracy for LDA might appear higher than for                             must consider. This reduction appears to bene-
+ BERTopic with both the human and LLM judges,                              fit Bluesky in particular, where fewer summaries
+ but this is due to the large number of unassigned                         lead to less semantic overlap and lower cognitive
+ posts with BERTopic.                                                      load for the LLM during assignment. The differ-
+                                                                           ence in summary-based accuracy for Meta may
+   An additional observation is the overall increase
+                                                                           also be affected by the type of dataset: Meta’s
+in accuracy for summary-based assignment on
+                                                                           dataset contains a larger number of more narrowly
+Bluesky compared to Meta. Although both theme-
+                                                                           defined themes, often driven by campaign-specific
+based methods show around 67% accuracy accord-
+                                                                           messaging and targeted issue framing. As a re-
+ing to the human judge (66.6% for Bluesky, 67.3%
+                                                                           sult, summary-based assignment on Meta may be
+for Meta), there is a discrepancy in summary-based
+                                                                           more sensitive to semantic mismatches between in-
+accuracy. This discrepancy is also very clear with
+                                                                           dividual posts and their corresponding cluster sum-
+the LLM evaluation results, where Bluesky Text-
+                                                                           maries, leading to lower overall accuracy relative
+to-Summary shows 45.8% accuracy and Meta Text-
+                                                                           to Bluesky.
+to-Summary shows 59.8% accuracy. Bluesky has
+46 total themes, whereas Meta has 47, and as                                   When comparing human judgments with those
+ad_text                         lda_keywords             bert_keywords                 LLM-Assigned Themes                    Human Judge Assignments
+                                                                                       Theme-     Summary-      lda_correct    bert_correct Theme     Summary
+                                                                                       Based      Based                                     Correct   Correct
+Data can’t tell the whole story, free, call, tool, genera- students,        teaching, Climate ed- Climate ed-   No             Yes          Yes       Yes
+but it’s a powerful tool for un- tion, receive             teaching          climate, ucation ad- ucation ad-
+derstanding changes on our                                 climate        education, vocacy       vocacy
+planet.     Grab this article                              classroom,         climate
+from our free collection of re-                            project, teach, educa-
+sources to teach your students                             tors, lesson, prep
+essential data literacy skills.
+Stop Kamala’s Radical Plan american, job, econ- kamala, kamala harris, Anti-                      Anti-         No             Yes        Yes       Yes
+for America Before It’s Too omy, america, michi- harris, fracking, fighter, Harris                Harris
+Late. Kamala Harris is dan- gan                            abolishing, ban frack- energy          energy
+gerously liberal, and her ex-                              ing, vote harris, patsy, attack        attack
+treme policies threaten to fun-                            liberal
+damentally weaken our na-
+tion. She advocates for abol-
+ishing fracking, vote harris,
+patsy, liberal.
+Whether you’ve been consid- program, wind, pro- infrastructure, invest- Clean                     Clean         Yes            No         Yes       Yes
+ering solar panels, harnessing vide, grant, farming        ment, clean energy energy              energy
+the power of the wind, upgrad-                             projects, rural amer- advocacy         advocacy
+ing to energy-efficient equip-                             ica,       infrastructure
+ment, or taking advantage of                               investment and jobs
+federal rebate programs, learn                             act, bipartisan infras-
+how clean energy can benefit                               tructure law, rural
+your household.                                            clean energy, credits,
+                                                           investment, projects
+Utah families are being tax, energy, bill, credit, utah, investinginamer- Energy                  Energy        Yes            No         Yes       Yes
+charged for lawmakers’ fossil cost                         ica, iija, act utah, legis- cost alarm cost alarm
+fuel favoritism. Contact your                              lation, legislature, law-
+legislator today before it’s too                           makers, legislature’s
+late.                                                      decision, act, bill
+Already struggling with your tax, energy, bill, credit, credits, rural energy, Solar              Energy        Yes            No         No        Yes
+electrical bill? It might get cost                         energy tax, legislation, energy        cost alarm
+worse if lawmakers roll back                               credit, act, taxes, utah, advocacy
+clean energy incentives. Call                              bill, change
+your legislator today to pro-
+tect American energy innova-
+tion.
+
+
+       Table 8: Evaluation of topic-model keywords and LLM theme assignments using human judge (Meta).
+
+
+produced by the LLM judge, we observe systematic                                     cause LLM judges rely more on direct word overlap
+differences in the relative accuracy ranges across                                   between the label and the text than on deeper se-
+methods. LDA and BERTopic produce compact                                            mantic interpretation, which makes abstract theme
+keyword lists, which align closely with the token-                                   labels harder to assess than explicit keyword-based
+level evidence an LLM judge is optimized to eval-                                    representations.
+uate. As a result, the LLM judge may systemati-                                         We see that, although our Text-to-Summary and
+cally favor these methods based on the presence of                                   Text-to-Theme assignment variants achieve higher
+salient keywords, even when the overall semantic                                     accuracy than LDA and BERTopic, TopicGPT,
+framing of the post is only weakly captured. In                                      much like for Meta, achieves the highest accuracy
+contrast, human annotators place greater emphasis                                    overall by far. However, much of this accuracy
+on interpretability and semantic coherence. The de-                                  can be attributed to the highly generic themes de-
+scriptive, high-level theme labels generated by our                                  rived from the TopicGPT assignments. For exam-
+approach more directly convey the underlying in-                                     ple, "Energy" applies to a very wide range of the
+tent and meaning of the posts, making them easier                                    climate-related dataset. We provide the full lists of
+for humans to evaluate accurately. This divergence                                   TopicGPT generated topics for Bluesky and Meta
+in evaluation criteria helps explain why the LLM                                     such that the generality of the topic set can be no-
+judge exhibits a relative bias toward LDA. The ef-                                   ticed in Tables 9, 10 11, 12.
+fect is less pronounced for BERTopic, likely due
+to its high proportion of outlier assignments and                                      To validate our annotation results for the Bluesky
+loosely formed clusters, which reduce the consis-                                    dataset, we look at Inter-annotator agreement
+tency of its keyword sets. We further observe that                                   scores for our methods as well as TopicGPT. We
+both Text-to-Summary and Text-to-Theme achieve                                       see that for our method, there is 71.4% raw agree-
+lower accuracy under LLM-based evaluation than                                       ment between the human and LLM judge (κ =
+under human judgment. This gap likely occurs be-                                     0.44) for the summary-based judgments, and fur-
+                                                                                     thermore, a 70.4% raw agreement (κ = 0.40)
+                 Level 1 Topics                                            Level 1 Topics
+  Agriculture, Climate Science, Climate                    Agriculture, Sustainable Farming, Economics,
+  Change Impacts and Adaptation, Emergency                 Energy, Energy Policy and Regulation, En-
+  Response, Energy, Energy Policy and Transi-              ergy Technology and Innovation, Renewable
+  tion, Environment, Climate Change, Health,               Energy, Environment, Conservation and Natu-
+  Social Justice, Climate Justice, Sustainable             ral Resources, Sustainable Energy and Tech-
+  Development                                              nology, Health and Well-being, Human Ex-
+                                                           perience, Social Issues and Community Well-
+ Table 9: TopicGPT Level 1 topic labels for Bluesky        being, Infrastructure, Transportation Infras-
+                                                           tructure, Politics, Political Campaigns and
+                  Level 2 Topics
+                                                           Elections, Political Discourse and Public Sen-
+  Agricultural Technology, Clean Energy and
+                                                           timent, Public Policy and Governance, Sci-
+  Technological Responses, Climate Change,
+                                                           ence
+  Climate Change Communication and Pub-
+  lic Perception, Climate Change Impacts and               Table 11: TopicGPT Level 1 topic labels for Meta
+  Adaptation, Climate Change Policy and Reg-
+  ulation, Climate Justice, Climate Justice and
+  Socioeconomic Issues, Climate and Environ-
+  ment, Disaster Management, Disease Preven-
+  tion and Health Behavior, Economic and So-
+  cial Equity, Energy, Energy Policy and Tran-
+  sition, Environment, Environmental Impact
+  of Agriculture, Environmental Impact on So-
+  ciety and Health, Environmental Policy and
+  Governance, Fossil Fuels, Health, Health Pol-
+  icy and Social Issues, Pollution, Public Health      Figure 16: Top 10 themes by number of ads for Meta
+  and Environment, Renewable Energy, Social            data.
+  Justice, Social and Economic Sustainability,
+  Sustainable Agriculture, Sustainable Develop-        themes, as well as text → theme mapping, are cor-
+  ment, Sustainable Infrastructure and Mobility        rect or not for each dataset. In total, it took ≈ 11
+                                                       hours for both datasets. Annotators were provided
+Table 10: TopicGPT Level 2 topic labels for Bluesky
+                                                       with the same instructions that were provided to the
+                                                       LLM prompt. The annotators included advanced
+for theme-based judgments. Both Cohen’s Kappa          undergraduate students, graduate students, and fac-
+scores fall in the moderate agreement range. Fur-      ulty.
+ther analysis suggests that the disagreements are
+not random: the LLM judge is systematically more       D     Joint-Clustering Details
+conservative, achieving higher precision on pos-       To support direct cross-platform comparison in
+itive labels ( 0.86–0.87) but lower recall ( 0.64).    §6.1, we re-run a modified version of our clus-
+This means the LLM judge tends to miss true posi-      tering pipeline on the joint combination of all Meta
+tives flagged by human annotators, rather than hal-    and Bluesky texts (36,206 total). The pipeline fol-
+lucinating false positives. This asymmetry points to   lows the same stages as the per-platform pipeline
+a somewhat consistent difference in labeling thresh-   (App. B) but operates on the merged embedding
+old between the two judges, rather than unreliable     space. We retain hierarchical structure by extract-
+or noisy behavior. For TopicGPT, we see 90.2%          ing both top-level clusters and sub-clusters within
+agreement between the human and LLM judge with         each top-level group, producing 140 top-level clus-
+a Cohen’s Kappa score of 0.43.                         ters and 471 sub-clusters. Coherence filtering, sum-
+                                                       marization, and theme labeling are then applied to
+C.3   Human Validation
+                                                       sub-clusters as in the per-platform pipeline, yield-
+Seven NLP and CSS researchers, age range 20-40,        ing 354 coherent themes.
+3 males and 4 females, did three ≈ 1.5-hour ses-          We define three theme categories based on
+sions to validate whether the generated and refined    within-theme platform composition. A theme is
+           Figure 17: UMAP representation of Meta ads and Bluesky posts, annotated with themes.
+Meta-dominant if at least 70% of its texts come
+from Meta, Bluesky-dominant if at least 70% come
+from Bluesky, and shared otherwise. The 70%
+threshold ensures that dominant themes reflect
+platform-specific discourse rather than minority
+representation, while still admitting a meaning-
+ful number of shared themes. The resulting par-
+tition contains 145 Meta-dominant, 112 Bluesky-
+dominant, and 97 shared themes.
+
+
+D.1   Shared Themes
+
+Fig. 18 shows the top 20 shared themes ranked
+by total cluster size. Shared themes span a range
+of climate-relevant topics (e.g., Sacred land de-      Figure 18: Top 20 shared themes with similar numbers
+                                                       of Meta and Bluesky texts.
+fense, Climate defense mobilization, Plastic crisis
+resistance) and provide a contrast to the strongly
+platform-dominant themes discussed in §6.1. Fur-       E     Named Entity Recognition
+thermore, Fig. 19 shows the distribution of joint
+themes for the Meta and Bluesky datasets. We           E.1    Pipeline
+see that Bluesky discourse concentrates heavily       We apply a Named Entity Recognition pipeline
+on a small number of top themes, whereas Meta         combining SpaCy’s pretrained en_core_web_lg
+discourse does not see as sharp of a long-tailed      model with a custom climate-domain entity dictio-
+distribution.                                         nary and alias normalization map. The pipeline
+                  Level 2 Topics
+  Agriculture and Land Use, Climate Change
+  and Emissions, Conservation and Natural Re-
+  sources, Cultural and Personal Expression,
+  Economic Development, Economic Educa-
+  tion, Economics, Education and Leadership
+  Development, Energy, Energy Access and Af-
+  fordability, Energy Policy and Regulation, En-
+  ergy Technology and Innovation, Energy and
+  Community Impact, Environment, Environ-             Figure 19: Distribution of joint themes for Meta vs.
+  mental Justice and Community Action, En-            Bluesky
+  vironmental Science and Climate Research,
+  Environmental and Climate Concerns, Health          labels for dates, quantities, money, products, etc.
+  and Well-being, Housing and Urban Develop-          are excluded as not informative for our analysis.
+  ment Infrastructure, Infrastructure, Political      Within each text, entity mentions are deduplicated
+  Campaigns and Elections, Political Discourse        such that repeated references to the same entity
+  and Public Sentiment, Politics, Public Policy       count once per text. Reported entity-salience per-
+  and Governance, Pollution and Waste Man-            centages in App. E.2 are computed as the propor-
+  agement, Renewable Energy, Science, Scien-          tion of texts mentioning each entity at least once.
+  tific Research and Education, Social Issues
+  and Community Well-being, Social and En-            E.2   Results
+  vironmental Justice, Sustainable Energy and
+                                                      Entity Type Distribution. Entity-type preva-
+  Technology, Sustainable Farming, Transporta-
+                                                      lence differs sharply by platform (Fig.       20).
+  tion Infrastructure, Water Infrastructure
+                                                      Bluesky contains substantially more POL-
+       Table 12: Level 2 topic labels for Meta        ICY/EVENT/ISSUE entities than Meta, while
+                                                      Meta dominates the GPE/LOC/GROUP and
+                                                      PERSON categories. This suggests that Meta ads
+runs in two stages per text: a domain-dictionary      more frequently invoke specific groups, locations,
+pass that matches multi-word climate-relevant         and named individuals, while Bluesky discourse
+phrases that SpaCy might miss (e.g., climate          more frequently invokes general policy concepts.
+change, Inflation Reduction Act, Paris Agreement),    ORG entities are common on both platforms.
+followed by SpaCy’s NER for general-purpose en-
+tity extraction.
+   Extracted entities are normalized via an alias
+map that consolidates phrases which refer to the
+same entity: people (e.g., Trump, President Trump,
+Donald Trump → Donald Trump), places (U.S.,
+USA, America, United States of America → United
+States), organizations (GOP, Republicans, Republi-
+can Party → Republican Party), and policy/issue
+concepts (climate crisis, global warming → cli-
+mate change; IRA → Inflation Reduction Act).
+                                                      Figure 20: Named Entity Type Distribution for the
+   We aggregate recognized entities into four high-   Bluesky and Meta datasets.
+level analytic types by mapping SpaCy’s labels
+and our custom dictionary entries into a com-
+mon taxonomy: PERSON (SpaCy’s PERSON);                Top Entity Salience. The most frequent en-
+ORG (SpaCy’s ORG, plus domain-specific orga-          tities on both platforms are general (clean en-
+nizational entries such as fossil fuel industry and   ergy, climate change), with long-tailed distribu-
+MAGA); GPE/LOC/GROUP (SpaCy’s GPE, LOC,               tions thereafter (Fig. 21). Bluesky features promi-
+NORP, and FAC); and POLICY/EVENT/ISSUE                nent references to countries and continents (United
+(SpaCy’s EVENT and LAW, plus all custom               States, United Kingdom, Europe, Australia), while
+climate-policy and climate-issue entries). SpaCY      Meta features specific U.S. states (Wisconsin,
+                            Figure 21: Top 20 entities (% of total texts) by platform.
+
+
+
+
+Figure 22: Top 10 entity salience for the three cluster categories: Shared, Meta-Dominant, and Bluesky-Dominant.
+
+
+Iowa, Michigan, California), consistent with state-        F.1   Entman Framing Lexicon Construction
+targeted advertising delivery.
+                                                           We construct a framing lexicon seeded with five
+                                                           hand-defined terms per subcategory, each accom-
+Entity Salience by Cluster Category. Disaggre-
+                                                           panied by a category description. We then prompt
+gating by joint-clustering category (Fig. 22), Meta-
+                                                           Mistral-Large-Instruct-2407 to generate 40 addi-
+dominant clusters contain more U.S. state names
+                                                           tional terms conditioned on each category’s de-
+while Bluesky-dominant clusters center on coun-
+                                                           scription and seed examples, yielding a lexicon of
+tries and large-scale collective groups (including
+                                                           approximately 45 terms per subcategory. Framing
+Earth). This reinforces the thematic-structure find-
+                                                           scores are computed as the proportion of lexicon-
+ing in §6.1: Meta-dominant discourse is found to be
+                                                           matched tokens to total tokens in each text.
+geographically targeted, while Bluesky-dominant
+discourse operates at a larger systemic scale.
+                                                           F.2   Cluster-Level Framing
+
+F   Rhetorical Register: Additional                        Fig. 23 presents mean framing scores across nine
+    Analyses                                               dimensions, aggregated by joint-clustering cate-
+                                                           gory (Bluesky-dominant, Shared, Meta-dominant).
+This appendix provides the lexicon construction de-        Bluesky-dominant clusters score highest on emo-
+tails, cluster- and demographic-level framing break-       tional urgency framing (0.79), political problem
+downs, and theme-level LIWC profiles that support          framing (0.72), and institutional actor framing
+the main-text analysis in §6.2.                            (0.71), suggesting a discourse centered on systemic
+                    Figure 23: Mean Entman framing dimension scores per cluster category.
+
+
+accountability and urgent risk. Meta-dominant clus-      ing than high-spend ads, while both institutional
+ters score lowest on scientific framing (0.33); this     and individual actor framing are concentrated in
+is notable given that scientific authority framing       high-spend ads.
+grounds claims in empirical evidence, and sug-
+gests that paid climate advertising favors emotive       Geography. Fig. 25 shows delivery-weighted
+and community-oriented persuasion over evidence-         framing concentration by state. Scientific authority
+heavy rhetoric. Shared clusters exhibit the most bal-    framing concentrates in left-leaning states, consis-
+anced profile, with elevated future framing (0.71),      tent with the political-lean pattern above. Other
+institutional actor framing (0.72), and emotional        framing dimensions show state-level concentra-
+urgency framing (0.71).                                  tions that are not cleanly explained by political
+                                                         lean alone.
+F.3   Demographic Targeting Patterns (Meta)
+                                                         F.4   LIWC Content Categories
+The Meta Ad Library exposes certain delivery and
+demographic metadata (age, gender, state, spend)         In addition to the four summary variables reported
+that allows us to examine how framing varies across      in §6.2, we analyze eleven LIWC content cate-
+audience segments. We compute delivery-weighted          gories mapped to the four Entman framing func-
+framing scores for each segment. Bluesky does not        tions: tone_neg, emo_anx, and risk for problem
+expose comparable metadata, so this analysis is          definition; cause and power for causal attribution;
+necessarily Meta-only.                                   moral, certitude, and tentat for moral evaluation;
+                                                         and achieve and focusfuture for treatment recom-
+Age and gender. Fig. 24(a, b) shows several              mendation.
+monotone trends. Solution framing decreases
+steadily with age, while individual actor framing        F.5   Theme-Level LIWC Profiles
+and populist skepticism increase with age. Insti-        Fig. 26 shows per-theme LIWC profiles for Bluesky
+tutional actor framing forms a U-shape: highest          and Meta, z-scored within each LIWC dimension
+in the 18–24 group, lowest in middle-aged groups,        and color-coded by Entman framing function.
+and rising again in 65+. Female-targeted ads ex-
+hibit substantially higher institutional actor framing   Bluesky. Themes organized around systemic cri-
+and moral framing than male-targeted ads; male-          tique exhibit distinctive signatures. Corporate cli-
+targeted ads exhibit higher economic and solution        mate sabotage is the strongest outlier on cause,
+framing.                                                 reflecting concentrated attribution to corporate ac-
+                                                         tors. Neoliberal authoritarianism peaks on conflict
+Political lean and ad spend. Fig. 24(c) shows            and moral. Plastic crisis resistance registers the
+that democratic-leaning audiences receive the most       highest emo_anx score. Anti-capitalist resistance
+solution framing and scientific authority framing,       combines low Analytic and Clout with elevated cer-
+while republican-leaning audiences receive more          titude, achieve, and tentat, suggesting an informal,
+institutional actor and crisis framing. Fig. 24(d)       non-authoritative voice that mixes strong ideologi-
+shows that low-spend ads carry more solution fram-       cal messages with uncertainty about concrete paths
+       (a) By age group.                                         (b) By gender.
+
+
+
+
+   (c) By state political lean.                                 (d) By ad spend.
+
+ Figure 24: Delivery-weighted Entman framing for Meta ads across audience segments.
+
+
+
+
+Figure 25: Heatmap of the eight Entman framing dimensions, delivery-weighted by state.
+ Theme                         # Ads    Example ad text
+ Local Civic Engagement         1365    Tired of the status quo? Community-led change is THE game-
+                                        changer. From global crises to climate action, we’re your go-to
+                                        for the latest updates and ways to support local heroes.
+ Clean Energy Advocacy          1356    We’re committed to Environmental Justice & Social Equity so no
+                                        community is left behind in our clean energy future.
+ Climate Crisis Advocacy        1087    Mongolia’s herders face rising climate risks. Watch how we are
+                                        working with partners and the government of Mongolia in solving
+                                        complex challenges in the country.
+ Pro-infrastructure Invest-     1010    These upgrades will make the Bells Mill Road and Valley Green Road
+ ment                                   bridges more resilient to extreme weather, ensuring safer, stronger
+                                        connections for generations to come.
+ Solar Energy Advocacy           929    One of the most significant benefits of community solar projects is
+                                        the potential to reduce energy costs for low-income households.
+
+                                     Table 13: Top themes for Meta ads.
+
+
+forward. Grid modernization push is the most an-        G.2   Full Theme–Stance Correlation
+alytically formal Bluesky theme, diverging from         Figs. 29 and 30 report theme–stance correlations
+the platform’s overall register due to the technical    for all five methods on Meta and Bluesky, extend-
+nature of the topic.                                    ing the LDA and Text-to-Theme panels shown in
+                                                        the main text. Note that we manually label 500
+Meta. Clean Energy Defense exhibits the highest
+                                                        Meta texts and 500 Bluesky texts as Pro-Climate,
+power and conflict scores on the platform. Ocean
+                                                        Pro-Energy, or Neutral. Although both platforms
+conservation urgency registers the highest risk
+                                                        lean heavily Pro-Climate, we see a more balanced
+score. Corporate climate sabotage combines high
+                                                        structure for Meta than for Bluesky. The break-
+cause, emo_anx, and Authentic, suggesting that
+                                                        down is as follows: for Meta, we have 46 Pro-
+paid ads invoke corporate blame through an anx-
+                                                        Energy, 101 Neutral, and 353 Pro-Climate texts.
+ious, personally engaged voice rather than formal
+                                                        For Bluesky, we have 4 Pro-Energy, 55 Neutral,
+argumentation. Sacred land defense scores very
+                                                        and 441 Pro-Climate texts. Organic climate dis-
+low on achieve and carries negative Tone, operat-
+                                                        course on Bluesky is essentially a Pro-Climate-
+ing less as a prescriptive call to action than as a
+                                                        dominated space, consistent with the systemic-
+moral grievance framing.
+                                                        critique orientation observed in §6.1.
+Shared themes. Themes that appear on both plat-         Meta. The two probabilistic baselines yield dif-
+forms reveal that identical conceptual content can      fuse, low-magnitude correlations: LDA peaks near
+be presented through diverging linguistic strategies.   0.22 and BERTopic near 0.21, with no clear separa-
+Corporate climate sabotage is a high-cause theme        tion between Pro-Climate and Pro-Energy stances.
+on both platforms, but Bluesky’s rendering carries      TopicGPT is the strongest baseline: its substan-
+a stronger causal attribution signal while Meta’s is    tive climate topics align with Pro-Climate (Climate
+additionally marked by high emo_anx. Grid mod-          Change and Emissions 0.30, Environmental Justice
+ernization push is analytically formal on Bluesky       0.28, Pollution and Waste Management 0.26) and
+but Clout-suppressed on Meta. Sacred land de-           its supply-side topics with Pro-Energy (Energy Ac-
+fense on Meta is achieve-suppressed relative to its     cess and Affordability 0.30, Energy Policy and Reg-
+Bluesky counterpart.                                    ulation 0.20). However, much of its signal is car-
+                                                        ried by broad categories that load onto Neutral (Po-
+G     Qualitative Analysis Details                      litical Campaigns and Elections, Politics, Human
+                                                        Experience), reflecting a generic high-level taxon-
+G.1    Per-Platform Theme Distributions
+                                                        omy rather than dataset-specific structure. Our vari-
+Table 13 and Fig. 16 report the top themes by ad        ants produce sharper alignment on the Pro-Energy
+count for Meta; Table 14 and Fig. 28 report the         pole, where pro-fossil themes map strongly to Pro-
+corresponding distributions for Bluesky.                Energy (Oil industry promotion 0.48 for Text-to-
+                                       (a) Bluesky (organic).
+
+
+
+
+                                        (b) Meta (paid ads).
+
+Figure 26: LIWC profiles by theme, z-scored within column and colored by Entman framing function.
+                         Figure 27: Distribution of themes across Meta dataset.
+
+
+
+
+Theme                       # Posts   Example text
+Climate rollbacks             2051    Trump’s EPA wants to eliminate regulation for greenhouse gases.
+Science under attack          1399    Science Trump Administration Decommissions Sea Ice Data That
+                                      Sounded an Alarm on Arctic Climate Change.
+Climate unease                1256    That our kids will come to fear summer rather than look forward to
+                                      it due to climate change just crushes me every time.
+Water pollution crisis         928    tudy finds climate change limits River Thames cleanup efforts by
+                                      accelerating algal growth.
+Renewable Energy Mo-           848    Democrats invested $400,000,000,000.00 in renewable energy during
+mentum                                Biden’s term.
+
+                               Table 14: Top themes for Bluesky posts.
+                                                        the wildfire event, Cause increases significantly
+                                                        and Tone decreases, suggesting that wildfire dis-
+                                                        course is characterized by more negative affect and
+                                                        increased causal reasoning, consistent with crisis-
+                                                        driven language.
+
+                                                        G.4   Meta: U.S. Election Event Analysis
+                                                        Volume, spend, and impressions. Fig. 32 re-
+                                                        ports total number of ads, total estimated spend,
+Figure 28: Top 10 themes by number of posts for         and total impressions for the five themes with
+Bluesky data.
+                                                        the largest before/after shifts in a ±3-day window
+                                                        around the election. All three metrics decline, sug-
+Theme, 0.31 for Text-to-Summary; Energy cost            gestion a reduction in overall advertising activity
+alarm 0.27–0.30). We also see moderate alignment        post-election.
+of pro-climate themes with Pro-Climate (Clean           Longer-horizon shifts. Within a 30-day be-
+energy advocacy, Big Oil accountability), and of        fore/after window, the theme Wildfire recovery ad-
+civic or non-energy themes with Neutral (Local          vocacy disappears entirely following the election.
+civic engagement, Pro-childcare candidates). Text-      This change may loosely coincide with the elec-
+to-Theme is marginally more concentrated than           toral transition but is also potentially driven by the
+Text-to-Summary. Our derived themes carry a com-        seasonal timing of wildfire-related advertising.
+parable number of Neutral labels to TopicGPT,
+but these are more diffuse, without TopicGPT’s          LIWC dynamics. Fig. 33 shows the LIWC shift
+reliance on broad catch-all categories.                 around the U.S. election. We see that moral
+                                                        (p < .01), risk (p < .05), power (p < .05), and fo-
+Bluesky. Bluesky exhibits extreme stance imbal-         cusfuture (p < .01) all decline, whereas Cause and
+ance (4 Pro-Energy, 55 Neutral, 441 Pro-Climate),       tentat increase significantly. In terms of register
+which limits the stability of theme–stance corre-       variables, there is increase in Authentic (p < .01)
+lations relative to Meta. LDA and BERTopic ex-          and Analytic (p < .01). Overall, this linguistic pat-
+hibit more variable correlations on Bluesky than on     tern suggests increased tentativeness, authenticity,
+Meta, but these are more likely driven by noise than    and causal reasoning post-election. The decline
+by coherent topic–stance alignment. Our LLM-            in normative, authoritative, and future-focused lan-
+based methods show reduced absolute correlation         guage may reflect the rhetorical demands of pre-
+magnitudes relative to Meta but remain direction-       election campaigning.
+ally consistent. TopicGPT patterns more like our
+methods than like LDA and BERTopic: its climate-        G.5   Meta: California Wildfires Event
+and energy-relevant topics are directionally coher-           Analysis
+ent (Climate Change, Renewable Energy, and En-          For the January 2025 Southern California wildfires,
+ergy Policy correlate positively with Pro-Climate,      we utilize an analysis window of 30 days before
+0.11–0.14; Fossil Fuels is the sole topic with a pos-   and after the event onset to cover the month-long
+itive Pro-Energy correlation, 0.12). However, its       duration of the event. The five themes with the
+strongest correlations are carried by broad, climate-   largest pre/post shifts in ad volume are Solar en-
+peripheral topics (Health, Sustainable Develop-         ergy advocacy, Oil industry promotion, Pro-clean
+ment) that load onto Neutral, reflecting its reliance   energy jobs, Pro-solar advocacy, and Pro-climate
+on a generic high-level taxonomy rather than the        candidate. As shown in Fig. 34, the directional-
+dataset-specific themes our methods recover.            ity across metrics is less uniform than around the
+                                                        election. Ad volume increases for Solar energy
+G.3   Bluesky: LIWC Event Dynamics                      advocacy, Oil industry promotion, and Pro-climate
+Fig. 31 shows the LIWC shift around both 2024           candidate, while Pro-solar advocacy and Pro-clean
+U.S. election and 2025 Southern California wild-        energy jobs decline. Over a short 3-day horizon,
+fire events. We can see that the only significant       top themes differ from the 30-day window—Pro-
+shift in the U.S. election event is Cause, which        infrastructure investment and Climate crisis advo-
+is reduced post-election. However, surrounding          cacy are most active.
+                                                                             Baseline: LDA topic                                                                                                                                  Baseline: BERTopic topic
+                 law, sea, north, citizen, expan                     -0.08                           0.35                -0.02                                                    6_drilling_oil drilling_drill_o                 -0.06              0.37       -0.04
+                without, space, road, completel                      -0.05                           0.28                -0.03                                         30_energy clean_shower_apartmen                            -0.25             -0.01        0.26
+                    make, look, profit, sense, tool                  -0.18                          -0.01                 0.18                                            45_junk_junk science_rfk_science                        -0.25             -0.01        0.26
+                                                                     -0.17                          -0.01                 0.18              0.2                                                                                                                         0.2
+                    go, hope, thousand, dry, type                                                                                                                             9_drilling_holes_drilling holes                     -0.17             -0.01        0.18
+
+Theme / Topic                                                                                                                                          Theme / Topic
+                   green, deal, new, matter, vote                    -0.15                          -0.01                 0.16                                             27_sustainable sustainable_isn                         -0.17             -0.01        0.18
+                                                                                                                                            0.0                                                                                                                         0.0
+                     oil, drilling, gas, price, trump                 0.00                           0.16                -0.05                                           51_club_clubs_ground story_inde                          -0.17             -0.01        0.18
+                environment, less, ev, eye, pos                      -0.12                          -0.00                 0.13                                                  64_song_music_youtu_songs                         -0.12             -0.00        0.13
+                                                                                                                                                 0.2                                                                                                                     0.2
+                 solution, better, carbon, reduc                     -0.11                          -0.01                 0.11                                                43_light pollution_light_stars_                     -0.12             -0.00        0.13
+                            see, ca, find, old, light                -0.11                          -0.01                 0.11                                                 83_movie_film_movies_chung                         -0.12             -0.00        0.13
+                got, food, business, enough, su                      -0.10                          -0.01                 0.11                                                  74_gold_aest_asx_asx drilling                     -0.12             -0.00        0.13
+                                                                        te                            gy                  ral                                                                                                      te              erg
+                                                                                                                                                                                                                                                        y        tral
+                                                              -C   lima                       -E   ner               Neut                                                                                                  -Cli
+                                                                                                                                                                                                                               ma             -En            Neu
+                                                        Pro                           Pro                                                                                                                            Pro                  Pro
+                                                                                                   Stance                                                                                                                                         Stance
+
+                                               (a) Baseline: LDA.                                                                                                     (b) Baseline: BERTopic.
+                                                                                                                                                 Baseline: TopicGPT topic
+                                                                                                                                 Health          -0.27                        -0.01              0.29
+                                                                                                            Sustainable Development              -0.19                        -0.02              0.21
+                                                                                                                      Climate Change              0.14                        -0.01             -0.14
+                                                                                                                         Social Justice          -0.12                        -0.01              0.14                      0.2
+
+
+                                                                              Theme / Topic
+                                                                                                                   Renewable Energy               0.12                         0.01             -0.13
+                                                                                                                                                                                                                           0.0
+                                                                                                          Energy Policy and Transition            0.11                         0.01             -0.12
+                                                                                                                           Fossil Fuels           0.01                         0.12             -0.05
+                                                                                                                                                                                                                            0.2
+                                                                                                                           Environment           -0.08                        -0.01              0.09
+                                                                                                                                 Energy          -0.08                        -0.01              0.09
+                                                                                              Disease Prevention and Health B                    -0.07                        -0.01              0.07
+                                                                                                                                              ma
+                                                                                                                                                  te                       erg
+                                                                                                                                                                              y                 tral
+                                                                                                                                          -Cli                          -En                  Neu
+                                                                                                                                      Pro                          Pro
+                                                                                                                                                                           Stance
+
+                                                                            (c) Baseline: TopicGPT.
+                                                    Ours: Summary-Based Assignment                                                                                                                              Ours: Theme-Based Assignment
+                                  Cleaning fatigue                   -0.27                          -0.01                 0.29                                                    Starry night preservation                -0.28                 -0.01          0.29
+                           Fossil Fuel Overreach                     -0.04                           0.24                -0.03                                                 Green Energy Sovereignty                    -0.05                  0.28         -0.03
+                Independent investigative journ                      -0.21                          -0.02                 0.22                                                Resource expansion drilling                  -0.05                  0.28         -0.03
+                        Starry night preservation                    -0.19                          -0.01                 0.20              0.2                                       Sound's dual impact                  -0.25                 -0.01          0.26    0.2
+
+
+Theme / Topic                                                                                                                                          Theme / Topic
+                             Sound's dual impact                     -0.17                          -0.01                 0.18                                                             Cleaning fatigue                -0.21                 -0.01          0.22
+                                                                                                                                            0.0                                                                                                                         0.0
+                                 Trees for Climate                   -0.12                          -0.00                 0.13                                         Independent investigative journ                     -0.19                 -0.01          0.20
+                      Climate legal accountability                   -0.01                           0.12                -0.02                                                 Sustainable luxury fashion                  -0.10                 -0.01          0.11
+                                                                                                                                                 0.2                                                                                                                     0.2
+                              Clean Energy Push                       0.03                           0.12                -0.06                                                              End fossil fuels                0.04                  0.10         -0.07
+                      Responsible tourism future                     -0.11                          -0.01                 0.11                                                      Fossil Fuel Overreach                  -0.08                 -0.01          0.08
+                             Fascism s fatal flaws                   -0.10                          -0.01                 0.11                                           Renewable Energy Momentum                          0.08                 -0.02         -0.07
+                                                                    ma
+                                                                       te                           erg
+                                                                                                       y                 tral                                                                                           ma
+                                                                                                                                                                                                                          te                    erg
+                                                                                                                                                                                                                                                    y          tral
+                                                           -Cli                               -En                    Neu                                                                                            -Cli                   -En              Neu
+                                                        Pro                           Pro                                                                                                                      Pro                      Pro
+                                                                                                   Stance                                                                                                                                       Stance
+
+                                       (d) Ours: LLM Summary.                                                                                                                                      (e) Ours: LLM Theme.
+
+                                                 Figure 29: Correlations between themes and stances for Bluesky.
+                                                                         Baseline: LDA topic                                                                                                                                 Baseline: BERTopic topic
+                       tax, energy, bill, credit, cost               -0.05                        0.22               -0.09                                                 35_credits_rural energy_energy                    -0.10                      0.21          -0.03
+                  stronger, building, smart, resi                    -0.07                        0.15               -0.02                                                 114_utah_investinginamerica_iij                   -0.10                      0.21          -0.03
+                                                                                                                                          0.4                                                                                                                                 0.4
+                nuclear, choice, standard, dese                      -0.07                        0.15               -0.02                                             1_city council_council_city_may                       -0.16                     -0.01           0.19
+                planning, property, development                      -0.09                        0.13                0.01                0.2                         40_petroleum alliance_petroleum                        -0.12                      0.16           0.03   0.2
+
+
+Theme / Topic                                                                                                                                        Theme / Topic
+                work, need, working, people, be                      -0.13                        0.01                0.13                                           26_buying expensive_expensive s                         -0.07                      0.15          -0.02
+                                                                                                                                          0.0                                                                                                                                 0.0
+                        tell, say, ballot, add, name                 -0.10                       -0.02                0.13                                           102_alaska_alaska energy_alaska                         -0.07                      0.15          -0.02
+                    national, week, bold, july, http                 -0.10                       -0.02                0.13                 0.2                       105_stem_txoga_natural gas_nort                         -0.07                      0.15          -0.02    0.2
+                     solar, panel, home, must, get                   -0.03                        0.11               -0.05                                           18_green new_new deal_tax cuts_                         -0.07                      0.15          -0.02
+                                                                                                                                           0.4                                                                                                                                 0.4
+                  county, project, revenue, local                    -0.07                        0.11               -0.00                                           25_women_wecan_turtle island_in                         -0.07                      0.15          -0.02
+                  climate, change, action, crisis                     0.11                       -0.09               -0.07                                           130_power bank_cord_outlets_ext                         -0.07                      0.15          -0.02
+                                                                  ma
+                                                                    te                        erg
+                                                                                                      y               tral                                                                                                ma
+                                                                                                                                                                                                                               te                      erg
+                                                                                                                                                                                                                                                          y         tral
+                                                              -Cli                         -En                  Neu                                                                                                   -Cli                    -En                Neu
+                                                         Pro                        Pro                                                                                                                            Pro                    Pro
+                                                                                             Stance                                                                                                                                                    Stance
+
+                                               (a) Baseline: LDA.                                                                                                  (b) Baseline: BERTopic.
+                                                                                                                                               Baseline: TopicGPT topic
+                                                                                             Political Campaigns and Electio                   -0.27                           0.02            0.30
+                                                                                                 Energy Access and Affordability               -0.09                           0.30           -0.10
+                                                                                                                                                                                                                         0.4
+                                                                                                     Climate Change and Emissions               0.30                          -0.16           -0.23
+                                                                                          Environmental Justice and Commu                       0.28                          -0.17           -0.20                      0.2
+
+
+                                                                          Theme / Topic
+                                                                                                               Human Experience                -0.21                          -0.04            0.26
+                                                                                                                                                                                                                         0.0
+                                                                                             Pollution and Waste Management                     0.26                          -0.13           -0.20
+                                                                                           Sustainable Energy and Technolo                      0.25                          -0.10           -0.21                       0.2
+                                                                                                                             Politics          -0.24                           0.04            0.24
+                                                                                                                                                                                                                          0.4
+                                                                                                      Energy Policy and Regulation             -0.09                           0.20           -0.04
+                                                                                          Social Issues and Community Wel                      -0.12                          -0.06            0.18
+                                                                                                                                            ma
+                                                                                                                                                te                           erg
+                                                                                                                                                                                y              tral
+                                                                                                                                        -Cli                            -En                Neu
+                                                                                                                                    Pro                              Pro
+                                                                                                                                                                             Stance
+
+                                                                           (c) Baseline: TopicGPT.
+                                                  Ours: Summary-Based Assignment                                                                                                                           Ours: Theme-Based Assignment
+                       Oil industry promotion                  -0.20                         0.31                  0.01                                                        Oil industry promotion              -0.29                      0.48                -0.01
+                           Energy cost alarm                   -0.21                         0.30                  0.04                                                             Energy cost alarm              -0.20                      0.27                 0.04
+                                                                                                                                          0.4                                                                                                                                 0.4
+                    Pro-childcare candidates                   -0.14                        -0.06                  0.20                                              Pro-infrastructure investment                 -0.21                      0.26                 0.06
+                     Local civic engagement                    -0.17                        -0.00                  0.20                   0.2                                Local civic engagement                -0.17                     -0.07                 0.24       0.2
+
+
+Theme / Topic                                                                                                                                        Theme / Topic
+                Pro-infrastructure investment                  -0.08                         0.17                 -0.03                                                     Anti-Harris energy attack              -0.10                      0.21                -0.03
+                                                                                                                                          0.0                                                                                                                                 0.0
+                   Agriculture policy updates                  -0.13                        -0.01                  0.16                                                     Pro-childcare candidates               -0.14                     -0.03                 0.18
+                     Solar emergency power                     -0.07                         0.15                 -0.02                    0.2                               Clean energy advocacy                  0.14                     -0.04                -0.13        0.2
+                    Anti-Harris energy attack                  -0.12                         0.07                  0.09                                                       Solar energy advocacy                 0.11                     -0.04                -0.09
+                                                                                                                                           0.4                                                                                                                                 0.4
+                Sustainable farming progress                    0.11                        -0.07                 -0.07                                                     Pro-forest climate action               0.11                     -0.05                -0.09
+                         Clean energy boom                      0.10                        -0.01                 -0.10                                                         Big Oil accountability              0.10                     -0.05                -0.08
+                                                           ma
+                                                                te                         erg
+                                                                                                 y                   tral                                                                                       ma
+                                                                                                                                                                                                                     te                      erg
+                                                                                                                                                                                                                                                   y               tral
+                                                       -Cli                          -En                       Neu                                                                                          -Cli                       -En                      Neu
+                                                 Pro                         Pro                                                                                                                         Pro                        Pro
+                                                                                           Stance                                                                                                                                          Stance
+
+                                       (d) Ours: LLM Summary.                                                                                                                                    (e) Ours: LLM Theme.
+
+                   Figure 30: Correlations between themes and stances for Meta (all baselines and methods).
+                                                             (a) Total number of ads.            (b) Total spend.
+
+
+
+
+                                                                              (c) Total impressions.
+
+                                                           Figure 32: Meta advertising activity ±3 days around
+                                                           the November 2024 U.S. election.
+
+ (a) LIWC shift ±30 days around U.S. election (Bluesky).
+
+
+
+
+ (b) LIWC shift ±30 days around CA wildfires (Bluesky).    Figure 33: LIWC content categories and register vari-
+                                                           ables ±30 days around the U.S. election (Meta).
+Figure 31: LIWC content categories and register vari-
+ables around the two events for Bluesky. Election:
+cause declines despite post-volume expansion. Wild-        tion (txt+thm), and is asked to predict the stance
+fires: Tone declines and cause increases.                  of the text (pro-climate, pro-energy, or neutral).
+                                                           We split the data using stratified sampling to
+                                                           preserve stance label distributions across splits.
+LIWC dynamics. Fig. 35 shows the LIWC shift                Specifically, we first create an 80/20 stratified split
+around the wildfires. Tone declines noticeably post-       into training–validation and test sets. The train-
+event, suggesting a less positive emotional regis-         ing–validation portion is then further split using
+ter. Power language increases significantly post-          stratified sampling into training and validation sets
+wildfire (p < .01), pointing to a surge in language        (80/20). All splits are performed with a fixed ran-
+centered on authority, control, and systemic agency.       dom seed for reproducibility.
+Unlike the post-election pattern, focusfuture and             We evaluate open-source LLMs including Llama
+moral remain stable, and risk does not significantly       3.1 (llama-3.1-8b-instant) (Touvron et al., 2023)
+increase despite the salience of the event.                and kimi k2 (moonshotai/kimi-k2-instruct-0905)
+                                                           (Team et al., 2025). For both models, we use
+H     Details of Downstream Tasks                          default inference settings with zero-shot prompt-
+H.1    Downstream Task: Stance Prediction                  ing and run them via the Groq API3 . Prompts (all
+                                                           three input variants) for the stance prediction down-
+In our stance prediction downstream task, the              stream task are given in Fig. 36.
+model is provided with three input variants: text
+                                                              3
+only (txt), theme only (thm), and their concatena-                https://wow.groq.com/
+                     (a) Total spend                                          (b) Total number of ads
+
+
+
+
+               (c) Total number of impressions                      (d) Total number of ads (Short-Horizon)
+
+Figure 34: Advertising activity before and after the Southern California wildfires: (a) total spend, (b) total number
+of ads, and (c) total number of impressions.
+
+
+                                                               In addition, we include a pre-trained language
+                                                            model, RoBERTa (roberta-base) (Liu et al., 2019),
+                                                            as well as a simple logistic regression (LR) classi-
+                                                            fier (Cox, 1958) trained on term frequency–inverse
+                                                            document frequency (tf-idf) features.
+
+                                                               For RoBERTa, we use the ‘roberta-base’ model,
+                                                            batch size = 8, epoch = 3, learning rate = 2e − 5,
+                                                            weight decay = 0.01. Our early stopping criterion
+                                                            is the lowest validation loss. To run the stance
+                                                            classifier, we use a single GPU GeForce GTX 1080
+                                                            Ti GPU, with 4 Intel Core i5-7400 CPU @ 3.00
+                                                            GHz processors, and it takes around 2 minutes to
+                                                            run the model.
+
+                                                               As a lightweight baseline, we train a multi-
+                                                            nomial logistic regression classifier using TF-
+                                                            IDF features. For the combined setting, TF-
+                                                            IDF features are independently computed for text
+                                                            and theme and then concatenated. We tune
+                                                            the n-gram range and the regularization strength
+                                                            C. We consider unigram and short higher-
+Figure 35: LIWC content categories and register vari-       order n-grams to capture both lexical cues and
+ables 30 days before/after 2025 CA Wildfires for Meta       limited phrasal patterns, and select a compact
+dataset.                                                    search space ({(1, 1), (1, 2), (2, 3)} for Meta and
+                                                            {(1, 1), (1, 2), (2, 3), (3, 4)} for Bluesky) to avoid
+                                                            overfitting under class imbalance. The regular-
+                                                            ization strength C is chosen from a logarithmic
+                                                            grid (C ∈ {0.1, 1.0, 10.0} for Meta and C ∈
+                                                            {0.01, 0.1, 1.0, 10.0, 100} for Bluesky) to balance
+                                                            model flexibility and generalization. All hyperpa-
+                                                            rameters are selected based on the performance of
+                                                            validation set.
+                       (a) Text only.
+
+
+
+
+                     (b) Theme only.
+
+
+
+
+                     (c) Text+Theme.
+
+Figure 36: Prompts for downstream task: stance prediction.
+H.2   Downstream Task: Theme Guided
+      Retrieval
+Fig. 37 shows the t-SNE projection of text and
+theme embeddings for the same 500 Meta ads and
+500 Bluesky posts. Meta’s themes and ads ex-
+hibit a denser, more centralized semantic struc-
+ture, likely reflecting a narrower and coordinated
+message space (e.g., advertisements or campaigns).
+In contrast, Bluesky exhibits a broader semantic
+spread, indicating more diverse themes and dis-
+course patterns characteristic of open social plat-
+forms.
+   Qualitative examples (Tables 15 and 16) show
+that theme-guided retrieval surfaces semantically
+relevant posts across platforms. Meta examples
+tend to cluster around coordinated messages, while
+Bluesky samples are more linguistically and topi-
+cally diverse. Retrieved examples reflect stylistic
+and semantic differences across platforms, with
+Meta ads being more coordinated and campaign-
+like (Table 15), and Bluesky showcasing open-
+ended user discourse (Table 16).
+  Theme                              Top Retrieved Ad
+  Climate crisis advocacy            Time & time again we see how most of our elected officials continue
+                                     to fail at protecting our health & safety, which is why we need YOUR
+                                     help to create the world that we want to live in. For more information
+                                     on how to get involved, click the link in our bio to our landing page
+                                     to sign up to be involved in upcoming rulemakings and engagement
+                                     opportunities #environment #climate #legislation #policy #environ-
+                                     ment #climatecrisis #community #love #joy #resilence #pollution
+                                     #solutions #action #hope #climatecrisis #denver #denvercolorado
+  Ocean conservation call            Our ocean is everything. From providing most of the oxygen we
+                                     breathe to shielding us from the worst impacts of climate change, it’s
+                                     our greatest ally. This Giving Season, your support helps us protect
+                                     vulnerable marine ecosystems. Give now to multiply your impact for
+                                     our oceans!
+  Methane regulation push            An emergency brake for our climate: cutting methane pollution is
+                                     the best thing we can do to stop our planet from boiling. Climate
+                                     activist Sophia Kianni explains.
+  Energy cost alarm                  Already struggling with your electrical bill? It might get worse —
+                                     contact your senator today to tell them we need to keep American
+                                     energy competitive.
+  Oil industry promotion             For nearly five decades, the oil & gas industry has been the backbone
+                                     of Alaska’s economy. Its impact includes: Helping create 69,250
+                                     additional jobs, statewide Our state and local governments collecting
+                                     nearly $4.4 in oil & gas revenues Over $1 billion added being added
+                                     to the Permanent Fund Learn more about the impacts the oil & gas
+                                     industry has on Alaska in this video.
+
+Table 15: Theme-guided retrieval examples from Meta. Ads tend to reflect coordinated or campaign-style messaging.
+                                                 (a) Meta
+
+
+
+
+                                                (b) Bluesky
+
+Figure 37: t-SNE projection of post and theme embeddings. Themes (blue ×) tend to cluster near semantically
+aligned texts (orange •), validating theme-text embedding consistency in (a) Meta and (b) Bluesky.
+  Theme                            Top Retrieved Post
+  End fossil fuels                 The fossil fuel industry won’t go down without a fight. It’s too
+                                   lucrative to keep trying to convince people they’re essential to our
+                                   survival.
+  Greenwashing deception           Authenticity sells. Aligning with nature = no greenwashing. It shows
+                                   you walk the talk on sustainability and values.
+  Science under attack             We have no time to waste in opposing the worst of President Trump’s
+                                   Cabinet nominees with respect to science and the role it should play
+                                   in keeping us safe. Urge your senators to vote NO on the ‘Junk
+                                   Science Six’.
+  Climate action collaboration     Climate action is health action. From reducing waste to supporting
+                                   renewable energy and green spaces, every step we take protects our
+                                   health and our planet. Learn how we can work together to champion
+                                   climate resilience and safeguard our future.
+  Sustainable luxury fashion       Sustainable fashion can be considered an antidote to fast fashion.
+                                   It recognizes the economic and sociocultural contributions of the
+                                   fashion industry while also advocating for the need to promote sus-
+                                   tainability across all aspects of production and consumption.
+
+Table 16: Theme-guided retrieval examples from Bluesky. Posts show more diverse, user-driven expression and
+framing.
+

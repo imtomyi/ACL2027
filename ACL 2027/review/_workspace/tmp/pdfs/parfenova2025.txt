@@ -1,0 +1,930 @@
+    Text Annotation via Inductive Coding: Comparing Human Experts to
+                     LLMs in Qualitative Data Analysis
+
+              Angelina Parfenova1,2 , Andreas Marfurt1 , Alexander Denzler1 , and
+                                       Juergen Pfeffer2
+                           1
+                               Lucerne University of Applied Sciences and Arts
+                                      2
+                                        Technical University of Munich
+
+
+                      Abstract
+    This paper investigates the automation of quali-
+    tative data analysis, focusing on inductive cod-
+    ing using large language models (LLMs). Un-
+    like traditional approaches that rely on deduc-
+    tive methods with predefined labels, this re-
+    search investigates the inductive process where
+    labels emerge from the data. The study evalu-
+    ates the performance of six open-source LLMs             Figure 1: Coding in thematic analysis. The source text
+    compared to human experts. As part of the eval-          is split into quotes. The main idea of a paragraph is
+    uation, experts rated the perceived difficulty of        extracted and becomes a code (open coding). Then, this
+    the quotes they coded. The results reveal a pe-          list of codes is hierarchically grouped into more abstract
+    culiar dichotomy: human coders consistently              categories (axial coding).
+    perform well when labeling complex sentences
+    but struggle with simpler ones, while LLMs ex-
+    hibit the opposite trend. Additionally, the study        tive to inconsistencies and subjective biases (Morse,
+    explores systematic deviations in both human             2015; Bumbuc, 2016).
+    and LLM generated labels by comparing them                  One of the most critical and demanding stages
+    to the golden standard from the test set. While
+                                                             of QDA, specifically of thematic analysis, is the
+    human annotations may sometimes differ from
+    the golden standard, they are often rated more           process of coding. Coding involves the systematic
+    favorably by other humans. In contrast, some             identification and labeling of significant themes,
+    LLMs demonstrate closer alignment with the               ideas, attitudes, and topics within a body of text
+    true labels but receive lower evaluations from           (Charmaz, 2014; Glaser and Strauss, 2017). This
+    experts.                                                 method consists of two stages: open coding and
+                                                             axial coding (see Figure 1) which aim to summa-
+1   Introduction
+                                                             rize the main ideas from sentences into codes and
+Qualitative data analysis (QDA) is an important              then categorize them, establishing hierarchy (Sal-
+research method across various fields such as mar-           dana, 2016). Despite its importance, coding is time-
+keting, media studies, social science, psychol-              consuming, often taking weeks to complete for
+ogy, medical research, and others (Avjyan, 2005;             large datasets (Alshenqeeti, 2014; Hennink et al.,
+Creswell, 2016; Mohajan et al., 2018; Flick, 2018;           2020). Moreover, the manual nature of this pro-
+Leeson et al., 2019; Brennen, 2021). Unlike quanti-          cess makes it prone to subjective interpretation,
+tative research, which relies on numerical data and          which can lead to variability in the results (Ryan
+statistical analysis, qualitative research captures          and Bernard, 2003; MacQueen et al., 2008).
+the richness and complexity of human experiences,               Automating QDA is increasingly important, as
+behaviors, and social phenomena (Denzin and Lin-             traditional methods like Topic Modeling and Word-
+coln, 2005; Patton, 2014). It explores research              net hierarchies capture keywords but often miss
+questions in more details, providing insights that           deeper insights (Leeson et al., 2019; Parfenova,
+are often missed by quantitative methods. Yet, this          2024). Advances in NLP, especially LLMs, of-
+depth of understanding comes at a cost—QDA is                fer potential for reducing manual effort in coding,
+naturally labor-intensive, requiring thorough man-           though their ability to match human analysis re-
+ual work that are both time-consuming and sensi-             mains uncertain. This paper explores how LLMs
+                                                        6471
+                               Findings of the Association for Computational Linguistics:
+                                             NAACL 2025, pages 6471–6484
+                        April 29 - May 4, 2025 ©2025 Association for Computational Linguistics
+can automate the open coding process, comparing              Another approach explored in the literature in-
+their performance to human experts through ex-           volves leveraging WordNet (Miller et al., 1990),
+periments in zero-shot, few-shot, and fine-tuning        a lexical database that represents the semantic re-
+scenarios. A key finding of this study is that fine-     lationships between words in a hierarchical struc-
+tuning with as few as 100 examples can achieve           ture (Wei et al., 2015; Guetterman et al., 2018).
+sufficient performance, which is particularly ben-       However Wordnet has limited lexical coverage and
+eficial for computational social science research,       is not actuvely maintained. ConceptNet, on the
+where data collection remains a challenge (Lazer         other hand, extends beyond WordNet by capturing
+et al., 2020).                                           common sense knowledge and broader connections
+                                                         between concepts, making it more suitable for qual-
+2   Related Work                                         itative coding (Liu and Singh, 2004), but still using
+Qualitative coding involves the systematic catego-       only words present in the text, instead of generating
+rization of textual data to identify patterns, themes,   new ones.
+and insights. In this process, each significant state-       As for the automation of coding using LLMs,
+ment or segment of text is assigned a code that          it is worth mentioning that there are two primary
+encapsulates its core idea. According to the defi-       approaches: deductive and inductive. Deductive
+nition by Saldana (2016), a code is "often a word        coding is theory-driven, where predefined codes are
+or short phrase that symbolically assigns a summa-       applied to the data. In contrast, inductive coding is
+tive, salient, essence-capturing, and/or evocative       data-driven, allowing codes to emerge organically
+attribute for a portion of language-based or visual      from the data. Some studies, such as Xiao et al.
+data." In one of the most popular methods of QDA,        (2023); Spinoso-Di Piano et al. (2023); Matter et al.
+thematic analysis, once these segments are coded,        (2024); Ziems et al. (2024); Fischer and Biemann
+they are grouped into broader categories that high-      (2024), have explored the use of LLMs for auto-
+light underlying hierarchy between codes. The data       matic deductive code generation where labels are
+itself can consist of interviews, documents, field       predefined. However, our approach utilizes an in-
+notes, or any other source of qualitative informa-       ductive coding method based on grounded theory
+tion. To explain the process more simply, we first       (Glaser and Strauss, 2017), allowing insights to
+summarize the main idea of each quote (sentence or       naturally emerge from the data.
+paragraph). Then, we group these summaries into          Existing software for coding Qualitative re-
+larger categories. This involves examining all the       searchers usually utilize specialized software such
+ideas we’ve identified and determining how they fit      as Atlas.ti* , Dedoose† , MAXQDA‡ to aid in man-
+together into broader themes.                            ual coding. These tools provide a user-friendly
+Methods similar to coding One of the most ex-            interface for tagging, categorizing, and organizing
+tensively studied approaches is the use of topic         data. While these platforms offer significant con-
+modeling and word embeddings. These techniques           venience and streamline the workflow, they do not
+are often compared directly to traditional open cod-     perform coding itself. Instead, they serve as dig-
+ing methods to evaluate their effectiveness. For         ital extensions of traditional qualitative methods,
+instance Leeson et al. (2019) used Latent Dirichlet      making it easier to manage large volumes of data.
+Allocation (LDA) by Blei et al. (2003) to extract
+                                                         3       Dataset
+topics from text data, assigning weights to words
+that represent the identified topics. In this, the       The dataset was compiled from student and profes-
+words in topics were compared to the codes created       sor contributions across three social science facul-
+by human coders. A more recent development in            ties of different universities. It consists of 600 code-
+this area involves using BERT embeddings with            quote pairs (see example in Figure 2). As shown
+hierarchical density-based spatial clustering of ap-     in Table 1, most of these studies were based on
+plications with noise (HDBSCAN) (Grootendorst,           interviews covering various topics such as values,
+2022; Parfenova, 2024). This method provides a           social expectations, interaction with technology,
+more detailed and contextually aware representa-         while one of them involved the analysis of online
+tion of the data. However, this technique still ex-          * https://atlasti.com/
+tracts only existing words from the text rather than         †
+                                                                 https://www.dedoose.com/
+generating new ideas based on the context.                   ‡
+                                                                 https://www.maxqda.com/
+
+                                                     6472
+                                                                                        Statistic                 Overall        Train           Test
+
+                                                                                        Total Quotes               1000           900            100
+                                                                                        Social Science Data        600            550             50
+                                                                                        SemEval Data               400            350             50
+                                                                                        Num of Data Sources         11             11             11
+                                                                                        Unique Codes               680            624             94
+                                                                                        Average Quote Length   254.75274.28   280.89280.89   234.80201.61
+                                                                                        Average Code Length     19.9510.43     20.0410.70     19.2710.53
+
+
+                                                                                    Table 2: Summary statistics of the dataset and train/test
+                                                                                    splits. Subscript refers to standard deviation where ap-
+                                                                                    plicable.
+                  Figure 2: Dataset examples
+
+                                                                                    lished guidelines, open coding does not necessitate
+reviews. The Code column in the dataset repre-                                      prior knowledge of the research topic, whereas ax-
+sents the golden standard, established by consen-                                   ial coding heavily relies on such knowledge (Miles
+sus among 3 to 5 coders. Coders initially labeled                                   and Huberman, 1994; Glaser and Strauss, 2017).
+quotes independently, then discussed and agreed                                        In this study, we compared several open source
+on the final golden standard label.                                                 models: Llama3 (Touvron et al., 2023), Falcon
+   To enhance the dataset, an additional 400 code-                                  (Pineda et al., 2023), Mistral (Team, 2023), Vi-
+quote pairs were incorporated from the SemEval-                                     cuna (Li et al., 2023), Gemma (Team, 2024), and
+2014 dataset Task 4, which consists of online re-                                   TinyLlama (Jiang et al., 2023) (see Appendix F),
+views (Pontiki et al., 2014). This data was manually                                to evaluate their performance in the open coding
+coded by sociologists, who extracted the main idea                                  task. We experimented with different approaches
+of each review. Experiments demonstrated that                                       including zero-shot, few-shot (providing 1 to 5 ex-
+models trained on the augmented dataset outper-                                     amples), and parameter-efficient fine-tuning (Han
+formed those trained on the original dataset (see                                   et al., 2024) using Low-Rank Adaptation (Hu et al.,
+Table 3). As a result, all subsequent experiments                                   2021).
+were conducted using the augmented dataset of
+1,000 examples. The test set size was set to 100                                    4.1         Metrics
+examples (see Table 2). The dataset was split into                                  To evaluate the performance of chosen models,
+training and testing sets without a separate valida-                                two metrics were employed to capture both lex-
+tion set. Hyperparameters were selected based on                                    ical and semantic similarity: ROUGE (Lin, 2004)
+the training results and evaluated on the test set.                                 and BERTScore (Zhang et al., 2019). BERTScore
+                                                                                    is a metric that computes the similarity between
+    N Quotes   Description
+                                                                                    BERT token embeddings of two codes, which helps
+                    Social Science Studies Data: 600 quotes
+                                                                                    assess the meaning in the generated output com-
+    78         Study about interaction with self-tracking devices (interviews)
+    22         Study about life transitions and mobility (interviews)               pared to the reference. ROUGE is a lexical similar-
+    82         Study about interaction with voice assistants (interviews)
+    28         Study about museums and cultural experiences (interviews)            ity measure that calculates the overlap of n-grams
+    25         Study on doctors’ experiences with pregnant women (interviews)
+    110        Study on universal and national values (interviews)                  (1-unigram overlap, 2-bigram overlap, L-longest
+    24         Study on procrastination and budget planning (interviews)
+    56         Study on technology interactions and user feedback (reviews)         common subsequence) between the generated text
+    175        Study about social expectations (interviews)
+                                                                                    and the reference text. ROUGE is particularly ef-
+                      SemEval 2014; Task 4: 400 quotes
+                                                                                    fective in summarization task (Fabbri et al., 2021),
+    211        Restaurant reviews
+    189        Laptop reviews                                                       which is valuable when the exact wording of the
+                                                                                    output needs to match the reference.
+Table 1: Summary of Data Sources with descriptions.
+                                                                                    4.2         Results
+                                                                                    Finetuning Results show that Falcon and Mis-
+4     Automatic evaluation
+                                                                                    tral consistently performed better than other mod-
+As previously mentioned, this study focuses exclu-                                  els across both the BERTScore and ROUGE met-
+sively on the open coding phase, while categorizing                                 rics, particularly when fine-tuned on the augmented
+and clustering codes into higher-order categories                                   dataset. Falcon achieved the highest BERTSscore
+(axial coding) remains a separate task that requires                                (0.7642) when trained on the full dataset, suggest-
+distinct experimentation and evaluation, and will                                   ing that it is better at capturing the nuances of
+be covered in a future work. According to estab-                                    sentence meaning compared to other models (see
+                                                                                 6473
+         Dataset Size               Parameters                BERTScore                               ROUGE
+                                                   Pstd         Rstd          F 1std         1          2          L
+
+         900 with augmentation
+         Llama3 (instruct)             8B        0.7130.060   0.7870.084    0.7470.062    0.142       0.033       0.136
+         Falcon (instruct)             7B        0.7440.100   0.7880.100    0.7640.096    0.204       0.089       0.202
+         Mistral (instruct)            7B        0.7280.076   0.7900.094    0.7560.078    0.175       0.075       0.166
+         Vicuna (instruct)             7B        0.7260.081   0.7880.095    0.7540.080    0.188       0.077       0.185
+         Gemma (instruct)              7B        0.7210.083   0.7750.092    0.7460.081    0.165       0.059       0.159
+         Tinyllama (chat)             1.1B       0.7380.091   0.7810.095    0.7580.088    0.185       0.073       0.179
+
+         500 without augmentation
+         Llama3 (instruct)             8B        0.7140.069   0.7630.078    0.7370.068    0.137       0.053       0.135
+         Falcon (instruct)             7B        0.7350.098   0.7570.096    0.7450.092    0.147       0.041       0.146
+         Mistral (instruct)            7B        0.7310.095   0.7760.093    0.7510.088    0.180       0.074       0.173
+         Vicuna (instruct)             7B        0.7220.078   0.7630.080    0.7410.074    0.141       0.039       0.137
+         Gemma (instruct)              7B        0.7020.084   0.7690.091    0.7330.081    0.157       0.068       0.154
+         Tinyllama (chat)             1.1B       0.7260.078   0.7730.089    0.7480.077    0.187       0.074       0.178
+
+
+Table 3: Model Performance on open coding task with and without augmentation. The prompt used was ’Summarize
+the main idea of a sentence.’
+
+
+Table 3). Mistral also demonstrated strong perfor-                            Model       Zero-shot      1-shot        3-shot     5-shot
+
+mance, especially in its consistency across different                         Llama3
+                                                                              Falcon
+                                                                                           0.6713
+                                                                                          0.7112
+                                                                                                        0.7488
+                                                                                                        0.7092
+                                                                                                                     0.7308
+                                                                                                                     0.7195
+                                                                                                                                 0.7473
+                                                                                                                                 0.7019
+dataset sizes, showing a more stable performance                              Mistral
+                                                                              Vicuna
+                                                                                           0.6945
+                                                                                           0.6951
+                                                                                                       0.7501
+                                                                                                        0.7496
+                                                                                                                    0.7536
+                                                                                                                     0.6790
+                                                                                                                                0.7613
+                                                                                                                                 0.6893
+with varying data availability.                                               Gemma
+                                                                              TinyLlama
+                                                                                           0.6951
+                                                                                           0.6928
+                                                                                                        0.7414
+                                                                                                        0.7444
+                                                                                                                     0.7227
+                                                                                                                     0.7295
+                                                                                                                                 0.7339
+                                                                                                                                 0.6893
+
+
+Augmentation When comparing results between                           Table 4: BERT F1 scores for Zero-shot and Few-shot
+the augmented dataset (1000 examples) and the                         performance across models
+smaller dataset (600 examples), it is clear that in-
+creasing the training dataset size significantly im-
+proves model performance. For instance, Falcon’s                      ited varying behaviors as more examples were pro-
+BERTScore increased from 0.7348 to 0.7642, and                        vided. Notably, as depicted in Figure 4, Mistral
+Mistral’s BERTScore improved from 0.7308 to                           demonstrated continuous improvement across all
+0.7562. The results show that all models gener-                       scenarios, achieving the highest BERTScore in the
+ally improved in performance as the dataset size                      five-shot scenario. The best settings of models are
+increased, supporting that larger training datasets                   demonstrated in Table 5.
+lead to better generalization. However, the most
+significant finding is that the performance, as mea-                  5     Human Expert Evaluation
+sured by the BERTScore, plateaued after approxi-
+                                                                      The efficacy of LLMs in automating the open cod-
+mately 100 examples (demonstrated in the Figure
+                                                                      ing phase was evaluated through a comparison with
+3). This suggests that while additional data beyond
+                                                                      human coders. Three expert qualitative researchers
+100 examples can still contribute to slight improve-
+                                                                      with social science educational background man-
+ments, the majority of performance gains can be
+                                                                      ually coded a selection of sentences, and their
+achieved with a relatively small amount of data.
+                                                                      codes were compared with those produced by six
+Zero-shot and Few-shot In this experiment, we                         LLMs in their best performance scenarios (see Ta-
+evaluated various models across different settings:                   ble 5). The evaluation process was conducted in
+zero-shot, one-shot, three-shot, and five-shot sce-                   two stages.
+narios. In the zero-shot setting, no examples were
+provided to the models, and they had to generate                      5.1     Stage 1: Coding and Difficulty Rating
+codes based solely on the initial prompt. In the one-                 In the first stage, the human coders participated
+shot, three-shot, and five-shot settings, the models                  in an expert coding task, where they were pre-
+were given one, three, and five examples, respec-                     sented with a set of 15 sentences (see Appendix D).
+tively, to help guide their coding (see Table 4).                     According to the definition of a code by Saldana
+   The BERTScores across the different models                         (2016) the coders were asked to generate an open
+varied depending on the number of examples pro-                       code for each sentence that best encapsulated its
+vided. The performance generally improved when                        core meaning. Each code had to be a word or short
+moving from zero-shot to one-shot scenarios, with                     phrase summarizing the key idea of the sentence.
+most models achieving their highest scores with                       This open coding process was conducted without
+just one example. However, the models exhib-                          any prior knowledge of the golden standard labels.
+                                                                 6474
+Figure 3: BERT F1 score with an increase of dataset size for all models. The shaded areas represent the standard
+deviation. The analysis shows how each model benefits from additional data, with some models like Mistral and
+Falcon displaying higher stability and faster performance gains compared to others. This figure illustrates that the
+few examples is enough for sufficient finetuning performance.
+
+
+   Additionally, the coders were asked to rate the
+subjective difficulty of coding each sentence. For
+each sentence, they chose one of three levels, based
+on the following criteria: Easy (1) - The sentence
+is straightforward and the code is obvious; Medium
+(2) - The sentence requires more thought, but a
+clear code can still be assigned; Difficult (3) - The
+sentence is complex or ambiguous, making it dif-
+ficult to assign a suitable code. In the evaluation         Figure 4: Mistral BERT F1 scores across different num-
+process, difficulty was initially assumed based on          bers of examples.
+a 1-to-3 scale, and then compared to the results
+given by experts. After collecting the difficulty
+ratings from all coders, the average difficulty was         Stage 2: Rating Coder and Model Labels In
+computed across these values.                               the second stage, the coders were provided with the
+   Upon analysis, we found that the averaged dif-           labels generated by the other coders, the labels gen-
+ficulty metric correlated strongly with the length          erated by the best-performing LLM models from
+of the sentences. Longer sentences tended to be             the first stage, as well as golden standard labels.
+perceived as more complex. In contrast, traditional         The coders were asked to rate each label on a scale
+lexicon-based readability metrics, such as Flesch           from 1 to 5, with 5 representing the most accurate
+Reading Ease (Kincaid, 1975) and the Coleman-               and representative coding of the sentence’s core
+Liau Index (Coleman and Liau, 1975)§ , were found           idea. This stage aimed to evaluate both the quality
+to be uncorrelated with the difficulty ratings as-          of human-generated codes and the performance of
+signed by the coders. These readability scores,             the LLMs in comparison to them. The instructions
+designed for general text comprehension, failed             for coders are attached in Appendix E. Two key
+to capture the specific challenges associated with          metrics were used in the evaluation:
+qualitative coding (see Appendix C). As a result,
+sentence length and the coders’ averaged perceived          5.2   Metrics
+difficulty were more reliable indicators of complex-        Deviation from golden standard For each coder
+ity in this open coding task.                               i and each sentence j, the deviation was calculated
+                                                            by comparing the average rating of the humans’
+   §
+    Ward, Alex. 2022.      Textstat, https://pypi.org/      and LLMs’ codes with the golden standard label.
+project/textstat/                                           The deviation for each code was computed using
+                                                       6475
+  Model                Parameters        Adaptation                                   Prompt                                    BERTScore                   ROUGE
+
+                                                                                                                         P         R         F1      1        2      L
+
+  Llama3 (instruct)       8B              Finetuning                    Summarize the main idea of a sentence.          0.719     0.788     0.751   0.182   0.059   0.167
+                                                                       From the perspective of a social scientist,
+  Falcon (instruct)       7B              Finetuning               summarize the following sentence as you would        0.745     0.792     0.766   0.210   0.089   0.211
+                                                                                 in thematic coding.
+                                                                      Can you tell me what the main idea of this
+  Mistral (instruct)      7B              Finetuning                                                                    0.742     0.795     0.766   0.246   0.106   0.235
+                                                                           sentence is in just a few words?
+  Vicuna (instruct)       7B              Finetuning                    Summarize the main idea of a sentence.          0.734     0.787     0.759   0.194   0.068   0.185
+                                                                     If you were a social scientist doing thematic
+  Gemma (instruct)        7B              Finetuning                                                                    0.724     0.784     0.751   0.170   0.066   0.168
+                                                                 analysis, what code would you give to this citation?
+                                                                        Summarize the main idea of a sentence.
+  TinyLlama (chat)        1.1B       Few-shot (5 examples)                                                              0.768     0.744     0.755   0.176   0.026   0.176
+                                                                                 Here are examples:
+
+
+Table 5: Performance of various open-Source LLMs on open coding task across different adaptation methods and
+prompts. This table presents the BERTScore and ROUGE scores for each model, indicating precision (P), recall
+(R), and F1 scores for BERTScore, along with ROUGE scores (1, 2, L). Models were evaluated under different
+scenarios, including finetuning and few-shot approaches, with prompts designed to align with thematic analysis.
+
+
+the formula:                                                                                LLMs, Krippendorff’s alpha (Krippendorff, 2018)
+                                                                                            was computed. Krippendorff’s alpha is a widely
+                                        !                                    !              used reliability coefficient that quantifies the level
+                                 N                           N
+                        1 X (i)                        1 X (GS)                             of agreement between coders on a set of coding
+   DGSi,j =                rk,j              −            rk,j
+                        N                              N                                    tasks, while accounting for the possibility of chance
+                             k=1                             k=1
+                                                                                            agreement. It is particularly versatile, as it can
+    where:                                                                                  handle various types of data, including nominal,
+- i is the coder/model for whom the deviation is                                            ordinal, interval, and ratio-level data, making it
+ calculated.                                                                                well-suited for qualitative research where different
+- j is the specific sentence being evaluated.                                               coding schemes or scales are used.
+- N represents the number of experts who rated                                                 Krippendorff’s alpha is valuable because it ac-
+ both the coder/model i and the golden standard                                             commodates situations where coders may not agree
+(GS) for sentence j.                                                                        perfectly and where missing or incomplete data is
+    (i)
+- rk,j is the rating given by expert k to coder/model                                       present, unlike simpler agreement measures like
+ i for sentence j.                                                                          percent agreement or Cohen’s kappa (McHugh,
+    (GS)
+- rk,j is the rating given by expert k to the golden                                        2012), which require complete data and assume
+ standard (GS) for sentence j.                                                              equal distribution across categories. It can also han-
+                                                                                            dle any number of coders, not just pairs, making it
+Average DGS To compute an overall measure of                                                ideal for our study, which involves multiple human
+deviation for each coder i across all sentences (M -                                        coders and LLMs.
+total number of sentences), the average deviation
+was calculated as follows:                                                                  5.3       Results
+                                                 M                                          The result shown in the Figure 5(a) indicate that hu-
+                              1 X
+               Average DGSi =     DGSi,j                                                    man coders performed exceptionally well in coding
+                              M                                                             difficult sentences, which often involved abstract
+                                                j=1
+                                                                                            concepts or nuanced language. However, their per-
+   In this case, positive deviation occurs when an
+                                                                                            formance was less consistent with easier sentences,
+expert rates a code higher than the golden standard,
+                                                                                            where LLMs tended to perform better. This discrep-
+resulting in a positive deviation from it. Nega-
+                                                                                            ancy is likely due to the tendency of human coders
+tive deviation, on the other hand, is when a coder
+                                                                                            to overcomplicate simple statements or overlook
+rates a sentence lower than the golden standard.
+                                                                                            straightforward interpretations. One coder, in par-
+Both types indicate a coder’s divergence from the
+                                                                                            ticular, commented during the evaluation phase that
+golden standard but in different directions, reflect-
+                                                                                            they tended to overinterpret data and make codes
+ing higher or lower evaluation by humans of a par-
+                                                                                            too abstract.
+ticular code.
+                                                                                               This tendency was shown when coding simple
+Inter-Coder Reliability To assess the reliabil-                                             sentences, for instance I can ask the voice assis-
+ity and consistency of the codes generated by dif-                                          tant what the weather is like. In this example,
+ferent coders, including both human coders and                                              LLMs generated codes such as weather forecast
+                                                                                    6476
+or weather prediction which are similar to Golden         and interpreted the codes, further contributing to
+Standard label weather. However, humans pro-              the low reliability. In comparison, tasks like rating
+vided more abstract code: functional usage, device        restaurant experiences or product reviews may be
+feature, and voice command. While these addi-             better suited to this evaluation metric because they
+tional layers of interpretation may add depth in          involve more objective criteria (e.g., food quality,
+some contexts, in this case, they introduced un-          and service speed). The task of qualitative code
+necessary complexity and deviated from the core           evaluation, however, involves a higher degree of
+meaning of the sentence. Nevertheless, this level         interpretation and abstraction (Galdas, 2017), mak-
+of abstraction could be valuable for the next stage       ing it less suitable for standard reliability metrics
+of axial coding where codes are organized into hi-        like Krippendorff’s alpha.
+erarchies.
+   This tendency of human coders to overcompli-           6   Discussion
+cate simple sentences was also reflected in the DGS
+                                                          The results of this study revealed several surprising
+evaluation results (see Figure 5(b)). For human
+                                                          and, at times, counterintuitive findings. Notably,
+coders (Coders A, B, and C), deviation from golden
+                                                          BERTScore performance plateaued after approx-
+standard was particularly pronounced for easier
+                                                          imately 100 examples, suggesting that effective
+sentences. Coder A, in particular, consistently
+                                                          fine-tuning is achievable with a relatively small
+showed positive deviation, being further from
+                                                          dataset. This has important implications for com-
+golden standard but rated higher by experts. In
+                                                          putational social science research, where data is
+contrast, LLMs generally exhibited less deviation
+                                                          often scarce and difficult to collect.
+across sentence complexities. For instance, Llama3
+                                                             One of the most unexpected outcomes was that
+demonstrated positive deviation for medium and
+                                                          LLMs exhibited less deviation in coding, mean-
+difficult sentences, suggesting that it tended to over-
+                                                          ing their outputs were often closer to the golden
+predict or generate overly complex codes in certain
+                                                          standard compared to human coders. This find-
+cases that mimics human expert behavior. Mod-
+                                                          ing challenges the common assumption that human
+els like Falcon and Mistral showed much lower
+                                                          coders, with their deep contextual understanding
+deviation, particularly for easy and medium sen-
+                                                          and expertise, would naturally generate more accu-
+tences, where their labels aligned more closely with
+                                                          rate and reliable codes.
+the golden standard. Overall, LLMs demonstrated
+                                                             Human coders had a tendency to overinterpret
+lower and more consistent deviation compared to
+                                                          the data, adding unnecessary complexity to straight-
+human coders, particularly for easier sentences.
+                                                          forward sentences. As it was highlighted by one
+This suggests that LLMs are more reliable in han-
+                                                          of the experts, this is a pitfall in early qualitative
+dling straightforward coding tasks. However, as
+                                                          analysis and may reflect an effort to capture nu-
+the sentence complexity increased, some models,
+                                                          ances that aren’t immediately relevant in the initial
+such as Llama3, exhibited positive deviation, mean-
+                                                          open coding phase. Interestingly, as research pro-
+ing being evaluated higher than golden standard by
+                                                          gresses into more advanced stages such as axial
+experts, while other LLMs showed the opposite
+                                                          coding, these preliminary codes are often refined
+trend. In contrast, human coders, while showing
+                                                          and simplified. Therefore, it would be fascinating
+higher deviation overall, were able to better handle
+                                                          to investigate how human coders’ open codes might
+the complexity of difficult sentences, albeit incon-
+                                                          change if they were later exposed to the results of
+sistently.
+                                                          axial coding (higher order categories).
+   Despite the effort to ensure consistency in the
+coding process, the inter-coder reliability, mea-         7   Conclusion
+sured using Krippendorff’s alpha, was low, with a
+value of 0.2. This low value indicates a significant      For the task of open coding, we tested six open-
+lack of agreement between coders, which can be            source LLMs and compared their performance in
+attributed to the subjective nature of the task and       finetuning, zero-shot, and few-shot scenarios. Fol-
+the inherent variability in how individuals interpret     lowing this, we conducted a human expert evalua-
+complex, abstract concepts (Hayes and Krippen-            tion to compare the codes produced by LLMs with
+dorff, 2007). Additionally, the broad definition of a     those created by human coders. This comparative
+code provided by Saldana (2016) may have allowed          approach allowed us to assess the strengths and lim-
+for considerable variation in how coders applied          itations of LLMs in automating qualitative coding
+                                                      6477
+          (a) Average rating of LLMs and Humans                           (b) Deviation evaluation
+
+Figure 5: Comparison of Average Ratings and Deviation from Golden Standard (DGS) for LLMs and human coders.
+Panel (a) shows the average ratings given to both human coders (CoderA, CoderB, CoderC) and various LLM
+models, segmented by sentence difficulty (Easy, Medium, Difficult). The graph highlights that LLMs generally
+receive higher ratings on easy sentences compared to human coders, while humans excel in coding more complex
+sentences. Panel (b) presents the DGS results for both human coders and LLMs across different sentence difficulties,
+with positive and negative deviations from the golden standard.
+
+
+tasks.                                                     we took steps to identify and mitigate biases in the
+   The study revealed important insights into the po-      models and human coders. However, we acknowl-
+tential of LLMs, as well as the challenges they face.      edge that the use of LLMs in sensitive research
+While for short sentences LLMs tend to be closer           areas requires the development of guidelines to en-
+to golden standard labels than human coders, they          sure that these tools are used responsibly. The hu-
+lack the interpretative depth necessary for complex        man participants involved in the expert evaluation
+qualitative analysis. Human coders, despite their          were fully informed about the study’s objectives
+expertise, often introduce unnecessary complexity          and provided their consent to participate. Their
+into their codes, reflecting a tendency to overin-         expertise was crucial in evaluating the performance
+terpret data during the open coding phase. The             of the LLMs, and their input was treated with the
+results demonstrated that LLMs hold great promise          utmost respect and consideration.
+in automating the open coding process, especially
+in domains where the data is straightforward and           Limitations
+repetitive, such as customer feedback analysis or          Firstly, it is important to highlight that our focus
+social media monitoring. However, for more nu-             was limited to open coding; we did not explore the
+anced tasks, particularly in academic social science       full qualitative analysis process, particularly axial
+research, human coders remain more reliable due            coding, which organizes open codes into higher-
+to their ability to interpret longer and more difficult    order categories. Future research could extend this
+sentences that LLMs struggle to handle.                    work by investigating whether LLMs can assist
+   Future work will extend this study into the axial       in axial coding, potentially offering a complete
+coding stage, with the goal of developing a com-           automation of thematic analysis.
+plete thematic analysis pipeline and evaluating its           The dataset used in this study focused primarily
+performance against human expert results. This             on social science research, supplemented by on-
+next phase will assess how effectively LLMs can            line reviews. However, the scope of QDA extends
+contribute to the full qualitative coding process          beyond this, encompassing domains such as so-
+and determine whether they are suitable for full           cial media posts, medical texts, media content, and
+automation or better suited as an assistive tool.          field notes. It means that the current models may
+                                                           not generalize well across all potential domains,
+Ethics Statement
+                                                           especially those with specialized terminology and
+The use of LLMs in qualitative research introduces         professional knowledge requirements.
+new ethical considerations, particularly concern-             Another limitation is that while we used estab-
+ing bias and the potential for automated systems           lished metrics such as BERTScore and ROUGE,
+to replicate or amplify human biases. In this study,       these may not fully capture the quality and inter-
+                                                       6478
+pretative nature of qualitative coding. Developing          Tim Fischer and Chris Biemann. 2024. Exploring large
+more nuanced evaluation metrics that align better             language models for qualitative data analysis. In
+                                                              Proceedings of the 4th International Conference on
+with the goals of qualitative research would be an
+                                                              Natural Language Processing for Digital Humani-
+important step forward.                                       ties, pages 423–437, Miami, USA. Association for
+   Lastly, this study compared LLM performance                Computational Linguistics.
+to human coders based on alignment with a golden
+                                                            Uwe Flick. 2018. The SAGE Handbook of Qualitative
+standard, which may not be the ideal measure of              Data Collection. SAGE Publications.
+codes’ quality. In real-world coding scenarios, hu-
+                                                            Paul Galdas. 2017. Revisiting bias in qualitative re-
+man coders often reach a consensus after discus-
+                                                              search: Reflections on its relationship with funding
+sion, whereas LLMs do not undergo such collabo-               and impact.
+rative process. This raises the question of whether
+                                                            Barney Glaser and Anselm Strauss. 2017. Discovery of
+LLM-generated codes could eventually reach con-
+                                                              grounded theory: Strategies for qualitative research.
+sensus between models or if their role is better              Routledge.
+suited as an assistive tool for human coders. Fur-
+ther investigation into a hybrid approach—where             Maarten Grootendorst. 2022. Bertopic: Neural topic
+                                                             modeling with a class-based tf-idf procedure.
+LLMs handle initial coding and humans provide
+further refinement and interpretation, especially for       T.C. Guetterman, T. Chang, M. Dejonckheere, T. Basu,
+complex or ambiguous data—would be a valuable                 E. Scruggs, and V.G.V. Vydishwaran. 2018. Aug-
+                                                              menting qualitative text analysis with natural lan-
+direction for future research.                                guage processing: Methodological study. J. Med.
+                                                              Internet Res., 20.
+
+References                                                  Zeyu Han, Chao Gao, Jinyang Liu, Jeff Zhang, and
+                                                              Sai Qian Zhang. 2024. Parameter-efficient fine-
+H. Alshenqeeti. 2014. Interviewing as a data collec-          tuning for large models: A comprehensive survey.
+  tion method: A critical review. English Linguistics
+  Research, 3:39–45.                                        Andrew F Hayes and Klaus Krippendorff. 2007. An-
+                                                              swering the call for a standard reliability measure for
+E.G. Avjyan. 2005. Asynchronous on-line focus group:          coding data. Communication methods and measures,
+  technology and procedures of conducting. Southern           1(1):77–89.
+  Russian Journal of Social Sciences, (1):116–129.
+                                                            Monique M Hennink, Bonnie N Kaiser, and Vincent C
+David M Blei, Andrew Y Ng, and Michael I Jordan.             Marconi. 2020. Code saturation versus meaning sat-
+  2003. Latent dirichlet allocation. Journal of machine      uration: How many interviews are enough? Qualita-
+  Learning research, 3(Jan):993–1022.                        tive Health Research, 29(11):1487–1496.
+
+Bonnie S Brennen. 2021. Qualitative research methods        Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan
+  for media studies. routledge.                               Allen-Zhu, Yuanzhi Li, Shean Wang, and Weizhu
+                                                              Chen. 2021. Lora: Low-rank adaptation of large
+Ştefania Bumbuc. 2016. About subjectivity in qualita-        language models. CoRR, abs/2106.09685.
+    tive data interpretation. In International Conference   Zhe Jiang et al. 2023. Tinyllama: Distilling large
+   Knowledge-Based Organization, volume 22, pages             language models for efficiency. arXiv preprint
+   419–424.                                                   arXiv:2310.05637.
+Kathy Charmaz. 2014. Constructing Grounded Theory.          JP Kincaid. 1975. Derivation of new readability for-
+  SAGE Publications.                                          mulas (automated readability index, fog count and
+                                                              flesch reading ease formula) for navy enlisted person-
+Meri Coleman and Ta Lin Liau. 1975. A computer                nel. Chief of Naval Technical Training.
+ readability formula designed for machine scoring.
+ Journal of Applied Psychology, 60(2):283.                  Klaus Krippendorff. 2018. Content analysis: An intro-
+                                                              duction to its methodology. Sage publications.
+John W Creswell. 2016. 30 Essential Skills for the
+  Qualitative Researcher. SAGE Publications.                David MJ Lazer, Alex Pentland, Duncan J Watts, Sinan
+                                                              Aral, Susan Athey, Noshir Contractor, Deen Freelon,
+Norman K Denzin and Yvonna S Lincoln. 2005. The               Sandra Gonzalez-Bailon, Gary King, Helen Margetts,
+  Sage Handbook of Qualitative Research. SAGE Pub-            et al. 2020. Computational social science: Obstacles
+  lications.                                                  and opportunities. Science, 369(6507):1060–1062.
+Alexander R. Fabbri, Wojciech Kryściński, Bryan Mc-       W. Leeson, A. Resnick, D. Alexander, and J. Rovers.
+  Cann, Caiming Xiong, Richard Socher, and Dragomir           2019. Natural language processing (nlp) in qualita-
+  Radev. 2021. Summeval: Re-evaluating summariza-             tive public health research: a proof of concept study.
+  tion evaluation.                                            International Journal of Qualitative Methods, 18.
+                                                        6479
+Chenghao Li, Fangchen Xie, et al. 2023. Vicuna: An         J. Saldana. 2016. The Coding Manual for Qualitative
+  open-source chatbot. FastChat: Open Assistant.              Researchers, 3rd edition. Sage, Los Angeles, CA.
+  Available at https://vicuna.lmsys.org/.
+                                                           Cesare Spinoso-Di Piano, Samira Rahimi, and Jackie
+Chin-Yew Lin. 2004. ROUGE: A package for auto-               Cheung. 2023. Qualitative code suggestion: A
+  matic evaluation of summaries. In Text Summariza-          human-centric approach to qualitative coding. In
+  tion Branches Out, pages 74–81, Barcelona, Spain.          Findings of the Association for Computational Lin-
+  Association for Computational Linguistics.                 guistics: EMNLP 2023, pages 14887–14909, Singa-
+                                                             pore. Association for Computational Linguistics.
+Hugo Liu and Push Singh. 2004. Conceptnet—a practi-
+  cal commonsense reasoning tool-kit. BT technology        Gemma AI Research Team. 2024. Gemma: An in-
+  journal, 22(4):211–226.                                    structable, open-source large language model.
+Kathleen M MacQueen, Eleanor McLellan, Kelly Kay,          Mistral AI Team. 2023. Mistral: Efficient pretraining
+  and Bobby Milstein. 2008. Codebook Development             of transformer language models.
+  for Team-Based Qualitative Analysis. Cultural An-
+  thropology Methods.                                      Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+                                                             Martinet, Marie-Anne Lachaux, Timothée Lacroix,
+Daniel Matter, Miriam Schirmer, Nir Grinberg, and Jür-       Baptiste Rozière, Naman Goyal, Eric Hambro,
+  gen Pfeffer. 2024. Close to human-level agreement:         Faisal Azhar, et al. 2023. Llama: Open and effi-
+  Tracing journeys of violent speech in incel posts with     cient foundation language models. arXiv preprint
+  gpt-4-enhanced annotations.                                arXiv:2302.13971.
+Mary L McHugh. 2012. Interrater reliability: the kappa     Tingting Wei, Yonghe Lu, Huiyou Chang, Qiang Zhou,
+  statistic. Biochemia medica, 22(3):276–282.                and Xianyu Bao. 2015. A semantic approach for text
+Matthew B Miles and A Michael Huberman. 1994.                clustering using wordnet and lexical chains. Expert
+ Qualitative data analysis: An expanded sourcebook.          Syst. Appl., 42(4):2264–2275.
+ sage.                                                     Ziang Xiao, Xingdi Yuan, Q. Vera Liao, Rania Ab-
+George A Miller, Richard Beckwith, Christiane Fell-          delghani, and Pierre-Yves Oudeyer. 2023. Support-
+  baum, Derek Gross, and Katherine J Miller. 1990.           ing qualitative analysis with large language models:
+  Introduction to wordnet: An on-line lexical database.      Combining codebook with gpt-3 for deductive cod-
+  International journal of lexicography, 3(4):235–244.       ing. In 28th International Conference on Intelligent
+                                                             User Interfaces, IUI ’23. ACM.
+Haradhan Kumar Mohajan et al. 2018. Qualitative re-
+  search methodology in social sciences and related        Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q.
+  subjects. Journal of economic development, environ-        Weinberger, and Yoav Artzi. 2019. Bertscore:
+  ment and people, 7(1):23–48.                               Evaluating text generation with BERT. CoRR,
+                                                             abs/1904.09675.
+Janice M Morse. 2015. Critical Issues in Qualitative
+  Research Methods. SAGE Publications.                     Caleb Ziems, William Held, Omar Shaikh, Jiaao Chen,
+                                                             Zhehao Zhang, and Diyi Yang. 2024. Can large lan-
+Angelina Parfenova. 2024. Automating the information         guage models transform computational social sci-
+  extraction from semi-structured interview transcripts.     ence? Computational Linguistics, 50(1):237–291.
+  In Companion Proceedings of the ACM on Web Con-
+  ference 2024, WWW ’24. ACM.                              A    Prompts used for finetuning
+Michael Quinn Patton. 2014. Qualitative Research &         In the conducted experiments, several prompts
+  Evaluation Methods: Integrating Theory and Prac-
+  tice. SAGE Publications.                                 were designed to guide the models in performing
+                                                           open coding tasks. These prompts varied in their
+Felipe Pineda, Raphael Milliere, Andreas Vlachos,          level of explicitness, the perspective they asked the
+  Myle Ott, Richard Yates, Amelia Glaese, et al. 2023.
+                                                           model to adopt, and the amount of detail they re-
+  The falcon series of language models. arXiv preprint
+  arXiv:2306.01116.                                        quested. Additionally, the experiments compared
+                                                           the effect of using a line break versus a period (dot)
+Maria Pontiki, Dimitris Galanis, John Pavlopoulos, Har-    at the end of each prompt to assess how subtle
+  ris Papageorgiou, Ion Androutsopoulos, and Suresh
+  Manandhar. 2014. SemEval-2014 task 4: Aspect             changes in prompt formatting might influence the
+  based sentiment analysis. In Proceedings of the 8th      model’s performance (see Appendix B). Below is
+ International Workshop on Semantic Evaluation (Se-        a brief description of each prompt:
+  mEval 2014), pages 27–35, Dublin, Ireland. Associa-
+  tion for Computational Linguistics.                          • Explicit Instruction (Prompt 1): Summa-
+Gery W Ryan and H Russell Bernard. 2003. Techniques              rize the main idea of a sentence. This prompt
+  to Identify Themes, volume 15. SAGE Publications.              provides a direct and clear instruction to the
+                                                       6480
+  model, asking it to summarize the core idea             delve into the deeper meaning or implications
+  of a given sentence. The expectation is for             of the sentence.
+  the model to extract the primary message or
+  theme conveyed in the sentence with no addi-          • Simplified Task (Prompt 6): What is the gist
+  tional context or framing. This prompt is de-           of this sentence? This prompt simplifies the
+  signed to test the model’s ability to perform a         task by asking for the "gist" of the sentence.
+  straightforward task without needing implicit           It challenges the model to provide a very brief
+  knowledge.                                              and straightforward summary, focusing on dis-
+                                                          tilling the essential meaning of the sentence.
+• Informal Request (Prompt 2): Can you tell         B    Detailed fine-tuning results
+  me what the main idea of this sentence is in
+  just a few words? This prompt is phrased as       These results (see Table 6) demonstrate the per-
+  a casual, conversational question, asking the     formance of various models when fine-tuned on
+  model to summarize the sentence in "just a        the task of open coding using different prompts.
+  few words." The informal tone encourages a        BERTScore and ROUGE are reported.
+  more concise and simplified response, aiming
+                                                    C    Sentence difficulty and lexicon-based
+  to capture how well the model can extract
+                                                         metrics
+  the essence of the sentence in a more natural,
+  everyday context.                                 In this section we present the Table 7 with the as-
+                                                    sessed difficulty levels of sentences using a range
+• Expert Angle (Prompt 3): From the perspec-        of lexicon-based metrics. This includes readability
+  tive of a social scientist, summarize the fol-    scores like Flesch Reading Ease and Coleman-Liau
+  lowing sentence as you would in thematic cod-     Index, along with indicators of linguistic complex-
+  ing. This prompt takes a more specialized         ity such as sentence length and syllable count. The
+  approach, asking the model to assume the per-     table provides a color-coded overview of sentence
+  spective of a social scientist performing the-    difficulty based on calculated average perceived
+  matic coding. The expectation here is for the     difficulty of a sentence.
+  model to not only summarize the sentence but
+  to apply a more analytical and structured lens,   D    Sentences used for expert coding
+  possibly introducing higher-level categoriza-     This section lists the specific sentences that were
+  tions that would be typical in qualitative data   selected from the test set for the expert coding
+  analysis.                                         phase (see Table 8). These sentences span a broad
+                                                    spectrum of themes and linguistic features, from
+• Impersonalization (Prompt 4): If you were a       simple descriptive statements to complex and long
+  social scientist doing thematic analysis, what    sentences.
+  code would you give to this citation? In this
+  prompt, the model is asked to act as a social     E    Instructions given to coders in the
+  scientist and assign a code, which is a brief          second stage
+  label representing the central idea of the sen-
+                                                    This section describes the instructions provided to
+  tence. It emphasizes the objectivity of the-
+                                                    coders during the second stage of evaluation, illus-
+  matic analysis, expecting the model to deper-
+                                                    trated through an interface screenshot (see Figure
+  sonalize the task and focus on generating an
+                                                    6).
+  appropriate label that accurately reflects the
+  content.                                          F    Links to Models on Hugging Face
+• Detailed Explanation (Prompt 5): Explain              • Llama3:      https://huggingface.co/
+  in a couple of words the primary thought ex-            meta-llama/Meta-Llama-3-8B-Instruct
+  pressed in the following text. This prompt            • Falcon:      https://huggingface.co/
+  asks the model to provide a more detailed,              tiiuae/falcon-7b-instruct
+  thorough explanation of the primary thought
+  behind the text. It is designed to encourage          • Mistral:     https://huggingface.co/
+  the model to go beyond a simple summary and             mistralai/Mistral-7B-Instruct-v0.2
+                                                6481
+  Model                                       BERTScore                                                                      ROUGE
+
+                        Pstd                     Rstd                     F 1std                       1                         2       L
+
+                                                         Summarize the main idea of a sentence\n
+
+  Llama3             0.7130.060               0.7580.040                0.7340.062                  0.141                     0.033     0.153
+  Falcon             0.7460.073               0.7820.097                0.7640.095                  0.176                     0.047     0.189
+  Mistral            0.7290.076               0.7870.093                0.7560.078                  0.178                     0.047     0.195
+  Vicuna             0.7310.063               0.7770.095                0.7530.079                  0.163                     0.028     0.182
+  Gemma              0.7120.084               0.7380.078                0.7450.080                  0.163                     0.030     0.168
+  TinyLlama          0.7180.072               0.7750.090                0.7570.087                  0.164                     0.052     0.158
+
+                                                          Summarize the main idea of a sentence.
+
+  Llama3             0.7180.072               0.7880.089                0.7500.073                  0.181                     0.059     0.166
+  Falcon             0.7380.099               0.7870.103                0.7610.096                  0.213                     0.077     0.210
+  Mistral            0.7190.072               0.7680.086                0.7420.075                  0.157                     0.055     0.148
+  Vicuna             0.7330.079               0.7870.095                0.7580.081                  0.193                     0.068     0.185
+  Gemma              0.7190.071               0.7790.089                0.7460.072                  0.172                     0.049     0.166
+  TinyLlama          0.7360.083               0.7880.092                0.7600.081                  0.207                     0.074     0.199
+
+                                         Can you tell me what the main idea of this sentence is in just a few words?
+
+  Llama3             0.6880.055               0.7780.084                0.7290.061                  0.116                     0.034     0.110
+  Falcon             0.7530.105               0.7870.108                0.7680.102                  0.236                     0.104     0.239
+  Mistral            0.7420.106               0.7950.106                0.7660.101                  0.246                     0.106     0.235
+  Vicuna             0.6910.060               0.7830.087                0.7320.063                  0.168                     0.047     0.164
+  Gemma              0.7110.075               0.7860.093                0.7460.079                  0.171                     0.057     0.168
+  TinyLlama          0.7250.083               0.7890.090                0.7540.079                  0.178                     0.067     0.177
+
+                       From the perspective of a social scientist, summarize the following sentence as you would in thematic coding\n
+
+  Llama3             0.6980.059               0.7840.083                0.7380.062                  0.130                     0.033     0.119
+  Falcon             0.7450.109               0.7920.105                0.7660.102                  0.210                     0.089     0.211
+  Mistral            0.6880.060               0.7850.086                0.7320.064                  0.139                     0.041     0.131
+  Vicuna             0.7130.080               0.7780.094                0.7430.080                  0.169                     0.061     0.166
+  Gemma              0.7210.085               0.7840.093                0.7490.082                  0.180                     0.070     0.177
+  Tinyllama          0.7180.073               0.7760.083                0.7450.072                  0.165                     0.053     0.158
+
+                        From the perspective of a social scientist, summarize the following sentence as you would in thematic coding.
+
+  Llama3             0.6850.082               0.7810.064                0.7330.081                  0.136                     0.025     0.154
+  Falcon             0.7540.066               0.7780.091                0.7590.088                  0.181                     0.048     0.190
+  Mistral            0.7400.067               0.7800.088                0.7560.071                  0.172                     0.045     0.187
+  Vicuna             0.7180.071               0.7800.094                0.7530.073                  0.165                     0.039     0.185
+  Gemma              0.7000.072               0.7800.085                0.7460.080                  0.180                     0.046     0.187
+  TinyLlama          0.7290.076               0.7780.089                0.7540.080                  0.169                     0.046     0.183
+
+                             If you were a social scientist doing thematic analysis, what code would you give to this citation?
+  Llama3             0.6920.060              0.7850.083                0.7350.064                  0.064                       0.043    0.126
+  Falcon             0.7360.093              0.7850.101                0.7590.092                  0.206                       0.076    0.200
+  Mistral            0.6860.057              0.7850.082                0.7310.061                  0.132                       0.044    0.123
+  Vicuna             0.7190.070              0.7890.091                0.7510.073                  0.183                       0.063    0.169
+  Gemma              0.7240.085              0.7840.091                0.7510.082                  0.170                       0.066    0.168
+  Tinyllama          0.7200.071              0.7780.083                0.7470.072                  0.186                       0.053    0.182
+
+                                                              What is the gist of this sentence?
+
+  Llama3             0.6800.064               0.7800.086                0.7250.066                  0.129                     0.042     0.121
+  Falcon             0.7310.091               0.7800.098                0.7540.089                  0.182                     0.080     0.179
+  Mistral            0.7260.079               0.7850.095                0.7530.079                  0.165                     0.057     0.160
+  Vicuna             0.7200.070               0.7810.089                0.7480.072                  0.172                     0.055     0.162
+  Gemma              0.7070.077               0.7730.091                0.7370.076                  0.152                     0.059     0.146
+  Tinyllama          0.7130.057               0.7730.079                0.7410.061                  0.143                     0.032     0.139
+
+                                    Explain in a couple of words the primary thought expressed in the following text\n
+
+  Llama3             0.6910.062               0.7830.085                0.7330.066                  0.120                     0.038     0.110
+  Falcon             0.7340.078               0.7780.090                0.7540.078                  0.171                     0.049     0.165
+  Mistral            0.6980.067               0.7800.088                0.7350.070                  0.141                     0.038     0.131
+  Vicuna             0.7030.072               0.7800.088                0.7380.072                  0.155                     0.048     0.148
+  Gemma              0.7060.064               0.7860.086                0.7420.066                  0.177                     0.053     0.170
+  Tinyllama          0.7200.077               0.7840.091                0.7500.078                  0.168                     0.071     0.163
+
+                                     Explain in a couple of words the primary thought expressed in the following text.
+
+  Llama3             0.7000.068               0.7840.055                0.7470.063                  0.142                     0.025     0.152
+  Falcon             0.7520.088               0.7790.061                0.7600.086                  0.183                     0.042     0.193
+  Mistral            0.7380.070               0.7900.090                0.7590.073                  0.173                     0.047     0.183
+  Vicuna             0.7170.066               0.7800.094                0.7520.099                  0.161                     0.025     0.182
+  Gemma              0.7080.068               0.7780.079                0.7460.098                  0.172                     0.039     0.186
+  TinyLlama          0.7280.073               0.7780.091                0.7550.089                  0.168                     0.053     0.168
+
+
+Table 6: Detailed Fine-tuning Results. The following table presents the detailed results from fine-tuning experiments,
+including precision (P), recall (R), F1 score, and ROUGE across different models and prompts.
+
+
+
+
+                                                                          6482
+Sentence          Length    Difficulty   Difficulty   Flesch Reading   Coleman-   Automated   Difficult   Syllable
+                            assumed         avg            Ease          Liau       Index     Words        count
+Quote1             51.00      1.00         1.50            46.44        10.80        8.50       1.00       14.00
+Quote2             55.00      1.00         1.50            85.69         4.74        3.30       1.00       14.00
+Quote3             75.00      1.00         1.00            42.38        12.28        9.70       4.00       21.00
+Quote4            101.00      2.00         1.50           103.12         3.05        2.20       2.00       23.00
+Quote5            105.00      1.00         1.50            87.72         8.03        6.30       3.00       24.00
+Quote6            155.00      1.00         1.50            67.42         7.50       13.70       3.00       39.00
+Quote7            179.00      3.00         2.25            88.74         4.83        4.00       4.00       42.00
+Quote8            194.00      2.00         1.75            40.01        13.41       19.00       6.00       51.00
+Quote9            289.00      2.00         2.00            91.82         5.79        6.10       8.00       65.00
+Quote10           291.00      2.00         1.75            85.89         4.39        4.60       5.00       70.00
+Quote11           309.00      3.00         2.25            80.17         4.54        3.50       7.00       77.00
+Quote12           350.00      3.00         2.75            67.79         9.05       11.10       9.00       86.00
+Quote13           379.00      2.00         2.75            72.19         6.22       10.60       6.00       96.00
+Quote14           889.00      3.00         2.75            75.20         7.53        7.20      21.00       218.00
+Quote15           1117.00     3.00         2.75            54.09         8.43       16.70      22.00       282.00
+
+
+Table 7: Sentence Difficulty and Lexicon-based Metrics. Full quotes are in Appendix E.
+
+
+
+
+     Figure 6: Screenshot of a user interface for the second stage of expert evaluation.
+
+
+
+
+                                                      6483
+              Num       Sentence
+
+              Quote1    She doesn’t always understand correctly what I say.
+              Quote2    I can ask the voice assistant what the weather is like.
+              Quote3    The food was delicious and the waiter was incredibly helpful and attentive.
+              Quote4    I was so worried. The thoughts kept spinning in my head and I’d lay there with my eyes open for hours.
+              Quote5    Had a great experience at this restaurant... staff was pleasant; food was tasty and large in portion size.
+              Quote6    I wasn’t really as concerned about portability (it’s a very large laptop) but it’s not hard to move around or take on a trip which was a pleasant
+                        surprise.
+              Quote7    Well, often people eat up guilt. They start to, I don’t know, do bad things. They start drinking, for example. I don’t know, they start to ruin
+                        themselves in every possible way.
+              Quote8    I think that everything is possible in this world, that everyone will definitely understand that there is happiness for them, so it gives them positive
+                        emotions and develops their values within.
+              Quote9    ...there are a lot of memes about Duolingo, even if you look on the Internet. About this green owl, which, if you haven’t started speaking Mexican,
+                        Spanish, comes to you and kills your whole family with a shotgun. It’s very active there, yes. As if you should, you promised us and so on.
+             Quote10    Interviewer: Okay, can procrastination be funny? Informant: Not funny, THIS IS NOT FUNNY. I don’t know why do I do this... you know... it’s
+                        like... feeling like you don’t want to learn. It’s not funny because it requires rest, you can’t get it out of your head that you don’t want to do it.
+             Quote11    Well, there is a probability. But I would say that each person has his own head on his shoulders. That is, he defines his own barriers, as they say.
+                        Every person determines his own barriers. I mean, if he’s, I don’t know. If he wants to take risks, let him take risks. It’s everybody’s business in
+                        principle.
+             Quote12    For me, fear is a constant companion. I think, because shame and fear, well, shame is probably an emotion that you realize that you are justifiably
+                        ashamed, probably, that is certain moral norms that you have violated, so you are ashamed. Fear, on the other hand, is an emotion that can occur
+                        regardless of whether you’ve done something wrong or not.
+             Quote13    I don’t sleep much, only 5 hours a day. But I know sleep is important, because I am often tired and, due to lack of sleep, I cannot listen. It’s
+                        probably important to go to classes, rest and then start studying again, although I have a lot of problems with this, because if I rest, I don’t start
+                        studying again, so for me it’s better to continue studying during the day to finish.
+             Quote14    House in some small town, or at least I live in Korolev, in this area. Pets and everything connected with it. I would like to see this come true.
+                        Some kind of stability, a well-paid job. Positive feelings... in some kind of future, not quite distant, but not exactly near, which is exactly
+                        tomorrow. Can plan for a couple of months (it all depends on how my goals in life change, it’s all very changeable, it seems to me). Ten years
+                        later - still a husband, perhaps children, but not a fact. Stable work is quite possible. Animals are possible, maybe not in the house, but in
+                        the apartment. If you earn enough money, you can have a separate apartment. The only obstacle that can become is myself, some complexes,
+                        self-doubt, perhaps psychological problems, all that. If, for example, you don’t have enough qualifications for a job, you can finish your studies
+                        and gain some more knowledge.
+             Quote15    I understand that there is an expression in the Bible that everything works out for the good of the loving God, and in my life, analyzing global
+                        situations from above and having lived some certain things in my life, milestones, I saw that having made this or that choice, having destroyed
+                        something, having left somewhere, for example, having changed even my job, initially I didn’t want to lose it, I didn’t want to leave this situation.
+                        I was comfortable there, it was good for me, and suddenly it all broke, destroyed, I think ah how bad, ah how sad, but having experienced all this
+                        and looking back, I realize that I gained much more. That is, I have morally matured, I have experienced some things, I realized that I will know
+                        in the next situation what to do and how to act, how to perceive. And globally I gained more, i.e. I, for example, found myself in another job,
+                        which now suits me better or at that time suited me better than what I had before. Even though initially it was just the collapse of my whole life,
+                        everything, everything is very bad there, I mean I realize that everything ends well anyway.
+
+
+                                                      Table 8: Sentences used for expert coding.
+
+
+    • Vicuna: https://huggingface.co/lmsys/
+      vicuna-7b-v1.5
+
+    • Gemma:       https://huggingface.co/
+      google/gemma-7b-it
+
+    • TinyLlama:   https://huggingface.co/
+      TinyLlama/TinyLlama-1.1B-Chat-v1.0
+
+G LoRA Configuration
+This section provides the LoRA (Low-Rank Adap-
+tation) configuration used for fine-tuning the mod-
+els in this study. The configuration includes the
+rank r, the scaling factor α, target modules, dropout
+rate, bias handling, and task type. Below is the code
+snippet used for configuring LoRA:
+config = LoraConfig(
+    r=16,
+    lora_alpha=32,
+    target_modules=["gate_proj", "up_proj", "down_proj"],
+    lora_dropout=0.05,
+    bias="none",
+    task_type="CAUSAL_LM"
+)
+
+model = get_peft_model(model, config)
+print_trainable_parameters(model)
+
+generation_config = model.generation_config
+generation_config.max_new_tokens = 15
+generation_config.temperature = 0.7
+generation_config.top_p = 0.7
+generation_config.num_return_sequences = 1
+generation_config.pad_token_id = tokenizer.eos_token_id
+generation_config.eos_token_id = tokenizer.eos_token_id
+
+
+
+
+                                                                                       6484
+

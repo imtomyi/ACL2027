@@ -1,0 +1,780 @@
+                                         Harmful Speech Detection by Language Models Exhibits
+                                                      Gender-Queer Dialect Bias
+                                                                    Rebecca Dorn                                                 Lee Kezar
+                                                                  rdorn@usc.edu                                              lkezar@usc.edu
+                                                        University of Southern California ISI                         University of Southern California
+                                                         Marina del Rey, California, USA                               Los Angeles, California, USA
+
+                                                                   Fred Morstatter                                            Kristina Lerman
+                                                                fredmors@isi.edu                                              lerman@isi.edu
+                                                        University of Southern California ISI                       University of Southern California ISI
+
+
+
+
+arXiv:2406.00020v2 [cs.CL] 21 Jun 2024
+                                                         Marina del Rey, California, USA                             Marina del Rey, California, USA
+
+                                         Abstract                                                          ACM Reference Format:
+                                         Trigger Warning: Profane Language, Slurs                          Rebecca Dorn, Lee Kezar, Fred Morstatter, and Kristina Lerman.
+                                                                                                           2024. Harmful Speech Detection by Language Models Exhibits
+                                         Content moderation on social media platforms shapes the dy-
+                                                                                                           Gender-Queer Dialect Bias. In Preprint. ACM, New York, NY, USA,
+                                         namics of online discourse, influencing whose voices are am-      13 pages. https://doi.org/XXXXXXX.XXXXXXX
+                                         plified and whose are suppressed. Recent studies have raised
+                                         concerns about the fairness of content moderation practices,
+                                         particularly for aggressively flagging posts from transgender
+                                         and non-binary individuals as toxic. In this study, we inves-
+                                                                                                           1   Introduction
+                                         tigate the presence of bias in harmful speech classification      Among the functions of social media platforms is providing
+                                         of gender-queer dialect online, focusing specifically on the      space for identity exploration, emotional support and commu-
+                                         treatment of reclaimed slurs. We introduce a novel dataset,       nity building [20, 30, 40]. These online spaces are particularly
+                                         QueerReclaimLex, based on 109 curated templates ex-               important for gender-queer individuals. These people, includ-
+                                         emplifying non-derogatory uses of LGBTQ+ slurs. Dataset           ing those who are transgender and non-binary, have gender
+                                         instances are scored by gender-queer annotators for potential     identities that fall outside traditional social norms. As a re-
+                                         harm depending on additional context about speaker identity.      sult, they face an increased risk of discrimination and social
+                                         We systematically evaluate the performance of five off-the-       isolation [44]. Particularly in geographic areas where sup-
+                                         shelf language models in assessing the harm of these texts        port for gender-queer individuals is limited, online spaces are
+                                         and explore the effectiveness of chain-of-thought prompting       often vital for the health and well-being of transgender and
+                                         to teach large language models (LLMs) to leverage author          non-binary people.
+                                         identity context. We reveal a tendency for these models to           Done well, content moderation on social media platforms
+                                         inaccurately flag texts authored by gender-queer individuals      can help to create safe and welcoming environments, protect-
+                                         as harmful. Strikingly, across all LLMs the performance is        ing online communities from harassment and harm. Tradi-
+                                         poorest for texts that show signs of being written by individu-   tionally, content moderation has relied on trained machine
+                                         als targeted by the featured slur (F1 ≤ 0.24). We highlight an    classifiers to ferret out problematic speech (e.g. [28]). More
+                                         urgent need for fairness and inclusivity in content moderation    recently, large language models (LLMs) have been used for
+                                         systems. By uncovering these biases, this work aims to in-        moderating speech due to their flexibility and unparalleled
+                                         form the development of more equitable content moderation         ability to take into account the context within speech.
+                                         practices and contribute to the creation of inclusive online         Unfortunately, a growing body of research suggests that
+                                         spaces for all users.                                             automated content moderation on social media platforms re-
+                                                                                                           moves posts and bans users in a manner that inadvertently
+                                         CCS Concepts: • Human-centered computing; • Social and            disadvantages historically marginalized populations [19, 41].
+                                         professional topics → Censorship; • Applied computing             In particular, studies have shown a disproportionate removal
+                                         → Sociology; • General and reference → Evaluation;                of content posted by transgender individuals, often mislabeled
+                                                                                                           as ‘adult’ or ‘toxic’ [18]. In one startling example, the toxic-
+                                         Keywords: Gender identity, Online communities, Content            ity algorithm that moderates the New York Times comments
+                                         moderation, Toxicity, Chain-of-thought prompting, LGBTQ+          section ranked tweets from contestants on “RuPaul’s Drag
+                                                                                                           Race”–a drag queen reality television show–as higher in toxi-
+                                         Conference’17, July 2017, Washington, DC, USA                     city than tweets from white nationalists [11]. This particular
+                                         2024. ACM ISBN 978-x-xxxx-xxxx-x/YY/MM                            type of content moderation error can contribute to the further
+                                         https://doi.org/XXXXXXX.XXXXXXX                                   marginalization of queer people, limiting their participation
+ in the online communities where inclusion is an essential anti-         embed bias, with a focus on gender-queer communities. By
+ dote to the alienation that many experience in their day-to-day         uncovering high false-positive rates towards reclaimed slurs,
+ lives.                                                                  we highlight the risks of perpetuating bias against gender-
+    Content moderation algorithms appear to play a role in               queer populations through large language models. We antici-
+ contributing to the censorship of trans and non-binary indi-            pate that our findings will inform the development of more
+viduals. [33, 39] However, the precise mechanisms that cause             equitable content moderation systems and guide policymak-
+ this discrimination have not yet been investigated. This paper          ers in mitigating algorithmic biases to foster inclusive online
+ helps to fill that gap. To do this, we focus on a particular            environments.
+ form of speech that has received extensive study by language
+ scholars, namely, linguistic reclamation. A prominent prac-             2     Related Work
+ tice within gender-queer communities, linguistic reclamation
+                                                                         2.1   Trans and Non-Binary Dialects
+ involves the non-derogatory use of historically derogatory
+ slurs by marginalized groups to reclaim agency and identity             According to a framework from the field of linguistics termed
+ [14, 53]. For example, terms with derogatory histories like             "pragmatics", socio-cultural factors centrally determine and
+‘queer’ and ‘femboy’ have been reclaimed and repurposed to               profoundly influence the form and function of language [26].
+ convey positive, prideful identity within LGBTQ+ discourse              For example, a 2021 UK study found that non-binary users
+ [3, 5, 17, 48]. This particular form of gender-queer dialect            are more likely than men or women to use words related to
+ is a promising tool for exploring the effectiveness of con-             gender and sexuality on Twitter [46]. This distinctive pattern
+ tent moderation algorithms in meeting the needs of LGBTQ+               of word usage reflects the result of a non-binary dialect be-
+ communities.                                                            cause, among the factors relevant to understanding the use
+    This paper investigates potential biases content moderation          of gender and sexuality terms, the speaker’s social group (as
+ algorithms may hold against gender-queer social media users.            opposed to the time or medium of communication) emerges
+ Specifically, we examine how language models attribute harm             as a strong predictor of characteristic expression patterns.
+ to social media posts featuring reclaimed slurs. We assess                 In addition to shifts in the distribution of tokens over a
+ performance when providing models with additional context               vocabulary, a dialect may also include more latent shifts in
+ about speaker identity. Further, we explore the utility of chain-       pragmatic intent. For example, many trans and non-binary
+ of-thought explanations to increase the accuracy of language            communities use mock rudeness not to harm the audience
+ models’ characterization of reclaimed slurs.                            but rather to build in-group solidarity and resilience to future
+    To facilitate our study, we introduce QueerReclaimLex,               discriminatory experiences [31]. Similarly, in gender-queer
+ a curated dataset based on real world uses of reclaimed slurs           dialects, slurs that historically cause harm, such as “fag” or
+ by gender-queer speakers. We obtain ground truth data from              “sissy”, may be repurposed by the in-group to serve nontoxic
+ gender-queer annotators under varying author identity con-              purposes like identifying oneself [11]. In this work, we pri-
+ texts, and leverage these labels to evaluate the performance            marily focus on slur use (as opposed to other features of
+ of five off-the-shelf language models in assessing harmful              gender-queer dialects) because they are easy to identify in
+ speech. Our findings reveal a propensity for these models to            corpora and may be incorrectly parsed by language models,
+ erroneously flag texts authored by gender-queer individuals             leading to falsely labeling their use as harmful.
+ as harmful, with limited improvement observed even with
+ chain-of-thought prompting. Further, we observe that LLMs               2.2   Linguistics of Slurs
+ are particularly likely to mislabel non-derogatory uses of slurs        Functionally, slurs both classify a person or group and ex-
+ as harmful in posts with clear markers of gender-queer au-              press a particular perspective that the speaker has towards that
+ thorship. Such authorship normally signals a substantially              person or group. While publicly classifying someone as trans
+ reduced likelihood of harmful posting. The inability of LLMs            or non-binary can cause harm, especially to those who con-
+ to understand the distinctive dialect used in this particular           ceal their identity for their safety, it is the latent perspectives
+ community reveals an urgent need for content moderation sys-            associated with slur that can make them uniquely harmful
+ tems to move beyond relying on slurs as keywords and instead            (relative to other classifications like trans). Frequently, these
+ consider nuanced in-text contextual cues. Further, it implies           perspectives evoke feelings of disgust or hatred and have been
+ the potential need to incorporate members of marginalized               associated with intimidation or violence.
+ communities into the processes used to validate content mod-               However, the perspectives that originated a slur do not
+ eration norms.                                                          represent the full range of contemporary uses and intentions.
+    This study builds on previous work finding that Twitter              Quotes of others using a slur and discussing the slur itself
+ users with non-binary pronouns in their biography received              seem to be more acceptable uses among outgroup members
+ less attention on Twitter through retweets and likes, and are           because in these contexts the speaker may be conveying a
+ flagged for toxicity at alarmingly high rates [13]. Here, we            more neutral or even positive perspective towards the group
+ shed light on precisely how content moderation algorithms               that is subject to the slur [21]. Additionally, slurs can take on
+                                                                     2
+                             vanilla                                          identity                                      identity-cot
+
+
+                 CONTEXT                                          CONTEXT                                           CONTEXT
+
+                                       De inition of Ingroup                            De inition of Ingroup                             De inition of Ingroup
+            De inition of Harm                                 De inition of Harm                                De inition of Harm
+                                          and Outgroup                                     and Outgroup                                      and Outgroup
+
+
+
+
+                 TASK                                            TASK                                               TASK
+
+                 Harm Classi ication                              Harm Classi ication                               Harm Classi ication
+
+
+
+                 INPUT                                           INPUT                                              INPUT
+
+                 POST: that’s mr.faggot to you!                Identity Context: The speaker is a member          Chain-of-Thought Examples
+                                                                       of the [ingroup/outgroup].
+                                                                                                                  Identity Context: The speaker is a member
+                                                                POST: that’s mr.faggot to you!                            of the [ingroup/outgroup].
+
+                                                                                                                   POST: that’s mr.faggot to you!
+
+
+
+
+Figure 1. Three prompting schemas vanilla, identity and identity-cot that are used to elicit toxicity scores from
+our models. Each schema introduces an additional aspect of context to the model. Bold fields include examples.
+
+new, non-derogatory senses through discussion and use by                                     English lexicons for inappropriate language fail to differenti-
+members of the group subject to the slur, through the process                                ate between pejorative and non-pejorative LGBTQ+ terminol-
+of linguistic reclamation, described earlier [14]. The extent
+      f
+      f
+      f
+      f
+      f
+      f      f
+             f
+             f
+
+
+
+
+                                                                                             ogy [36], even neglecting the difference between the terms
+that an individual of a marginalized group reclaims a may vary                              ‘gay’ and ‘fag’. Nonetheless, there is hope for decreasing bias
+with age, gender identity, sexual orientation and relationship                               in NLP systems, as evidenced by Seq2Seq model’s ability to
+with the specific slur [14].                                                                 translate gendered pronouns to gender-neutral pronouns with
+   Taken together, the boundary between harmful and non-                                     minimal error [43].
+harmful uses of slurs is sometimes (if not usually, given the
+stigmas often associated with slurs) determined by estab-
+lishing the speaker’s social identity. This determination is                                2.4      Defining and Detecting Harmful Speech
+not straightforward or sometimes even possible, further con-                                Determining harm is inherently subjective. Researchers have
+founding the interpretation of intent. In this work, we not only                            worked to mitigate this subjectivity by creating frameworks
+provide harm assessments across varying uses from people in                                 that include facets like target group, explicitness of abuse,
+slur target groups, but also study the extent to which LLMs                                 speaker intent and power dynamics [50, 56, 57]. Here we
+are able to mimick this ability in the more controlled text                                 incorporate speaker identity as contextual information to help
+domain.                                                                                     temper some of the subjectivity within our analysis.
+                                                                                               When classifiers falsely identify harm they run the risk of
+                                                                                            suppressing speech. One common contributor to false pos-
+                                                                                            itives is the over-reliance on keywords rather than contex-
+2.3       Gender Variance in NLP                                                            tual clues (e.g. Davidson [9, 55]). According an empirical
+According to a comprehensive review of approximately 200                                    analysis, linear classifiers struggle to discern between hate
+articles relating to gender bias in natural language processing                             speech and profanities [29]. This concern is compounded by
+(NLP), almost no papers in this area conceptualize gender                                   the frequency of profanities in online platforms like Twitter,
+as non-binary [10]. Concurrently, multiple works have found                                 where approximately one in thirteen tweets includes swear
+suboptimal performance by NLP systems when confronted by                                    words [49]. Nonetheless, recent advancements hold promise
+the singular pronoun use of ‘they’ [6, 34]. This observation is                             for reducing the risk of false positives. Leveraging word-level
+further compounded by the finding that Wordnet 3.0 contains                                 annotations as features has been shown to alleviate some
+representations for only 39% of topical terms from the Na-                                  reliance on keywords for abusive language detection [35],
+tional Transgender Discrimination Survey [22]. It appears as                                and novel language classification frameworks have uncovered
+though NLP systems may often be constructed without deeply                                  social positioning as crucial context in detecting offensive
+considering non-binary gender identities. Notably, popular                                  language [12].
+                                                                                        3
+3     Methods
+
+
+
+
+Figure 2. Illustrative example of how the terms ingroup and
+outgroup are used in the scope of this paper.
+
+   In the scope of this paper we define the terms ingroup and
+outgroup as follows. In a sentence with an identity term or
+slur, we say the ingroup is the population referenced by the
+identity term or slur’s neutral correlate (e.g. the neutral corre-
+late for ‘dyke’ is ‘lesbian’). The outgroup is the population            Figure 3. Examples of how tweets from gender-queer au-
+not referenced by the identity term or neutral correlate. Figure         thors become templates, and how those templates translate to
+2 displays an illustrative example of deducing ingroup and               instances of QueerReclaimLex. The original reclaimed
+outgroup from a piece of text.                                           slurs are in purple, positions for slurs are in green and inserted
+   Gender is a broad concept with no single comprehensive                slurs are in blue.
+definition. Before explaining our use of gender-related terms
+in this paper, we emphasize that we do not see our definitions           After compiling posts, we replace the slur with the token
+as comprehensive or universally applicable. We use trans-                [SLUR] to transform the text into a template (see Figure 3).
+gender to refer to any person whose gender identity differs              This process results in 109 curated templates.
+from what is commonly associated with members of similar
+biological sex [33]. We use non-binary to mean someone who               3.1.2 Gender-queer Slurs. Next, we translate each tem-
+identifies neither exclusively as a man nor exclusively as a             plate into multiple unique instances by iteratively replacing
+woman. This term includes someone who identifies with nei-                [𝑆𝐿𝑈 𝑅] with a term from a list of slurs.We begin with a set of
+ther, both, or different labels at different times [32]. We use          slurs that reference non-socially normative gender identities:
+gender-queer as an umbrella term for anyone whose gender                 ‘tranny’, ‘femboy’, ‘sissy’, ‘shemale’ and ‘transvestite’. Due
+identity falls outside socially normative gender expression              to the strong overlap between queer identification in gender
+[32], including both transgender and non-binary individuals.             and sexuality [15], we add the slurs ‘queer’, ‘fag’ and ‘dyke’.
+                                                                         We attempted to incorporate pejoratives that target non-binary
+3.1    QueerReclaimLex Dataset                                           people and people assigned female at birth, however we found
+We present QueerReclaimLex, a collection of statements                   that most of these phrases are unsuitable for the grammatical
+containing reclaimed slurs. This dataset is created using tem-           set-up of our dataset (e.g. ‘a they/them’).
+plates, which allow us to isolate the impacts of individual                  The slurs on our list feature a range of positions within the
+words on model performance for toxic speech classification.              linguistic reclamation process. Though once a stigmatized ref-
+Our design relies upon natural language, which makes our re-             erence for non-socially normative presentation, ‘queer’ is now
+sults more applicable to real-life content moderation systems.           argued as successfully reclaimed [53] and has been ranked as
+                                                                         one of the least likely LGBTQ+ slurs to be seen as offensive
+3.1.1 Template Creation. We use NB-TwitCorpus3M,                         [14]. In contrast, the term ‘dyke’ remains socially taboo with
+a collection of 3 million tweets authored by approximately               growing participation of ‘Dyke Marches’ functioning in part
+3,000 Twitter users who have non-binary pronouns in their                to take back the slur [4, 38].
+profile biography [13, 25]. The presence of pronouns in this
+dataset is determined by the user’s specification. In particular,        3.1.3 Annotator Recruitment & Demographics. Whether
+pronouns are gleaned from any combination of {he, him,                   a slur should be considered ‘reclaimed’ is relative, varying
+his, she, her, hers, they, them, theirs, their, xe, xem, ze, zem}        with the speaker, observer and label being used [1, 42]. Fur-
+separated by forward slashes or commas, with any or no white             ther, whether a particular use of a slur is considered deroga-
+space in their profile descriptions.                                     tory depends on its characterization by members of the tar-
+   We compile potentially non-derogatory uses of slurs posted            geted group [2]. At the same time, it is unclear how many
+by non-binary users that are judged highly toxic by Detoxify1 .          members must label a use as harmful and what proportion
+                                                                         must agree before the use is considered harmful based on
+1 https://github.com/unitaryai/detoxify                                  member feedback [2].
+                                                                     4
+   We obtained annotations for QueerReclaimLex from                      1. causes another person reasonable fear of personal in-
+members of the target group: gender-queer individuals. In                   jury.
+this way we allowed gender-queer individuals to have a say               2. defends an oppressive system, such as xenophobia or
+in what is considered harmful to their own community. We                    sexism.
+recruited six annotators from a call for transgender and non-
+binary annotators in QueerinAI2 . Each (template,[𝑆𝐿𝑈 𝑅])                The annotators labeled instances for two definitions of
+tuple is evaluated by two annotators, resulting in every tem-         harm, depending on speaker identity: 1) HARMFUL IN, de-
+plate being evaluated by five to six annotators.                      noting whether the post was harmful given that the author
+   In an optional demographic survey given to annotators, four        was an ingroup member; and 2) HARMFUL OUT denoting
+out of six annotators provided information about their gender,        whether a post was harmful given that the author was an
+age, English comprehension, and race or ethnicity. For gender         outgroup member. Annotators additionally labeled the post
+identity, annotators were asked for their relationship to both        IMPLIED INGROUP to describe whether the text indicated
+gender identity descriptors as well as slurs included in our          that the author was a member of the ingroup. Annotators had
+dataset. All four respondents identified with the slur ‘queer’.       three options for characterizing harm: 1, for harmful posts;
+Half of the respondents identified with ‘dyke’, half with ‘fag’       0, for posts that were not harmful; and 0.5, for posts where
+and one with ‘tranny’. When asked for the terms describing            harm was uncertain.
+their current gender identity, respondents on average listed
+2.25 terms, with three out of four respondents identifying with                              Instance                              Slur Usage
+‘Non-Binary’. Two respondents identified with‘Transgender’             straight creators stop putting the word [𝑆𝐿𝑈 𝑅 ] in   Counter Speech,
+and ‘Feminine’ and single respondents identified with ‘Agen-           your edgy show/movie challenge 2020                   Discussion of Slur
+der’, ‘Trans Femme’ and ‘Gender Fluid’.                                i love being a himbo [𝑆𝐿𝑈 𝑅 ]. its my entire          Self Label,
+                                                                       personality and im fine with that                     Sexualization
+   Respondents reported an age range of 25 through 34. Half
+                                                                       intergenerational [𝑆𝐿𝑈 𝑅 ] friendships are soooo      Discussion of Identity,
+of them described their ethnicity and/or race as ‘White’, one          important                                             Reclamation
+as ‘South Asian’ and one as ‘Black Latino Caribbean’. Three            history will say they hated him for his [𝑆𝐿𝑈 𝑅 ]
+                                                                                                                             Sarcasm
+of four respondents scored their English comprehension as a            swag
+5 out of 5, and one as a 4 out of 5.                                   Curtsy lunges? [𝑆𝐿𝑈 𝑅 ] squats? Who the fuck is
+                                                                                                                             Neologism, Quote
+                                                                       naming these exercises
+3.1.4 Annotation Fields. Given the literature’s diverse in-           Table 1. Five instances of QueerReclaimLex with corre-
+terpretations of harm and recommendations to clearly define           sponding SLUR USAGE framework classifications.
+harm labels [16], we provided annotators with an explicit
+definition of “harmful”. This definition was based on offen-
+sive speech definitions from concepts founded in critical race
+theory [51]. See the appendix for a full list of changes we              Two of the annotators with backgrounds in computational
+made to the original definitions and our rationale for each           linguistics added an additional label of SLUR USAGE, a mul-
+change.                                                               tiple selection category describing the context in which a slur
+                                                                      was used. We based this field on a previously developed co-
+Definition 3.1. A post should be considered harmful if an             hesive taxonomy of slur use created from a blend of semantic
+outgroup member:                                                      and pragmatic linguistic strategy and an analysis of 40k Red-
+   1. uses a slur in a pejorative way.                                dit comments featuring pejorative language [23, 27]. Table
+   2. attacks a minority.                                             1 shows examples from the template dataset. We made four
+   3. seeks to silence a minority.                                    small alterations to the taxonomy to better fit our research
+   4. criticizes a minority (without a well founded argument).        goals, which are detailed in the appendix.
+   5. promotes, but does not directly use, hate speech or                The twelve subcategories within SLUR USAGE are:
+      violent crime.
+   6. blatantly misrepresents truth or seeks to distort views             • Recollection: Recollection of a time a slur was used.
+      on a minority with unfounded claims.                                • Neologism: Slur contorted to a new linguistic format,
+   7. negatively stereotypes a minority.                                    such as using a noun as a verb or creating a new word
+   8. shows support of harmful hashtags, as per the previous                entirely.
+      criteria.                                                           • Self Label: Speaker uses slur to reference themselves
+   9. contains a screen name that is harmful, as per the previ-             as a member of the ingroup.
+      ous criteria.                                                       • Other Label: Slur ascribed to someone who is not the
+                                                                            speaker.
+Or anyone who:
+                                                                          • Group Label: Slur used to describe a group of people.
+                                                                          • Reclamation: Slur use that places power with ingroup
+2 https://www.queerinai.com                                                 members.
+                                                                  5
+      • Counter Speech: Response to an instance of deroga-                 3.2.3 Large Language Model Prompting. For text featur-
+        tion, in defense against a comment made by a single                ing slurs, determining harm requires additional context, such
+        speaker or group.                                                  as the relationship between the author and the slur’s target
+      • Quote: Reference to a slur embedded in a quote or                  group [21]. For this reason, we test the prompt-based LLMs
+        paraphrase.                                                        over three different prompting schemas, varying in the extent
+      • Discussion of Slur: Discussion of a slur, its origin, or           to which they provide identity context and chain-of-thought
+        acceptable use cases.                                              explanations. These prompting schemas are summarized in
+      • Discussion of Identity: Discussion of in-group identity            Fig. 1.
+        dynamics and related concepts.                                        The vanilla prompting schema takes a zero-shot ap-
+      • Sexualization: Speaker uses slur to reference them-                proach in which the model receives never before seen text
+        selves as a member of the ingroup.                                 as input. We instruct the model with a task explanation, def-
+      • Sarcasm: A slur used ironically, contrary to its original          inition of harm (same as the provided definition to human
+        meaning.                                                           annotators), definitions of ingroup and outgroup terminology,
+                                                                           and a short-form textual post to annotate. The model outputs
+3.2    Harm Classification                                                 a score between 0 and 1 representing harm for the input post.
+As noted earlier, we use five language models to evaluate                     The prompting schema identity is designed to provide
+whether text is harmful: three large language models and two               explicit context defining the relationship between the post’s
+toxicity classifiers. Unlike traditional toxicity classifiers, large       author and the slur’s target group. We alter the zero-shot
+language models (LLMs) can be guided through prompts. In                   prompt such that before the social media post is a declar-
+this work, we leverage prompts to teach LLMs to incorpo-                   ative statement expressing author membership (i.e. ‘An in-
+rate additional context about author identity. Additionally, we            group member wrote the following post.’). An example of
+teach LLMs about harmful and non-harmful speech by provid-                 this prompt is shown with dark blue text in Figure 4.
+ing examples and explaining rationale with chain-of-thought                   Our third schema incorporates chain-of-thought reasoning,
+prompting.                                                                 where models are provided examples with an enunciated step-
+                                                                           by-step process [52]. This an approach has been shown to
+3.2.1 Toxicity Classifier Selection. We use two popular                    improve model performance on a wide range of tasks [52].
+models for toxicity detection to classify posts as harmful:                The schema identity-cot prompts the model with four
+Google Jigsaw’s Perspective API, a multilingual Charformer                 examples of author identity context, tweet, harm score and
+model [28, 45] and Detoxify, 3 which is a RoBERTa-based                    explanation before providing a new tweet and eliciting a
+model fine-tuned on multiple Jigsaw challenges designed to                 harm score. Figure 4 shows one example of chain-of-thought
+classify toxic comments. These models are widely used in                   reasoning here in purple.
+computational social science, although some research has
+reported disparity of toxicity scores towards non-binary indi-             4     Results
+viduals [13].                                                              4.1   QueerReclaimLex Results
+3.2.2 Large Language Model Selection. We use three                         First, we analyze the QueerReclaimLex dataset presented
+LLMs. The first is OpenAI’s GPT 3.54 text generation model,                in this paper, and use these data to analyze the performance
+included due to its popularity, affordability (compared to GPT             of models on the task of identifying toxic language.
+4) and strong performance [7]. We use a version of Meta’s
+                                                                           4.1.1 Annotator Agreement. Overall, QueerReclaimLex
+LLaMA 25 dialogue-based system (13 billion parameters)
+                                                                           annotators agreed on 76.7% of instances and score high an-
+that has been subject to reinforcement learning with human
+                                                                           notator agreement (Cohen’s 𝜅 = 0.76). For HARMFUL IN
+feedback. We include this model because of its extensive
+                                                                           annotators agreed on the harm score in 83% of instances,
+reporting of safety protocols [47], such as that 5.91% of train-
+                                                                           again with high annotator agreement score (𝜅 = 0.80). For
+ing documents contain a gender and sex descriptor term, with
+                                                                           HARMFUL OUT, annotators agreed on the harm score 69.5%
+‘transgender’ the fourth most common term (4.2% of gender
+                                                                           of the time with moderate annotator agreement (𝜅 = 0.60).
+and sex descriptors). The final LLM used is Mistral6 , chosen
+                                                                           This disparity in agreement between authorship indicates that
+because of its emphasis on remaining open-source and its
+                                                                           judging harm in outgroup posts elicits less consensus for our
+strong performance that is comparable to levels achieved by
+                                                                           annotators. Additionally, to help account for the subjective
+LLaMA 2 [24].
+                                                                           nature of the task, we removed 88 instances with extreme an-
+                                                                           notator disagreement– that is, receives harm scores of (0, 1).
+3 https://github.com/unitaryai/detoxify
+4 https://platform.openai.com/docs/models/gpt-3-5                          4.1.2 Slur Usage. The most frequent categories of slur use
+5 https://huggingface.co/meta-llama/Llama-2-13b-hf                         in our dataset were ‘Group Label’, ‘Discussion of Identity’
+6 https://huggingface.co/mistralai/Mistral-7B-v0.1                         and ‘Self Label’, altogether accounting for 46.9% of instances
+                                                                       6
+                                      HARMFUL IN (𝑛 = 752)                                             HARMFUL OUT (𝑛 = 641)
+                           vanilla          identity            identity-cot                vanilla          identity         identity-cot
+       Model           P      R     F1      P      R     F1      P      R          F1      P     R    F1     P     R     F1    P     R       F1
+       Detoxify   .15 .66 .25                                                             .78 .47 .59
+      Perspective .23 .55 .33                                                             .80 .28 .41
+       GPT-3.5        .18 .97 .31 .24 .92 .39 .31 .90                              .47    .84 .64 .72 .83 .80 .81 .87 .53                    .66
+      LLaMA-2         .19 .90 .31 .18 .92 .30 .40 .78                              .53    .82 .54 .65 .79 .80 .80 .81 .81                    .81
+       Mistral        .24 .65 .36 .31 .42 .36 .32 .28                              .30    .81 .32 .46 .80 .20 .32 .80 .49                    .61
+
+Table 2. Precision (P), recall (R), and F1 scores for each model under each prompting strategy. Results are segmented by author
+identity. Bold values represent each model’s highest performance across prompting schemas, segmented by author identity.
+Across all models, instances featuring linguistic reclamation are overwhelmingly falsely flagged as harmful.
+
+
+
+(data not shown). To understand the interplay of slur usage,                        4.2.1 Toxicity Classifier Performance. Texts written by
+ identity group and harm, we break down the distribution of                         ingroup members obtain high false positive rates (0.15 ≤
+ SLUR USAGE with respect to group membership in Figure                              prec. ≤ 0.4; 0.55 ≤ recall ≤ 0.97). We also observe moder-
+ 5. It is immediately clear that ingroup membership is a strong                     ate performance on texts written by outgroup members (F1
+ predictor of harm score: For HARMFUL IN, 15.5% of the in-                          ≤ .59, recall ≤ .47), suggesting that traditional toxicity classi-
+ stances are labeled as harmful, while 82.4% of the HARMFUL                         fication methods under-classify the harm of slur use in texts
+ OUT instances are labeled as harmful.                                              authored by outgroup members. Overall, these results sug-
+    Among ingroup posts, ‘Group Label’, ‘Other Label’ and                           gest that traditional toxicity methods may over-rely on the
+‘Sarcasm’7 were more likely to be labeled as harmful, suggest-                      presence of keywords (slurs) instead of leveraging context,
+ ing that the predominant reason why ingroup uses are consid-                       adversely affecting the accuracy of moderation decisions in
+ ered harmful is because the speaker is slurring someone else.                      very problematic ways.
+Two categories are never labeled as harmful: ‘Recollection’
+ and ‘Sexualization’.                                                               4.2.2 Vanilla Performance. Large language models exhibit
+    Among outgroup posts, five categories are less likely to                        poor performance for default prompting via vanilla. This
+ be considered harmful: ‘Recollection’, ‘Counter Speech’,                           is particularly true for HARMFUL IN, where the highest F1
+‘Quote’, ‘Discussion of Slur’, and ‘Discussion of Identity’.                        score is 0.36 (Mistral) vs. 0.72 for HARMFUL OUT (GPT 3.5).
+These categories also involve more frequent “uncertain” la-                         The low F1 scores result from high false positive rates, as
+ bels (for the selected labels: 𝑛𝑖𝑛0.5 = 82, 𝑛 0.5 = 221). This
+                                              𝑜𝑢𝑡
+                                                                                    evidenced by the low precision and high recall, meaning that
+ finding supports the notion that it is more acceptable for an                      baseline LLM behavior frequently flags ingroup speech as
+ outgroup member to use a slur if and only if the speaker’s                         harmful when the text is not actually harmful. The vanilla per-
+ intent is clearly non-disparaging, such as speaking out against                    formance on HARMFUL OUT, as measured by F1, is gener-
+ a third party’s derogatory use of a slur.                                          ally low in for the task of harmful speech detection. However,
+                                                                                    outgroup posts yield notably higher performance than for in-
+4.2    Model Performance                                                            group posts. Outgroup posts exhibit a reverse trend to ingroup,
+Next, we study how well the five language models are able to                        where models obtain high precision (≥ .78) and moderate-
+recognize non-derogatory slur use. See Table 2 for the preci-                       to-low recall (≤ .64). This suggests an under-classification
+sion, recall, and F1 for the models under different prompting                       of harmful language to outgroup members. Together, these
+strategies. Our analyses begin with the two off-the-shelf toxi-                     observations suggest that the baseline behavior of toxicity
+city classifiers (Detoxify and Perspective, 4.2.1), followed by                     detection as performed by LLMs does not account for the
+the three LLMs (GPT 3.5, LLaMA 2, and Mistral, 4.2.2). We                           distinctive dialects of queer participants in online communi-
+then report the effect of explicitly providing author identity                      ties. Instead, these models seem to implicitly assume that all
+(4.2.3) and chain-of-thought reasoning (4.2.4). Finally, we                         online speakers communicate as outgroup members.
+interpret the results with respect to author ingroupness (4.2.5)
+and slur choice (4.2.6).                                                            4.2.3 Identity Context. We attempt to guide the LLMs to
+                                                                                    incorporate the identity of the author when judging harm
+7 66% of instances labeled ‘Sarcasm’ are also characterized as ‘Group Label’        using identity prompting. At first glance, we observe lim-
+or ‘Other Label’.                                                                   ited improvement in performance for identity prompting.
+                                                                               7
+                                                                IMPLIED INGROUP (n=464)
+                                                      vanilla             identity        identity-cot
+                                      Model          P     R         F1   P     R    F1    P     R      F1
+                                    Detoxify   .04 .60 .08
+                                   Perspective .08 .47 .13
+                                     GPT 3.5        .05 .93 .10 .07 .80 .13 .10 .73                     .23
+                                    LLaMA 2         .06 .87 .11 .06 .87 .11 .14 .73                     .23
+                                     Mistral        .08 .73 .15 .11 .40 .17 .19 .33                     .24
+
+Table 3. Model performance on the subset of QueerReclaimLex where annotators agree that the text clearly indicates it was
+written by an ingroup member. Even with chain-of-thought prompting, all models perform with minimal precision.
+
+
+
+
+   ### INSTRUCTION:
+   A post should be considered harmful if anyone (1) causes
+   another person reasonable fear of personal injury (2)
+   defends an oppressive system, such as xenophobia or
+   sexism. Or, if an out-group member (1) uses a slur in a
+   pejorative way (2) attacks a minority (3) seeks to silence a
+   minority (4) criticizes a minority (without a well founded
+   argument) (5) promotes, but does not directly use, hate
+   speech or violent crime (6) blatantly misrepresents truth or
+   seeks to distort views on a minority with unfounded claims
+   (7) negatively stereotypes a minority (8) shows support of
+   harmful hashtags as per the previous criteria (9) contains a
+   screen name that is harmful as per the previous criteria.
+
+   An ingroup member is someone who belongs to the
+   group that is being called a slur. If a tweet says ‘I am a
+   tranny’, the ingroup is transgender people.                                Figure 5. Frequency of SLUR USAGE depending on expert-
+                                                                              obtained harm scores. Ingroup posts are far less likely to be
+   ### INPUT:                                                                 harmful.
+   An ingroup member wrote the following post.
+
+   Post: Old lady didnt wanna pay for her coffee be-                          All three large language models continue to show poor perfor-
+   cause a "transvestite" was serving her.                                    mance (𝐹 1 ≤ 0.39) on toxicity detection for HARMFUL IN,
+                                                                              even though the prompt specifies that the author is an ingroup
+   ### RESPONSE:                                                              member. However, in comparison with vanilla scores, the
+   The tweet is written by a trans person. The tweet itself                   false positive rates of GPT 3.5 and Mistral decrease, suggest-
+   discusses a time when the author had reasonable fear of                    ing that the F1 scores may result from increased leniency
+   personal injury, but does not itself cause that fear. It is not            of assigning harm to ingroup posts. Additionally, in posts
+   harmful for a trans person to talk about a time they were                  written by outgroup members, models become better at iden-
+   called a slur.
+                                                                              tifying toxic posts.The performance on HARMFUL OUT, as
+   {"harm": 0}
+                                                                              measured by F1 score, improves for GPT 3.5 and LLaMA 2
+                                                                              (𝐹 1 = 0.81 and 𝐹 1 = 0.82, respectively) due to big increases
+                                                                              in recall. This suggests that the models are learning to be
+Figure 4. Blue text contains identity prompting schema                        more accurate in assigning harm scores to outgroup posts,
+formatted for LLaMA 2. The post featured is an example                        but they remain largely incapable of accurately characterizing
+post. When the instance contains the purple text after the                    harm for ingroup posts.
+blue, the prompt becomes a version of our identity-cot
+prompting schema with only one example rather than four.                      4.2.4 Identity Context with Chain-of-Thought. The LLMs
+                                                                              can be taught about ingroup language using explanatory ex-
+                                                                              amples via identity-cot prompting. When predicting
+                                                                          8
+HARMFUL IN, GPT 3.5 and LLaMA 2 obtain their high-                     to instances featuring the slurs ‘fag’, ‘shemale’ and ‘tranny’.
+est F1 scores across prompting schemas (𝐹 1 = 0.47 and                 It appears as though models have some sort of hierarchy of
+𝐹 1 = 0.53, respectively) and their lowest false positive rates.       slurs.
+This indicates that chain-of-thought prompting aids GPT 3.5               Following related analyses in econometrics [8], we learn a
+and LLaMA 2 in learning to be lenient, hence more accurate,            linear regressor to predict a model’s harm scores using a one-
+when assigning harm scores to ingroup member slur use. For             hot encoding of slur presence as input. We add a disturbance
+HARMFUL OUT, LLaMA 2 and Mistral obtain their high-                    term 𝜖 and randomly remove one slur to prevent linear depen-
+est F1 performance across prompting schemas. Additionally,             dence between predictors. We formulate the linear regression
+their increase in recall suggests that the models become less          model as follows:
+strict in assigning high harm to posts with outgroup author-
+ship. These results show that chain-of-thought with identity                                                ∑︁
+prompting can be leveraged to improve the ability of LLMs                           𝑦𝑖 (𝑥) = 𝜖𝑖 + 𝛽 0 +                 𝛽 𝑗 × 1𝑥 (𝑆 𝑗 )   (1)
+                                                                                                          𝑗 ∈N ≤ |𝑆 |
+to recognize reclaimed slurs.
+4.2.5 Clear Ingroup Membership. Determining in-groupness               In other words, model 𝑖’s predicted harm score 𝑦𝑖 for the
+based on a short text is a challenging, sometimes impossi-             provided bag-of-words 𝑥 is the sum of weights 𝛽 𝑗 associated
+ble task. However, some posts contain clear indicators that            with each unique slur 𝑆 𝑗 ∈ 𝑥. Figure 7 shows the resulting 𝑅 2
+they were written by an ingroup member. For instance, in the           values across the 15 model × prompt settings. Our analysis
+template ‘Not all [SLUR]s do coding and stuff, some of us              revealed that the choice of slur becomes less explanatory for
+are actually really dumb’, the pronoun “us” indicates that the         harm scores as more context is introduced in the prompting
+author identifies with the group connected to the slur. Using          schema.
+the collected annotations for IMPLIED INGROUP, which                      The gold labels are barely explained by choice of slur (𝑅 2
+indicate whether the text is implied to have been authored by          ≤ .05). Simultaneously, when given a vanilla schema, the
+an ingroup member, we study the selected models’ sensitivity           choice of slur has a large role in determining the harm score
+to ingroupness while predicting harmful intent.                        for all three models (𝑅 2 ≥ 0.19). As each level of context is
+   First, we look at model performance on a subset                     introduced, 𝑅 2 decreases, indicating a reduced reliance on
+of QueerReclaimLex where both annotators mark                          the specific slur for determining harm scores. In other words,
+IMPLIED INGROUP as true. We find that the large language               increasing context provided in the model’s prompt appears to
+models do not effectively use in-post context of ingroup mem-          lead the LLM to better understand the surrounding setting a
+bership to adjust their understanding of slur use. Table 3             slur is used in.
+reports model performance only on HARMFUL IN since
+our concern here lies with posts written by ingroup members.           5   Discussion and Conclusion
+We observe that, for all models and all prompting schemas,
+                                                                       We presented QueerReclaimLex, a novel dataset of short-
+the precision, recall and F1 are even worse than the overall
+                                                                       form posts featuring LGBTQ+ slurs as an aspect of gender-
+results in Table 2. The highest vanilla F1 performance is
+                                                                       queer dialect. The dataset was annotated by six gender-queer
+merely 0.15 (Mistral). In fact, across all prompting schemas,
+                                                                       individuals for subjective harm assessments and twelve types
+the highest F1 is only a low 0.24 (Mistral). This observation
+                                                                       of pragmatic use. QueerReclaimLex was created to fa-
+shows that language models do not seem to correctly char-
+                                                                       cilitate multifaceted analyses related to gender-queer dialect
+acterize statements featuring gender-queer dialect, despite
+                                                                       biases in language models, particularly for harmful speech
+the reported ability of large language models to make use of
+                                                                       detection.
+context.
+                                                                          The dataset composition process provided valuable insights
+4.2.6 Reliance on Specific Slurs. We recognize that slurs              into the sociolinguistic dynamics of gender-queer dialects and
+subjectively evoke feelings of hatred according to individual          harm. We observed a higher annotator agreement for tweets
+priors shaped by past experience. These priors play a central          with ingroup authorship over outgroup authorship, indicating
+role in determining the extent to which a slur is harmful,             less controversy in determining harm when a slurring pejora-
+however, it is not clear to what extent language models capture        tive is used by an ingroup member. This fits into prior work
+this prior. To analyze the extent to which slurs are perceived         asserting that a general condition for non-derogatory slur use
+independently of context, we compare model performance on              is that the speaker identifies with the slur’s target group [21].
+instances which only vary with respect to the slur.                    Additionally, we observed that ingroup authorship of slurring
+   Figure 6 displays each model’s average harm score over              pejoratives can pose a high risk of harm when the pejoratives
+our list of slurs. The pink vertical line denotes the mean             are used to label others. We found that slurring pejoratives
+over gold labels for HARMFUL IN, and the blue vertical line            used by outgroup authors may be less harmful when used
+denotes the mean over gold labels for HARMFUL OUT. We                  in reference to someone else using a slurring pejorative (i.e.
+observe that all three models give their highest harm scores           a quote or recollection). Socio-linguistic work has similarly
+                                                                   9
+Figure 6. Mean model harm scores split by specific slur and prompting schema. The pink vertical line denotes the mean over
+gold labels for HARMFUL IN, and the blue vertical line denotes the mean over gold labels for HARMFUL OUT. Whiskers show
+standard error.
+
+                                                                       decreased in F1 by, on average, 19.8%. This implies that
+                                                                       these models further marginalize queer users by wrongly la-
+                                                                       beling their posts as harmful and removing them from online
+                                                                       discussions.
+                                                                          This work emphasizes the need to consider gender minor-
+                                                                       ity groups in the creation and deployment of large language
+                                                                       models for harm detection. Previous work has found that tox-
+                                                                       icity detection performed by language models struggles to
+                                                                       understand minority dialects, due in large part to spurious
+                                                                       correlations [54]. A possible strategy for removing these spu-
+                                                                       rious correlations may involve supplementing datasets with
+                                                                       ingroup language of historically marginalized groups.
+                                                                          We hope to build upon this work by retrieving annotations
+                                                                       for QueerReclaimLex from popular annotation channels
+Figure 7. Linear Regression 𝑅 2 statistics measuring corre-            like Amazon Mechanical Turk. This could help clarify the
+lation between model harm scores and slur featured in text.            perspectives which underlay the annotations used to train
+All 𝑅 2 values are significant at p < .01. For convenience,            machine learning classifiers. Additionally, we are interested
+identity-cot is shortened to cot.                                      in analyzing model performance on these templates but with
+                                                                       neutral identity terms (e.g., ‘gay’) rather than slurs. At a more
+observed that a slur can be referenced but not used when em-           mundane level, we hope to replicate this work by using a
+bedded in a quote, allowing its derogatory effect to possibly          larger number of annotators from the queer community, to
+become neutralized [21].                                               help gain a sense of the number of participants from marginal-
+   We also present an in-depth analysis of how five off-the-           ized communities whose input is needed to assess LLM model
+shelf language models perform on the task of harmful speech            performance. Finally, we hope to experiment with LLM align-
+detection, revealing high false positive rates for gender-queer        ment, the task of training an LLM to align with some specific
+authors (the maximum precision across ingroup users was                identity, to understand how models make sense of LGBTQ+
+0.4). We found evidence that this low performance was ex-              communities.
+plained in part by an inability to leverage relevant social
+context. Even when explicitly told relevant social context—
+that the author is an ingroup member—the tested models
+                                                                  10
+Ethics and Limitations                                                   References
+Template Format. Template datasets often capture non-                     [1] Luvell Anderson and Ernie Lepore. 2013. Slurring words. Noûs 47, 1
+natural language. In this work, we deliberately create tem-                   (2013), 25–48.
+                                                                          [2] Luvell Anderson and Ernie Lepore. 2013. What did you call me? Slurs
+plates which are based on real-life speech. Template datasets                 as prohibited words setting things up. Analytic Philosophy 54, 3 (2013),
+are inherently limited to a finite set of sentence structures.                350–63.
+Unfortunately, due to the manual labor required in compiling              [3] Annalisa Anzani, Louis Lindley, Giacomo Tognasso, M Paz Galupo,
+natural language templates, the dataset we curate is fairly                   and Antonio Prunas. 2021. “Being talked to like I was a sex toy, like
+small. A valuable avenue for future work lies in expanding                    being transgender was simply for the enjoyment of someone else”:
+                                                                              Fetishization and sexualization of transgender and nonbinary individu-
+the dataset to include additional templates.                                  als. Archives of Sexual Behavior 50, 3 (2021), 897–911.
+    Conceptualization of Gender. In this work, we group                   [4] Tracy Baim. 2015. Chicago Dyke March. , 33 pages. Copyright -
+different gender-queer identities together under the umbrella                 Copyright Windy City Media Group Jul 1, 2015; Document feature -
+term ‘gender-queer’ and treat them as somewhat synonymous.                    Photographs; Last updated - 2023-09-25.
+This is a flawed conceptualization. Though gender-queer iden-             [5] Paul Baker. 2013. From gay language to normative discourse: A di-
+                                                                              achronic corpus analysis of Lavender Linguistics conference abstracts
+tities (e.g. ‘non-binary’, ‘transgender’) are not mutually exclu-             1994–2012. Journal of Language and Sexuality 2, 2 (2013), 179–205.
+sive, many individuals identify with only a subset of label(s).           [6] Connor Baumler and Rachel Rudinger. 2022. Recognition of
+However, given the limited personally-expressed data for peo-                 They/Them as Singular Personal Pronouns in Coreference Resolu-
+ple with non-socially normative gender identities, we see this                tion. In Proceedings of the 2022 Conference of the North American
+work as an opportunity to improve content moderation for                      Chapter of the Association for Computational Linguistics: Human Lan-
+                                                                              guage Technologies. Association for Computational Linguistics, Seattle,
+many gender-queer communities. As the concept of gender                       United States, 3426–3432. https://doi.org/10.18653/v1/2022.naacl-
+continues to shift and grow, we look forward to seeing how                    main.250
+research moves with it.                                                   [7] Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah,
+    Subjectivity of Harm. Gold labels for harm are inherently                 Jared Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam,
+affected by the subjectivity of the task. To promote reliability              Girish Sastry, Amanda Askell, Sandhini Agarwal, Ariel Herbert-Voss,
+                                                                              Gretchen Krueger, Tom Henighan, Rewon Child, Aditya Ramesh,
+of annotations, we analyze model performance only on those                    Daniel M. Ziegler, Jeffrey Wu, Clemens Winter, Christopher Hesse,
+instances with some consistency between annotations. In the                   Mark Chen, Eric Sigler, Mateusz Litwin, Scott Gray, Benjamin Chess,
+future we would like to expand the number of annotators                       Jack Clark, Christopher Berner, Sam McCandlish, Alec Radford, Ilya
+assigned to each instance.                                                    Sutskever, and Dario Amodei. 2020. Language Models are Few-Shot
+    Generalization. In this work we highlight how an aspect                   Learners. arXiv:2005.14165 [cs.CL]
+                                                                          [8] Yi Chen, Manming Fang, Yi Zhao, and Zibo Zhao. 2024. RECOVER-
+of gender-queer dialect is treated by one function of large                   ING OVERLOOKED INFORMATION IN CATEGORICAL VARI-
+language models. We recognize that these findings may not                     ABLES WITH LLMS: AN APPLICATION TO LABOR MARKET
+generalize towards other model functions, as the slightest per-               MISMATCH. National Bureau of Economic Research (2024).
+turbations in large language model prompts have been shown                [9] Thomas Davidson, Debasmita Bhattacharya, and Ingmar Weber. 2019.
+to alter classification scores [37]. Additionally, these findings             Racial Bias in Hate Speech and Abusive Language Detection Datasets.
+                                                                              In Proceedings of the Third Workshop on Abusive Language Online.
+may not generalize towards other historically marginalized                    Association for Computational Linguistics, Florence, Italy, 25–35.
+communities. We would be interested to see how model harm                     https://doi.org/10.18653/v1/W19-3504
+scores vary on dialect aspects from other groups.                        [10] Hannah Devinney, Jenny Björklund, and Henrik Björklund. 2022. The-
+    English Only. In this work we only consider English                       ories of “Gender” in NLP Bias Research. arXiv:2205.02526 (May
+tweets and pronouns. Obviously, most all languages contain                    2022). http://arxiv.org/abs/2205.02526 arXiv:2205.02526 [cs].
+                                                                         [11] Thiago Dias Oliva, Dennys Marcelo Antonialli, and Alessandra Gomes.
+speakers with gender-queer identities. We hope to see this                    2021. Fighting Hate Speech, Silencing Drag Queens? Artificial In-
+work repeated with languages other than English.                              telligence in Content Moderation and Risks to LGBTQ Voices On-
+    Dataset Availability. The dataset is available on GitHub                  line. Sexuality and Culture 25, 2 (Apr 2021), 700–732. https:
+at https://github.com/rebedorn/QueerReclaimLex, along                         //doi.org/10.1007/s12119-020-09790-w
+with its corresponding data sheet.                                       [12] Mark Diaz, Razvan Amironesei, Laura Weidinger, and Iason Gabriel.
+                                                                              2022. Accounting for Offensive Speech as a Practice of Resistance.
+                                                                              In Proceedings of the Sixth Workshop on Online Abuse and Harms
+Acknowledgements                                                              (WOAH). Association for Computational Linguistics, Seattle, Washing-
+                                                                              ton (Hybrid), 192–202. https://doi.org/10.18653/v1/2022.woah-
+We sincerely thank our annotators, including Umut Pajaro                      1.18
+Velasquez as well as those who wish to remain anonymous,                 [13] Rebecca Dorn, Julie Jiang, Jeremy Abramson, and Kristina Lerman.
+without whom this work could not exist. We also thank the                     2023. Non-Binary Gender Expression in Online Interactions. arXiv
+                                                                              preprint arXiv:2303.04837 (2023).
+QueerinAI community for their valuable insights and support              [14] Daniel Edmondson. 2021. Word norms and measures of linguistic
+in shaping this work. Thank you to Negar Mokhberian for                       reclamation for LGBTQ+ slurs. Pragmatics and Cognition 28, 1 (Dec
+providing valuable feedback throughout the process. Addi-                     2021), 193–221. https://doi.org/10.1075/pc.00023.edm
+tionally, we would like to thank the SoCalNLP conference                 [15] Andrew Flores and Kerith Conron. 2023. Adult LGBT Population in
+participants for their helpful suggestions.                                   the United States. Williams Institute (2023).
+                                                                    11
+[16] Paula Fortuna, Juan Soler, and Leo Wanner. [n. d.]. Toxic, Hateful,              [32] Surya Monro. 2019. Non-binary and genderqueer: An overview of
+     Offensive or Abusive? What Are We Really Classifying? An Empirical                    the field. International Journal of Transgenderism 20, 2-3 (2019),
+     Analysis of Hate Speech Datasets. ([n. d.]).                                          126–131.
+[17] Aster Gilbert. 2020. Sissy Remixed: Trans* Porno Remix and Con-                  [33] Viviane Namaste. 2000. Invisible lives: The erasure of transsexual and
+     structing the Trans* Subject. Transgender Studies Quarterly 7, 2 (2020),              transgendered people. University of Chicago Press.
+     222–236.                                                                         [34] Anaelia Ovalle, Palash Goyal, Jwala Dhamala, Zachary Jaggers, Kai-
+[18] Oliver L. Haimson, Daniel Delmonaco, Peipei Nie, and Andrea Wegner.                   Wei Chang, Aram Galstyan, Richard Zemel, and Rahul Gupta. 2023.
+     2021. Disproportionate Removals and Differing Content Moderation                      “I’m fully who I am”: Towards Centering Transgender and Non-Binary
+     Experiences for Conservative, Transgender, and Black Social Media                     Voices to Measure Biases in Open Language Generation. In 2023 ACM
+     Users: Marginalization and Moderation Gray Areas. Proceedings of the                  Conference on Fairness, Accountability, and Transparency. 1246–1266.
+     ACM on Human-Computer Interaction 5, CSCW2 (Oct 2021), 1–35.                          https://doi.org/10.1145/3593013.3594078 arXiv:2305.09941 [cs].
+     https://doi.org/10.1145/3479610                                                  [35] Endang Wahyu Pamungkas, Valerio Basile, and Viviana Patti. 2023.
+[19] Camille Harris, Amber Gayle Johnson, Sadie Palmer, Diyi Yang, and                     Investigating the role of swear words in abusive language detection
+     Amy Bruckman. 2023. “Honestly, I Think TikTok has a Vendetta                          tasks. Language Resources and Evaluation 57, 1 (Mar 2023), 155–188.
+     Against Black Creators”: Understanding Black Content Creator Experi-                  https://doi.org/10.1007/s10579-022-09582-8
+     ences on TikTok. Proceedings of the ACM on Human-Computer Interac-               [36] Krithika Ramesh, Sumeet Kumar, and Ashiqur Khudabukhsh. 2022.
+     tion 7, CSCW2 (Sept. 2023), 1–31. https://doi.org/10.1145/3610169                     Revisiting Queer Minorities in Lexicons. In Proceedings of the Sixth
+[20] Lena Herrmann, Carola Bindt, Sarah Hohmann, and Inga Becker-Hebly.                    Workshop on Online Abuse and Harms (WOAH). Association for
+     2023. Social media use and experiences among transgender and gen-                     Computational Linguistics, Seattle, Washington (Hybrid), 245–251.
+     der diverse adolescents. International Journal of Transgender Health                  https://doi.org/10.18653/v1/2022.woah-1.23
+     (2023), 1–14.                                                                    [37] Abel Salinas and Fred Morstatter. 2024. The butterfly effect of altering
+[21] Leopold Hess. 2020. Practices of Slur Use. Grazer Philosophische Stu-                 prompts: How small changes and jailbreaks affect large language model
+     dien 97, 1 (Mar 2020), 86–105. https://doi.org/10.1163/18756735-                      performance. arXiv preprint arXiv:2401.03729 (2024).
+     09701006                                                                         [38] William Sayers. 2023. The Etymology of Dyke and Bull-dyke. ANQ:
+[22] Amanda Hicks, Michael Rutherford, Christiane Fellbaum, and Jiang                      A Quarterly Journal of Short Articles, Notes and Reviews 36, 3 (2023),
+     Bian. [n. d.]. An Analysis of WordNet’s Coverage of Gender Identity                   307–308. https://doi.org/10.1080/0895769X.2021.1980717
+     Using Twitter and The National Transgender Discrimination Survey.                [39] Morgan Klaus Scheuerman, Madeleine Pape, and Alex Hanna.
+     ([n. d.]).                                                                            2021. Auto-essentialization: Gender in automated facial analysis
+[23] Christopher Hom. 2008. The semantics of racial epithets. The Journal                  as extended colonial project. Big Data            Society 8, 2 (2021),
+     of Philosophy 105, 8 (2008), 416–440.                                                 20539517211053712.
+[24] Albert Q Jiang, Alexandre Sablayrolles, Arthur Mensch, Chris Bamford,            [40] Ellen Selkie, Victoria Adkins, Ellie Masters, Anita Bajpai, and Daniel
+     Devendra Singh Chaplot, Diego de las Casas, Florian Bressand, Gianna                  Shumer. 2020. Transgender adolescents’ uses of social media for social
+     Lengyel, Guillaume Lample, Lucile Saulnier, et al. 2023. Mistral 7B.                  support. Journal of Adolescent Health 66, 3 (2020), 275–280.
+     arXiv preprint arXiv:2310.06825 (2023).                                          [41] Farhana Shahid and Aditya Vashistha. 2023. Decolonizing Content
+[25] Julie Jiang, Emily Chen, Luca Luceri, Goran Murić, Francesco                         Moderation: Does Uniform Global Community Standard Resemble
+     Pierri, Ho-Chun Herbert Chang, and Emilio Ferrara. 2022. What                         Utopian Equality or Western Power Hegemony?. In Proceedings of
+     are Your Pronouns? Examining Gender Pronoun Usage on Twitter.                         the 2023 CHI Conference on Human Factors in Computing Systems.
+     arXiv:2207.10894 (Oct. 2022). http://arxiv.org/abs/2207.10894                         ACM, Hamburg Germany, 1–18. https://doi.org/10.1145/3544548.
+     arXiv:2207.10894 [cs].                                                                3581538
+[26] John E Joseph. [n. d.]. Historical perspectives on language and identity.        [42] Samuel Sturaro, Caterina Suitner, and Fabio Fasoli. 2023. When is
+     ([n. d.]).                                                                            Self-Labeling Seen as Reclaiming? The Role of User and Observer’s
+[27] Jana Kurrek, Haji Mohammad Saleem, and Derek Ruths. 2020. Towards                     Sexual Orientation in Processing Homophobic and Category Labels’
+     a Comprehensive Taxonomy and Large-Scale Annotated Corpus for                         use. Journal of Language and Social Psychology 42, 4 (Sep 2023),
+     Online Slur Usage. In Proceedings of the Fourth Workshop on Online                    464–475. https://doi.org/10.1177/0261927X231173147
+     Abuse and Harms. Association for Computational Linguistics, Online,              [43] Tony Sun, Kellie Webster, Apu Shah, William Yang Wang, and Melvin
+     138–149. https://doi.org/10.18653/v1/2020.alw-1.17                                    Johnson. 2021. They, Them, Theirs: Rewriting with Gender-Neutral
+[28] Alyssa Lees, Vinh Q Tran, Yi Tay, Jeffrey Sorensen, Jai Gupta, Donald                 English. arXiv:2102.06788 (Feb. 2021). http://arxiv.org/abs/2102.
+     Metzler, and Lucy Vasserman. 2022. A new generation of perspective                    06788 arXiv:2102.06788 [cs].
+     api: Efficient multilingual character-level transformers. In Proceedings         [44] Ariella Tabaac, Paul B Perrin, and Eric G Benotsch. 2018. Discrimi-
+     of the 28th ACM SIGKDD Conference on Knowledge Discovery and                          nation, mental health, and body image among transgender and gender-
+     Data Mining. 3197–3207.                                                               non-binary individuals: constructing a multiple mediational path model.
+[29] Shervin Malmasi and Marcos Zampieri. 2018. Challenges in dis-                         Journal of gay     lesbian social services 30, 1 (2018), 1–16.
+     criminating profanity from hate speech. Journal of Experimental                  [45] Yi Tay, Vinh Q. Tran, Sebastian Ruder, Jai Gupta, Hyung Won Chung,
+     and Theoretical Artificial Intelligence 30, 2 (March 2018), 187–202.                  Dara Bahri, Zhen Qin, Simon Baumgartner, Cong Yu, and Donald
+     https://doi.org/10.1080/0952813X.2017.1409284                                         Metzler. 2022. Charformer: Fast Character Transformers via Gradient-
+[30] Lauren B McInroy, Rebecca J McCloskey, Shelley L Craig, and An-                       based Subword Tokenization. arXiv:2106.12672 [cs.CL]
+     drew D Eaton. 2019. LGBTQ+ youths’ community engagement and                      [46] Mike Thelwall, Saheeda Thelwall, and Ruth Fairclough. 2021. Male,
+     resource seeking online versus offline. Journal of Technology in Human                Female, and Nonbinary Differences in UK Twitter Self-descriptions: A
+     Services 37, 4 (2019), 315–333.                                                       Fine-grained Systematic Exploration. Journal of Data and Information
+[31] Sean McKinnon. 2017. “Building a thick skin for each other”: The                      Science 6, 2 (April 2021), 1–27. https://doi.org/10.2478/jdis-2021-
+     use of ‘reading’ as an interactional practice of mock impoliteness in                 0018
+     drag queen backstage talk. Journal of Language and Sexuality 6, 1 (Jun           [47] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad Alma-
+     2017), 90–127. https://doi.org/10.1075/jls.6.1.04mck                                  hairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal
+                                                                                           Bhargava, Shruti Bhosale, et al. 2023. Llama 2: Open foundation and
+
+                                                                                 12
+     fine-tuned chat models. arXiv preprint arXiv:2307.09288 (2023).                     committing acts which places such person in reason-
+[48] Richard Vytniorgu. 2023. Effeminate gay bottoms in the West: Narra-                 able fear of physical injury" 8 . We leave out intent and
+     tives of pussyboys and boiwives on tumblr. Journal of Homosexuality                 repetition due to the inability of portrayal for singular
+     70, 10 (2023), 2113–2134.
+[49] Wenbo Wang, Lu Chen, Krishnaprasad Thirunarayan, and Amit P.                        social media posts.
+     Sheth. 2014. Cursing in English on twitter. In Proceedings of the               Changes made to SLUR USAGE taxonomy. We update
+     17th ACM conference on Computer supported cooperative work and               the taxonomy in the following ways:
+     social computing. ACM, Baltimore Maryland USA, 415–425. https:
+     //doi.org/10.1145/2531602.2531734                                                • Removal of overarching categories that describe whether
+[50] Zeerak Waseem, Thomas Davidson, Dana Warmsley, and Ingmar We-                       subcategories are offensive
+     ber. 2017. Understanding Abuse: A Typology of Abusive Language                   • Creation of a new category for discussions of identity
+     Detection Subtasks. In Proceedings of the First Workshop on Abusive              • Expansion of the direct quote category to include para-
+     Language Online. Association for Computational Linguistics, Vancou-
+                                                                                         phrases
+     ver, BC, Canada, 78–84. https://doi.org/10.18653/v1/W17-3012
+[51] Zeerak Waseem and Dirk Hovy. 2016. Hateful Symbols or Hateful                    • Expansion of the definition of sexualization to include
+     People? Predictive Features for Hate Speech Detection on Twitter. In                non-demeaning
+     Proceedings of the NAACL Student Research Workshop. Association
+     for Computational Linguistics, San Diego, California, 88–93. https:
+     //doi.org/10.18653/v1/N16-2013
+[52] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia,
+     Ed Chi, Quoc V Le, Denny Zhou, et al. 2022. Chain-of-thought prompt-
+     ing elicits reasoning in large language models. Advances in Neural
+     Information Processing Systems 35 (2022), 24824–24837.
+[53] Meredith GF Worthen. 2020. Queers, bis, and straight lies: An inter-
+     sectional examination of LGBTQ stigma. Routledge.
+[54] Albert Xu, Eshaan Pathak, Eric Wallace, Suchin Gururangan, Maarten
+     Sap, and Dan Klein. 2021. Detoxifying language models risks marginal-
+     izing minority voices. arXiv preprint arXiv:2104.06390 (2021).
+[55] Wenjie Yin and Arkaitz Zubiaga. 2022. Hidden behind the obvious:
+     Misleading keywords and implicitly abusive language on social media.
+     Online Social Networks and Media 30 (July 2022), 100210. https:
+     //doi.org/10.1016/j.osnem.2022.100210
+[56] Zhixue Zhao, Ziqi Zhang, and Frank Hopfgartner. 2021. SS-BERT:
+     Mitigating Identity Terms Bias in Toxic Comment Classification by
+     Utilising the Notion of" Subjectivity" and" Identity Terms". arXiv
+     preprint arXiv:2109.02691 (2021).
+[57] Xuhui Zhou, Hao Zhu, Akhila Yerukola, Thomas Davidson, Jena D.
+     Hwang, Swabha Swayamdipta, and Maarten Sap. 2023. COBRA
+     Frames: Contextual Reasoning about Effects and Harms of Offensive
+     Statements. arXiv:2306.01985 (June 2023). http://arxiv.org/abs/
+     2306.01985 arXiv:2306.01985 [cs].
+
+
+
+
+Appendix
+Changes made to offensive definition. We change the defi-
+nition of toxicity as detailed in [51] in the following ways:
+
+    • The definition is separated into two parts to account for
+      speaker identity’s influence on whether something is
+      derogatory.
+    • The enumeration of oppressive systems is generalized.
+    • The straw man argument is consolidated with ‘criticiz-
+      ing a minority without a well-founded argument’.
+    • A harassment clause is added. The definition of ha-
+      rassment was altered from Cornell Law School’s Legal
+      Information Institute: "when [someone] intentionally
+      and repeatedly harasses another person by by follow-
+      ing such person in or about a public place or places or
+      by engaging in a course of conduct or by repeatedly                         8 https://www.law.cornell.edu/wex/harassment
+
+                                                                             13
+

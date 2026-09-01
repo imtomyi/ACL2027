@@ -1,0 +1,938 @@
+        Development and Benchmarking of a Blended Human-AI Qualitative
+                             Research Assistant
+
+                  Joseph Matveyenko, James Liu, John David Parsons, Ryan A. Brown,
+                            Alina I. Palimaru, Vipul Gupta, Prateek Puri
+
+                                      RAND Corporation
+              {jmatveyenko, ryan_brown, alina_palimaru, vipul, ppuri}@rand.org
+
+
+                           Abstract
+         Qualitative research emphasizes constructing
+         meaning through iterative engagement with tex-
+         tual data. Traditionally, this human-driven pro-
+         cess requires navigating coder fatigue and inter-
+         pretive drift, thus posing challenges when scal-
+         ing analysis to larger, more complex datasets.
+         Computational approaches to augment qualita-
+         tive research have been met with skepticism,
+         partly due to their inability to replicate the
+         nuance, context-awareness, and sophistication
+         of human analysis. LLMs, however, present
+         new opportunities to automate aspects of qual-
+         itative analysis while upholding rigor and re-
+         search quality. In this work, we present and
+         benchmark Muse, an interactive qualitative re-
+         search system that allows researchers to iden-            Figure 1: An illustration of the Muse system for AI-
+         tify themes and annotate datasets, achieving              assisted qualitative research. Documents are ingested
+         an inter-rater reliability between Muse and hu-           into the platform, at which point they are segmented,
+         mans of Cohen’s κ = 0.7 for well-specified                embedded, and cataloged. Users may prompt the system
+         codes.                                                    to identify themes and generate a codebook. Similarly,
+                                                                   users can apply a code to the entire dataset or distribute
+    1    Introduction                                              a set of excerpts among a series of codes.
+    Qualitative research has long been characterized by
+    its emphasis on interpretive depth, contextual un-
+    derstanding, and the careful construction of mean-             rich diversity of domains in qualitative research.
+    ing from textual data (Denzin and Lincoln, 2011;               One component of this optimization process is rig-
+    Flick, 2014). The process of qualitative coding re-            orous benchmarking against real-world, human-
+    quires substantial time investment, with researchers           generated datasets to assess their performance, ben-
+    often spending weeks or months in iterative cycles             efits, limitations, and trustworthiness. Another is
+    of reading, coding, discussing, and refining their             obtaining viable latency and performance trade-
+    analytical frameworks.                                         offs during deployment.
+       Recent advances in LLMs have shown promise                     In this work, we present the Muse system (Fig-
+    for automating aspects of qualitative analysis                 ure 1), a qualitative research assistant designed
+    (Bhaduri et al., 2024; Bennis and Mouaffaq, 2025;              through extensive feedback cycles with more than
+    Laato et al., 2025; Morgan, 2023). Prior work has              a hundred qualitative researchers. Muse is a pro-
+    demonstrated that LLMs can extract high-level con-             duction system optimized for real-world deploy-
+    cepts from unstructured text and generate inter-               ment and currently has more than 600 projects and
+    pretable topic models that surpass clustering-based            400 users. We demonstrate the performance of
+    approaches in certain research contexts (Lam et al.,           Muse through benchmarking and also discuss sys-
+    2024).                                                         tem optimization for latency and accuracy. We ex-
+       However, a critical gap remains: these novel                plore how Muse can address three key challenges:
+    systems need to be scalable and adaptable to the               (1) consistent application of established coding
+                                                              1917
+Proceedings of the 64th Annual Meeting of the Association for Computational Linguistics (Volume 6: Industry Track), pages 1917–1932
+                                 July 2-7, 2026 ©2026 Association for Computational Linguistics
+schemes across diverse datasets, (2) automated                    reported 5 or more years of experience with quali-
+codebook generation that captures the nuances of                  tative methods, and 58% reported 10 or more years.
+qualitative frameworks, and (3) rigorous evalua-                  By discipline, respondents were primarily policy
+tion of AI-assisted coding quality using established              researchers and analysts (41%), followed by be-
+inter-rater reliability (IRR) metrics. Through our                havioral and social scientists (17%), political sci-
+analysis, we present the following contributions:                 entists (4%), and information scientists, survey re-
+   Curated multi-domain evaluation dataset: We                    searchers, operations researchers, and engineers
+compiled eleven publicly available qualitative re-                making up the remainder. These touchpoints in-
+search datasets spanning interviews, social media                 formed critical design decisions from feature pri-
+posts, survey responses, and domain-specific cor-                 oritization to interface design to hyperparameter
+pora. This collection, which we’ve made available                 selection. By grounding our technical development
+on GitHub, addresses critical data sharing limita-                in the perspectives of researchers and the unique
+tions in qualitative research and provides a founda-              requirements of each individual project, we aimed
+tion for standardized benchmarking.1                              to design a system that would generalize across
+   Systematic hyperparameter optimization neces-                  research contexts and enable high levels of user
+sary for real-world deployment of qualitative AI                  interaction and steerability throughout its function-
+systems: Through comprehensive evaluation across                  ality.
+multiple datasets, we identify optimal configura-                    When asked about high-priority tool features
+tions for LLM-based coding systems, tuning over                   in our survey, researchers expressed a desire for
+parameters such as prompt design, model selection,                flexible workflows that enable both inductive and
+and dataset batching. We explore the performance                  deductive analysis as well as greater consistency in
+and cost/latency trade-offs associated with different             code application. Given these perspectives, we fo-
+system settings, ultimately identifying parameters                cused on the development and evaluation of three
+that judiciously balance both to go from prototypes               main tools within the Muse platform that align
+to something we could deploy across our organiza-                 with these needs: generate codebook, apply code,
+tion.                                                             and distribute code. Although the Muse platform
+   Benchmarking of performance in qualitative re-                 contains many other features — such as chat-with-
+search settings: We demonstrate how AI assistance                 your-data functionality, automated code definition
+can achieve research-grade coding reliability (Co-                updating, and others — in this work, we focus pri-
+hen’s κ = 0.7) for well-specified codes across a                  marily on these three features given their amenabil-
+wide range of datasets and domains, comparable                    ity to rigorous evaluation and their relevance to
+to performance demonstrated in domain-specific                    others building LLM-based systems for qualitative
+evaluations (Borse et al., 2025).2                                research.
+                                                                     While our survey revealed broad consensus on
+2       System Design                                             desired features, each researcher brings a unique
+                                                                  analytical lens and distinct preferences to how they
+To ensure our system addresses real-world re-
+                                                                  conduct their research. This posed a core design
+search needs rather than technical benchmarks
+                                                                  challenge common to many organizations deploy-
+alone, we conducted several expert interviews with
+                                                                  ing GenAI solutions: building a system that is
+intended users and conducted a survey. Respon-
+                                                                  both high-performing across diverse research do-
+dents spanned a range of seniority levels: 48%
+                                                                  mains and highly steerable to individual researcher
+held senior or full-level positions, 28% were mid-
+                                                                  taste. To navigate these competing demands, we
+level, 14% associate-level, and 5% were assistant
+                                                                  conducted several experiments optimizing across
+or graduate-level researchers. The sample skewed
+                                                                  latency, performance, and steerability. To track
+towards experienced qualitative researchers - 80%
+                                                                  progress across our optimization dimensions, we
+    1
+     https://github.com/jdmatv/muse-eval-dataset                  built a monitoring and experimentation pipeline us-
+    2
+     There is no single IRR value that is considered “human-      ing Postgres, Grafana, and Langfuse to track user
+level.” IRR can vary significantly depending on factors such as
+the degree of interpretation required to make judgments about     activity and system performance.
+text and the training of coding teams to align on a specific
+coding task. Many teams will refine their coding scheme until     2.1   Codebook Generation
+an “acceptable” IRR level is reached. Broadly, the 0.61–0.80
+κ range has been described as representative of substantial       Our approach to automated codebook generation
+agreement in the qualitative research domain (Cole, 2024).        employs a multi-stage process that systematically
+                                                              1918
+analyzes qualitative data through progressive ab-        about LLM annotations through dynamic user in-
+straction and refinement to enable the specific anal-    terface icons, creating examples that will be fed to
+ysis each user would need. The algorithm first           the LLM as few-shot context in subsequent coding
+segments the document set, and a line-coding LLM         runs.
+is instructed to identify between nmin and nmax             Single-code application works by splitting doc-
+themes within each segment. The user has the             uments into segments of approximately 80 words
+ability to provide natural-language instructions         and prompting an LLM to determine whether each
+to guide the LLM toward discovering concepts             is relevant to a given code, with excerpts classified
+aligned with a particular research scope.                in batches to optimize both throughput and latency.
+   The resulting preliminary codebooks are con-          The LLM is provided with the code name, defini-
+solidated through a codebook condensation pro-           tion, inclusion and exclusion criteria, and few-shot
+cess using a second LLM, merging sets of prelimi-        examples. Multi-code application (distribute code)
+nary codebooks until a unified coding framework          has a similar workflow; however, it differs in that
+emerges that represents themes present across all        it includes code information (definition, criteria,
+data segments.                                           and few-shot examples) for every code in a chosen
+   The system generates parent themes by prompt-         subset, often offering lower latencies than apply
+ing another LLM to (1) examine the relationships         code for this task. The prompts for both methods
+between the identified child codes in the previous       are displayed in Appendix B.
+set, (2) identify a set of parent concepts that encap-
+sulate these codes, and (3) assign each child code       3       Evaluation
+to one of the identified parent codes.
+                                                         3.1      Datasets
+   To validate the codebook, we create a composite
+embedding for each code by averaging the embed-          We used eleven publicly available human-coded
+dings of its definition and all associated quotations,   datasets to assess the performance of Muse in gen-
+and use Maximum Marginal Relevance scoring               erating codebooks and annotating qualitative data.
+to identify the most relevant segments from the          These datasets cover a diverse range of both data
+dataset. An LLM evaluates whether each code is           formats (e.g., social media and interviews) as well
+sufficiently supported by these representative ex-       as domain areas (e.g., disordered eating, political
+cerpts.                                                  tension, and sustainability).3
+   Finally, the algorithm performs hierarchical re-
+                                                         3.2      Generate Codebook Evaluation
+finement by prompting another LLM to merge se-
+mantically redundant codes and split overly broad        We benchmarked codebook generation against the
+codes into more specific subcodes. This computa-         arXiv Categories dataset (Schopf et al., 2023),
+tional approach mirrors the process of traditional       which provides an ideal evaluation context given
+line-by-line coding while using natural language         its hierarchical codebook structure, large scale, and
+processing to achieve consistency and scalability        vetted quality. While not strictly qualitative data,
+across large qualitative datasets.                       arXiv abstracts contain the conceptual complex-
+                                                         ity and domain-specific language characteristic of
+2.2 Code Application                                     many qualitative datasets. We randomly selected
+Leveraging the generated codebook, Muse applies          three ground-truth parent codes from the arXiv
+codes to documents in two ways: apply code, a tool       corpus and drew 1,000 abstracts from documents
+which assigns a binary label or score to an excerpt      labeled with at least one of those parents. We
+given its relevance to a given code, and distribute      included every child code associated with those
+code, which assigns one or multiple codes within a       documents, yielding a sample-specific codebook
+set of codes to an excerpt based on relevance.           containing the selected parents and all sampled
+   We incorporate user feedback in our coding fea-       descendants. We repeated this procedure with dif-
+ture in two core ways. First, users are encouraged       ferent parent-code triplets, producing evaluation
+to modify their prompt definition to reflect their       codebooks ranging from 22 to 52 codes - a range
+coding requirements, with additional features in-        aligned with the typical codebook size reported in
+tegrated that allow for rapid iteration and testing      our internal survey.
+on a sample of representative excerpts. Second,              3
+                                                             Appendix A lists the evaluation datasets and describes
+users can provide positive or negative feedback          our search strategy for identifying and classifying datasets.
+
+                                                     1919
+                  Batch Size       Few-Shot        Scoring Type         CoT    Cohen’s κ [95% CI]
+                                   Examples
+                        5             4            Discretized          Yes    0.545 [0.427, 0.662]
+                        5             2            Discretized          Yes    0.532 [0.425, 0.639]
+                        10            2            Discretized          Yes    0.524 [0.408, 0.640]
+                        10            4            Discretized          Yes    0.521 [0.403, 0.640]
+                        5             2            Binary               Yes    0.518 [0.407, 0.628]
+                        10            2            Discretized          No     0.517 [0.406, 0.629]
+                        5             4            Binary               Yes    0.513 [0.398, 0.628]
+                        10            2            Binary               Yes    0.510 [0.399, 0.620]
+
+Table 1: Hyperparameter optimization grid search (sorted by Cohen’s κ, top 8 shown, highest bolded) for code
+application with GPT-4o. Batch size is the number of excerpts included in a single prompt (5 or 10). Number of
+few-shot examples tested was 0, 2, and 4. Discretized scoring is a 1-10 score generated by the LLM, whereas binary
+is a “yes” or “no” response. CoT prompting involves the LLM providing a short explanation of its output prior to
+producing it. Full table displayed in Appendix D.2.
+
+
+   Given the unique constraints of our project (code-           the latter captures the opinions and preferences of
+book generation independent from the coding step),              the former (Borse et al., 2025).
+and that codebook similarity evaluation is an open                 The primary measure of IRR that we consid-
+problem in the literature, we developed a cus-                  ered is Cohen’s κ (Cohen, 1960), a standard metric
+tomized composite similarity metric to compare se-              in qualitative research that inherently adjusts for
+mantic similarity (label embeddings) and structural             chance agreement between two coders and ranges
+similarity (hierarchical depth and organization) be-            in value from -1 (full disagreement) to 1 (full agree-
+tween human- and LLM-generated codebooks.4                      ment). This is more holistic than percent agree-
+We systematically varied the hyperparameters (in-               ment, or statistics like accuracy or precision, be-
+cluding language model and segment length) and                  cause it factors in the frequency of positives and
+found that the algorithm is largely insensitive to              negatives, which is often extremely unbalanced in
+these hyperparameters and shows only minimal ac-                qualitative datasets.
+curacy–latency trade-offs. Our LLM-based method
+achieved comparable performance to the optimized                3.3.2    Hyperparameter Selection
+BERTopic baseline (~0.90-0.91 similarity), demon-               LLM responses can vary significantly with seem-
+strating that our approach matches near-state-of-               ingly trivial input and output format changes (Khan
+the-art clustering methods in accuracy, while offer-            et al., 2025). Given this sensitivity, we systemat-
+ing additional steerability.                                    ically explored hyperparameter configurations in-
+                                                                cluding two LLM-as-a-judge scoring output types
+3.3 Code Application Evaluation                                 (binary yes/no and discretized 1-10), chain-of-
+3.3.1 IRR as a Performance Metric                               thought prompting, batch size within a prompt,
+We assessed the performance of LLM annotations                  and number of few-shot examples (Li et al., 2024;
+by measuring IRR with human coders across our                   Nye et al., 2021; Wei et al., 2022).5 We optimized
+evaluation dataset. While IRR is traditionally used             prompt design and output structure by testing com-
+to measure coding alignment between two human                   binations of hyperparameters with a single LLM
+raters, here we use IRR as a metric for alignment               (GPT-4o) as shown in Table 1. We found that CoT
+between a human operator and an LLM annotator                   prompting, providing true positive examples, and
+– with the degree of alignment reflecting how well              discretized 1-10 scoring produced higher IRR than
+    4                                                           their alternatives.
+      Existing work approximates similarity through cosine
+similarities between code description embeddings (De Paoli         One observation we made as we reviewed the
+and Mathis, 2025; Wang et al., 2025), which captures label      best and worst-performing datasets was that there
+semantics but ignores hierarchy. More general NLP topic mod-
+eling metrics often cite NMI, purity, coherence scores, etc.,
+                                                                is an inherent level of sensitivity with which quali-
+which require document-to-cluster assignments (Abdelrazek       tative researchers approach a target concept. Even
+et al., 2023). Our metric, described in Appendix C, combines
+                                                                   5
+embedding-based semantic similarity with structural hierarchy        Appendix D.1 describes the significance and implementa-
+matching.                                                       tion of these hyperparameters.
+
+                                                            1920
+              Model Name                                Untuned Cohen’s κ       Code-tuned Cohen’s κ
+                                                        [95% CI]                [95% CI]
+              gpt-4.1-2025-04-14-global                 0.515 [0.426, 0.604]    0.593 [0.512, 0.674]
+              o3-2025-04-16-global                      0.520 [0.423, 0.617]    0.590 [0.508, 0.672]
+              gpt-5-2025-08-07-us (default)             0.515 [0.422, 0.608]    0.578 [0.498, 0.658]
+              grok-3-v1                                 0.505 [0.425, 0.585]    0.572 [0.496, 0.648]
+              grok-3-mini-v1                            0.492 [0.402, 0.582]    0.553 [0.470, 0.636]
+              o4-mini-2025-04-16-global                 0.492 [0.398, 0.586]    0.546 [0.459, 0.633]
+              gpt-oss-120b (high reasoning)             0.486 [0.386, 0.586]    0.543 [0.450, 0.636]
+              Microsoft MAI-DS-R1                       0.499 [0.413, 0.585]    0.539 [0.456, 0.622]
+
+Table 2: Inter-rater reliability by LLM (sorted by code-tuned κ, top 8 shown, highest bolded). Code-tuned means
+setting a separate confidence score threshold for each code to align with the level of sensitivity in the human-coded
+data. Other models tested included GPT-4o, GPT-4.1 mini, DeepSeek V3, DeepSeek R1, Nemotron Ultra 253B, and
+Nemotron Super 49B. Full table displayed in Appendix D.3.
+
+
+if a code is well-specified and contains inclusion                source, reasoning, and non-reasoning LLMs. It is
+and exclusion criteria, there is still often a level of           of value to assess open-source model performance,
+human judgment as to whether it meets a certain                   as many real-world qualitative research environ-
+threshold of salience that they desire for analysis.              ments are not compatible with transmitting pro-
+   Binary scoring outputs prevent the end user from               tected data to API providers.
+tuning this parameter after code application is com-                 While we did not optimize prompts for each indi-
+plete. On the other hand, discretized outputs pro-                vidual model, benchmarking IRR using one set of
+vide the user with the ability to tune LLM con-                   parameters provides a consistent and reproducible
+fidence thresholds as desired. Another approach                   test arena for model comparisons. We tested a
+to convert binary scoring into a higher-granularity               range of popular LLMs that were accessible to
+score is through normalizing output log probabili-                the team through Azure AI Foundry and Red Hat
+ties, a common post-processing approach for LLM-                  for cloud-based hosting with vLLM (Kwon et al.,
+as-a-Judge systems (Baysan et al., 2025; Thakur                   2023) but recognize that omissions remain that fu-
+et al., 2025). We assessed the performance of us-                 ture work could evaluate (e.g., Gemini, Claude, and
+ing the log probabilities of “Yes” and “No” tokens                Qwen). Nonetheless, the results shown in Table 2
+in responses, which we mapped onto a 1-10 scale                   demonstrate a similar range of performance across
+using a temperature-controlled softmax function                   state-of-the-art frontier models.
+(Gu et al., 2025), and found that regular discretized                Of the 15 models we tested, 8 outperformed
+1-10 scoring had higher IRR than log probabilities.               GPT-4o. GPT-4.1 exhibited the highest level of per-
+   Additionally, we simulated that a researcher                   formance - demonstrating parity with newer foun-
+has tuned their confidence score (1-10) thresh-                   dation models like o3 and GPT-5 - although this
+old for each code to align with their preferences                 may be a relic of the fact that prompt optimization
+(code-tuned) and found that this approach achieves                for GPT-4o through CoT maps most directly onto
+greater alignment than assigning a single confi-                  this model.
+dence score threshold for all codes in the system.6                  Using an unweighted average of the discretized
+                                                                  scores of three of the top frontier models (GPT-4.1,
+3.3.3 Annotation Benchmarking Results
+                                                                  o3, and Grok 3) achieves an untuned κ of 0.55,
+Once we arrived at optimal hyperparameters for                    code-tuned κ of 0.61, and for codes with a clear
+GPT-4o (discretized scoring, CoT prompting, batch                 definition, a code-tuned κ of 0.7. In Appendix D.4,
+size = 5, and few-shot examples = 4), we tested                   we compare these results to other supervised ML
+performance across a range of closed-source, open-                (sML) approaches on the same well-specified codes
+   6
+    Tuning this threshold is the intended workflow within our     (EmbeddingGemma, SBERT, and TF-IDF). Both
+research system, so that a user can easily adjust the threshold   GPT-4.1 and the ensemble of three models outper-
+and evaluate alignment to their coding preferences. The 10        form all sML methods tested, even when using
+evaluation datasets were created by groups with various coding
+preferences and sensitivities to concept salience. Tuning the     512 examples to train sML models compared to 4
+confidence threshold allows learning of these preferences.        few-shot examples and definitions for the LLM.
+                                                              1921
+ Method        Batch     Avg. Seconds            Input Tokens                  Output Tokens               Cohen’s κ
+                Size     per Excerpt        per 100 Excerpt Tokens         per 100 Excerpt Tokens
+ distribute      20          0.11                     92.6                           4.1                      0.57
+ apply           20          0.17                    209.5                           3.7                      0.65
+ distribute      10          0.19                    141.3                           6.9                      0.57
+ apply           10          0.33                    287.0                           5.5                      0.64
+ distribute       5          0.38                    241.3                          11.6                      0.60
+ apply            5          0.58                    439.6                           8.9                      0.64
+
+Table 3: Latency, token usage, and performance by annotation method and batch size per prompt. The distribute
+annotation method rates excerpts for applicability to all 6 codes at once. The apply method rates excerpts for
+applicability to each code separately, which requires more prompts, time, and tokens per excerpt. Average inter-rater
+reliability reported for the 6 most frequent codes from two well-specified datasets using GPT-4.1 and constant
+confidence threshold. Bold values indicate optimal performance within each metric column.
+
+
+3.3.4 Evaluating Multi-Code Application                     3.3.5    Cost, Latency, and Performance
+                                                                     Trade-offs
+
+
+                                                            In deployment, AI/ML systems must balance per-
+                                                            formance with operational efficiency. To charac-
+                                                            terize these trade-offs, we evaluated token usage,
+                                                            latency, and performance of the distribute code and
+                                                            apply code methods across varying batch sizes us-
+                                                            ing the six most frequent codes from the arXiv Cat-
+                                                            egories dataset and six most frequent from Topic
+                                                            Annotations on Reddit Posts (Qiu, 2025).
+
+                                                               Table 3 shows that there are significant efficiency
+                                                            gains with respect to latency and input tokens from
+                                                            using multi-code application (distribute code) as
+Figure 2: Difference in IRR (Cohen’s κ) between multi-      opposed to apply code. At each batch size tested,
+code application and single-code application with re-
+                                                            distribute takes about 55–65% of the time per ex-
+spect to the number of sibling codes. A greater number
+of sibling codes (i.e., options to choose from for multi-   cerpt and 45–55% of input tokens as apply code.
+code application) is associated with a decrease in IRR      This is primarily due to the additional prompts re-
+compared to single-code application.                        quired by single-code application for each code,
+                                                            and this difference would likely become less pro-
+                                                            nounced when using fewer sibling codes.
+   To assess the performance of the distribute code
+tool, which applies one or multiple codes within               However, across all batch sizes, the IRR using
+a set of codes to an excerpt, we compared its IRR           distribute is lower than that of apply. The IRR
+with apply code. Figure 2 shows that when the               difference would also likely be less significant with
+number of target codes to select from is low (less          fewer sibling codes, as Section 3.3.4 shows that
+than about 6), distribute code outperforms apply            IRR can be even higher for distribute than apply
+code and results in lower latency and cost as it            with few sibling codes.
+requires fewer prompts. Also, when a codebook
+contains researcher-specified constraints such as              In our deployment of this system, we provide
+requiring at least one code per document or no more         the user the opportunity to choose between the two
+than one code per document, the distribute code             methods depending on the nature of their codebook.
+tool is strongly preferred and yields IRR scores that       Also, researchers can iteratively test and improve
+are significantly higher as it provides the LLM with        coding performance with random sample IRR vali-
+these constraints (Cohen’s κ greater by an average          dation to identify the optimal parameters for their
+of 0.18 than apply code).                                   dataset.
+                                                        1922
+Figure 3: False positives (FPs) and false negatives (FNs) by error type and dataset. The two most common error
+types for both FPs and FNs across datasets are code under-specification and annotation inconsistencies (deviations
+from the established coding scheme). *FNs for the Sustainability dataset are made transparent because the dataset
+only had three false negatives to code, so the percentage of errors is not representative.
+
+
+4    Error Analysis                                                LLM (66% of Reddit FPs, 74% of Reddit FNs, and
+                                                                   96% of Sustainability FPs) are explained by anno-
+While Muse applies annotations at an IRR compara-
+                                                                   tation inconsistencies where the human-assigned
+ble to humans, inevitably, not all annotations match
+                                                                   code deviated from the stated definition of a code.8
+those of qualitative researchers. We conducted an
+error analysis of inconsistencies between human
+and Muse codings to categorize failure modes and                   5       Conclusion
+identify areas for future improvement. To gain a
+better understanding of the types of errors made by
+                                                                   We present Muse, a deployed AI-assisted quali-
+the LLM, our team analyzed a random sample of
+                                                                   tative research system built through iterative en-
+errors. For tractability, we narrowed our focus to
+                                                                   gagement with over 100 researchers and currently
+two datasets, Topic Annotations on Reddit Posts,
+                                                                   serving more than 400 users across 600+ projects.
+which contained label definitions, more document
+                                                                   We demonstrate that AI-assisted qualitative analy-
+context, and overall clearer organization than many
+                                                                   sis can achieve research-grade inter-rater reliability
+other datasets in our repository, and the ATLAS.ti
+                                                                   while offering steerability and scalability that ex-
+Sustainability dataset, a sample interview-based
+                                                                   tend beyond traditional computational approaches.
+project (ATLAS.ti, n.d.).7
+   After an initial review by two authors of the dis-                 However, our error analysis and deployment ex-
+crepancies between the unweighted average score                    perience underscore the importance of carefully
+of three LLMs (GPT-4.1, o3, and GPT-oss-120b)                      navigating trade-offs between latency, dynamism,
+with human coders, we iteratively developed a tax-                 and accuracy within qualitative research systems.
+onomy of the root causes of observed errors. Two                   Our error analysis reinforces this point: the ma-
+other authors, who are experienced qualitative re-                 jority of human-AI disagreements stem not from
+searchers with backgrounds in anthropology and                     model failures but from inherent ambiguities in
+health policy, independently coded the set of errors               coding schemes, suggesting that organizations de-
+for the presence of each code in the codebook and                  ploying these systems should invest as much in
+then jointly resolved discrepancies. As shown in                   codebook design as in model selection. Looking
+Figure 3, a large proportion of errors made by the                 forward, the value of AI-assisted qualitative re-
+                                                                   search lies not in automating analysis but in en-
+    7
+      Because the Reddit dataset consists of social media posts    abling researchers to work at unprecedented scales
+rather than technical literature, and the Sustainability dataset
+is a sample project intended to be understood by researchers       and efficiencies.
+in any area, the language and content are more accessible
+for comprehensive error analysis compared to specialized do-
+                                                                       8
+mains requiring deep subject-matter expertise, such as medical          See Appendix E for full error taxonomy and discussion
+documents or scientific abstracts.                                 of error types.
+
+                                                               1923
+Acknowledgements                                            Norman K. Denzin and Yvonna S. Lincoln, editors.
+                                                              2011. The SAGE Handbook of Qualitative Research,
+We acknowledge extensive support and guidance                 4 edition. SAGE Publications, Inc., Thousand Oaks,
+from the RAND Product Development and Man-                    CA.
+agement Team. In particular, William Marcellino,            Oliver Ferschke, Iryna Gurevych, and Yevgen Chebotar.
+Teresa Ko, and Nelson Lim were highly influential             2012. Behind the article: Recognizing dialog acts
+in shaping and directing this research as well as the         in wikipedia talk pages. In Proceedings of the 13th
+                                                              Conference of the European Chapter of the Associa-
+underlying product it supports.
+                                                              tion for Computational Linguistics, pages 777–786,
+                                                              Avignon, France. Association for Computational Lin-
+                                                              guistics.
+References
+                                                            Uwe Flick. 2014. An Introduction to Qualitative Re-
+Aly Abdelrazek, Yomna Eid, Eman Gawish, Walaa Med-           search, 5 edition. SAGE Publications Ltd, Thousand
+  hat, and Ahmed Hassan. 2023. Topic modeling al-            Oaks, CA.
+  gorithms and applications: A survey. Information
+  System, 112:306–4379.                                     Jiawei Gu, Xuhui Jiang, Zhichao Shi, Hexiang Tan,
+                                                               Xuehao Zhai, Chengjin Xu, Wei Li, Yinghan Shen,
+ATLAS.ti. n.d. Sample projects.                                Shengjie Ma, Honghao Liu, Saizhuo Wang, Kun
+                                                               Zhang, Yuanzhuo Wang, Wen Gao, Lionel Ni,
+Mehmet Selman Baysan, Serkan Uysal, İrem İşlek,             and Jian Guo. 2025. A survey on llm-as-a-judge.
+ Çağla Çığ Karaman, and Tunga Güngör. 2025. Llm-             Preprint, arXiv:2411.15594.
+ as-a-judge: Automated evaluation of search query
+ parsing using large language models. Frontiers in          Andy Hickner. 2022. Data for “how do search systems
+ Big Data, 8:1611389.                                         impact systematic searching? a qualitative study”.
+                                                              QDR Main Collection. Version 1 (V1).
+Issam Bennis and Safwane Mouaffaq. 2025. Advancing          Ariba Khan, Stephen Casper, and Dylan Hadfield-
+   ai-driven thematic analysis in qualitative research: A     Menell. 2025. Randomness, not representation: The
+   comparative study of nine generative models on cuta-       unreliability of evaluating cultural alignment in llms.
+   neous leishmaniasis data. BMC Medical Informatics          In Proceedings of the 2025 ACM Conference on Fair-
+   and Decision Making, 25(1):124.                            ness, Accountability, and Transparency, pages 2151–
+                                                              2165, New York, NY, USA. Association for Comput-
+Sreyoshi Bhaduri, Satya Kapoor, Alex Gil, Anshul Mit-         ing Machinery.
+   tal, and Rutu Mulkar. 2024. Reconciling methodolog-
+   ical paradigms: Employing large language models as       Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying
+   novice qualitative research assistants in talent man-     Sheng, Lianmin Zheng, Cody Hao Yu, Joseph E.
+   agement research. Preprint, arXiv:2408.11043.             Gonzalez, Hao Zhang, and Ion Stoica. 2023. Ef-
+                                                             ficient memory management for large language
+Nikhil Sanjay Borse, Ravishankar Chatta Subramaniam,         model serving with pagedattention.    Preprint,
+  and N. Sanjay Rebello. 2025. Investigation of the          arXiv:2309.06180.
+  inter-rater reliability between large language models
+  and human raters in qualitative analysis. Preprint,       Joonatan Laato, Matti Mäntymäki, Bastian Kordyaka,
+  arXiv:2508.14764.                                           and Samuli Laato. 2025. Automating qualitative data
+                                                              analysis with chain-of-thought reasoning models: A
+Jacob Cohen. 1960. A coefficient of agreement for             study with the gioia method. In AMCIS 2025: Pro-
+   nominal scales. Educational and Psychological Mea-         ceedings of the 31st Americas Conference on Infor-
+   surement, 20(1):37–46.                                     mation Systems, Montréal, Canada. AIS Electronic
+                                                              Library (AISeL). Paper 2130.
+Rosanna Cole. 2024. Inter-rater reliability methods in
+                                                            Michelle S. Lam, Janice Teoh, James A. Landay, Jeffrey
+  qualitative case study research. Sociological Methods
+                                                              Heer, and Michael S. Bernstein. 2024. Concept in-
+  Research, 53(4):1944–1975.
+                                                              duction: Analyzing unstructured text with high-level
+Thomas Davidson, Dana Warmsley, Michael Macy, and             concepts using lloom. In Proceedings of the 2024
+  Ingmar Weber. 2017. Automated hate speech detec-            CHI Conference on Human Factors in Computing
+  tion and the problem of offensive language. In Pro-         Systems, page Article 766, New York, NY, USA. As-
+  ceedings of the International AAAI Conference on            sociation for Computing Machinery.
+  Web and Social Media (ICWSM), volume 11, pages            David D. Lewis. 1987. Reuters-21578 text categoriza-
+  512–515.                                                    tion collection. UCI Machine Learning Repository.
+Stefano De Paoli and Walter S. Mathis. 2025. Reflec-        Haitao Li, Qian Dong, Junjie Chen, Huixue Su, Yu-
+   tions on inductive thematic saturation as a potential      jia Zhou, Qingyao Ai, Ziyi Ye, and Yiqun Liu.
+   metric for measuring the validity of an inductive the-     2024. Llms-as-judges: A comprehensive sur-
+   matic analysis with llms. Quality Quantity, 59:683–        vey on llm-based evaluation methods. Preprint,
+  709.                                                        arXiv:2412.05579.
+                                                        1924
+Sara Mannheimer. 2023. Interviews regarding data cura-       Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten
+  tion for qualitative data reuse and big social research.      Bosma, Brian Ichter, Fei Xia, Ed H. Chi, Quoc V. Le,
+  QDR Main Collection, Version V1.                              and Denny Zhou. 2022. Chain-of-thought prompt-
+                                                                ing elicits reasoning in large language models. In
+David L. Morgan. 2023. Exploring the use of artifi-            Advances in Neural Information Processing Systems
+  cial intelligence for qualitative data analysis: The         (NeurIPS 2022), pages 24824–24837.
+  case of chatgpt. International Journal of Qualitative
+  Methods, 22:16094069231211248.                             Yiming Yang and Xin Liu. 1999. A re-examination of
+                                                               text categorization methods. In Proceedings of the
+Maxwell Nye, Anders Johan Andreassen, Guy Gur-Ari,             22nd Annual International ACM SIGIR Conference
+ Henryk Michalewski, Jacob Austin, David Bieber,               on Research and Development in Information Re-
+ David Dohan, Aitor Lewkowycz, Maarten Bosma,                  trieval (SIGIR), pages 42–49, New York, NY, USA.
+ David Luan, Charles Sutton, and Augustus Odena.               Association for Computing Machinery.
+ 2021. Show your work: Scratchpads for interme-
+ diate computation with language models. Preprint,           Elena Zotova, Rodrigo Agerri, Manuel Nuñez, and Ger-
+ arXiv:2112.00114.                                              man Rigau. 2020. Multilingual stance detection in
+                                                                tweets: The catalonia independence corpus. In Pro-
+Jiaxing Qiu. 2025. Topic annotations on reddit posts            ceedings of the Twelfth Language Resources and
+   from eating disorders and dieting forums by human           Evaluation Conference, pages 1368–1375, Marseille,
+   and llms. University of Virginia Dataverse, Version          France. European Language Resources Association.
+   V3.
+Johnny Saldaña. 2012. The Coding Manual for Qualita-
+  tive Researchers, 2 edition. SAGE Publications Ltd,
+                                                             A    Benchmarking Datasets
+  London, UK.                                                The datasets used for evaluation displayed in Ta-
+Miriam Schirmer, Isaac Misael Olguín Nolasco,                ble 4 include Reuters-21578, a canonical dataset
+  Edoardo Mosca, Shanshan Xu, and Jürgen Pfeffer.            for text classification, two other text classification
+  2023. Uncovering trauma in genocide tribunals: An          datasets containing medical and scholarly article
+  nlp approach using the genocide transcript corpus. In
+  Proceedings of the Nineteenth International Confer-
+                                                             abstracts, and eight datasets generated specifically
+  ence on Artificial Intelligence and Law, pages 257–        within qualitative research projects. We identified
+  266, Braga, Portugal. Association for Computing            the text classification datasets by reviewing bench-
+  Machinery.                                                 mark datasets used in previous machine learning
+Tim Schopf, Alexander Blatzheim, Nektarios Machner,          research on text classification (Saldaña, 2012; Yang
+  and Florian Matthes. 2024. Efficient few-shot learn-       and Liu, 1999). To locate additional datasets from
+  ing for multi-label classification of scientific docu-     qualitative research projects, we searched Syracuse
+  ments with many classes. In Proceedings of the 7th         University’s Qualitative Data Repository, UK Data
+  International Conference on Natural Language and
+  Speech Processing (ICNLSP 2024), pages 186–198,            Service, Center for Open Science, Papers With
+  Trento, Italy. Association for Computational Linguis-      Code, TU Darmstadt’s TUdatalib, Kaggle, and
+  tics.                                                      Google Dataset Search for annotated qualitative
+Tim Schopf, Daniel Braun, and Florian Matthes. 2023.         data and interviews.
+  Evaluating unsupervised text classification: Zero-            To provide a rough reference point for the rel-
+  shot and similarity-based approaches. In Proceed-          ative quality of each dataset, we assigned a 1-10
+  ings of the 6th International Conference on Natu-          dataset quality score based on an unweighted aver-
+  ral Language Processing and Information Retrieval
+                                                             age of our assessment of each dataset’s codebook
+  (NLPIR), pages 6–15, New York, NY, USA. Associa-
+  tion for Computing Machinery.                              definition completeness, annotation consistency,
+                                                             and document completeness.
+Aman Singh Thakur, Kartik Choudhary, Venkat Srinik              A score between 1-3 for codebook definition
+ Ramayapally, Sankaran Vaidyanathan, and Dieuwke
+ Hupkes. 2025. Judging the judges: Evaluating align-         completeness means that few, if any, definitions are
+ ment and vulnerabilities in llms-as-judges. In Pro-         provided, and label names are not specific enough
+ ceedings of the Fourth Workshop on Generation,              to apply the code. A score between 4-7 means that
+ Evaluation and Metrics (GEM2 ), pages 404–430,              most labels contain a definition or descriptive name,
+ Vienna, Austria and Virtual. Association for Com-
+ putational Linguistics.                                     but definitions are generally too short or vague to
+                                                             be of much use. A score of 8 or higher means that
+Qile Wang, Moath Erqsous, Kenneth E. Barner, and             specific definitions containing criteria and nuanced
+  Matthew Louis Mauriello. 2025. Lata: A pilot study
+  on llm-assisted thematic analysis of online social
+                                                             theme understanding are provided.
+  network data generation experiences. Association for          For annotation consistency, a score of 1-3 means
+  Computing Machinery, 9(2):1–28.                            that codes are applied without any regularity or
+                                                         1925
+    Dataset                           Description                  Type              Docs    Words      Codes      Quality
+    Reuters-21578 (1987)              Reuters newswire docs        News             18.9K     2.4M        135        6/10
+    Medical Abstracts (2023)          Medical abstracts            Medical          11.6K     2.1M          5        7/10
+    arXiv Categories (2024)           arXiv titles & abstracts     Academic          163K    24.1M        142        9/10
+    Reddit Posts (2025)               Eating disorders forums      Social media       1.1K    135K         15        6/10
+    Data Curation Interviews (2023)   Qualitative reuse study      Interviews           29    200K        238        5/10
+    Search Systems (2022)             Systematic searching study   Interviews           12     63K         83        4/10
+    Genocide Transcripts (2023)       Genocide tribunal            Legal            52.8K     1.8M          1        7/10
+    Wiki Discussion (2012)            Wikipedia talk pages         Discussion         1.8K    127K         21        4/10
+    Catalonia Independence (2020)     Spanish & Catalan Tweets     Social media     12.1K     362K          3        4/10
+    Hate Speech (2017)                Tweets w/ hate speech        Social media     24.8K     350K          2        6/10
+    ATLAS.ti (n.d.)                   Sustainability interviews    Interviews           30     13K         65        8/10
+
+Table 4: Datasets Used to Evaluate Muse. Codes are the number of unique human-coded labels and themes
+in each dataset. Quality is a 1-10 dataset quality score based on an unweighted average of our assessment of
+codebook definition completeness, annotation consistency, and document completeness. ATLAS.ti dataset used
+only to evaluate codebook generation and for error analysis.
+
+
+experience significant inconsistencies because of                    within each codebook where
+study design or execution. A score of 4-7 means
+that code application generally aligns with stated                     Sstr (c1 , c2 ) =slevel (c1 , c2 ) + spath (c1 , c2 )
+criteria but has some deviations. A score of 8 or                                        + ssubtree (c1 , c2 )
+higher means no noticeable deviations in code ap-
+plication are present.                                               where slevel measures depth similarity, spath
+   Document completeness is a measure of whether                     compares root-to-node distances, and ssubtree
+sufficient context is provided in documents to repli-                evaluates organizational complexity beneath
+cate the author’s codings. A score of 1-3 means                      each code.
+that it is impossible to replicate codings because               These components were combined into a com-
+the author(s) referenced other material to make                posite similarity score, then optimally aligned us-
+their judgments that is not provided. A score of 4-7           ing the Hungarian algorithm to find the best global
+means that some document context is omitted for                matching between codebooks. After matching all
+each code, but codings are still made at the level             codes from CH to their associated codes in CL , we
+of each document and can mostly be replicated. A               calculated the average weighted similarity score
+score of 8 or higher means that very few document              across each pair,
+context concerns exist.
+                                                                                  SA = αSsim + βSstr ,
+B     Prompts
+                                                               providing a final codebook similarity score, S̄A ,
+The prompt text leveraged for the apply code                   averaged across all pairs that considers both con-
+method is shown in Figure 4 and for the distribute             tent and organizational logic. Here, α + β = 1,
+code method in Figure 5. These prompts are the                 and both variables were varied across the interval
+foundational prompts for Muse’s annotation fea-                [0.1, 0.9], with the final S̄A value averaged across
+tures; however slightly modified prompts are used              these weightings to ensure balance across both sim-
+under different coding conditions.                             ilarity components.
+C     Codebook Similarity Score                                D     Hyperparameter Search and
+For every pairwise combination of codes between                      Benchmarking Results
+LLM-generated (CL ) and human-generated (CH )                  D.1    Hyperparameter Description
+codebooks, we computed:
+                                                               The hyperparameters tested included LLM-as-a-
+    1. Semantic similarity (Ssim ): Cosine similarity          judge scoring type, chain-of-thought (CoT) prompt-
+       between sentence embeddings of code labels              ing, batch size, and few-shot examples. In binary
+       and descriptions                                        scoring, we prompted the LLM to produce a sim-
+                                                               ple “Yes” or “No” response indicating whether a
+    2. Structural similarity (Sstr ): Hierarchical po-         document excerpt related to a given code. Alter-
+       sition, path length, and subtree characteristics        natively, in discretized scoring, we prompted the
+                                                          1926
+ You are assisting a qualitative researcher with tagging interview statements. Your task is to decide whether each provided
+ statement should be tagged with the code: **‘tag‘**.
+ You will use the provided **code definition**, **tagged examples**, **untagged examples**, **inclusion criteria**, and **exclusion
+ criteria** to make your decision. Your decision-making process should prioritize:
+ 1) Alignment with the code name/definition. 2) Satisfying at least one inclusion criterion while satisfying none of the exclusion
+ criteria. 3) Consistency with provided positively tagged examples, avoiding similarities to negatively tagged examples.
+ A worked-out example using the **AI for literature review tag** is provided to guide your decision-making process.
+ —
+ Output Instructions
+ For each statement, provide: 1. A brief explanation (5-10 words) of your reasoning 2. A confidence score (1-10) where 10 indicates
+ highest confidence the statement should be tagged and 1 indicates the statement should definitely not be tagged
+ Your output will be a JSON with one numeric key for every provided input statement. The value for each key will be a JSON with
+ two keys: "REASONING" and "SCORE".
+ —
+ Worked Example: Literature Review Tag
+ **Code Name**: Using AI for literature reviews
+ **Code Definition**: This code applies to statements that reference the use of Artificial Intelligence (AI) or Machine Learning
+ (ML) to assist with literature reviews. Specifically, it focuses on how AI is applied to discover, organize, or summarize academic
+ or scientific publications.
+ **Inclusion Criteria**: 1. Mentions AI or ML in the context of finding, summarizing, or organizing academic articles or studies.
+ 2. Names a specific AI model or approach (e.g., GPT, BERT) used to conduct or facilitate a literature review. 3. Clearly states
+ "literature review" (or a recognizable synonym, such as "systematic review") while also describing an AI-based process.
+ **Exclusion Criteria** 1. Mentions the word "plagiarism" (indicating AI is being used for plagiarism detection instead of
+ literature review). 2. Describes AI usage for purposes unrelated to literature reviews (e.g., AI for financial forecasting, image
+ classification). 3. Focuses on manual processes or workflows unrelated to AI (e.g., manually reviewing case studies without any
+ AI involvement).
+ **Tagged Examples (Relevant Statements)**: 1. "We developed a GPT-based tool to summarize new articles for our scoping review."
+ 2. "Our research uses AI-based clustering to find relevant papers, automating the literature review process."
+ **Untagged Examples (Irrelevant Statements)**: 1. "An AI model helped detect plagiarism in graduate theses before publication."
+ 2. "Our study uses advanced ML to analyze survey data from an ongoing clinical trial."
+ Statements to Evaluate
+ 1. "During our systematic review, we employed both GPT-4 for synthesizing findings and traditional manual screening methods in
+ parallel."
+ 2. "The team customized a BERT model to identify methodological weaknesses across published papers, though this was separate from
+ our literature review process."
+ 3. "Our platform combines AI text summarization with human expert oversight to conduct comprehensive literature reviews twice as
+ fast as traditional methods."
+ 4. "We processed 5,000 medical journals using deep learning, but ultimately our literature review was conducted through conventional
+ critical appraisal techniques."
+ 5. "The research assistant built an ML classifier that predicts which papers a researcher might want to include in their literature
+ review based on previous selections."
+ 6. "We’re using AI to extract study characteristics from papers we’ve already identified, but the actual literature search and
+ selection was done manually following PRISMA guidelines."
+ 7. "Our software uses natural language processing to generate personalized reading lists from academic databases, though it’s
+ primarily designed for teaching purposes rather than formal literature reviews."
+ 8. "We employed a GPT approach for our systematic review, but we also leveraged a plagiarism module to ensure originality."
+ Example Output
+ "1": "REASONING": "GPT-4 used directly for systematic review synthesis", "SCORE": 9, "2": "REASONING": "AI for paper analysis, not
+ literature review", "SCORE": 3, "3": "REASONING": "AI summarizes texts for literature reviews", "SCORE": 10, "4": "REASONING":
+ "AI only for processing, not review tasks", "SCORE": 4, "5": "REASONING": "ML assists paper selection for literature review",
+ "SCORE": 8, "6": "REASONING": "AI extracts data from already-selected papers", "SCORE": 6, "7": "REASONING": "NLP for academic
+ lists, not formal reviews", "SCORE": 5, "8": "REASONING": "GPT for review but mentions plagiarism detection", "SCORE": 7
+
+ Task Instructions for **tag**
+ Now, evaluate the following statements for the code **tag** following the same procedure as above. In some cases, I will also
+ provide either (1) the question that the statement was given in response to OR (2) text that immediately preceded the statement
+ of interest (denoted with ’...’). Remember you are evaluating the STATEMENT itself - do not provide a high confidence score if
+ the preceding context/question is related to the code but the statement itself is not.
+ I may also provide additional context on the qualitative research dataset from which the following statements extracted below.
+ If provided, use this additional context to help guide your decision-making.
+ {project_context}
+ **Code Name:** {tag}
+ **Code Definition:** {tag_definition} {tag_context}
+ **Inclusion Criteria:** {inclusion_criteria}
+ **Exclusion Criteria:** {exclusion_criteria}
+ **Tagged Examples (Relevant Statements)**: {positive_statements}
+ **Untagged Examples (Irrelevant Statements)**: {negative_statements}
+ Statements to Evaluate {question_and_statements}
+
+
+Figure 4: Prompt template for single-code application (apply code). {tag} is the name of the code being annotated,
+{tag_definition} is the definition of this associated code, {tag_context} is an arrow diagram describing the
+tag’s position within the codebook hierarchy, {question_and_statements} are the excerpts to be evaluated as
+well as their preceding text provided as context, {inclusion_criteria} and {exclusion_criteria} are the
+associated code’s inclusion and exclusion criteria (respectively), {project_context} is a brief user-specified
+description of the dataset being analyzed, and {positive_statements} and {negative_statements} are user-
+specified few-shot examples of both excerpts that should be coded with the associated code as well as those that
+should not, respectively.
+
+
+
+                                                               1927
+ You are an assistant to a qualitative researcher. Your task is to assign each statement from a qualitative dataset to subthemes
+ based on the provided parent theme and subtheme definitions. If a statement does not clearly match any of the subthemes, respond
+ with [].
+ —
+ Instructions
+ 1. **Input Data:** - **PARENT THEME:** The overarching topic discussed within the statements - **SUBTHEMES:** A list of subthemes,
+ each identified by an alphabetic identifier (e.g., ‘A. Positive sentiment‘). - **STATEMENTS:** A set of statements from the
+ dataset, each identified by a numeric identifier. In some cases, I will also provide either (1) the question that the statement
+ was given in response to OR (2) text that immediately preceded the statement of interest (denoted with ’...’). Do not apply a
+ code if the preceding context/question is related to a code but the statement itself is not.
+ 2. **Assignment Rules:** - **Flexible Assignment:** Each statement can be assigned to **one, multiple, or no** subthemes. -
+ **Default Assignment:** If none of the provided subthemes clearly match a statement, assign [] to that statement. - **Strict
+ Criteria:** Only assign a subtheme if the statement clearly meets the subtheme’s definition, inclusion criteria, and any provided
+ examples.
+ 3. **Output Format:** - Your response should be in JSON format. - Each key should be the numeric identifier of a statement
+ (STATEMENT X formatted as ‘"X"‘). - Each value should be a list of the alphabetic identifier(s) of the assigned subtheme(s) (e.g.,
+ ‘["A"]‘) or [] if no subthemes apply.
+ —
+ Example
+ **Input:**
+ - **PARENT THEME:** Social Media Posts About the Election
+ - **SUBTHEMES:** - A. Positive sentiment - B. Negative sentiment
+ - **STATEMENTS:** 1. I am so anxious and worried about the election 2. I can’t wait for the election to come because I’m excited to
+ vote! 3. Thinking about the election is making me depressed 4. I’m really scared there is going to be another uprising again and
+ people will get hurt 5. I’m feeling indifferent about the election. Given the candidates running, there really is much difference
+ between them in terms of how they are going to change the country.
+ **Expected Output:**
+ "1": ["B"], "2": ["A"], "3": ["B"], "4": ["B","C"], "5": []
+ **Explanation:**
+ - 1: Clearly aligns with negative sentiment (SUBTHEME B) - 2: Clearly aligns with positive sentiment (SUBTHEME A) - 3: Clearly
+ aligns with negative sentiment (SUBTHEME B) - 4: Associated with both negative sentiment (SUBTHEME B) and statements about concern
+ for violence (SUBTHEME C) - 5: Has a neutral tone and does not clearly match any subtheme, so it is assigned the default value
+ of [].
+ —
+ Additional Information
+ At times, you may be provided with additional context on the qualitative research project from which the statements are extracted
+ as well as further details for each subtheme (e.g., definitions, inclusion/exclusion criteria, positive and negative examples).
+ Use this information to guide your assignment decisions.
+ Task Now, perform this task for the inputs below:
+ {project_context}
+ PARENT THEME: {theme}
+ SUBTHEMES: {subthemes}
+ STATEMENTS: {statements}
+ Please ensure your output is valid JSON with each statement key correctly mapped to a list of its assigned subtheme alphabetic
+ identifier(s).
+
+
+Figure 5: Prompt template for multi-code application (distribute code). Variables in curly braces are populated with
+user-specified content at runtime. {statements} are the set of statements to be evaluated, {subthemes} are the
+set of subcodes associated with the distribute operation along with their definitions, {theme} is the parent code of
+the associated subcodes along with its definition (if available), and {project_context} is a brief user-specified
+description of the dataset being analyzed.
+
+
+
+
+                                                               1928
+                Batch    Few-Shot     Scoring      CoT     F1 Score               Cohen’s κ
+                 Size    Examples       Type               [95% CI]               [95% CI]
+                   5        4        Discretized   Yes     0.686 [0.611, 0.762]   0.545 [0.427, 0.662]
+                   5        2        Discretized   Yes     0.670 [0.599, 0.742]   0.532 [0.425, 0.639]
+                  10        2        Discretized   Yes     0.661 [0.577, 0.745]   0.524 [0.408, 0.640]
+                  10        4        Discretized   Yes     0.663 [0.577, 0.748]   0.521 [0.403, 0.640]
+                   5        2          Binary      Yes     0.657 [0.579, 0.734]   0.518 [0.407, 0.628]
+                  10        2        Discretized   No      0.644 [0.563, 0.725]   0.517 [0.406, 0.629]
+                   5        4          Binary      Yes     0.661 [0.583, 0.738]   0.513 [0.398, 0.628]
+                  10        2          Binary      Yes     0.653 [0.574, 0.733]   0.510 [0.399, 0.620]
+                   5        4        Discretized   No      0.652 [0.585, 0.719]   0.508 [0.407, 0.610]
+                   5        2          Binary      No      0.645 [0.573, 0.717]   0.508 [0.405, 0.611]
+                  10        4          Binary      Yes     0.652 [0.576, 0.728]   0.507 [0.403, 0.610]
+                   5        0          Binary      Yes     0.651 [0.568, 0.735]   0.502 [0.389, 0.616]
+                   5        0        Discretized   Yes     0.648 [0.566, 0.730]   0.499 [0.387, 0.611]
+                   5        2        Discretized   No      0.634 [0.562, 0.705]   0.498 [0.398, 0.599]
+                  10        0        Discretized   Yes     0.645 [0.566, 0.723]   0.495 [0.385, 0.605]
+                  10        4          Binary      No      0.631 [0.556, 0.706]   0.487 [0.381, 0.593]
+                  10        2          Binary      No      0.625 [0.550, 0.701]   0.487 [0.379, 0.596]
+                  10        0          Binary      Yes     0.638 [0.563, 0.713]   0.487 [0.384, 0.590]
+                   5        4          Binary      No      0.633 [0.560, 0.706]   0.485 [0.382, 0.588]
+                  10        4        Discretized   No      0.623 [0.540, 0.706]   0.481 [0.367, 0.596]
+                  10        0        Discretized   No      0.618 [0.535, 0.701]   0.476 [0.366, 0.587]
+
+Table 5: Complete hyperparameter optimization grid search for code application with GPT-4o (sorted by Cohen’s
+κ, highest bolded). Batch size is the number of excerpts included in a single prompt (5 or 10). Few-shot examples
+tested were 0, 2, and 4. Discretized scoring is a 1-10 score generated by the LLM, whereas binary is a “yes” or
+“no” response. CoT prompting involves the LLM providing a short (1 sentence) explanation of its output prior to
+producing it.
+
+       Model Name                                   Optimal      Untuned Cohen’s κ      Code-tuned Cohen’s κ
+                                                   Threshold     [95% CI]               [95% CI]
+       gpt-4.1-2025-04-14-global                       8         0.515 [0.426, 0.604]   0.593 [0.512, 0.674]
+       o3-2025-04-16-global                            9         0.520 [0.423, 0.617]   0.590 [0.508, 0.672]
+       gpt-5-2025-08-07-us (default)                   9         0.515 [0.422, 0.608]   0.578 [0.498, 0.658]
+       grok-3-v1                                       8         0.505 [0.425, 0.585]   0.572 [0.496, 0.648]
+       grok-3-mini-v1                                  9         0.492 [0.402, 0.582]   0.553 [0.470, 0.636]
+       o4-mini-2025-04-16-global                       9         0.492 [0.398, 0.586]   0.546 [0.459, 0.633]
+       gpt-oss-120b (high reasoning)                   9         0.486 [0.386, 0.586]   0.543 [0.450, 0.636]
+       Microsoft MAI-DS-R1                             9         0.499 [0.413, 0.585]   0.539 [0.456, 0.622]
+       gpt-4o-2024-08-06-us                            8         0.461 [0.372, 0.550]   0.536 [0.453, 0.619]
+       gpt-oss-120b (low reasoning)                    8         0.483 [0.388, 0.578]   0.535 [0.446, 0.624]
+       Llama-3.1-Nemotron-Ultra-253B-v1 (reas.)        9         0.470 [0.382, 0.558]   0.525 [0.440, 0.610]
+       DeepSeek-V3-0324                                8         0.464 [0.381, 0.547]   0.525 [0.445, 0.605]
+       DeepSeek-R1-0528                                9         0.471 [0.384, 0.558]   0.524 [0.445, 0.603]
+       Llama-3.3-Nemotron-Super-49B-v1 (reas.)         9         0.466 [0.376, 0.556]   0.516 [0.434, 0.598]
+       Llama-3.1-Nemotron-Ultra-253B-v1 (non-r.)       9         0.428 [0.344, 0.512]   0.488 [0.406, 0.570]
+       Llama-3.3-Nemotron-Super-49B-v1 (non-r.)        9         0.429 [0.343, 0.515]   0.484 [0.403, 0.565]
+       gpt-4.1-mini-2025-04-14-global                  9         0.383 [0.299, 0.467]   0.454 [0.372, 0.536]
+       Nemotron-H-47B-Reasoning-128K (reas.)          10         0.379 [0.296, 0.462]   0.420 [0.343, 0.497]
+       Nemotron-H-47B-Reasoning-128K (non-r.)         10         0.290 [0.216, 0.364]   0.332 [0.262, 0.402]
+
+Table 6: Complete inter-rater reliability results by LLM (sorted by code-tuned Cohen’s κ, highest bolded). Optimal
+threshold is a constant confidence threshold (1-10) for assigning positive and negative codes that optimizes IRR
+for each model. Code-tuned means setting a separate confidence score threshold for each code to align with the
+level of sensitivity in the human-coded data. Untuned means that every code across datasets uses the same “optimal
+threshold” to distinguish positives and negatives on a 1-10 scale.
+
+
+LLM to rate each excerpt on a 1-10 relevance scale,         if actively tuning this parameter within the plat-
+allowing users to tune threshold confidence scores          form. All reported Cohen’s κ values for discretized
+for determining final code assignments. When eval-          scoring in this work leverage this convention.
+uating discretized scoring, we chose a threshold
+value that optimized Cohen’s κ in each code, simu-             CoT prompting requests the LLM to provide
+lating the performance a Muse user would observe            brief explanations for its coding decisions prior to
+                                                            scoring, potentially improving both accuracy and
+                                                         1929
+              Model                                         4-shot   n=128     n=256    n=512
+              GPT-4.1 + o3 + Grok3 (tuned)                  0.703     —          —        —
+              GPT-4.1 + o3 + Grok3 (untuned)                0.660      —         —        —
+              GPT-4.1 (tuned)                               0.693      —         —        —
+              GPT-4.1 (untuned)                             0.641      —         —        —
+              GemmaEmb + LinearSVC                            —      0.531     0.574    0.607
+              GemmaEmb + LogisticRegression                   —      0.518     0.538    0.556
+              SBERT (MiniLM) + LinearSVC                      —      0.461     0.495    0.521
+              SBERT (MiniLM) + LogisticRegression             —      0.482     0.505    0.509
+              TF-IDF + LogisticRegression                     —      0.137     0.349    0.465
+              TF-IDF + LinearSVC                              —      0.117     0.290    0.418
+
+Table 7: Cohen’s κ by model and training set size across 12 well-specified codes. LLM-based approaches use
+few-shot prompting (4 positive examples), while supervised ML methods use n = 128, 256, and 512 random
+samples as the training set. Supervised ML results averaged over 20 iterations. Bold values indicate highest
+performance within each column.
+
+
+interpretability. We also varied batch size (num-        erably, while distilled reasoning models like o4-
+ber of excerpts processed simultaneously) and the        mini and Grok 3 Mini are much closer in IRR to
+number of few-shot examples provided, as both            top-performing models. OpenAI’s gpt-oss-120b
+factors can significantly affect model performance       and Microsoft’s post-trained version of DeepSeek-
+and computational efficiency.                            R1 (which fills information gaps in the original
+                                                         model) are the most aligned open-source models.
+D.2 Complete Hyperparameter Optimization                 Because gpt-oss is significantly smaller (nearly 6
+    Results                                              times fewer parameters), it is the preferred open-
+Table 5 displays the full set of hyperparameter com-     source choice for optimizing cost, latency, and
+binations we tested. We observed that batch size         throughput.
+did not significantly impact IRR while CoT im-
+proves performance for the GPT-4o model. We              D.4   Comparison to Supervised ML Methods
+also found that discretized scoring, on average, pro-    We compared Muse coding performance to other
+duced higher IRR than its binary counterpart, with       supervised ML methods (sML) used for annota-
+a confidence threshold of greater than or equal to 7     tion on the 12 well-specified codes in our evalu-
+generally found to be optimal. Providing few-shot        ation dataset. For the LLMs, we used GPT-4.1
+examples also increased performance; however, we         as well as the ensemble of models and test both
+did not observe a clear difference between two pos-      with a constant confidence score threshold across
+itive examples versus four positive examples.            all codes and confidence score threshold tuning
+   IRR varied significantly by dataset, code, and        for each code. For the supervised ML methods, we
+prompting strategy. More abstract topics that re-        used three different approaches to vectorize the text
+quire an additional level of interpretation, and thus    dataset: EmbeddingGemma, SBERT (all-MiniLM-
+subjectivity, tended to have lower IRR between           L6-v2), and TF-IDF. For classification, we used
+the LLM and human code. Such codes are of-               LinearSVC and Logistic Regression in scikit-learn.
+ten sentiment-related (e.g., “in favor,” “against,” or      Table 7 shows that Muse outperforms all the
+“neutral” with respect to Catalan independence) or       sML methods we tested even with training sets
+about the intent of language (e.g., “offensive lan-      with hundreds of examples for sML and only 4 pos-
+guage” or “hate speech”). These codes collectively       itive examples and definitions for Muse. The best-
+averaged a Cohen’s κ of 0.23.                            performing sML approaches tested use Embed-
+                                                         dingGemma, which approaches untuned GPT-4.1
+D.3 Complete LLM Benchmarking Results                    performance as the number of training examples in-
+Table 6 displays IRR for all LLMs that we tested.        creases. It’s possible other embedding models and
+Distilled, non-reasoning models, like gpt-4.1-mini       classification algorithms may result in higher per-
+and the Nemotron 49B and 47B models, lag behind          formance than EmbeddingGemma and LinearSVC.
+full-sized and/or reasoning-based models consid-         Still, the LLM approach is more flexible for explor-
+                                                     1930
+ Code                               Definition
+ Code under-specification           The target code is defined too broadly and/or has ambiguity in its applica-
+                                    tion criteria. This includes codebooks where multiple codes may have
+                                    overlapping scope and application criteria.
+ Contextual limitation              Insufficient surrounding text or document context in excerpt to assess
+                                    applicability. This includes tangential mentions of the target theme that
+                                    are not salient concepts in the document.
+ Annotation inconsistency           Application of code is a deviation from its definition, criteria, and other
+                                    positive examples.
+ Thresholding error                 Assigned confidence score and reasoning are aligned with human code,
+                                    but confidence score threshold is suboptimal for the particular excerpt.
+ Other LLM error                    Other inexplicable error by the LLM. Reasoning and confidence score
+                                    are incorrect.
+
+                                         Table 8: Muse Error Codebook
+
+
+ing qualitative datasets because it allows tweaking       ground truth in qualitative research and ultimately
+definition and refining codes iteratively as opposed      may reduce our ability to definitively assess LLM
+to manually coding hundreds of examples during            performance against human coders.
+each iteration.                                              While the Reddit eating disorder dataset had a
+                                                          better specified codebook than many of the other
+E    Error Analysis Discussion
+                                                          evaluation datasets, most errors (80% of FPs and
+To gain a better understanding of discrepancies in        71% of FNs, 18% of Sustainability FPs) were also
+code application with human coders, we sampled            incorrectly labeled in part or in full due to under-
+50 false positives and false negatives and analyzed       specified target codes lacking specific definitions.
+them qualitatively by considering:                        This often leads to code confusion between se-
+                                                          mantically similar codes with insufficient disam-
+    • Ground-truth positives associated with each
+                                                          biguation criteria. The most frequent example of
+      target code
+                                                          such confusion in the sample was between the code
+    • The complete set of codes applied by the hu-        “thinspiration,” defined as “drive for thinness, want
+      man researcher to a considered excerpt              to be thinner or skinny,” and the code “weight loss,”
+                                                          defined as “body weight loss.”
+    • Target code label and definition
+                                                             Code under-specification often took the form
+    • Reasoning strings produced by the LLM               of target codes with definitions that vaguely de-
+                                                          scribed the concept of interest. For example, the
+    • LLM confidence scores                               label “relationships” is defined as “family and so-
+   After an initial review, we iteratively developed      cial relationships,” but lacked sufficient detail and
+and refined the codebook in Table 8 to describe the       criteria to accurately apply (or not apply) the code
+root causes of the observed errors. Two authors           to Reddit posts about social interactions, relation-
+independently coded the errors for the presence           ship types, and community engagement. Adding
+of each code in the codebook and then jointly re-         specific information in the definition that the hu-
+solved discrepancies by refining code definitions         man coders implicitly or explicitly utilized when
+and discussing differing interpretations.                 coding, such as “mention of family members, rel-
+   Annotation inconsistencies, which were the most        atives, friends, significant others, or social roles,”
+common error type, could potentially be due to            would have provided the LLM with much-needed
+coder fatigue or interpretive drift, and/or in the case   context to improve alignment with the ground truth
+of the Sustainability dataset, overly complex and         coding scheme.
+long codebooks leading to inconsistent application           Given this error analysis, if the following easily
+of sub-codes. The observed inconsistencies high-          implementable steps are taken, we believe the er-
+light the broader challenge of establishing reliable      ror rate can be reduced substantially. First, codes
+                                                      1931
+should be fully specified. This means providing
+complete concept definitions that provide clarity
+about what specifically is of interest to the re-
+searcher and what should be included and excluded.
+Second, if two codes are semantically similar, the
+researcher should describe how they differ and
+when one should be applied or both should be ap-
+plied. If both appear to be describing the same
+underlying construct, the researcher should con-
+sider merging them. Finally, from the perspective
+of system development, some errors due to a lack
+of full document context could be addressed by
+processing full documents in single prompts as op-
+posed to chunked excerpts - a more complex task
+yet one increasingly in reach as LLM context win-
+dows grow.
+
+
+
+
+                                                 1932
+

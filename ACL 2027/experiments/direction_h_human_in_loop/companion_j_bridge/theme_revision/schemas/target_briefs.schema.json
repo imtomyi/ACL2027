@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-j-theme/target-briefs-v1.json",
+  "title": "Arm-blind target assessment briefs committed before revision",
+  "type": "object",
+  "required": ["briefs_version", "status", "verification_sha256", "created_at_utc", "items"],
+  "properties": {
+    "briefs_version": {"const": "direction-h-j-theme-target-briefs-v1"},
+    "status": {"enum": ["template_incomplete", "complete"]},
+    "verification_sha256": {
+      "oneOf": [{"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"}, {"type": "null"}]
+    },
+    "created_at_utc": {"type": ["string", "null"], "format": "date-time"},
+    "items": {"type": "array", "items": {"$ref": "#/$defs/brief"}}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "complete"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "verification_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+          "created_at_utc": {"type": "string"},
+          "items": {"minItems": 1}
+        }
+      },
+      "else": {
+        "properties": {
+          "verification_sha256": {"type": "null"},
+          "created_at_utc": {"type": "null"},
+          "items": {"maxItems": 0}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "brief": {
+      "type": "object",
+      "required": [
+        "brief_id", "item_id", "target_description", "target_item_locations",
+        "target_evidence_excerpt_ids", "repair_criteria", "accurate_material_to_preserve",
+        "prohibited_overcorrections"
+      ],
+      "properties": {
+        "brief_id": {"type": "string", "pattern": "^DHJTB_[a-f0-9]{20}$"},
+        "item_id": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"},
+        "target_description": {"type": "string", "minLength": 1, "maxLength": 3000},
+        "target_item_locations": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^/"}, "uniqueItems": true},
+        "target_evidence_excerpt_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "repair_criteria": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "accurate_material_to_preserve": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "prohibited_overcorrections": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

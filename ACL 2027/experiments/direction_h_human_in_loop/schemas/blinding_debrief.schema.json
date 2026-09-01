@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-blinding-debrief-v1.json",
+  "title": "Direction H post-lock blinding integrity debrief",
+  "type": "object",
+  "required": [
+    "debrief_version",
+    "study_id",
+    "rater_id",
+    "completed_at_utc",
+    "private_map_access_separated",
+    "review_masking_classification",
+    "recognized_task_ids",
+    "remembered_construction_details",
+    "inferred_hidden_information",
+    "accidental_exposures",
+    "timing_interruptions",
+    "other_notes",
+    "locked_ratings_modified"
+  ],
+  "properties": {
+    "debrief_version": { "const": "direction-h-blinding-debrief-v1" },
+    "study_id": { "const": "direction-h-synthetic-pilot-v1" },
+    "rater_id": { "const": "charlie_dev_researcher_01" },
+    "completed_at_utc": { "type": "string", "format": "date-time" },
+    "private_map_access_separated": {
+      "description": "Charlie's post-lock self-report about perceived access separation. It is exposure metadata, not an organizer attestation and cannot promote the official classification.",
+      "type": "boolean"
+    },
+    "review_masking_classification": {
+      "description": "Conservative official classification for the shared-workspace v1 pilot. A future technically blinded run requires a prospective coordinator-signed access-control record and a new instrument version.",
+      "const": "condition_masked"
+    },
+    "recognized_task_ids": {
+      "type": "array",
+      "items": { "enum": ["DHQ-001", "DHQ-002", "DHQ-003", "DHQ-004"] },
+      "uniqueItems": true
+    },
+    "remembered_construction_details": { "$ref": "#/$defs/disclosure" },
+    "inferred_hidden_information": { "$ref": "#/$defs/disclosure" },
+    "accidental_exposures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "exposure_type", "details"],
+        "properties": {
+          "task_id": {
+            "type": ["string", "null"],
+            "enum": ["DHQ-001", "DHQ-002", "DHQ-003", "DHQ-004", null]
+          },
+          "exposure_type": {
+            "enum": [
+              "model_identity",
+              "condition_or_target",
+              "paired_twin",
+              "prior_rating_or_score",
+              "revision_outcome",
+              "protected_text",
+              "other"
+            ]
+          },
+          "details": { "type": "string", "minLength": 1, "maxLength": 3000 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "timing_interruptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "details"],
+        "properties": {
+          "task_id": { "enum": ["DHQ-001", "DHQ-002", "DHQ-003", "DHQ-004"] },
+          "details": { "type": "string", "minLength": 1, "maxLength": 3000 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "other_notes": { "type": "string", "maxLength": 5000 },
+    "locked_ratings_modified": { "const": false }
+  },
+  "$defs": {
+    "disclosure": {
+      "type": "object",
+      "required": ["occurred", "details"],
+      "properties": {
+        "occurred": { "type": "boolean" },
+        "details": { "type": "string", "maxLength": 5000 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "occurred": { "const": true } }, "required": ["occurred"] },
+          "then": { "properties": { "details": { "minLength": 1 } } },
+          "else": { "properties": { "details": { "maxLength": 0 } } }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

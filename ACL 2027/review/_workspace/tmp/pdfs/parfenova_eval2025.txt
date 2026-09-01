@@ -1,0 +1,853 @@
+     Measuring What Matters: Evaluating Ensemble LLMs with Label
+                   Refinement in Inductive Coding
+
+                                Angelina Parfenova1,2 and Jürgen Pfeffer2
+                           1
+                               Lucerne University of Applied Sciences and Arts
+                                      2
+                                        Technical University of Munich
+
+
+
+                      Abstract
+    Inductive coding traditionally relies on labor-
+    intensive human efforts, who are prone to in-
+    consistencies and individual biases. Although
+    large language models (LLMs) offer promising
+    automation capabilities, their standalone use
+    often results in inconsistent outputs, limiting
+    their reliability. In this work, we propose a
+    framework that combines ensemble methods
+    with code refinement methodology to address
+    these challenges. Our approach integrates mul-
+    tiple smaller LLMs, fine-tuned via Low-Rank
+    Adaptation (LoRA), and employs a moderator-
+    based mechanism to simulate human consen-
+    sus. To address the limitations of metrics like
+    ROUGE and BERTScore, we introduce a com-
+    posite evaluation metric that combines code
+    conciseness and contextual similarity. The va-           Figure 1: Overview of the proposed ensem-
+    lidity of this metric is confirmed through corre-        ble pipeline for inductive coding. The input x
+    lation analysis with human expert ratings. Re-           is processed by multiple LoRA fine-tuned models
+    sults demonstrate that smaller ensemble models           (LLM1 , LLM2 , . . . , LLMN ), generating candidate out-
+    with refined outputs consistently outperform             puts (O1 , O2 , . . . , ON ). Moderators compare and evalu-
+    other ensembles, individual models, and even             ate these candidates, selecting y1 , y2 , . . . , yN as refined
+    large-scale LLMs like GPT-4. Our evidence                candidates. Refinement of codes consists of comparing
+    suggests that smaller ensemble models signifi-           the current code with previous ones and assigning the
+    cantly outperform larger standalone language             same code based on the chosen similarity threshold.
+    models, pointing out the risk of relying solely
+    on a single large model for qualitative analysis.
+                                                             language models (LLMs) offer an opportunity to
+1   Introduction                                             automate this process, potentially improving ef-
+Inductive coding is a fundamental method in so-              ficiency and standardization (Bommasani et al.,
+cial science research, enabling the identification,          2021). However, ensuring the reliability and in-
+organization, and analysis of patterns and themes            terpretability of LLM-generated codes remains a
+within textual data (Creswell, 2016; Saldana, 2016;          challenge.
+Braun and Clarke, 2021). At its core, this method               Our study addresses two critical gaps in auto-
+extracts key ideas from text, transforming unstruc-          mated inductive coding: (1) the need for structured
+tured documents into a list of codes that capture            refinement processes to improve consistency across
+the underlying themes. Traditionally, this process           codes and (2) the limitations of standard evaluation
+has relied on human coders who, despite their ex-            metrics, which fail to capture the nuanced crite-
+pertise, are prone to inconsistencies, cognitive bi-         ria used by human experts, such as label granu-
+ases, and the tendency to overcomplicate labels              larity, alignment, and contextual relevance (Lin,
+(MacQueen and Guest, 2008; Bumbuc and Hry-                   2004; Zhang et al., 2019; Sellam et al., 2020; Fab-
+byk, 2016; Bernard, 2016; Morse, 2017). Large                bri et al., 2021a; Parfenova et al., 2024; Mizrahi
+                                                        10803
+                Findings of the Association for Computational Linguistics: ACL 2025, pages 10803–10816
+                       July 27 - August 1, 2025 ©2025 Association for Computational Linguistics
+et al., 2024). We introduce a novel ensemble-based          Recent advances in natural language processing
+framework that integrates refinement processes in-       have introduced the use of LLMs for automating
+spired by Retrieval-Augmented Generation (RAG)           qualitative coding tasks (Tornberg, 2023; Parfen-
+(Lewis et al., 2020), reusing previously generated       ova et al., 2024; Fischer and Biemann, 2024). How-
+codes to eliminate their redundancy iteratively.         ever, we noticed 2 critical points that need to be ad-
+   This study makes three key contributions: (1)         dressed in this domain. (1) To evaluate codes, some
+we develop a pipeline that integrates multiple           papers noted that traditional summarization metrics
+instruction-finetuned LLMs with an iterative re-         like BERT and ROUGE are not good enough for
+finement process to improve coding consistency;          this task (Parfenova et al., 2024; Chen et al., 2024),
+(2) we introduce a composite evaluation metric           one research specifically created unsupervised met-
+that captures both semantic and structural qual-         ric to assess codes (Chen et al., 2024). (2) The
+ity of generated codes; and (3) we demonstrate           second critical point in this domain is that although
+that smaller LLM ensembles, refined by merging           individual LLMs demonstrate remarkable perfor-
+similar codes, outperform standalone large mod-          mance, their output often varies due to differences
+els, achieving closer alignment with human coded         in training data, architectures, and model parame-
+benchmarks.                                              ters (Bubeck et al., 2023; Touvron et al., 2023b).
+   The results indicate that the proposed ensem-         This variability introduces subjectivity, making a
+ble approach improves the quality of the gener-          single LLM’s coding decisions as inconsistent as
+ated codes, while the refinement process further         those of individual human annotators. To address
+enhances their consistency, resulting in outputs that    these challenges, ensemble methods, techniques
+are more closely aligned with the human-coded            that combine multiple models, have been increas-
+data. Additionally, we show that ensemble-based          ingly explored for their ability to take advantage of
+methods reduce variability in code assignments,          the complementary strengths of different models
+addressing the subjectivity present in individual        and improve performance (Sagi and Rokach, 2018;
+LLM outputs. These findings provide a strong ba-         Jiang et al., 2023b).
+sis for improving automated qualitative data anal-          Ensemble learning is a widely used strategy
+ysis while maintaining compatibility with human          to improve model performance by combining the
+coding standards.                                        strengths of multiple models, often referred to as
+                                                         "weaker models"(Sagi and Rokach, 2018; Aniol
+2   Background                                           et al., 2019). There are two common approaches
+                                                         to ensemble learning: one involves weighting indi-
+Qualitative data analysis (QDA) plays a critical         vidual models based on their performance, while
+role in social science research (Miller et al., 1990;    the other focuses on aggregating diverse outputs to
+Creswell, 2016), enabling researchers to identify,       produce a unified result. One example is the Mix-
+categorize and interpret patterns within textual data.   of-Experts (MoE) framework (Cai et al., 2024),
+Central to this process is the concept of coding,        which employs specialized sub-models to make
+where meaningful segments of text are assigned           predictions and merges their outputs for improved
+concise labels, or codes, that capture their core        accuracy. Similarly, LLM-Blender (Jiang et al.,
+essence. According to Saldana (2016), a code is          2023a) demonstrates the potential of ensembling
+"often a word or short phrase that symbolically          by combining ranked outputs from multiple models
+assigns a summative, salient, essence-capturing          to achieve superior performance in complex natural
+and/or evocative attribute to a portion of language-     language generation tasks.
+based or visual data." In thematic analysis, one            This study builds upon the concept of ensemble
+of the most widely used methods in QDA, these            methods but diverges from existing approaches by
+codes are further grouped into broader categories        adopting a moderator-based framework. Unlike
+to reveal hierarchical relationships and underlying      fusion techniques that combine outputs probabilis-
+themes within the data (Braun and Clarke, 2021).         tically, our approach incorporates a final decision-
+The source material often includes interviews, doc-      making model tasked with selecting the best can-
+uments, or other qualitative data formats, and the       didate or proposing a novel output. This design re-
+process involves summarizing the key ideas in            flects the dynamics of human collaboration, where
+each segment and grouping them into overarching          consensus is sometimes driven by a leader or a fi-
+themes.                                                  nal arbiter, rather than by averaging or blending
+                                                    10804
+opinions (Engle et al., 2014). Using this moderator                               user reviews of ChatGPT sourced from Kaggle
+model, we aim to mimic the style of the hierarchi-                                (Jikadara, 2023). This data set, characterized by
+cal decision-making process in human qualitative                                  user-generated unstructured feedback, differs from
+coding and demonstrate its effectiveness.                                         the structured data used for training, providing an
+                                                                                  opportunity to test model performance on unseen,
+3        Dataset                                                                  real-world content. Each review was manually an-
+Our experiments used a dataset of 1,000 code-quote                                notated by human coders to create a golden stan-
+pairs compiled from two main sources: social sci-                                 dard reference for evaluation. This dataset was
+ence research studies and the SemEval-2014 Task 4                                 chosen specifically for its diversity in style of lan-
+dataset (Pontiki et al., 2014) for augmentation. The                              guage, sentiment, and varied quote lengths to verify
+social science data includes 600 examples from                                    the ensemble’s ability to handle varied text types.
+studies across three universities, featuring topics
+such as technology interaction, social values, and                                4     Pipeline
+cultural experiences. The SemEval dataset con-                                    Our proposed pipeline consists of two key stages,
+tributes an additional 400 examples, consisting of                                as illustrated in Figure 1. First, an input x is pro-
+reviews manually coded by qualitative researchers.                                cessed independently by three smaller LLMs (7B
+   Table 1 summarizes the data sources. Each quote                                and 8B parameter sizes). The outputs from these
+was labeled by 3–5 coders who independently an-                                   models are then evaluated by a set of N Moder-
+notated it before reaching a consensus to establish                               ators (Moderator1 , Moderator2 , . . . , ModeratorN ),
+the golden standard. This ensured high-quality la-                                which refine and consolidate the results. Finally,
+bels and reduced variability due to individual coder                              code merging is performed to ensure consistency
+biases. The test set size was set to 100 examples                                 across similar inputs, producing the optimal output.
+(see Table 2). The dataset was split into training
+and testing sets without a separate validation set.                               4.1    Phase 1: LoRA Finetuning
+Hyperparameters were selected based on the train-
+                                                                                  In the first phase of the study, we evaluated sev-
+ing results and evaluated on the test set.
+                                                                                  eral open-source models: Llama3 (Touvron et al.,
+N Quotes        Description                                                       2023a), Falcon (Pineda et al., 2023), Mistral (Team,
+                    Social Science Studies Data: 600 quotes                       2023), Vicuna (Li et al., 2023), Gemma (Team,
+78              Study about interaction with self-tracking devices (interviews)   2024), and TinyLlama (Jiang et al., 2023c), on
+22              Study about life transitions and mobility (interviews)            an open coding task. We employed various ap-
+82              Study about interaction with voice assistants (interviews)
+28              Study about museums and cultural experiences (interviews)         proaches, such as zero-shot, few-shot (providing
+25              Study on doctors’ experiences with pregnant women (interviews)
+110             Study on universal and national values (interviews)               1 to 5 examples, see Appendix A), and parameter-
+24
+56
+                Study on procrastination and budget planning (interviews)
+                Study on technology interactions and user feedback (reviews)
+                                                                                  efficient fine-tuning (Han et al., 2024) using Low-
+175             Study about social expectations (interviews)                      Rank Adaptation (LoRA) (Hu et al., 2021).
+                          SemEval 2014; Task 4: 400 quotes                           Each model (LLMi ) was fine-tuned on the train-
+211             Restaurant reviews                                                ing dataset and generated an output (oi ) for a given
+189             Laptop reviews
+                                                                                  input (x). The outputs were evaluated based on
+Table 1: Summary of Data Sources with descriptions.                               their semantic similarity and token overlap using
+                                                                                  BERTScore (Zhang et al., 2019) and ROUGE (Lin,
+                                                                                  2004). From this evaluation, the three models with
+    Statistic                   Overall          Train             Test           the highest performance were selected for the mod-
+    Total Quotes
+    Social Science Data
+                                 1000
+                                 600
+                                                 900
+                                                 550
+                                                                  100
+                                                                   50
+                                                                                  eration phase (see Appendix B).
+    SemEval Data                 400             350               50
+    Num of Data Sources           11              11               11
+    Unique Codes                 680             624               94             4.2    Phase 2: Moderation and Refinement
+    Avg. Quote Length        254.75274.28    280.89280.89     234.80201.61
+    Avg. Code Length          19.9510.43      20.0410.70       19.2710.53
+                                                                                  The top three outputs {o1 , o2 , o3 } were passed to
+Table 2: Summary statistics of the dataset and train/test                         Moderators using the prompt template shown in
+splits. Subscript refers to standard deviation where ap-                          (Appendix C), which incorporated previous model
+plicable.                                                                         suggestions. The Moderators produced modified
+                                                                                  outputs {y1 , y2 , . . . , yN }.
+  To evaluate the ensemble models, we used                                          To maintain coherence across similar data points,
+a second distinct test data set comprising 100                                    a refinement stage was applied to all generated
+                                                                             10805
+    Model                Parameters       Adaptation                               Prompt                                   BERTScore                 ROUGE
+
+                                                                                                                      P        R        F1      1       2      L
+
+    Llama3 (instruct)       8B             Finetuning                Summarize the main idea of a sentence.          0.72     0.79      0.75   0.18    0.06   0.17
+                                                                    From the perspective of a social scientist,
+    Falcon (instruct)       7B             Finetuning           summarize the following sentence as you would        0.75     0.79      0.77   0.21    0.09   0.21
+                                                                              in thematic coding.
+                                                                   Can you tell me what the main idea of this
+    Mistral (instruct)      7B             Finetuning                                                                0.74     0.79      0.77   0.25    0.11   0.23
+                                                                        sentence is in just a few words?
+    Vicuna (instruct)       7B             Finetuning                Summarize the main idea of a sentence.          0.73     0.78      0.76   0.19    0.07   0.18
+                                                                  If you were a social scientist doing thematic
+    Gemma (instruct)        7B             Finetuning                                                                0.72     0.78      0.75   0.17    0.06   0.17
+                                                              analysis, what code would you give to this citation?
+                                                                     Summarize the main idea of a sentence.
+    TinyLlama (chat)        1.1B      Few-shot (5 examples)                                                          0.77     0.74      0.75   0.18    0.03   0.18
+                                                                              Here are examples:
+
+
+Table 3: Performance of various open-source LLMs on open coding task across different adaptation methods and
+prompts. This table presents the BERTScore and ROUGE scores for each model, indicating precision (P), recall
+(R), and F1 scores for BERTScore, along with ROUGE scores (1, 2, L). Models were evaluated under different
+scenarios, including finetuning and few-shot approaches, with prompts designed to align with thematic analysis.
+Detailed fine-tuning results are demonstrated in Appendix B.
+
+
+codes. This process involved code merging, im-                                       5.1        Composite Score
+plemented through embedding similarity analysis.                                     To systematically assess the performance of en-
+Given a new input x, its embedding ϕ(x) was com-                                     semble models in inductive coding tasks, we intro-
+puted using sBERT (Reimers and Gurevych, 2019)                                       duce a composite score that integrates four evalua-
+and compared against previously assigned code em-                                    tion scores: (1) cosine similarity, which quantifies
+beddings ϕ(pi ) using cosine similarity. If the simi-                                the semantic alignment between model-generated
+larity score met or exceeded a predefined threshold                                  codes and human-coded references; (2) METEOR
+(sim(ϕ(x), ϕ(pi )) ≥ τ ), the existing code was re-                                  score, which captures lexical similarity while ac-
+tained; otherwise, a new code was assigned. After                                    counting for synonyms and stemming variations
+generation, each candidate code was scored post                                      (Banerjee and Lavie, 2005); (3) code length penalty,
+hoc using the composite evaluation metric C(yi )                                     which discourages excessively verbose codes; and
+described in Section 5. This score was used only                                     (4) Jensen-Shannon divergence, computed between
+during benchmarking to compare outputs across                                        token distributions of reference (golden standard)
+methods. It was not used during model training,                                      codes and predicted ones by models. Each compo-
+generation, or selection in real-world applications.                                 nent is independently normalized to ensure compa-
+For inference without gold labels, the refinement                                    rability, and the final composite score is computed
+mechanism alone is applied.                                                          as the mean of the four metrics, assigning equal
+                                                                                     weight to each.
+                                                                                        Higher cosine similarity and METEOR scores
+5   Metrics                                                                          contribute positively to the composite score, re-
+                                                                                     flecting stronger semantic and lexical agreement
+To evaluate the performance of individual mod-                                       with human coders. Conversely, longer codes and
+els that will serve as input to the moderator, two                                   greater distributional divergence lower the score,
+metrics were employed to capture both lexical                                        penalizing outputs that deviate from the brevity
+and semantic similarity: ROUGE (Lin, 2004) and                                       and consistency typically expected in qualitative
+BERTScore (Zhang et al., 2019). BERTScore is a                                       coding.
+metric that computes the similarity between BERT
+token embeddings of two codes, which helps as-                                       5.2        Metric Validation
+sess the meaning in the generated output compared                                    To assess the validity of the composite score, we
+to the reference. ROUGE is a lexical similarity                                      conducted a human evaluation study where experts
+measure that calculates the overlap of n-grams (1-                                   rated the quality of codes generated by anonymized
+unigram overlap, 2-bigram overlap, L-longest com-                                    models (Appendix F). Each expert was presented
+mon subsequence) between the generated text and                                      with ten sentences and their corresponding codes,
+the reference text. ROUGE is particularly effective                                  assigning a rating from 1 to 5 based on clarity,
+in summarization task (Fabbri et al., 2021b), which                                  conciseness, and relevance to the text. We then
+is valuable when the exact wording of the output                                     computed Spearman’s correlation between the com-
+needs to match the reference.                                                        posite score and the average of all expert ratings,
+                                                                            10806
+Figure 2: Performance comparison of different mod-      Figure 3: Comparison of LLM performance across three
+els on inductive coding tasks, measured by Composite    evaluation metrics: Coverage (measuring how well a
+Scores (bars) and ROUGE-1 Mean (line). Ensemble         model captures the meaning of the reference codes),
+models with refinement outperform individual models     Novelty (assessing the degree of new information in-
+and non-refinement ensembles.                           troduced by the model), and Divergence (quantifying
+                                                        distributional shifts from the reference). Ensemble mod-
+                                                        els with code merging tend to balance coverage and
+alongside other evaluation metrics.                     novelty better than individual models.
+   The analysis reveals a strong correlation between
+the composite score and human ratings (Spearman:
+0.73, p = 0.039), confirming its alignment with ex-     improvement (0.33→0.91) over its individual coun-
+pert judgments. ROUGE-1 and ROUGE-L exhibit             terpart. Llama3.3 70B shows a similar trend, im-
+moderate positive correlations with the composite       proving from 0.38 to 0.50 through ensemble in-
+score (Spearman: 0.51, p = 0.20 and Spearman:           tegration. Merging of codes provides additional
+0.44, p = 0.27, respectively), but their statistical    benefits, elevating Mixtral8x7B to 0.99 (+9%) and
+insignificance suggests that they may not fully cap-    Llama3.3 70B to 0.74 (+48% from individual base-
+ture the criteria used by human coders. In contrast,    line). These improvements demonstrate both the
+BERTScore F1 shows a negligible correlation with        value of model diversity and postprocessing effec-
+the composite score (Spearman: 0.06, p = 0.90), im-     tiveness in enhancing coding consistency.
+plying that semantic similarity alone is insufficient
+                                                        6.1   Composite Score Analysis
+for assessing inductive coding quality. Addition-
+ally, the correlation between the composite score       The composite score proved to be effective in
+and code length is near zero (Spearman: -0.02, p =      capturing semantic, lexical, and structural align-
+0.96).                                                  ment. Refined ensembles consistently outper-
+   Further analysis reveals that BERTScore F1           formed both individual models and ensembles. Al-
+exhibits a negative correlation with code length,       though ROUGE-1 primarily captures lexical simi-
+which contradicts the expectation that qualitative      larity, it aligned well with the composite score in
+codes should be concise (see Table 4). This mis-        the ranking model performance. Also, standalone
+alignment suggests that BERTScore may not be an         large models like GPT-4 exhibited lower ROUGE-
+ideal metric for evaluating inductive coding tasks,     1 scores compared to ensembles, reflecting chal-
+as it does not adequately penalize redundancy.          lenges in lexical precision.
+
+6   Results                                             6.2   Coverage, Novelty, and Divergence
+The ensemble pipeline with codes merging ap-                  Analysis
+proach yield significant performance improve-           Our evaluation also incorporates the metrics pro-
+ments, as detailed in Table 6. Ensemble models,         posed by Chen et al. (2024), which offer greater
+particularly refined variants, consistently outper-     sensitivity compared to traditional similarity-based
+form individual models across all metrics except        measures like BERTScore (see Figure 3). These
+BERTScore, which remains stable (F1=0.83-0.86)          metrics reveal nuanced distinctions in model per-
+due to its semantic focus. Among standalone mod-        formance, though the observed differences were
+els, GPT-4 achieves the highest composite score         less sensitive than anticipated, except for Jensen-
+(0.44), while Llama3.3 70B leads in ROUGE-1             Shannon divergence—a measure we integrate into
+performance (0.12).                                     our Composite Score. Notably, the results suggest
+   Ensembles perform better, with the Mixtral8x7B       that in certain cases, LLM-generated codes may
+ensemble achieving a significant composite score        achieve performance levels comparable to or ex-
+                                                   10807
+            Metric            Composite Score   BERTScore F1    ROUGE-1     ROUGE-L    Code Length   Human Rating
+
+            Composite Score         1.00           -0.06           0.51        0.44       -0.02          0.73*
+            BERTScore F1           -0.06            1.00          -0.09       -0.11       -0.65*         -0.14
+            ROUGE-1                 0.51           -0.09           1.00       0.99*       -0.35           0.49
+            ROUGE-L                 0.44           -0.11          0.99*        1.00       -0.32          0.44
+            Code Length            -0.02           -0.65*         -0.35       -0.32        1.00          -0.41
+            Human Rating           0.73*           -0.14           0.49        0.44       -0.41           1.00
+
+
+Table 4: Spearman correlation matrix between evaluation metrics. Statistically significant correlations (p < 0.1) are
+highlighted in green. Asterisks (*) indicate significant values.
+
+
+ceeding human annotations, raising important ques-
+tions about the reliability of human-labeled bench-
+marks as definitive gold standards (Chen et al.,
+2024). However, we refrain from making defini-
+tive claims about this observation and instead treat
+human-generated codes as the established golden
+standard in our analysis.
+
+6.3 LLMs Alignment
+To assess the alignment between different LLMs
+in qualitative coding, we separately computed the
+cosine similarity (Figure 5) and Jensen-Shannon
+                                                                  Figure 4: Comparison of LLMs based on the number of
+divergence (Figure 6) between the codes generated
+                                                                  unique codes and average code length
+by models. These similarity metrics demonstrate
+how consistently different models assign qualita-
+tive codes to the same textual input and whether
+ensemble models enhance convergence toward a                      achieving an average code length reduction from
+unified interpretation. The results clearly indicate              6.83 to 4.00 tokens—a 41.5% improvement over
+that ensemble models, particularly GPT-4 Ensem-                   standalone models.
+ble, Mixtral 8x7B Ensemble, and Llama3.3 70B                         Further analysis highlights the impact of post-
+Ensemble, exhibit higher semantic similarity and                  processing on code diversity. While the human
+lower divergence compared to individual models.                   gold standard comprises 47 unique codes with an
+                                                                  average length of 2.79 tokens, non-refined models
+6.4 Qualitative Assessment and Refinement                         output an excessive number of codes, often gen-
+Table 5 presents a comparative analysis of codes                  erating unique codes for each input. In contrast,
+generated by ensemble models against the human-                   code merge integration significantly reduces this
+coded gold standard. The GPT-4 Ensemble demon-                    redundancy, with Llama3.3 70B Ensemble+ref and
+strates a tendency toward abstract and generalized                Mixtral 8x7B Ensemble+ref producing 53 and 71
+codes (e.g., “User Satisfaction and App Effective-                unique codes, respectively. This brings the models
+ness”), which capture broad themes but often lack                 closer to a human-like coding pattern, as illustrated
+specificity. In contrast, the Llama3.3 70B and Mix-               in Figure 4.
+tral 8x7B Ensembles produce codes that align more
+closely with the gold standard, offering precise la-
+bels. This divergence suggests that GPT-4’s cod-                  7       Discussion
+ing strategy prioritizes thematic abstraction, while
+smaller ensembles have a more effective balance                   In this section, we discuss the implications of
+between abstraction and specificity.                              our findings regarding the application of ensem-
+   The integration of the postprocessing step into                ble LLMs in automated inductive coding. Our re-
+our ensemble framework reduces redundancy in                      sults highlight key advantages of ensemble-based
+generated codes by aligning new outputs with previ-               approaches over individual models, particularly in
+ously assigned codes. As demonstrated in Table 6,                 terms of conciseness and the ability to balance ab-
+refined ensembles produce more concise outputs,                   straction and specificity in qualitative coding.
+                                                               10808
+ Coder                                                    Golden Standard                 Llama3.3 70B Ensem-       GPT4o Ensemble            GPT4 Ensemble             Mixtral 8x7B Ensem-
+                                                                                          ble                                                                           ble
+
+ Quote                                                                                                                    Code Assigned
+
+ "I am not very happy with this because ChatGPT           Technical problems              Unsatisfied with Chat-    User dissatisfaction      Unsatisfied with Chat-    User: Dissatisfied with
+ answers the questions I ask but it stops midway.         while using                     GPT                       with incomplete an-       GPT’s incomplete re-      expensive, incomplete
+ Then even after continuous efforts it does not                                                                     swers                     sponses                   ChatGPT answers
+ give complete answer. This is not very correct.
+ Please fix it so that there is no more trouble. This
+ is a very wrong thing, after some use you are
+ asked to upgrade which is very expensive."
+
+ "This is a great app, the bot is so accurate to          Helpful app                     Accurate and helpful      Helpful and accurate      User Satisfaction and     Accurate, helpful tip-
+ anything, it gives me tips in gaming, studies, and                                       app                       app experience            App Efficiency            providing app
+ life, etc. This app is also helpful if you were
+ having problems in things! Also, there are some
+ problems about the server glitch, but don’t worry,
+ some glitches are just seconds, overall a great
+ app. Note: the GPT-4o is more powerful, and
+ accurate than the regular one."
+
+ "The best so far"                                        Best app                        Best so far               The best experience       User Satisfaction and     Top User Rating
+                                                                                                                    yet                       App Effectiveness
+
+ "Excellent app for learning"                             Excellent for learning          Excellent learning app    Excellent learning tool   User Satisfaction and     Excellent learning app
+                                                                                                                                              App Efficiency
+
+ "Thanks for making my life easier"                       Thankfulness                    Life made easier          Gratitude for increased   User Satisfaction Feed-   Gratitude for Ease
+                                                                                                                    ease                      back
+
+
+Table 5: Comparison of qualitative codes generated by ensemble models. The golden standard represents human-
+coded references.
+
+          Model                                         Merge threshold                   BERTScore                        ROUGE              Composite Score           Code length
+                                                                                    P           R        F1         1         2           L
+          Mixtral8x7B                                           -                  0.83       0.84      0.83       0.08      0.01     0.08            0.33                  6.83
+          Mixtral8x7B Ensemble                                  -                  0.83       0.85      0.84       0.12      0.01     0.08            0.91                  4.02
+          Mixtral8x7B Ensemble + ref                           0.7                 0.84       0.85      0.84       0.12      0.01     0.11            0.99                    4
+          Llama3.3 70B                                          -                  0.84       0.86      0.85       0.12      0.03     0.12            0.38                   3.5
+          Llama3.3 70B Ensemble                                 -                  0.85       0.86      0.85       0.15      0.02     0.15            0.50                 3.57
+          Llama3.3 70B Ensemble + ref                          0.5                 0.85       0.88      0.86       0.15      0.03     0.15            0.74                 3.49
+          GPT-4                                                 -                  0.83       0.84      0.84       0.02      0.00     0.02            0.44                  4.39
+          GPT-4 Ensemble                                        -                  0.83       0.85      0.84       0.11      0.02     0.10            0.74                  5.01
+          GPT-4 Ensemble + ref                                 0.8                 0.83       0.85      0.84       0.12      0.02     0.10            0.54                  4.62
+          GPT-4o                                                -                  0.85       0.86      0.86       0.04      0.00     0.04            0.37                   3.8
+          GPT-4o Ensemble                                       -                  0.85       0.87      0.86       0.14      0.02     0.14            0.74                  4.26
+          GPT-4o Ensemble + ref                                0.7                 0.85       0.87      0.86       0.11      0.00     0.11            0.54                  4.42
+          Llama3 8B Instruct                                    -                  0.83       0.86      0.84       0.12      0.02     0.11            0.61                  8.45
+          Falcon 7B Instruct                                    -                  0.83       0.85      0.84       0.09      0.01     0.09            0.47                 12.76
+          Mistral 7B Instruct                                   -                  0.83       0.85      0.84       0.07      0.01     0.07            0.67                 11.77
+
+
+Table 6: Performance comparison of individual models, standard ensembles, and refined ensembles across key
+metrics. The merge threshold (refinement) column indicates the similarity threshold between the generated code
+and codes before it (can look only in the past). Models are evaluated using BERTScore (Precision, Recall, and F1),
+ROUGE (1, 2, and L), Composite Score, and Average Code Length.
+
+
+7.1 Ensembles Improve Coding Consistency                                                                 in their outputs due to differences in training data
+                                                                                                         and architectural biases (Bubeck et al., 2023; Jiang
+A major finding of our study is that ensemble
+                                                                                                         et al., 2023b). In contrast, ensemble methods mit-
+models consistently outperform individual mod-
+                                                                                                         igate this variability by integrating diverse inputs,
+els in inductive coding tasks, as shown in Table 6.
+                                                                                                         thereby improving robustness. Our results indicate
+The improved performance is particularly evident
+                                                                                                         that this effect holds even for smaller models.
+in Jensen-Shannon divergence (Figure 6), where
+ensembles exhibit lower divergence, indicating a
+                                                                                                         7.2        Postprocessing Enhances Code Stability
+greater degree of alignment. This suggests that
+aggregating multiple model outputs helps reduce                                                          The integration of code merging significantly im-
+inconsistencies, reflecting the consensus-building                                                       proves code stability, as demonstrated by higher
+process used by human coders in thematic analysis.                                                       composite and ROUGE scores in refined ensem-
+   The increased consistency observed in ensemble-                                                       bles (Table 6). By referencing previously assigned
+generated codes aligns with findings from prior re-                                                      codes, refinement reduces redundancy for similar
+search on LLM evaluation, which suggest that indi-                                                       inputs. This is particularly evident in the reduc-
+vidual models often introduce unwanted variability                                                       tion of unique code counts (e.g., 53 for Llama3.3
+                                                                                                 10809
+Figure 5: Mean cosine similarity heatmap of model-         Figure 6: Mean Jensen-Shannon divergence heatmap of
+generated codes. Darker green cells indicate higher        model-generated codes. Darker green cells indicate
+semantic similarity between models. Ensemble models        lower divergence, meaning greater agreement in as-
+(GPT-4 Ensemble, Mixtral 8x7B Ensemble, Llama3.3           signed codes. Ensemble models exhibit lower JSD,
+70B Ensemble) exhibit the highest similarity, demon-       reinforcing their role in reducing variance and improv-
+strating greater convergence toward a single interpreta-   ing convergence in qualitative coding tasks.
+tion of qualitative codes.
+
+                                                           7.4    Future Directions
+70B+ref vs. 100 for non-refined models) and code
+                                                           Building on our findings, we identify two promis-
+length (41.5% reduction), bringing model outputs
+                                                           ing directions for future research. First, hierarchi-
+closer to human-like efficiency.
+                                                           cal coding strategies could enable models to gen-
+   Figure 5 reveals that all ensemble models exhibit       erate both broad thematic categories and specific
+the highest similarity scores. This suggests that          subcategories, better reflecting human coding prac-
+aggregating inputs from multiple smaller models            tices (Saldana, 2016). Second, adaptive RAG mech-
+leads to greater convergence in assigned qualitative       anisms could dynamically adjust retrieval thresh-
+codes. These ensembles tend to agree more with             olds based on input complexity, further enhancing
+each other, reducing variance in code assignments          consistency and efficiency. These methods could
+compared to individual models.                             significantly improve the interpretability and qual-
+                                                           ity of automated coding systems.
+7.3 Balancing Abstraction and Specificity in
+    Generated Codes                                        8     Conclusion
+A key distinction among models is their tendency           In this work, we explored the use of ensemble-
+toward abstraction versus specificity. As shown in         based LLMs with refined outputs for automated
+Table 5, GPT-4 ensembles often generate broad the-         inductive coding, demonstrating that ensemble ap-
+matic labels, which, while useful for high-level           proaches consistently outperform individual mod-
+analysis, may lack the granularity required for            els in qualitative coding tasks. Our results highlight
+domain-specific research. In contrast, smaller en-         three key findings: (1) Ensemble methods improve
+sembles produce more precise codes that closely            coding consistency, reducing variance and increas-
+align with human annotations.                              ing alignment with human-coded benchmarks; (2)
+   This finding reflects a fundamental trade-off in        Code merging postprocessing enhances coding sta-
+LLM-based coding: while abstraction improves               bility, ensuring greater coherence in label assign-
+generalizability, excessive abstraction can obscure        ments across similar inputs; and (3) Smaller ensem-
+critical nuances. Prior work has noted that LLMs           ble models outperform standalone high-capacity
+trained on diverse corpora tend to favor generalized       models, offering a more efficient and scalable alter-
+patterns over domain-specific details (Bubeck et al.,      native to traditional LLM-based approaches. These
+2023; Tornberg, 2023). Results suggest that ensem-         findings highlight the potential of ensemble ap-
+ble approaches can mitigate this issue by combin-          proaches and refinement to advance automated
+ing diverse inputs, thus producing more balanced           qualitative analysis while maintaining alignment
+and contextually grounded outputs.                         with human coding patterns.
+                                                      10810
+Limitations                                             our findings to other languages and cultural con-
+                                                        texts. Extending this approach to multilingual
+While our ensemble-based LLMs demonstrate sig-          datasets could reveal additional challenges, such as
+nificant improvements in inductive coding, several      language-specific coding conventions or cultural
+limitations warrant consideration.                      biases, necessitating further adaptations.
+Bias and Fairness                                       Ethics Statement
+Although ensembling reduces inconsistencies
+                                                        The use of LLMs in qualitative research introduces
+across individual models, it does not fully address
+                                                        ethical considerations, particularly regarding bias,
+biases inherent in the training data of base models.
+                                                        transparency, and the potential for automated sys-
+These biases may manifest in the form of skewed
+                                                        tems to replicate or amplify human biases. While
+code distributions or overgeneralized labels. Future
+                                                        our ensemble-based approach mitigates some of
+work should investigate bias mitigation techniques,
+                                                        these risks by combining diverse model outputs
+such as adversarial training or dataset balancing, to
+                                                        and employing code refinement for consistency, we
+further improve model fairness and reliability.
+                                                        acknowledge that biases inherent in training data
+Computational Costs                                     may still influence results. Human oversight re-
+                                                        mains critical, as demonstrated by our reliance on
+While our ensemble models are smaller and more
+                                                        expert evaluations to establish a golden standard
+efficient than large standalone models like GPT-4,
+                                                        and validate model outputs. We emphasize that
+they still require higher computational costs com-
+                                                        LLMs should serve as assistive tools rather than re-
+pared to single smaller models. For real-world ap-
+                                                        placements for human expertise, and we advocate
+plications, further optimization strategies—such as
+                                                        for the development of ethical guidelines to ensure
+dynamic ensemble selection—could help balance
+                                                        responsible use in sensitive research domains. The
+accuracy with computational efficiency.
+                                                        datasets used in this study were anonymized and
+Evaluation Metrics                                      handled in compliance with ethical research stan-
+                                                        dards, minimizing risks to participants.
+While our composite metric captures multiple di-
+mensions of coding performance, no single metric
+fully replicates the nuanced judgment of human          References
+coders. Future research should explore more so-         Anna Aniol, Marcin Pietron, and Jerzy Duda. 2019.
+phisticated evaluation frameworks, incorporating          Ensemble approach for natural language question an-
+human preference modeling, interactive evaluation         swering problem. In 2019 Seventh International Sym-
+setups, or multi-criteria decision analysis to better     posium on Computing and Networking Workshops
+                                                          (CANDARW), pages 180–183. IEEE.
+align automated coding with qualitative research
+standards.                                              Satanjeev Banerjee and Alon Lavie. 2005. METEOR:
+                                                          An automatic metric for MT evaluation with im-
+Metric Accessibility and Fairness                         proved correlation with human judgments. In Pro-
+                                                          ceedings of the ACL Workshop on Intrinsic and Ex-
+While the composite metric demonstrates strong            trinsic Evaluation Measures for Machine Transla-
+alignment with human judgments, it requires ac-           tion and/or Summarization, pages 65–72, Ann Arbor,
+cess to gold-standard codes, which limits its use         Michigan. Association for Computational Linguis-
+in real-world deployments. This raises a method-          tics.
+ological concern when comparing models that are         H. Russell Bernard. 2016. Research Methods in Anthro-
+evaluated using this metric against those that do          pology: Qualitative and Quantitative Approaches.
+not rely on gold labels. However, we emphasize             Rowman & Littlefield.
+that the metric is used only after inference and does   Rishi Bommasani et al. 2021. On the opportunities
+not inform code generation or refinement. In future       and risks of foundation models. arXiv preprint
+work, we aim to explore unsupervised metrics to           arXiv:2108.07258.
+enable fully gold-free evaluation.                      Virginia Braun and Victoria Clarke. 2021. Thematic
+                                                          Analysis: A Practical Guide. SAGE Publications.
+Language Generalizability
+                                                        Sebastien Bubeck, Varun Chandak, et al. 2023. Sparks
+Our study focuses exclusively on English-language         of artificial general intelligence: Early experiments
+datasets, which restricts the generalizability of         with gpt-4. arXiv preprint arXiv:2303.12712.
+                                                   10811
+Simon Bumbuc and Sam Hrybyk. 2016. Subjectivity             Patrick Lewis et al. 2020. Retrieval-augmented genera-
+  in qualitative coding: An issue revisited. Qualitative      tion for knowledge-intensive nlp tasks. Proceedings
+  Research, 16(3):253–263.                                    of NeurIPS 2020.
+Weilin Cai, Juyong Jiang, Fan Wang, Jing Tang,              Chenghao Li, Fangchen Xie, et al. 2023. Vicuna: An
+ Sunghun Kim, and Jiayi Huang. 2024. A survey                 open-source chatbot. FastChat: Open Assistant.
+ on mixture of experts.                                       Available at https://vicuna.lmsys.org/.
+John Chen, Alexandros Lotsos, Lexie Zhao, Caiyi Wang,
+                                                            Chin-Yew Lin. 2004. Rouge: A package for automatic
+  Jessica Hullman, Bruce Sherin, Uri Wilensky, and
+                                                              evaluation of summaries.
+  Michael Horn. 2024. A computational method for
+  measuring "open codes" in qualitative analysis.           Kathleen M. MacQueen and Greg Guest. 2008. Hand-
+John W. Creswell. 2016. 30 Essential Skills for the           book for Team-Based Qualitative Research. Al-
+  Qualitative Researcher. SAGE Publications.                  taMira Press.
+
+Randi A Engle, Jennifer M Langer-Osuna, and Max-            George A Miller, Richard Beckwith, Christiane Fell-
+  ine McKinney de Royston. 2014. Toward a model of            baum, Derek Gross, and Katherine J Miller. 1990.
+  influence in persuasive discussions: Negotiating qual-      Introduction to wordnet: An on-line lexical database.
+  ity, authority, privilege, and access within a student-     International journal of lexicography, 3(4):235–244.
+  led argument. Journal of the Learning Sciences,
+  23(2):245–268.                                            Moran Mizrahi, Guy Kaplan, Dan Malkin, Rotem Dror,
+                                                             Dafna Shahaf, and Gabriel Stanovsky. 2024. State
+Alexander Fabbri et al. 2021a. Summac: Re-visiting           of what art? a call for multi-prompt LLM evaluation.
+  nli-based models for consistency evaluation. Pro-          Transactions of the Association for Computational
+  ceedings of EMNLP 2021.                                    Linguistics, 12:933–949.
+Alexander R. Fabbri, Wojciech Kryściński, Bryan Mc-       Janice M. Morse. 2017. Considering theory derived
+  Cann, Caiming Xiong, Richard Socher, and Dragomir           from qualitative research. Qualitative Health Re-
+  Radev. 2021b. Summeval: Re-evaluating summariza-            search, 27(10):1372–1380.
+  tion evaluation.
+Tim Fischer and Chris Biemann. 2024. Exploring large        Diana Parfenova et al. 2024. Automating qualitative
+  language models for qualitative data analysis. In           analysis with llms. Proceedings of ACL 2024.
+  Proceedings of the 4th International Conference on
+  Natural Language Processing for Digital Humani-           Felipe Pineda, Raphael Milliere, Andreas Vlachos,
+  ties, pages 423–437, Miami, USA. Association for            Myle Ott, Richard Yates, Amelia Glaese, et al. 2023.
+  Computational Linguistics.                                  The falcon series of language models. arXiv preprint
+                                                              arXiv:2306.01116.
+Zeyu Han, Chao Gao, Jinyang Liu, Jeff Zhang, and
+  Sai Qian Zhang. 2024. Parameter-efficient fine-           Maria Pontiki, Dimitris Galanis, John Pavlopoulos, Har-
+  tuning for large models: A comprehensive survey.            ris Papageorgiou, Ion Androutsopoulos, and Suresh
+                                                              Manandhar. 2014. SemEval-2014 task 4: Aspect
+Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan             based sentiment analysis. In Proceedings of the 8th
+  Allen-Zhu, Yuanzhi Li, Shean Wang, and Weizhu              International Workshop on Semantic Evaluation (Se-
+  Chen. 2021. Lora: Low-rank adaptation of large              mEval 2014), pages 27–35, Dublin, Ireland. Associa-
+  language models. CoRR, abs/2106.09685.                      tion for Computational Linguistics.
+Dongfu Jiang, Xiang Ren, and Bill Yuchen Lin. 2023a.        Nils Reimers and Iryna Gurevych. 2019. Sentence-bert:
+  Llm-blender: Ensembling large language models               Sentence embeddings using siamese bert-networks.
+  with pairwise ranking and generative fusion.
+Dongfu Jiang et al. 2023b. Llm-blender: Ensembling          Omer Sagi and Lior Rokach. 2018. Ensemble learn-
+  large language models with pairwise ranking and            ing: A survey. Wiley interdisciplinary reviews: data
+  generative fusion. Proceedings of ACL 2023.                mining and knowledge discovery, 8(4):e1249.
+
+Zhe Jiang et al. 2023c. Tinyllama: Distilling large         Johnny Saldana. 2016. The Coding Manual for Qualita-
+  language models for efficiency. arXiv preprint              tive Researchers. SAGE Publications.
+  arXiv:2310.05637.
+                                                            Thibault Sellam et al. 2020. Bleurt: Learning robust
+Bhavik Jikadara. 2023.      Chatgpt user feedback             metrics for text generation. Proceedings of ACL
+  dataset.     https://www.kaggle.com/datasets/               2020.
+  bhavikjikadara/chatgpt-user-feedback.
+  Dataset containing user reviews and ratings for the       Gemma AI Research Team. 2024. Gemma: An in-
+  ChatGPT Android App, updated daily. Includes                structable, open-source large language model.
+  attributes such as review text, numerical ratings,
+  thumbs up counts, and timestamps. Licensed under          Mistral AI Team. 2023. Mistral: Efficient pretraining
+  MIT.                                                        of transformer language models.
+                                                       10812
+Petter Tornberg. 2023. Using large language models for       • Expert Angle (Prompt 3): From the perspec-
+  automated qualitative coding in the social sciences.         tive of a social scientist, summarize the fol-
+  Nature Machine Intelligence, 5:576–586.
+                                                               lowing sentence as you would in thematic cod-
+Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier          ing. This prompt takes a more specialized
+  Martinet, Marie-Anne Lachaux, Timothée Lacroix,              approach, asking the model to assume the per-
+  Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal           spective of a social scientist performing the-
+  Azhar, et al. 2023a. Llama: Open and effi-                   matic coding. The expectation here is for the
+  cient foundation language models. arXiv preprint
+  arXiv:2302.13971.                                            model to not only summarize the sentence but
+                                                               to apply a more analytical and structured lens,
+Hugo Touvron, Thibaut Lavril, et al. 2023b. Llama:             possibly introducing higher-level categoriza-
+  Open and efficient foundation language models. In            tions that would be typical in qualitative data
+  Proceedings of the 2023 Annual Conference on Ma-
+  chine Learning (ICML), pages 123–134.
+                                                               analysis.
+                                                             • Impersonalization (Prompt 4): If you were a
+Tianyi Zhang et al. 2019.    Bertscore: Evaluat-
+  ing text generation with bert. arXiv preprint                social scientist doing thematic analysis, what
+  arXiv:1904.09675.                                            code would you give to this citation? In this
+                                                               prompt, the model is asked to act as a social
+A    Prompts used for finetuning                               scientist and assign a code, which is a brief
+                                                               label representing the central idea of the sen-
+In the conducted experiments, several prompts                  tence. It emphasizes the objectivity of the-
+were designed to guide the models in performing                matic analysis, expecting the model to deper-
+open coding tasks. These prompts varied in their               sonalize the task and focus on generating an
+level of explicitness, the perspective they asked the          appropriate label that accurately reflects the
+model to adopt, and the amount of detail they re-              content.
+quested. Additionally, the experiments compared
+the effect of using a line break versus a period (dot)       • Detailed Explanation (Prompt 5): Explain
+at the end of each prompt to assess how subtle                 in a couple of words the primary thought ex-
+changes in prompt formatting might influence the               pressed in the following text. This prompt
+model’s performance (see Appendix B). Below is                 asks the model to provide a more detailed,
+a brief description of each prompt:                            thorough explanation of the primary thought
+                                                               behind the text. It is designed to encourage
+    • Explicit Instruction (Prompt 1): Summa-                  the model to go beyond a simple summary and
+      rize the main idea of a sentence. This prompt            delve into the deeper meaning or implications
+      provides a direct and clear instruction to the           of the sentence.
+      model, asking it to summarize the core idea
+                                                             • Simplified Task (Prompt 6): What is the gist
+      of a given sentence. The expectation is for
+                                                               of this sentence? This prompt simplifies the
+      the model to extract the primary message or
+                                                               task by asking for the "gist" of the sentence.
+      theme conveyed in the sentence with no addi-
+                                                               It challenges the model to provide a very brief
+      tional context or framing. This prompt is de-
+                                                               and straightforward summary, focusing on dis-
+      signed to test the model’s ability to perform a
+                                                               tilling the essential meaning of the sentence.
+      straightforward task without needing implicit
+      knowledge.                                         B    Detailed fine-tuning results
+
+    • Informal Request (Prompt 2): Can you tell          These results (see Table 7) demonstrate the per-
+      me what the main idea of this sentence is in       formance of various models when fine-tuned on
+      just a few words? This prompt is phrased as        the task of open coding using different prompts.
+      a casual, conversational question, asking the      BERTScore and ROUGE are reported.
+      model to summarize the sentence in "just a         C    Moderator prompt template
+      few words." The informal tone encourages a
+      more concise and simplified response, aiming
+                                                         D    Links to models on Hugging Face
+      to capture how well the model can extract
+      the essence of the sentence in a more natural,         • Llama3 8B: https://huggingface.co/
+      everyday context.                                        meta-llama/Meta-Llama-3-8B-Instruct
+                                                    10813
+  Model                                       BERTScore                                                                      ROUGE
+
+                        Pstd                     Rstd                     F 1std                       1                         2       L
+
+                                                         Summarize the main idea of a sentence\n
+
+  Llama3             0.7130.060               0.7580.040                0.7340.062                  0.141                     0.033     0.153
+  Falcon             0.7460.073               0.7820.097                0.7640.095                  0.176                     0.047     0.189
+  Mistral            0.7290.076               0.7870.093                0.7560.078                  0.178                     0.047     0.195
+  Vicuna             0.7310.063               0.7770.095                0.7530.079                  0.163                     0.028     0.182
+  Gemma              0.7120.084               0.7380.078                0.7450.080                  0.163                     0.030     0.168
+  TinyLlama          0.7180.072               0.7750.090                0.7570.087                  0.164                     0.052     0.158
+
+                                                          Summarize the main idea of a sentence.
+
+  Llama3             0.7180.072               0.7880.089                0.7500.073                  0.181                     0.059     0.166
+  Falcon             0.7380.099               0.7870.103                0.7610.096                  0.213                     0.077     0.210
+  Mistral            0.7190.072               0.7680.086                0.7420.075                  0.157                     0.055     0.148
+  Vicuna             0.7330.079               0.7870.095                0.7580.081                  0.193                     0.068     0.185
+  Gemma              0.7190.071               0.7790.089                0.7460.072                  0.172                     0.049     0.166
+  TinyLlama          0.7360.083               0.7880.092                0.7600.081                  0.207                     0.074     0.199
+
+                                         Can you tell me what the main idea of this sentence is in just a few words?
+
+  Llama3             0.6880.055               0.7780.084                0.7290.061                  0.116                     0.034     0.110
+  Falcon             0.7530.105               0.7870.108                0.7680.102                  0.236                     0.104     0.239
+  Mistral            0.7420.106               0.7950.106                0.7660.101                  0.246                     0.106     0.235
+  Vicuna             0.6910.060               0.7830.087                0.7320.063                  0.168                     0.047     0.164
+  Gemma              0.7110.075               0.7860.093                0.7460.079                  0.171                     0.057     0.168
+  TinyLlama          0.7250.083               0.7890.090                0.7540.079                  0.178                     0.067     0.177
+
+                       From the perspective of a social scientist, summarize the following sentence as you would in thematic coding\n
+
+  Llama3             0.6980.059               0.7840.083                0.7380.062                  0.130                     0.033     0.119
+  Falcon             0.7450.109               0.7920.105                0.7660.102                  0.210                     0.089     0.211
+  Mistral            0.6880.060               0.7850.086                0.7320.064                  0.139                     0.041     0.131
+  Vicuna             0.7130.080               0.7780.094                0.7430.080                  0.169                     0.061     0.166
+  Gemma              0.7210.085               0.7840.093                0.7490.082                  0.180                     0.070     0.177
+  Tinyllama          0.7180.073               0.7760.083                0.7450.072                  0.165                     0.053     0.158
+
+                        From the perspective of a social scientist, summarize the following sentence as you would in thematic coding.
+
+  Llama3             0.6850.082               0.7810.064                0.7330.081                  0.136                     0.025     0.154
+  Falcon             0.7540.066               0.7780.091                0.7590.088                  0.181                     0.048     0.190
+  Mistral            0.7400.067               0.7800.088                0.7560.071                  0.172                     0.045     0.187
+  Vicuna             0.7180.071               0.7800.094                0.7530.073                  0.165                     0.039     0.185
+  Gemma              0.7000.072               0.7800.085                0.7460.080                  0.180                     0.046     0.187
+  TinyLlama          0.7290.076               0.7780.089                0.7540.080                  0.169                     0.046     0.183
+
+                             If you were a social scientist doing thematic analysis, what code would you give to this citation?
+  Llama3             0.6920.060              0.7850.083                0.7350.064                  0.064                       0.043    0.126
+  Falcon             0.7360.093              0.7850.101                0.7590.092                  0.206                       0.076    0.200
+  Mistral            0.6860.057              0.7850.082                0.7310.061                  0.132                       0.044    0.123
+  Vicuna             0.7190.070              0.7890.091                0.7510.073                  0.183                       0.063    0.169
+  Gemma              0.7240.085              0.7840.091                0.7510.082                  0.170                       0.066    0.168
+  Tinyllama          0.7200.071              0.7780.083                0.7470.072                  0.186                       0.053    0.182
+
+                                                              What is the gist of this sentence?
+
+  Llama3             0.6800.064               0.7800.086                0.7250.066                  0.129                     0.042     0.121
+  Falcon             0.7310.091               0.7800.098                0.7540.089                  0.182                     0.080     0.179
+  Mistral            0.7260.079               0.7850.095                0.7530.079                  0.165                     0.057     0.160
+  Vicuna             0.7200.070               0.7810.089                0.7480.072                  0.172                     0.055     0.162
+  Gemma              0.7070.077               0.7730.091                0.7370.076                  0.152                     0.059     0.146
+  Tinyllama          0.7130.057               0.7730.079                0.7410.061                  0.143                     0.032     0.139
+
+                                    Explain in a couple of words the primary thought expressed in the following text\n
+
+  Llama3             0.6910.062               0.7830.085                0.7330.066                  0.120                     0.038     0.110
+  Falcon             0.7340.078               0.7780.090                0.7540.078                  0.171                     0.049     0.165
+  Mistral            0.6980.067               0.7800.088                0.7350.070                  0.141                     0.038     0.131
+  Vicuna             0.7030.072               0.7800.088                0.7380.072                  0.155                     0.048     0.148
+  Gemma              0.7060.064               0.7860.086                0.7420.066                  0.177                     0.053     0.170
+  Tinyllama          0.7200.077               0.7840.091                0.7500.078                  0.168                     0.071     0.163
+
+                                     Explain in a couple of words the primary thought expressed in the following text.
+
+  Llama3             0.7000.068               0.7840.055                0.7470.063                  0.142                     0.025     0.152
+  Falcon             0.7520.088               0.7790.061                0.7600.086                  0.183                     0.042     0.193
+  Mistral            0.7380.070               0.7900.090                0.7590.073                  0.173                     0.047     0.183
+  Vicuna             0.7170.066               0.7800.094                0.7520.099                  0.161                     0.025     0.182
+  Gemma              0.7080.068               0.7780.079                0.7460.098                  0.172                     0.039     0.186
+  TinyLlama          0.7280.073               0.7780.091                0.7550.089                  0.168                     0.053     0.168
+
+
+Table 7: Detailed Fine-tuning Results. The following table presents the detailed results from fine-tuning experiments,
+including precision (P), recall (R), F1 score, and ROUGE across different models and prompts.
+
+
+
+
+                                                                         10814
+                                                                    lora_dropout=0.05,
+You will be given a paragraph from the                              bias="none",
+    text , which is : { textdescription }.                          task_type="CAUSAL_LM"
+                                                               )
+
+Definition of the code : A word or short                       model = get_peft_model(model, config)
+                                                               print_trainable_parameters(model)
+    phrase that symbolically
+assigns a summative , salient , essence -                      generation_config = model.generation_config
+    capturing , and / or evocative                             generation_config.max_new_tokens = 15
+                                                               generation_config.temperature = 0.7
+attribute for a portion of language -                          generation_config.top_p = 0.7
+    based or visual data .                                     generation_config.num_return_sequences = 1
+                                                               generation_config.pad_token_id = tokenizer.eos_token_id
+                                                               generation_config.eos_token_id = tokenizer.eos_token_id
+Here is the excerpt to code :
+{ row [ ’ Paragraph ’]}
+                                                               F      Human evaluation instructions
+Here are three coding suggestions from
+    previous models :                                          To validate the quality of automatically generated
+1. { row [ ’ Llama3_Code ’]}                                   qualitative codes, we conducted a human evalua-
+2. { row [ ’ Falcon_Code ’]}                                   tion study in which domain experts rated model-
+3. { row [ ’ Mistral_Code ’]}
+                                                               generated codes for a given set of quotes. The
+Please choose the best code or suggest a                       evaluation form was structured as follows:
+     new code taking into account all
+    these answers .                                            F.1      Code Rating Guidelines
+The output should be the code with no
+    longer than 5 words .                                      Introduction:
+                                                               Thank you for participating in this evaluation study.
+Listing 1: Moderator Prompt Template with Model
+                                                               Your expertise is crucial in assessing the quality
+Suggestions
+                                                               of automatically generated qualitative codes. In
+                                                               this task, you will be presented with a sentence
+                                                               (quote) and a corresponding code assigned by a
+    • Falcon 7B: https://huggingface.co/                       model. You will rate the quality of the code based
+      tiiuae/falcon-7b-instruct                                on its accuracy, relevance, and conciseness.
+    • Mistral 7B: https://huggingface.co/                         Definition of a Code:
+      mistralai/Mistral-7B-Instruct-v0.2                       According to Saldana (2016), a code is "often a
+                                                               word or short phrase that symbolically assigns
+    • Vicuna 7B: https://huggingface.co/                       a summative, salient, essence-capturing, and/or
+      lmsys/vicuna-7b-v1.5                                     evocative attribute for a portion of language-based
+                                                               or visual data."
+    • Gemma 7B: https://huggingface.co/
+      google/gemma-7b-it                                       F.2      Instructions for Participants
+    • TinyLlama 1.1B: https://huggingface.                     1. Read the given quote carefully.
+      co/TinyLlama/TinyLlama-1.1B-Chat-v1.                     2. Review the assigned code.
+      0                                                        3. Rate the quality of the code on a scale from 1
+                                                               to 5 based on the following criteria:
+    • Llama    3.3.        70B:   https://
+                                                                    • 1 - Very Poor: The code does not reflect the
+      huggingface.co/meta-llama/Llama-3.
+                                                                      main idea of the quote at all.
+      3-70B-Instruct
+                                                                    • 2 - Poor: The code partially captures the
+    • Mixtral 7x8B: https://huggingface.co/
+                                                                      quote but lacks clarity or relevance.
+      mistralai/Mixtral-8x7B-v0.1
+                                                                    • 3 - Acceptable: The code is somewhat rele-
+E     LoRA configuration                                              vant but could be improved for clarity or con-
+This section provides the LoRA (Low-Rank Adap-                        ciseness.
+tation) configuration used for fine-tuning the mod-                 • 4 - Good: The code accurately represents the
+els in this study. Below is the code snippet used for                 key idea of the quote with minimal ambiguity.
+configuring LoRA:
+                                                                    • 5 - Excellent: The code perfectly captures the
+config = LoraConfig(
+    r=16,                                                             essence of the quote in a concise and mean-
+    lora_alpha=32,
+    target_modules=["gate_proj", "up_proj", "down_proj"],             ingful way.
+                                                            10815
+  These ratings were collected for all models
+across a diverse set of ten quotes. The results
+were analyzed to compute correlations between
+human ratings and various automated evaluation
+metrics, contributing to the validation of the com-
+posite score.
+
+
+
+
+                                                 10816
+

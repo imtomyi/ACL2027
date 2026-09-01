@@ -1,0 +1,637 @@
+                           Perspectives – Interactive Document Clustering
+                                    for Qualitative Data Analysis
+
+                               Tim Fischer, Chris Biemann
+    Language Technology Group, Department of Informatics, University of Hamburg, Germany
+                         {firstname.lastname}@uni-hamburg.de
+
+
+
+                             Abstract                              Document clustering offers a promising solution,
+                                                                particularly for discovering themes within a corpus,
+         This paper introduces Perspectives, an interac-
+                                                                a key interest of DH scholars. Modern clustering-
+         tive extension of a qualitative data analysis tool
+         suite developed at our university, designed to
+                                                                based topic modeling (Grootendorst, 2022; An-
+         empower Digital Humanities (DH) scholars to            gelov and Inkpen, 2024; Reuter et al., 2024), which
+         explore and organize large, unstructured doc-          leverages pre-trained language model embeddings,
+         ument collections. Perspectives implements             has gained considerable traction not only because it
+         a flexible, aspect-focused document cluster-           offers advantages in simplicity, modularity, and per-
+         ing pipeline with human-in-the-loop refinement         formance, but also because it presents interesting
+         capabilities. We showcase how this process             opportunities for steerability and interactivity.
+         can be initially steered by defining analytical
+         lenses through document rewriting prompts
+                                                                   Unsupervised clustering methods can present a
+         and instruction-based embeddings, and further          take it or leave it scenario for non-experts if the out-
+         aligned with user intent through tools for re-         puts do not align with their intent, rendering fully
+         fining clusters and mechanisms for fine-tuning         automatic methods ineffective. For DH scholars,
+         the embedding model. The demonstration high-           who often approach corpora with specific research
+         lights a typical workflow, illustrating how DH         questions in mind, the ability to interactively manip-
+         researchers can leverage Perspectives’s inter-         ulate clustering is of great interest. Such challenges
+         active document map to uncover topics, sen-
+                                                                are addressed by the Interactive Topic Modeling
+         timents, or other relevant categories, thereby
+         gaining insights and preparing their data for          (ITM) community, which aims to achieve a control-
+         subsequent in-depth analysis.                          lable, collaborative human-machine process.
+                                                                   To address this gap, we introduce Perspectives,
+1        Introduction                                           an interactive document clustering extension for
+                                                                DATS. Inspired by ITM and built on clustering-
+The discourse analysis tool suite1 (DATS), a plat-
+                                                                based neural topic modeling, we aim to make doc-
+form developed at our university, supports Digi-
+                                                                ument clustering more accessible for DH scholars.
+tal Humanities (DH) researchers in data analysis
+                                                                The system is centered around an interactive doc-
+by providing access to computational methods for
+                                                                ument map to support exploratory workflows and
+large-scale, multimodal data. Key functionalities
+                                                                implements a clustering pipeline that can be steered
+include pre-processing, qualitative and quantita-
+                                                                and refined in multiple ways. While offering visu-
+tive analysis, and document retrieval (including
+                                                                alization and analysis tools, its primary goal within
+keyword, metadata, and semantic search). How-
+                                                                DATS is to help users organize their collections into
+ever, DATS users often struggle to explore and
+                                                                tagged datasets, ready for use with other analytical
+organize extensive corpora. Keyword-based or se-
+                                                                tools. The contributions of this paper are:
+mantic search functionalities are often insufficient
+and incompatible with a hermeneutic approach to
+                                                                1. We introduce a flexible, aspect-focused cluster-
+conceptualization, and DATS lacks functionality
+                                                                ing pipeline that combines (a) LLM-driven docu-
+for systematic structuring and a holistic overview.
+                                                                ment rewriting to emphasize user-defined aspects,
+Organizing documents, however, is vital for quali-
+                                                                (b) instruction-steered embeddings to generate
+tative analysis and advanced DATS features, such
+                                                                aspect-oriented document representations, and (c)
+as timeline analysis.
+                                                                few-shot fine-tuning of the embedding model to
+     1
+         https://github.com/uhh-lt/dats                         further align the representations with user intent.
+                                                              411
+Proceedings of the 6th International Conference on Natural Language Processing for the Digital Humanities, pages 411–422
+                               July 4, 2026 ©2026 Association for Computational Linguistics
+2. We evaluate the pipeline on multiple datasets,       keyphrases for document representation.
+showing the effectiveness of aspect-oriented repre-        Several systems facilitate the interactive explo-
+sentations, document rewriting, and fine-tuning.        ration of document collections or topics. Nomic
+3. We present Perspectives, a human-in-the-loop         Atlas2 is a notable commercial platform that of-
+document (HITL) clustering system that integrates       fers high-performance 2D scatter-plot visualiza-
+the pipeline and provides an interactive 2D map for     tions of document embeddings, enabling users to
+users to explore, validate, and directly manipulate     explore automatically extracted hierarchical topic
+clusters with established refinement operations.        clusters and interact via filtering and a chat as-
+                                                        sistant. Related academic systems innovate with
+2   Related Work                                        HITL focus, such as direct integration into the la-
+                                                        beling workflow (Seelman et al., 2024), tracking
+The task of identifying topics in texts has evolved     model changes (Fang et al., 2023), or RAG-based
+from traditional probabilistic models, such as La-      question-answering (Reuter et al., 2024).
+tent Dirichlet Allocation (Blei et al., 2003). Re-         Effective visualization helps explore and under-
+cent approaches, termed clustering-based neural         stand clusters. Standard techniques, such as top
+topic modeling or topic discovery (Wu et al., 2024),    words, word clouds, document-cluster distributions,
+build on pre-trained language model embeddings.         and 2D embedding projections (Wu et al., 2024),
+Top2Vec (Angelov, 2020) uses Doc2Vec (Le and            are all available in our extension.
+Mikolov, 2014) embeddings, reduces their dimen-            While inspired by existing platforms, such as
+sionality with UMAP, clusters them using HDB-           Nomic Atlas, Perspectives distinguishes itself by
+SCAN, and identifies topics by finding words clos-      offering a user-centric HITL workflow tailored for
+est to cluster centroids. BERTopic (Grootendorst,       DH: Users define the analytical lens before cluster-
+2022) follows a similar pipeline but employs a          ing and iteratively refine the outcomes afterward,
+class-based TF-IDF mechanism to extract descrip-        with visualizations serving as a central component
+tive words for each identified cluster. Contextual      of this interactive sense-making process.
+Top2Vec (Angelov and Inkpen, 2024) refines this
+by representing documents with multiple segment         3       Envisioned Workflow
+vectors for fine-grained topic segmentation.
+                                                        This section illustrates an idealized workflow using
+   The topic modeling community has long rec-
+                                                        Perspectives, following Alice, a DH researcher in-
+ognized the need to make topic modeling more
+                                                        vestigating public discourse on climate change in
+user-centric. Seed wordlists (Jagarlamudi et al.,
+                                                        Germany. Her goal is to understand major topics
+2012), seed documents (Grootendorst, 2022), or
+                                                        and the general sentiment towards climate change.
+seed sentences (Fang et al., 2023) can guide initial
+                                                           Alice uploads her corpus to DATS and opens
+topic formation. Further, interactive topic mod-
+                                                        the new Perspectives extension. To discover topics,
+eling systems address alignment with user intent
+                                                        she provides a topic discovery instruction to guide
+by providing operations such as merging, splitting,
+                                                        document embeddings (e.g., "Identify the topic").
+or deleting topics, as well as adding or removing
+                                                        The system generates an interactive 2D document
+documents/words from specific topics (Fang et al.,
+                                                        map and a dashboard that provides a high-level
+2023). Seelman et al. (2024) proposes to update
+                                                        summary, including clusters with LLM-generated
+topic models by embedding user-assigned word la-
+                                                        names, keywords, and example documents, their
+bels to topics. GPTopic (Reuter et al., 2024) lever-
+                                                        relative frequencies, and a similarity matrix show-
+ages LLMs to build an accessible chat interface to
+                                                        ing inter-cluster relationships. Alice navigates the
+explore and refine topics through natural language.
+                                                        map (see Figure 1), panning, zooming, and inspect-
+   The field of interactive (semi-supervised) clus-
+                                                        ing the visually distinct clusters. She identifies
+tering also acknowledges the value of integrating
+                                                        broad topics but notices that a theme like "Climate
+expert knowledge. While prior methods, such as
+                                                        Protests" is missing.
+hand-picked seed points (Basu et al., 2002) or
+                                                           Alice uses selection tools 1) to investigate doc-
+pairwise constraints (Basu et al., 2002), offered
+                                                        uments of specific clusters. Linked statistic and
+control, they required extensive user feedback.
+                                                        information panels 2) provide aggregated details,
+Viswanathan et al. (2024) demonstrated that LLMs
+                                                        such as frequent keywords and named entities. She
+can guide semi-supervised clustering with minimal
+feedback by generating and encoding task-specific           2
+                                                                atlas.nomic.ai
+
+                                                      412
+Figure 1: Perspectives’ document map. Center: interactive scatter plot of documents colored by cluster. Hovering
+over a document previews its content. Left: settings & refinement operations, including the model fine-tuning
+operation. Right: statistics & information about selected documents. Top: toolbar with search & filtering. The UI is
+inspired by popular clustering interfaces such as Nomic Atlas, leveraging a familiar design to accelerate adoption.
+
+
+spots misclassified articles, correcting them with          4   Interactive Clustering
+the Change Cluster 3) function. To create her ex-
+                                                            As illustrated by the workflow, Perspectives facili-
+pected "Climate Protests" topic, she selects relevant
+                                                            tates interactive document clustering, empowering
+documents (found via integrated search or filtering,
+                                                            users to guide analysis towards specific aspects
+4) and uses the Add cluster function. If a topic is
+                                                            and iteratively refine categorizations. This process
+too broad, she uses the Split Cluster function to
+                                                            begins with an aspect-focused clustering pipeline
+compute more granular sub-clusters. Conversely,
+                                                            and continues through HITL refinement operations.
+she can Merge Clusters if several clusters repre-
+                                                            The pipeline is illustrated in Figure 2.
+sent a single cohesive theme 5).
+                                                               We propose two strategies to define the analyt-
+                                                            ical lens and initially steer the clustering process
+   With all topics identified, Alice improves their         (green). First, we employ alternative document rep-
+definitions by reviewing representative documents           resentations, in which an LLM rewrites documents
+and marking them with the Accept Cluster As-                based on a prompt, thereby modifying the con-
+signment function 6). Having provided minimal               tent for clustering. This is a one-time process per
+feedback, she triggers the Refine Model process,            perspective. Second, we use instruction-finetuned
+which fine-tunes the embedding model. The map               embedding models (Su et al., 2023) that generate
+reloads, showing more distinct and coherent clus-           aspect-oriented embeddings from an instruction,
+ters. Satisfied with her thematic map, Alice ex-            capturing specific semantic facets.
+plores sentiment. She creates a new perspective,               We continue with established steps (orange): re-
+this time providing a sentiment analysis instruction        duce dimensionality with UMAP for improved clus-
+and an optional document rewriting prompt (e.g.,            tering, then use HDBSCAN to group documents.
+"Summarize sentiment towards climate change").              Cluster representations include (1) keywords from
+This generates a new map visualizing sentiment-             c-TF-IDF, (2) LLM-generated names and descrip-
+based clusters, which she can explore and refine            tions seeded by those keywords, (3) the cluster
+using the same interactive tools.                           centroid (mean of document embeddings), and (4)
+                                                            representative documents identified via cosine sim-
+   Finally, Alice exports her refined topics and sen-       ilarity to the centroid.
+timents from Perspectives as tags back into her                Next, document embeddings (reduced to 2D us-
+main project, enabling further analysis tools within        ing UMAP) are presented as colored dots on a map.
+the DATS ecosystem.                                         Here, users can iteratively post-process the clus-
+                                                        413
+                                                             granular sub-clusters, and the original cluster is
+                                                             removed.
+                                                                Additionally, we propose fine-tuning the model
+                                                             to further align the document representations with
+                                                             user intent. It is inspired by the findings of Thiel-
+                                                             mann et al. (2024). They demonstrated that with
+                                                             few (1-5) labeled documents per class, significant
+                                                             improvements in topic coherence can be achieved.
+                                                             Perspectives operationalizes this by allowing users
+                                                             to accept cluster assignments. These labeled ex-
+                                                             amples are used to create a contrastive dataset to
+                                                             fine-tune the embedding model with the SetFit3
+                                                             library. This adjusts the embedding space, pulling
+                                                             similar documents closer and pushing dissimilar
+                                                             ones apart (details are explained in Section 5.4 and
+                                                             Appendix Section A.2). After fine-tuning, the en-
+                                                             tire dataset is re-embedded and re-clustered, result-
+                                                             ing in an updated map that reflects the improved
+                                                             cluster structure.
+                                                                HDBSCAN inherently identifies outlier docu-
+Figure 2: The proposed interactive clustering pipeline.
+The initial clustering process is guided by providing        ments, visualized as distinctively colored (small,
+rewriting and embedding instructions (green) to focus        grey) points on the map. They are considered dur-
+the document representations on user-defined aspects.        ing refinement operations. For instance, when a
+The established core pipeline (orange) identifies clusters   new cluster is added, outliers can be assigned to it
+and builds various textual representations. Users can        if their similarity is sufficient.
+post-process the clustering (blue) through refinement
+operations (grey), triggering some steps of the pipeline.    5       Evaluation
+                                                             We evaluate the effectiveness of our additions to
+tering with several HITL refinement capabilities
+                                                             the established clustering pipeline, which aims to
+(blue; grey arrows). Whenever clusters are ma-
+                                                             be steerable towards certain aspects. We analyze
+nipulated (i.e., documents are added or removed),
+                                                             initial guidance through (1) document rewrites and
+their representations (keywords, name, description,
+                                                             (2) instruction-tuned embeddings, as well as our
+centroid, and representative documents) are recom-
+                                                             proposed refinement operation of (3) model fine-
+puted. The refinement operations are:
+                                                             tuning with few labeled data.
+Change Cluster Documents are reassigned to an
+existing cluster or marked as an outlier.                    5.1       KNN Accuracy Metric
+Add Cluster (Documents) Selected documents                   The goal of Perspectives is to assist users in ob-
+form a new cluster.                                          taining a solid document categorization using the
+Add Cluster (Text) Provided name and descrip-                2D document map. While topic modeling inspired
+tion are embedded to define the cluster centroid.            our work, we refer to the extensive evaluation of
+Documents are automatically reassigned if their              Angelov and Inkpen (2024), which demonstrated
+cosine similarity to the new centroid exceeds their          the superiority of clustering-based topic modeling
+similarity to their current cluster’s centroid.              approaches over traditional and neural methods.
+Merge Clusters Two clusters are combined into                Instead, we evaluate KNN accuracy, a standard
+a single new cluster.                                        metric for clustering interfaces. A good visualiza-
+                                                             tion should group documents with the same label
+Remove Cluster The cluster is deleted. Its docu-
+                                                             and yield high classification accuracy within the
+ments’ embeddings are compared to the centroids
+                                                             visualization space (Pham and Le, 2021). A KNN
+of all remaining clusters using cosine similarity and
+                                                             classifier is trained to classify texts based on their
+assigned to the most similar one.
+                                                             2D coordinates, and accuracy is reported. It mim-
+Split Cluster HDBSCAN is applied only to the
+documents within the cluster, yielding a set of more             3
+                                                                     huggingface.co/docs/setfit
+
+                                                         414
+ics user behavior by deriving classes from dense          keyphrases of the original documents (see Ap-
+clusters and can be seen as a proxy for end-to-end        pendix Table 2). Then, we use short instructions to
+evaluation. Note that this metric operates directly       compute task-specific document embeddings (see
+on the two-dimensional embeddings and does not            Appendix Table 3). This results in 6 scenarios:
+account for the HDBSCAN clustering.                       original text (text), summary (summ), keyphrases
+                                                          (keyp), embedded with (+inst), and without in-
+5.2 Datasets                                              structions. Second, we evaluate the impact of
+To evaluate the effectiveness of steering and guid-       fine-tuning the embedding model with few labeled
+ance, we selected various datasets that cover text        examples (2, 4, 8, 16-shot), aiming to align the
+materials (news articles, books, social media, and        embedding space better with validated clusterings.
+songs) and tasks (topic discovery, stance detection,      We use SetFit to tune the embedding model for one
+frame analysis, and bias detection) similar to real-      epoch on increasing amounts of examples sampled
+world research projects conducted by our project          randomly from the training data. The few labeled
+partners who actively use DATS.                           training examples are used to create a contrastive
+   Amazon Product Reviews4 consists of 2,500              dataset with an equal number of positive and nega-
+sampled reviews with 5 star ratings and 15 prod-          tive pairs. Instead of updating all model parameters,
+uct categories. Spotify Songtexts5 comprises 5,000        we train LORA adapters (Hu et al., 2022) with a co-
+sampled song lyrics with 10 genres and 5 emotions.        sine similarity loss to speed up training and reduce
+20 Newsgroups includes 3,600 sampled posts on             hardware requirements. The KNN accuracy met-
+20 topics. GVFC (Liu et al., 2019) contains 1300          ric is computed on document embeddings reduced
+news article summaries with 9 frames. Blurbs (Re-         to two dimensions with UMAP. Few-shot experi-
+mus et al., 2019) consists of 1,200 sampled German        ments are repeated 10 times with different training
+book blurbs with 8 main genres. Israel-Palestine          sets. The results are averaged across runs to miti-
+(Ali et al., 2025) comprises 10,000 Reddit com-           gate fluctuations. All experiments were conducted
+ments with 3 stances. News Bias6 contains 8,500           on a single A100 GPU (80GB). All parameters,
+sampled news articles with 3 political biases. For        prompts, and training details are explained in Ap-
+detailed descriptions, see Appendix Section A.1.          pendix A.2. The code to reproduce the results is
+                                                          available7 .
+5.3 Models
+                                                          5.5       Results
+For evaluation, we exclusively use open-licensed
+models that run locally. This approach ensures            Table 1 presents our evaluation results (see Ap-
+data privacy for our primary users (academic              pendix Figure 3 for a detailed breakdown. Con-
+researchers) handling sensitive information. It           sistent with previous work, we observe that em-
+also ensures the system is deployable in resource-        beddings generated with instructions (+inst) out-
+constrained environments, accommodating users             perform those without in 8 out of 9 datasets we
+with limited computing resources. We use Gemma            evaluated. More interestingly, we observe that doc-
+3 (27B-instruct) (GemmaTeam, 2025) for LLM-               ument rewrites (keyphrases or summaries) prove
+driven document rewriting and multilingual-e5-            beneficial in 6 out of 9 datasets: For example, sum-
+large-instruct (500M) (Wang et al., 2024) for the         mary+inst improves product categorization accu-
+instruction-tuned embedding model, selected due           racy by 24.46 points, stance detection by 17.55
+to its strong performance on the MTEB benchmark           points, and bias detection by 5.33 points. For all
+(Muennighoff et al., 2023). Further model details         other aspects, text+inst yields the best performance.
+are provided in Appendix A.3.                             Table 1 also highlights our best-performing few-
+                                                          shot results. These scores were achieved using the
+5.4 Experiment Setup                                      best-performing zero-shot configurations, for exam-
+                                                          ple summary+inst for product, frames, stance, and
+First, we evaluate the impact of document rewriting
+                                                          bias, keyphrases+inst for genre, and keyphrases for
+and task-specific embeddings. We use straight-
+                                                          blurbs. While fine-tuning the embedding model
+forward prompts to generate summaries and
+                                                          with a few labeled examples consistently improved
+   4
+     kaggle.com/datasets/mexwell/amazon-reviews-multi     KNN accuracy, the gains were generally minor,
+   5
+     kaggle.com/datasets/devdope/900k-spotify
+   6                                                          7
+     kaggle.com/datasets/articoder/news-bias-dataset              https://github.com/uhh-lt/perspectives
+
+                                                        415
+                          emotion      genre   product   stars        topic        frames     blurbs    stance     bias
+         text             45.10        27.20   36.72     47.54        71.17        59.78      73.84     51.19      47.20
+         +inst            50.60        27.50   55.76     58.86        71.24        65.00      73.25     48.21      48.51
+         keyphrases       49.15        34.85   54.64     46.34        65.70        60.34      76.73     61.63      50.76
+         +inst            49.51        34.90   60.64     49.68        65.40        58.31      76.66     63.14      50.69
+         summary          47.69        32.59   48.16     52.14        60.62        64.34      76.46     62.47      48.41
+         +inst            48.04        32.64   61.18     54.02        61.91        65.91      74.80     68.74      52.53
+         2-shot           50.70        36.63   62.98     59.71        71.36        65.10      76.79     70.17      52.72
+         4-shot           50.92        36.60   63.54     60.24        71.49        65.59      76.74     70.56      53.03
+         8-shot           51.64        36.66   63.62     60.09        71.58        66.92      76.92     71.06      53.09
+         16-shot          52.07        37.02   64.04     61.27        72.15        67.27      77.85     71.51      54.09
+
+Table 1: Evaluation of document rewriting, instruction-based embeddings, and few-shot fine-tuning. Top: unsuper-
+vised (zero-shot) results. Bottom: few-shot results using the best configuration (e.g, text+inst for emotion & topic).
+
+
+in the range of 2-3 points, when compared to the                 and document rewriting) by combining vLLM and
+zero-shot setting. Thielmann et al. (2024), using                LiteLLM12 . This setup leverages batch processing,
+1-5 labeled examples per class, observed more sig-               streaming, and prefix caching for rapid inference.
+nificant improvements in topic coherence. Still,                 While the initial, optional document rewriting pro-
+our results suggest that incorporating more labeled              cess may incur some latency depending on corpus
+examples could further enhance performance.                      size, it is an acceptable, one-time operation. Subse-
+   Our findings guided the implementation of Per-                quent refinement operations are significantly faster,
+spectives: Task-specific instructions are mandatory              as their processing time scales with the number of
+for creating a perspective, as they consistently yield           clusters. Furthermore, the embedding model fine-
+superior performance. The impact of document                     tuning is also quick, requiring only one training
+rewrites proved to be dataset-dependent. Therefore,              epoch on a small set of labeled examples.
+providing a document-rewriting prompt is optional                   Using modern libraries such as Sentence Trans-
+but recommended. To streamline the user experi-                  formers and vLLM, switching models is straight-
+ence, we integrated templates for common tasks,                  forward. This ensures that DATS stays up to date
+such as emotion, sentiment, and topic clustering.                with recent advances in NLP and provides users
+                                                                 with state-of-the-art models.
+6       Tool Suite Integration
+                                                                 7        Conclusion
+The Perspectives frontend is built with React, uses
+Plotly.js8 for efficient, interactive scatter plots, and         This paper introduced Perspectives13 , an interac-
+MUI9 for all other material design components.                   tive extension to the open-source DATS platform
+A FastAPI10 (Python) backend provides the func-                  designed to help DH scholars explore and organize
+tionalities through the asynchronous task manager                large document collections. We demonstrated an
+RQ11 . We implement GPU-powered RQ workers,                      aspect-focused clustering pipeline that leverages
+which ensure UI responsiveness during intensive                  LLM-based document rewriting and instruction-
+computations, such as embedding, clustering, and                 steered embeddings. Central to Perspectives is
+model fine-tuning. We integrate our proposed clus-               HITL refinement, providing a suite of operations
+tering pipeline into DATS using the same parame-                 to manipulate clusters and fine-tune the embed-
+ters as in our experiments.                                      ding model with minimal input. This iterative ap-
+   Fast response times are critical for interactive              proach, visualized on an interactive 2D map and
+systems. We achieve high performance for our                     supported by a dashboard, empowers users to cre-
+LLM-driven functionalities (like name generation                 ate meaningful categorizations. By integrating
+                                                                 these capabilities, Perspectives provides a pow-
+    8
+    9
+       https://plotly.com/                                       erful yet accessible tool that enables domain ex-
+       https://mui.com/
+    10                                                               12
+       https://fastapi.tiangolo.com/                                      www.litellm.ai, docs.vllm.ai
+    11                                                               13
+       https://python-rq.org/                                             Demo: https://dats.ltdemos.informatik.uni-hamburg.de/
+
+                                                          416
+perts to leverage their knowledge effectively. It         Dimo Angelov and Diana Inkpen. 2024. Topic Mod-
+transforms document clustering into a collabora-            eling: Contextual Token Embeddings Are All You
+                                                            Need. In Findings of the Association for Compu-
+tive sense-making activity, prepares data for further
+                                                            tational Linguistics: EMNLP 2024, pages 13528–
+analysis within DATS, and provides a valuable tool          13539, Miami, FL, USA. ACL.
+for user-centered DH research. Future work will ex-
+pand the UI’s functionality, extend the scope of the      Sugato Basu, Arindam Banerjee, and Raymond J.
+extension to include multimodal data (images), and          Mooney. 2002. Semi-supervised Clustering by Seed-
+                                                            ing. In Proceedings of the Nineteenth International
+incorporate more labeled examples for few-shot              Conference on Machine Learning, page 27–34, San
+scenarios.                                                  Francisco, CA, USA. Morgan Kaufmann Publishers.
+
+Limitations                                               David M. Blei, Andrew Y. Ng, and Michael I. Jordan.
+                                                            2003. Latent dirichlet allocation. The Journal of
+During initial testing of Perspectives with our             Machine Learning Research, 3:993–1022.
+project partners, a challenge in the model fine-
+tuning mechanism was identified: The Refine               Alexis Conneau, Kartikay Khandelwal, Naman Goyal,
+Model operation requires re-embedding and re-               Vishrav Chaudhary, Guillaume Wenzek, Francisco
+                                                            Guzmán, Edouard Grave, Myle Ott, Luke Zettle-
+clustering of the entire dataset, resulting in the loss     moyer, and Veselin Stoyanov. 2020. Unsupervised
+of spatial understanding and disruption of the user’s       Cross-lingual Representation Learning at Scale. In
+mental map as the 2D projection recalculates. To            Proceedings of the 58th Annual Meeting of the Asso-
+mitigate this, we are currently developing a refine-        ciation for Computational Linguistics, pages 8440–
+                                                            8451, Online. ACL.
+ment history component. This feature, presented
+as an interactive timeline at the bottom of the map,      Zheng Fang, Lama Alqazlan, Du Liu, Yulan He, and
+stores and allows navigation between all previous           Rob Procter. 2023. A User-Centered, Interactive,
+map states (e.g., pre- and post-refinement views).          Human-in-the-Loop Topic Modelling System. In
+We animate the transition between any two states,           Proceedings of the 17th Conference of the European
+                                                            Chapter of the Association for Computational Lin-
+which helps users reconstruct their spatial under-          guistics, pages 505–522, Dubrovnik, Croatia. ACL.
+standing of the data. This feature also addresses
+a request from project partners, allowing them to         GemmaTeam. 2025. Gemma 3 Technical Report.
+revert undesirable refinement operations.
+   Our experimental evaluation focused on a single        Maarten Grootendorst. 2022. BERTopic: Neural topic
+                                                           modeling with c-TF-IDF.
+LLM for document rewriting and a single embed-
+ding model. Different choices of LLMs or em-              Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan
+bedding models could yield varying performance              Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and
+outcomes. Furthermore, the few-shot training ap-            Weizhu Chen. 2022. LoRA: Low-Rank Adaptation
+proach is sensitive to the selection of training sam-       of Large Language Models. In International Confer-
+                                                            ence on Learning Representations, Online.
+ples. To mitigate this high dependency, we con-
+ducted 10 runs with different sampled training sets.      Jagadeesh Jagarlamudi, Hal Daumé III, and Raghaven-
+However, an optimal combination of training ex-              dra Udupa. 2012. Incorporating Lexical Priors into
+amples may not have been discovered. Our ex-                Topic Models. In Proceedings of the 13th Confer-
+                                                             ence of the European Chapter of the Association for
+periments also did not involve extensive prompt             Computational Linguistics, pages 204–213, Avignon,
+engineering for document rewriting, as we limited            France. ACL.
+the prompts to summarization and keyphrase gen-
+eration. Exploring other prompts could potentially        Quoc Le and Tomas Mikolov. 2014. Distributed rep-
+lead to further improvements.                               resentations of sentences and documents. In Pro-
+                                                            ceedings of the 31st International Conference on In-
+                                                            ternational Conference on Machine Learning, page
+                                                            1188–1196, Beijing, China. JMLR.org.
+References
+Hasin Jawad Ali, Ajwad Abrar, S. M. Hozaifa Hossain,      Siyi Liu, Lei Guo, Kate Mays, Margrit Betke, and
+  and M. Firoz Mridha. 2025. Social media polariza-         Derry Tanti Wijaya. 2019. Detecting Frames in News
+  tion during conflict: Insights from an ideological        Headlines and Its Application to Analyzing News
+  stance dataset on Israel-Palestine Reddit comments.       Framing Trends Surrounding U.S. Gun Violence. In
+                                                            Proceedings of the 23rd Conference on Computa-
+Dimo Angelov. 2020. Top2Vec: Distributed Represen-          tional Natural Language Learning (CoNLL), pages
+  tations of Topics.                                        504–514, Hong Kong, China. ACL.
+                                                      417
+Niklas Muennighoff, Nouamane Tazi, Loic Magne, and         for sentiment). We use English split and consider
+  Nils Reimers. 2023. MTEB: Massive Text Embed-            reviews of the 15 most frequent categories. We
+  ding Benchmark. In Proceedings of the 17th Con-
+                                                           sample 500 reviews per star for testing.
+  ference of the European Chapter of the Association
+  for Computational Linguistics, pages 2014–2037,          Spotify Songtexts Song lyrics categorized by
+  Dubrovnik, Croatia. ACL.                                 emotion and genre. We consider the top 10 gen-
+Dang Pham and Tuan M. V. Le. 2021. Neural Topic            res and top 5 emotions for English song texts. We
+  Models for Hierarchical Topic Detection and Visual-      sample 500 song texts per genre for testing.
+  ization. In Machine Learning and Knowledge Dis-
+  covery in Databases. Research Track, pages 35–51,        20 Newsgroups A topic modeling dataset com-
+  Cham. Springer International Publishing.                 prising 18000 newsgroups posts on 20 topics. We
+Steffen Remus, Rami Aly, and Chris Biemann. 2019.          use 20% of the articles for testing.
+   GermEval 2019 Task 1: Hierarchical Classification       GVFC The Gun Violence Frame Corpus com-
+   of Blurbs. In Proceedings of the 15th Conference on
+                                                           prises news article headlines, annotated into 9 dif-
+  Natural Language Processing (KONVENS 2019), Er-
+   langen, Germany. German Society for Computational       ferent frames. We use an extension, which includes
+   Linguistics & Language Technology.                      three-sentence summaries of 1300 articles.
+Arik Reuter, Anton Thielmann, Christoph Weisser, Se-       German Blurbs This dataset consists of 20k
+  bastian Fischer, and Benjamin Säfken. 2024. GP-          blurbs categorized into 8 main genres, each with
+  Topic: Dynamic and Interactive Topic Representa-         its own fine-grained sub-genres. We sample 1200
+  tions.
+                                                           blurbs for testing. We consider the main genre.
+Kyle Seelman, Mozhi Zhang, and Jordan Boyd-Graber.
+  2024. Labeled Interactive Topic Models.                  Israel-Palestine A stance detection dataset of
+                                                           10k Reddit comments related to the Israel-Palestine
+Hongjin Su, Weijia Shi, Jungo Kasai, Yizhong Wang,         conflict, categorized as Israel, Palestine, Neutral.
+  Yushi Hu, Mari Ostendorf, Wen-tau Yih, Noah A.
+  Smith, Luke Zettlemoyer, and Tao Yu. 2023. One           News Bias A dataset 8.5k news events retrieved
+  Embedder, Any Task: Instruction-Finetuned Text Em-       from AllSides. It provides three views (left, cen-
+  beddings. In Findings of the Association for Com-
+                                                           ter, right) for each news event. We sample 10k
+  putational Linguistics, pages 1102–1121, Toronto,
+  Canada. ACL.                                             documents from the top 8 topics for testing.
+Anton F. Thielmann, Christoph Weisser, and Benjamin        A.2   Experiment Parameters & Libraries
+  Säfken. 2024. Human in the Loop: How to Effec-
+  tively Create Coherent Topics by Manually Labeling       Document Modification We use the instruction-
+  Only a Few Documents per Class. In Proceedings of        tuned Gemma 3 (27B) model. The vLLM and
+  the 2024 Joint International Conference on Compu-
+  tational Linguistics, Language Resources and Eval-       LiteLLM libraries handle this process for batch in-
+  uation, pages 8395–8405, Torino, Italia. ELRA and        ference, with the max tokens to generate parameter
+  ICCL.                                                    set to 2048; other sampling parameters, such as
+Vijay Viswanathan, Kiril Gashteovski, Kiril Gash-          temperature and top p, remain at their default val-
+  teovski, Carolin Lawrence, Tongshuang Wu, and            ues. Prompts used for document modification are
+  Graham Neubig. 2024. Large Language Models En-           listed in Table 3.
+  able Few-Shot Clustering. Transactions of the Asso-
+  ciation for Computational Linguistics, 12:321–333.       Document Embedding We use the Sentence
+  Place: Cambridge, MA Publisher: MIT Press.
+                                                           Transformers library with batch size set to 32 and
+Liang Wang, Nan Yang, Xiaolong Huang, Linjun Yang,         normalize embeddings set to true to generate aspect-
+  Rangan Majumder, and Furu Wei. 2024. Multilingual        oriented embeddings with the instruction-tuned
+  E5 Text Embeddings.
+                                                           multilingual-e5-large-instruct (500M) embedding
+Xiaobao Wu, Thong Nguyen, and Anh Tuan Luu. 2024.          model. Instructions used for document embedding
+  A survey on neural topic models: methods, applica-       are listed in Table 2
+  tions, and challenges. Artificial Intelligence Review,
+  57(2):18.                                                Dimensionality Reduction A GPU-accelerated
+A    Appendix                                              variant of UMAP from the cuML library reduces
+                                                           the dimensionality of resulting embeddings. The
+A.1 Dataset Details                                        distance metric is cosine similarity, N neighbors
+Amazon Product Reviews Customer reviews or-                is 15, and min distance is 0.0. For evaluation, N
+ganized by product category and star rating (proxy         components is 2. For production, it is 128.
+                                                       418
+KNN Accuracy Metric The k-nearest neighbors             A.3   Model Details
+accuracy metric is computed using the sklearn li-       We utilized two primary models for the evaluation:
+brary via 5-fold cross-validation, with the reported
+accuracies averaged across folds.                       Gemma 3 (27B-instruct) for Document Rewrit-
+                                                        ing This is a lightweight, instruction-tuned LLM
+Density-based Clustering We use HDBSCAN                 from Google. It was trained on 14T tokens, fea-
+for density-based clustering. The min samples is        tures a large 128k context window, and supports
+set to 40, distance metric is set to euclidean.         over 140 languages.
+Cluster Representation c-TF-IDF extracts 50             multilingual-e5-large-instruct (500M) for Doc-
+keywords, Gemma 3 generates title & description         ument Embedding This instruction-tuned em-
+using constrained generation to ease parsing.           bedding model was selected as one of the best-
+Interactive Refinement The split operation uses         performing models on the clustering subtask of the
+the same HDBSCAN parameters, other operations           MTEB benchmark (Muennighoff et al., 2023). It
+have no parameters.                                     uses mean pooling as its pooling strategy. It is ini-
+                                                        tialized from XLM Roberta (Conneau et al., 2020),
+Model Fine-tuning We use the SetFit library to          continually trained on a mixture of multilingual
+fine-tune the embedding model in two stages.            datasets, and supports 100 languages.
+   For the first stage (one epoch), ten distinct few-
+shot training sets are created per dataset and shot
+count (2, 4, 8, 16) by randomly sampling num shots
+examples per class. They are constructed as con-
+trastive datasets of document pairs, where a pair is
+deemed positive if both belong to the same class
+and negative otherwise. Positive pairs are oversam-
+pled to balance the dataset, which enables substan-
+tial training even with limited labeled samples. We
+use rank-stabilized LoRA adapters with a rank of
+24, an alpha of 8, and a dropout of 0.1, drastically
+reducing the number of trainable parameters. The
+training objective is to minimize cosine similarity
+loss.
+   The second stage (16 epochs) involves training
+a differentiable classification head on the updated
+embedding model. We set the end-to-end training
+parameter to true to further train the embedding
+model. Since our focus is solely on the document
+embeddings, the classification head is discarded
+after training.
+
+
+
+
+                                                    419
+Dataset    Instruction
+emotion    Identify the main emotion expressed in the given (summary of a | keyphrases of a) song text
+genre      Identify the main genre of the given (summary of a | keyphrases of a) song text
+stars      Identify the sentiment of the given (summary of an | keyphrases of an) Amazon review
+product    Identify the category of an Amazon product based on the review (summary | keyphrases)
+topic      Identify the topic or theme of the given (summary of a | keyphrases of a) news article
+frame      Identify the framing of the given (summary of a | keyphrases of a) news article
+blurb      Identifiziere das Genre, dass durch die (Zusammenfassung | Schlüsselbegriffe) des
+           Klappentextes beschrieben wird.
+stance     Identify the stance towards the Israel-Palestine conflict of the given (summary | keyphrases)
+           of a news article
+bias       Identify the political leaning of the given (summary of a | keyphrases of a) news article
+
+Table 2: Instructions provided to the embedding model. We adopted them to resemble those of the original authors.
+
+
+
+
+                                                      420
+Figure 3: Detailed evaluation with increasing number of labeled examples per class.
+
+
+
+
+                                       421
+Dataset                Prompt
+emotion-summary        Write a concise summary (maximum 5 sentences) that focuses on the emotional
+                       tone of the following song lyrics. Analyze the lyrics to determine the main
+                       emotion being conveyed and describe how it is expressed.
+                       Conclude with an emotion categorization:
+emotion-keyphrases     Generate keyphrases (max 5 phrases) that describe the emotional tone of
+                       the following song lyrics. Focus on phrases that reflect the emotional tone,
+                       mood, or feelings expressed in the lyrics.
+genre-summary          Write a concise summary (maximum 5 sentences) that focuses on the genre of
+                       the following song lyrics. Analyze the lyrics to determine the musical genre,
+                       referencing stylistic elements, themes, or influences.
+                       Conclude with a genre categorization:
+genre-keyphrases       Generate keyphrases (max 5 phrases) that describe the musical genre of
+                       the following song lyrics. Focus on phrases that reflect the genre’s
+                       characteristics, style, or influences.
+stars-summary          Write a concise summary (maximum 5 sentences) that focuses on the sentiment
+                       of the following Amazon review. Analyze the review to determine the main
+                       sentiment being conveyed and describe how it is expressed.
+                       Conclude with a sentiment categorization:
+stars-keyphrases       Generate keyphrases (max 5 phrases) that describe the sentiment of the
+                       following Amazon review. Focus on phrases that reflect the sentiment, mood,
+                       or feelings expressed in the review.
+product-summary        Write a concise summary (maximum 5 sentences) that focuses on the product
+                       categorization of the following Amazon review. Analyze the review to
+                       determine the discussed product’s categorization, referencing its features,
+                       type, or purpose. Conclude with a categorization:
+product-keyphrases     Generate keyphrases (max 5 phrases) that describe the product of the following
+                       Amazon review. Focus on phrases that reflect the product’s type or category.
+topic-summary          Write a concise summary (maximum 5 sentences) that focuses on the topic or
+                       theme of the following news article. Analyze the article to determine the main
+                       topic or theme being discussed. Conclude with a topic categorization:
+topic-keyphrases       Generate keyphrases (max 5 phrases) that describe the topic of the following
+                       news article. Focus on phrases that reflect the main topic being discussed.
+blurbs-summary         Schreibe eine prägnante Zusammenfassung (maximal 5 Sätze), die sich auf das
+                       Genre des folgenden Klappentextes konzentriert. Analysiere den Text, um das
+                       Genre zu bestimmen. Schließe mit einer allgemeinen Genre-Kategorisierung ab.
+blurbs-keyphrases      Generiere Schlüsselbegriffe (max 5 Begriffe), die das Genre des folgenden
+                       Klappentextes beschreiben. Fokusiere dich auf Begriffe, die das allgemeine
+                       Genre widerspiegeln.
+stance-summary         Write a concise summary (maximum 5 sentences) that focuses on the stance
+                       of the following Reddit post. Analyze the post to determine whether it is
+                       Pro-Israel, Pro-Palestine, or Neutral. Conclude with a stance categorization:
+stance-keyphrases      Generate keyphrases (max 5 phrases) that describe the stance of the
+                       following Reddit post. Focus on phrases that reflect the stance being discussed.
+bias-summary           Write a concise summary (maximum 5 sentences) that focuses on the political
+                       leaning of the following news article. Analyze the article to determine the main
+                       political framing. Conclude with a political categorization:
+bias-keyphrases        Generate keyphrases (max 5 phrases) that describe the political leaning of
+                       the following news article. Focus on phrases that reflect the political framing.
+
+   Table 3: Prompts used to rewrite the original documents. We use the same prompts for topics and frames.
+
+                                                    422
+

@@ -1,0 +1,733 @@
+                                             Self-reflection in Automated Qualitative Coding: Improving Text Annotation
+                                                                   through Secondary LLM Critique
+                                                             Zackary Okun Dunivin1 , Mobina Noori2 , Seth Frey2 , Curtis Atkinson3
+                                                              1                              2
+                                                                  University of Stuttgart      University of California Davis 3 University of Washington
+                                                                                            zackary.dunivin@sowi.uni-stuttgart.de
+
+                                                                                                     January 16, 2026
+
+                                                                      Abstract                                   coding workflows, particularly when they are treated as
+
+
+
+
+arXiv:2601.09905v1 [cs.SE] 14 Jan 2026
+                                                                                                                 natural-language interlocutors within an iterative coding
+                                           Large language models (LLMs) allow for sophisticated qual-
+                                           itative coding of large datasets, but zero-/few-shot classi-          process. At the same time, method papers and practice
+                                           fiers can produce an intolerable number of errors, even with          guides now offer concrete recommendations for prompt
+                                           careful, validated prompting. We present a simple, generaliz-         structure, model selection, and validation protocols, posi-
+                                           able two-stage workflow: an LLM applies a human-designed,             tioning LLMs as serious candidates for large-scale anno-
+                                           LLM-adapted codebook; a secondary LLM critic performs                 tation in computational social science and beyond (e.g.,
+                                           self-reflection on each positive label by re-reading the source       Törnberg 2024; Ziems et al. 2024).
+                                           text alongside the first model’s rationale and issuing a final           Yet early successes in LLM-assisted coding may ob-
+                                           decision. We evaluate this approach on six qualitative codes
+                                           over 3,000 high-content emails from Apache Software Foun-
+                                                                                                                 scure unresolved problems with reliability. Good test-set
+                                           dation project evaluation discussions. Our human-derived au-          performance does not guarantee reliable labels when mod-
+                                           dit of 360 positive annotations (60 passages by six codes)            els are deployed at scale or on new corpora. Törnberg
+                                           found that the first-line LLM had a false-positive rate of            (2024) characterizes current LLM-based annotation prac-
+                                           8%–54%, despite F1 scores of 0.74–1.00 in testing. Subse-             tice as a methodological “wild west,” emphasizing that even
+                                           quent recoding of all stage-one annotations via a second self-        small changes in prompts or data can produce unstable out-
+                                           reflection stage improved F1 by 0.04–0.25, bringing two es-           puts. Ashwin et al. (2025) show that LLM annotation er-
+                                           pecially poor performing codes up to 0.69 and 0.79 from 0.52          rors may not be random noise: they can be systematically
+                                           and 0.55 respectively. Our manual evaluation identified two           correlated with respondent characteristics, inducing biased
+                                           recurrent error classes: misinterpretation (violations of code        downstream inferences. Ziems et al. (2024) likewise find
+                                           definitions) and meta-discussion (debate about a project eval-
+                                           uation criterion mistaken for its use as a decision justifica-
+                                                                                                                 that overconfident models can corrupt label sets in ways
+                                           tion). Code-specific critic clauses addressing observed failure       that standard ensembling does not fix and explicitly ar-
+                                           modes were especially effective with testing and refinement,          gue for human-in-the-loop controls rather than blind au-
+                                           replicating the codebook-adaption process for LLM interpre-           tomation. Consensus has rapidly formed among methodol-
+                                           tation in stage-one. We explain how favoring recall in first-         ogists that LLMs can advance social science only so long
+                                           line LLM annotation combined with secondary critique deliv-           as they are tightly constrained by human-derived objectives
+                                           ers precision-first, compute-light control. With human guid-          and monitoring: what Sanaei and Rajabzadeh (2025) have
+                                           ance and validation, self-reflection slots into existing LLM-         termed “bounded-autonomy.” Accordingly, existing guides
+                                           assisted annotation pipelines to reduce noise and potentially         (e.g., Than et al. 2025) focus on how to design and vali-
+                                           salvage unusable classifiers.                                         date first-pass annotators of human-led research questions.
+                                                                                                                 Far less attention has been given to what researchers should
+                                                              1      Introduction                                do when a responsibly calibrated automated annotator—
+                                         Large language models (LLMs) have rapidly moved from                    whether formally “good enough” or still below a desired
+                                         speculative tools to practical partners in qualitative coding           threshold—produces too many structured errors for substan-
+                                         and text annotation. Social scientists now have abundant                tive use. This paper addresses that gap by treating post-hoc
+                                         worked examples showing that frontier and near-frontier                 error analysis and subsequent error correction as their own
+                                         models can match or approach expert coders on conceptu-                 stage in the annotation pipeline. We demonstrate how a sec-
+                                         ally rich tasks when prompts and codebooks are carefully                ondary LLM critique step that leverages self-reflection to
+                                         designed and validated. Dunivin (2025) demonstrates how                 re-examine errors from a first-pass annotator and target re-
+                                         adapting human codebooks for machine comprehension—                     curring failure modes, substantially improving the effective
+                                         tightening definitions, adding boundary cases, and using                quality of labels.
+                                         structured, rationale-eliciting prompts—can yield human-                   We characterize this secondary LLM critic as a narrow
+                                         equivalent performance in across a complex set of socio-                form of self-reflection. Instead of treating the first-pass code
+                                         historical codes. Than et al. 2025 similarly show that gen-             assignment as final, we ask a second model call to re-
+                                         erative LLMs can replicate and augment traditional hand-                examine the original passage and the first model’s rationale,
+and then either confirm or overturn the label according to
+a small set of known failure modes. The model reflects on a              ASF emails
+prior model decision: it inspects how that decision was justi-            N=3,149
+fied and checks whether it satisfies stricter criteria. Whereas
+self-reflection typically refers to an open-ended process of
+iterative refinement, we put a human in the loop: the model                                            Eval Phase 1
+evaluates the initial annotation against researcher-defined                                            Enriched gold standard
+                                                                   Stage-one: Annotator
+semantic constraints informed by empirical error analysis                                              N = 120
+                                                                      Label + rationale
+and research goals. Note also that we distinguish LLM self-                                            Prompt development
+reflection from the broader hermeneutic reflexivity of the re-                                         S1 validation
+searcher; here, “reflection” refers to a model task in a cri-
+tique stage of the annotation pipeline.                            S1 predicted positives
+   Self-reflection is one of several promising pathways to                                             Eval Phase 2
+                                                                                                       S1 predicted positives
+understanding and improving artificial intelligence capabil-
+                                                                                                       N = 60 per code = 360
+ities. “Self-Refine” (Madaan et al. 2023) and related ap-                                              Error taxonomy
+proaches show that models can improve their own outputs              Stage-two: Critic
+                                                                    S1 labels + rationales             Prompt development
+by generating feedback and then revising their responses in                                            S2 validation
+an iterative feedback-refine loop. “Reflexion” (Shinn et al.           Veto / confirm
+2023) and subsequent multi-agent systems extend this idea
+to agentic settings, where language agents verbally reflect on                                         Eval Phase 3
+failures, store those reflections in memory, and use them to            Final labels                   Natural gold standard
+make better decisions in future episodes. Renze and Güven              (S2 outputs)                   N = 150
+(2024) demonstrate that instructing LLM agents to reflect on                                           Compare S1 to S2
+incorrect answers and generate guidance for themselves sig-
+nificantly improves multiple-choice problem-solving perfor-       Figure 1: Two-stage annotation pipeline with three evalua-
+mance. Other work pushes self-reflection inward: Kirchhof         tion phases. While the pipeline summarizes model execution
+et al. (2025) ask whether models can express their internal       on the corpus, the evaluation phases document the human-
+answer distributions in natural language, while Anthropic’s       guided process of prompt development, error analysis, and
+introspection studies (Lindsey 2025) probe whether mod-           validation that makes the workflow reliable in practice.
+els can report aspects of their own internal states. Finally,
+safety-oriented work suggests self-reflection can approach
+normative standards of conduct by having models critique
+                                                                  ology, our case study, and data. We developed this approach
+and filter their own outputs (Liu et al. 2024). Across these
+                                                                  while annotating email messages for six classes of justifica-
+lines, self-reflection entails a model generating commentary
+                                                                  tions in an in situ group decision-making scenario: project
+on its own behavior and then using that commentary to re-
+                                                                  evaluation by members of the Apache Software Foundation
+fine answers, calibrate confidence, or enforce constraints.
+                                                                  (ASF). We proceed to describing a post-hoc analysis of the
+   We advance the literature on LLM-assisted qualitative          LLM-annotations that produces a two-part error taxonomy.
+coding by incorporating targeted self-reflection into quali-      Most importantly, we provide and analyze the components
+tative coding, where “correctness” is determined by human-        of a working prompt for secondary LLM critique. The Re-
+derived codebooks, small gold-standard datasets, and man-         sults section then demonstrates evidence that this prompt-
+ual error analyses. In our case study, the first-pass annotator   ing strategy greatly improves annotations for four deficient
+achieves respectable test-set F1 yet systematically produces      codes. Finally, the discussion explores the role of error anal-
+intolerably many false positives when run on the full data.       yses in LLM-assisted coding and explains how to design a
+Rather than train a new model or abandon automation, we           precision-first pipeline with the express intention of relying
+design a secondary prompt that directs a critic model to per-     on LLM-critique for maximal performance.
+form a targeted self-reflection. The LLM critic reads the text
+and the first model’s rationale, checks for two recurring er-
+ror types (misinterpretation and meta-discussion), and ve-                             2     Methodology
+toes the label when all rationales are erroneous. Critically,     Our study proposes a two-stage annotation workflow. In
+LLM self-reflection is guided by a human-derived prompt,          stage-one, an LLM applies a per-code prompt derived from
+informed by manual error analysis, that orients the model to      an LLM-adapted qualitative codebook, producing a binary
+correct specific errors identified by human researchers. Be-      label and a brief rationale for each passage. In stage-two,
+cause this critic operates only on positives, it is compute-      a separate LLM call critiques only the stage-one predicted
+efficient; because it is keyed to researcher-defined error        positives. The critic model re-reads the original passage
+modes, it brings the model’s self-reflection in line with the     alongside the stage-one rationale and either confirms the
+intended meaning of each code. The result is a boundedly-         label or vetoes it according to a compact decision policy
+autonomous self-reflection that substantially improves the        keyed to observed failure modes. Figure 1 summarizes the
+effective quality of LLM-assisted annotations in our corpus.      full workflow and how it connects to our evaluation design.
+   This paper begins by giving an overview of the method-            We validate and evaluate this two-stage workflow across
+                    Code                                                    Description
+
+           Community Vitality          Health and activity of the project’s developer and user community
+           Corporate Involvement       For-profit company support for a project
+           Cultural Alignment          Alignment with ASF’s collaborative and open-source principles
+           Policy Compliance           Adherence to Apache policies and procedures.
+           Mentor Engagement           Impact and involvement of project mentors
+           Technical and Market        Project’s technological significance and appeal to potential users or contributors
+
+                              Table 1: Categories and descriptions for six original substantive codes.
+
+
+three evaluation phases. In Evaluation Phase 1 an enriched            2.2     Error analysis: developing a classification
+gold-standard set used to confirm that stage-one prompting                    schema for false positives
+yields reasonable agreement with expert coding under con-             LLM-assisted coding produced higher positive rates for sev-
+trolled conditions; detailed per-code metrics are reported in         eral codes than predicted by our gold standard, underscor-
+appendix Table A1. Evaluation Phase 2 audits stage-one pre-           ing the need for post-hoc quality checks even when test-set
+dicted positives sampled from the full corpus (60 per code)           agreement is high. To diagnose where the first-pass model
+to (i) characterize recurrent errors and (ii) evaluate the critic     fails, one author audited a random sample of 60 stage-one
+in the same decision regime it faces in deployment: distin-           positive passages per code drawn from the full pool of posi-
+guishing valid from invalid items within the pool of stage-           tives. For each passage, the rater rendered a human validity
+one positives. In Evaluation Phase 3 a natural gold-standard          judgment (does the passage satisfy the code definition?) and
+set used to assess end-to-end performance after secondary             assigned an error class when invalid.
+critique under empirical base rates; because some codes
+                                                                         During the error analysis, the human rater read the stage-
+are rare in a purely random sample, we report prevalence-
+                                                                      one rationale. To preserve the integrity of the gold-standard
+corrected estimates that augments the gold standard with au-
+                                                                      validity labels, adjudication followed a basis-of-judgment
+dited predicted-positive cases.
+                                                                      rule: labels were determined solely from the passage con-
+   Below we describe the data and codebook, stage-one                 tent against the code definition; rationales were used only
+prompting and corpus-wide annotation, the audit procedure             to locate candidate spans and to classify the error when in-
+and resulting error taxonomy, the critic prompt and its eval-         valid. This approach supports both aims—constructing a ref-
+uation on audited positives, and finally the full pipeline eval-      erence set and developing an error taxonomy—though we
+uation design.                                                        note a residual risk of anchoring toward the model’s fram-
+                                                                      ing (Schroeder, Roy, and Kabbara 2025).
+2.1   Codebook development and first-stage coding                        Multiple rounds of inductive coding yielded two recurrent
+                                                                      error classes:
+We developed six qualitative codes that target how the se-
+nior members of the Apache Software Foundation evaluate                • Meta-discussion: the passage is about a criterion (debat-
+projects success after a probationary period. The codebook               ing its relevance, sufficiency, or meaning) rather than us-
+derives from a thematic analysis of 16 semi-structured in-               ing it as a justification for evaluation. This was especially
+terviews with ASF members, surfacing the criteria used in                common for Policy Compliance (e.g., debating whether
+collective decision-making. Following Dunivin (2025), we                 a requirement is actually codified), where discussion of
+adapted the human codebook for LLM use by (i) tighten-                   rules is frequent.
+ing definitions and scope, and (ii) adding boundary clauses            • Misinterpretation: the model violates the code defi-
+and negative examples to reduce near-misses. Abbreviated                 nition (often ignoring explicit exclusions or boundary
+code descriptions are given by Table 1 with complete code                clauses; e.g., “Do not apply when a mentor’s perspec-
+descriptions in appendix Section A1.                                     tive is merely mentioned unless it evaluates mentorship
+   Two expert coders independently labeled a gold-standard               quality”).
+set of 120 emails drawn from high-content project evalu-
+ation discussions. Disagreements were adjudicated to con-             2.3     Prompting strategy for secondary LLM
+sensus.                                                                       critique
+   We ran separate per-code prompts (3,149×6 API calls,               Our critic prompt has three layers. First, task framing states
+with 3,149 messages and 6 codes). Each prompt asked the               who the critic is and what they’re checking. Second, a de-
+model to issue a label and a brief rationale, which we re-            cision policy gives the error taxonomy, a sufficiency rule,
+tained for use by the stage-two critic. Decoding employed             and common failure modes. Third, an input/output contract
+the following settings: gpt-4o-2024-08-06; temperature                that specifies the inputs (code definition, passage, stage-one
+= 0; top-p = 1.                                                       rationale) and the required analysis plus machine-readable
+       Role You are an expert reviewer tasked with verifying qualitative coding decisions made by anoth-
+ Assignment er AI. Your goal is to identify speciﬁc, common errors based on the information provided.
+
+              **Review Instructions (Apply in Order):**
+  Instruction Carefully examine the Original Passage, the Code Deﬁnition, and the Original Justiﬁcation
+  Orientation provided below. Determine if the Original Coding Decision (which was POSITIVE for the code)
+              suﬀers from any of the following issues:
+
+               1. **Error Type A (Relevance Argument): The Original Justiﬁcation relies on a statement
+               whose primary focus is to debate the *relevance*, *suﬃciency*, or *deﬁnition* of a factor
+               or issue in the context of graduation/retirement, rather than asserting the project status.
+               This often involves correcting perceived misinterpretations (e.g., arguing about what is a
+         Error valid graduation criterion, or what counts as 'good engagement'). This error does NOT apply
+   Definitions if the passage is simply refuting a claim ("No, the license is valid"), agreeing with a
+               stated condition ("Yes, the community is diverse"), or stating an issue is resolved ("Men-
+               tors are now active").
+               2. **Error Type B (Incorrect Code Interpretation):** The Original Justiﬁcation relies on
+               information that is not covered by the code deﬁnition. In particular, pay close attention
+               to exclusion clauses, e.g., "Do not code..." or "Not covered by this code...".
+
+              **Evaluation Task:**
+
+              Based *only* on whether one or more of the Error Types (A, B) above apply to the Original
+              Coding Decision:
+
+               1. If **NONE** of these error types apply, the original coding is considered **Correct**.
+               2. If **ANY** of these error types apply, the original coding **MAY** be considered **Incor-
+  Application rect**.
+Specifications 3. **HOWEVER**, if are multiple reasons to apply the code, and any of them **STAND** after
+               re-evaluation, then the code is **Correct**.
+               3a. **RESTATING BECAUSE IT IS CRITICALLY IMPORTANT** One error shall never negate a strong
+               valid statement of project status that aligns with the Code Deﬁnition.
+               4. **REMEMBER**: Any assertion by an author stating a project's current status either posi-
+               tively or negatively speaks to the substance of the Code Deﬁnition is **suﬃcient**. The
+               author does not need to give supporting evidence for their statement (e.g., "They under-
+               stand the Apache Way," or "The license is not in the correct location.")
+
+              5. In this case, you should be particularly focused on Error Type B; Type A will be fairly
+Code Specific rare.
+    Addenda 6. You should be particularly suspicious when an author asserts their mentor status without
+ (Mentorship) attributing project status to their involvement.
+              7. Note also that mentorship duration does not itself indicate quality or involvement.
+
+      Figure 2: First and second layer of the prompt for secondary LLM critique for the Mentor Engagement code.
+                   **Provide your analysis as follows:**
+
+  Justification **Analysis:**
+                [Brieﬂy explain your reasoning. If Incorrect, state which Error Type(s) (A, B) apply and
+                why. If Correct, brieﬂy explain why the original coding seems valid based on speciﬁc evi-
+                dence.]
+
+                   **Final Decision:**
+                   ```json
+                   {{
+       Results     "OriginalCodingCorrect": [true/false],
+    Formatting     "ErrorType": ["A" or "B" listed if applicable, otherwise empty list]
+                   }}
+
+                   Do not write anything after the Final Decision: JSON block.
+
+                   --- START INPUT DATA ---
+                   Code Deﬁnition: {code_deﬁnition}
+
+     Input Data    Original Passage: {passage}
+
+                   Original Justiﬁcation: {original_justiﬁcation}
+                   --- END INPUT DATA ---
+
+Figure 3: Third layer of the prompt for secondary LLM critique including the chain-of-thought justification, formatting instruc-
+tions, and original passage and annotation for critique.
+
+
+output (JSON). The prompt’s structure and the phrasing              ple plausible instances of a qualitative code; in cases where
+are shown in Figures 2–3. Figure 2 comprises the first and          there is a maximum one instance, simpler logic can be used,
+second layer gives the working definitions for each Error           reducing overall prompt complexity. Finally Clause 4 clar-
+Type A (meta-discussion / “Relevance Argument”) and Er-             ifies that the original speaker need not provide specific ev-
+ror Type B (misinterpretation / “Incorrect Code Interpreta-         idence in support of their justificatory logic (e.g., Cultural
+tion”). Figure 3 gives the third and final layer including ra-      Alignment).
+tionale request, output formatting, and the specific stage-one         For some codes, these general instructions were insuffi-
+fields passed to the critic.                                        cient to catch recurrent failure modes. In two of the four cri-
+   Critique prompting is more complex than first-line anno-         tiqued codes, we added brief Code-Specific Addenda (Fig-
+tation. The critic must assess whether the cited reasoning ac-      ure 2), for example, reminding the critic that mere mention
+tually supports applying the code definition to the passage,        of mentor status does not satisfy Mentor Engagement unless
+and the decision standard differs across stages. In stage-one       it evaluates mentorship quality. These addenda mirror the
+the annotator labels positive if any clause (or combination of      earlier codebook-adaptation process and addressed system-
+clauses) satisfies the definition. In stage-two, the critic over-   atic misinterpretations without increasing prompt complex-
+turns the positive only if no cited justification remains valid     ity.
+after re-evaluation; we call this “the sufficiency rule.”              We used the same model parameters for stage-two as
+                                                                    stage-one: gpt-4o-2024-08-06; temperature = 0;
+   We initially used a decision-tree with rigid slots and
+                                                                    top-p = 1.
+highly structured output, but this brittleness apparently dis-
+tracted the model from the global sufficiency check. We
+therefore simplified the constraints into a compact Appli-          2.4   Full pipeline evaluation design
+cation Specifications block (Figure 2), which states when to        To validate the full two-stage coding workflow under the
+reject the original annotation and classify the error. Clause       conditions in which it is meant to be used, we evaluate per-
+3a explicitly restates the sufficiency rule to reduce over-         formance on a new gold-standard set of 150 passages ran-
+rejection: one error does not negate a strong, valid state-         domly sampled from the final corpus (Evaluation Phase 3).
+ment of project status. We found that without this summary,         This evaluation serves two purposes. First, earlier devel-
+the LLM was inclined to report errors even in cases where           opment sets intentionally increased the density of positive
+some part of the original justification was valid. Even with        cases to support prompt iteration, but such sampling does
+the clause the model did not always observe the sufficiency         not reflect empirical base rates or qualitative content of the
+rule, and sometimes erroneously rejected the original cod-          full corpus. Second, deployment-scale auditing revealed a
+ing. Note that this more sufficiency rule will be necessary         recurring interpretive boundary case—meta-discussion—in
+in cases only in which a passage is likely to contain multi-        which participants debate the meaning, relevance, or suffi-
+                                                            Human                                LLM
+
+                             Code             MD Error       MI Error     Total    MD Error       MI Error     Total
+
+                 Community Vitality               0.05           0.08      0.12        —              —          —
+                 Corporate Involvement            0.07           0.02      0.08        —              —          —
+                 Cultural Alignment               0.12           0.20      0.27       0.15           0.10       0.25
+                 Mentor Engagement                0.07           0.52      0.53       0.02           0.55       0.57
+                 Policy Compliance                0.17           0.10      0.20       0.08           0.03       0.12
+                 Technical and Market             0.03           0.45      0.47       0.00           0.38       0.38
+
+Table 2: Human and LLM critque of false positives after the first round of LLM-coding. N = 60 per code. Meta-discussion
+(MD): Debates the aspects of the theme, but does not speak to project status. Misinterpretation (MI): LLM misinterpreted the
+code description, i.e., the passage does not relate to the theme.
+
+
+ciency of an evaluation criterion rather than invoking it as a             Results are reported across three evaluation phases (see
+justification for project status. Because the analytic signif-          Figure 1). First, we validate stage-one prompting against
+icance of these “use vs. mention” cases became clear only               an enriched gold standard to confirm that the LLM-adapted
+after observing systematic false positives at scale, the Phase          codebook yields reasonable agreement under controlled
+3 gold standard applies a tightened validity rule: a passage            conditions; because these baseline validation results primar-
+is coded positive only when the theme is used to support                ily establish prompt adequacy rather than the paper’s main
+an evaluation-relevant claim about project status, not merely           contribution, detailed per-code metrics are reported in the
+discussed in the abstract.                                              Appendix (Table A1). Second, we audit stage-one predicted
+   A practical complication is that several themes are rare             positives to characterize recurrent error types (Table 2) and
+enough that a purely random evaluation yields too few pre-              to evaluate the critic on the same decision regime it faces in
+dicted positives to support stable estimates of how often               deployment (Table 3). Third, we evaluate end-to-end perfor-
+model-identified positives are substantively valid. We there-           mance after secondary critique on an additional random gold
+fore use a two-part design that preserves empirical base rates          standard (Table 4), using prevalence-corrected estimates that
+while improving the reliability of estimates for the sub-               combine the random sample with audited predicted-positive
+set of cases most consequential for downstream use (pre-                cases.
+dicted positives). Concretely, we (i) use the random sample
+to estimate each theme’s prevalence and each stage’s over-              3.1   Error analysis of stage-one positives and
+all positive rate, and (ii) supplement this with additional au-               stage-two prompt validation
+dited predicted-positive cases drawn from the model’s pos-
+itive set to better estimate the share of predicted positives           We begin with the evaluation phase that motivates and di-
+that meet the tightened validity rule. This corresponds to              rectly tests secondary critique: an audit of stage-one pre-
+a case–control style evaluation in which prevalence is esti-            dicted positives drawn from the full corpus. For each code,
+mated from a naturalistic sample while precision conditional            we sampled 60 passages that stage-one labeled positive and
+on a positive prediction is estimated with greater power                adjudicated whether each passage truly satisfies the code
+from the enriched predicted-positive set (Begg and Greenes              definition. This audit estimates the false-positive rate among
+1983; Rothman, Greenland, and Lash 2008). We then com-                  predicted positives at deployment scale and provides a com-
+bine these quantities to report performance measures that re-           pact error taxonomy for prompt design.
+flect expected behavior under empirical base rates. The re-                Table 2 shows that stage-one over-produced positives for
+construction used to obtain prevalence-consistent confusion             four codes, yielding substantial false-positive rates among
+rates and derived metrics is provided in Appendix A2.                   predicted positives: 0.27 for Cultural Alignment, 0.20 for
+                                                                        Policy Compliance, 0.53 for Mentor Engagement, and 0.47
+                                                                        for Technical and Market. In contrast, Community Vitality
+                         3    Results                                   and Corporate Involvement had comparatively low false-
+We report results for a two-stage annotation pipeline in                positive rates in this audit (0.12 and 0.08), leaving limited
+which a stage-one annotator labels each passage and a stage-            headroom for improvement from positive-only critique. The
+two critic re-examines only stage-one positives. Accord-                audit also clarifies the dominant failure mechanisms. Misin-
+ingly, our results separate (i) stage-two (self-reflective critic)      terpretation errors (violations of the code definition) dom-
+performance on audited predicted positives, where the critic            inate for Mentor Engagement and Technical and Market,
+either confirms or vetoes a positive label, from (ii) full              while meta-discussion (discussion about a criterion rather
+pipeline performance after stage-two critique, evaluated un-            than invocation as a justification) is especially common for
+der empirical prevalence.                                               Policy Compliance. These two error modes account for the
+                                               Detected FP Rate
+
+                            Code               Human      GPT-4o   Cohen’s κ      Precision    Recall      F1
+
+                   Community Vitality            0.12        —         —              —           —        —
+                   Corporate Involvement         0.08        —         —              —           —        —
+                   Cultural Alignment            0.27       0.25      0.69           0.80        0.75     0.77
+                   Mentor Engagement             0.53       0.57      0.60           0.79        0.84     0.82
+                   Policy Compliance             0.20       0.12      0.69           1.00        0.58     0.74
+                   Technical and Market          0.47       0.38      0.70           0.91        0.75     0.82
+
+                           Table 3: Stage-two LLM critique validation (stage-one predicted positives)
+
+
+great majority of invalid positives observed in the audit and      cases (to stabilize precision among positives); the recon-
+motivate the critic’s decision policy.                             struction procedure is described in appendix Section A2.
+   We next evaluate the secondary critic on the same deci-            Table 4 shows that improvements concentrate in the codes
+sion regime it faces in deployment: distinguishing human-          for which stage-one over-inclusion was most damaging.
+valid from human-invalid items within the pool of stage-           Mentor Engagement improves from κ = 0.53 to 0.78
+one positives. In this setting, the critic’s task is naturally     (∆ = +0.26) and from F 1 = 0.55 to 0.79 (∆ = +0.25).
+framed as detecting false positives (human-invalid items),         Technical and Market improves from κ = 0.50 to 0.68
+rather than re-classifying the full corpus. Table 3 reports        (∆ = +0.19) and from F 1 = 0.52 to 0.69 (∆ = +0.18).
+agreement with human adjudication and standard classifi-           More moderate gains occur for Cultural Alignment (∆F 1 =
+cation metrics for this critique-stage decision. Across the        +0.05) and Policy Compliance ( ∆F 1 = +0.04), consis-
+four audited codes targeted for correction, the critic achieves    tent with the critic pruning false positives while occasion-
+moderate agreement (Cohen’s κ = 0.60–0.70; F 1 = 0.74–             ally over-rejecting borderline true positives. Community Vi-
+0.82) while substantially reducing the number of invalid pos-      tality and Corporate Involvement are essentially unchanged,
+itives that would otherwise pass through unchallenged. Per-        as they were not subject to stage-two (predicted positive rate
+formance varies by code in ways that mirror the audit taxon-       remains the same); slight adjustments to performance result
+omy: for Policy Compliance, the critic is highly conservative      from prevalence correction.
+(precision = 1.00) but misses a portion of invalid positives          Shifts in detected-positive rates mirror this pattern. For
+(recall = 0.58), consistent with the difficulty of separating      Cultural Alignment, secondary critique reduces the posi-
+meta-discussion from criterion invocation; for Mentor En-          tive rate from 0.16 to 0.11, bringing within rounding error
+gagement, the critic identifies most invalid positives (recall     of the gold prevalence. Policy Compliance improves sim-
+= 0.84) but sometimes rejects borderline valid cases (preci-       ilarly (0.33→0.30 vs. 0.29). For the rare themes, by con-
+sion = 0.79), reflecting the code’s heavy burden on correct        trast, detected-positive rates in a 150-item sample are nec-
+interpretation of mentor-related claims.                           essarily noisy: a change of 0.0067 corresponds to a single
+   Taken together, this audit-phase evaluation shows (i) that      passage, so the observed shifts (e.g., Mentor Engagement
+stage-one deployment errors are concentrated in a subset of        0.047→0.033; Technical and Market 0.040→0.033) reflect
+codes, (ii) that these errors follow a small number of recur-      changes of only one to two passages and should be read
+rent mechanisms (misinterpretation and meta-discussion),           as directional rather than precisely estimated reductions in
+and (iii) that a critic prompt keyed to these mechanisms           false positives. For these rare codes, the more reliable sig-
+can detect many invalid stage-one positives in the critique        nal comes from the prevalence-corrected agreement metrics,
+regime. We next test whether these critique-stage improve-         which incorporate audited predicted-positive cases to stabi-
+ments translate into end-to-end gains under empirical preva-       lize precision estimates. Overall, across the four codes tar-
+lence on a prevalence-representative sample of the corpus.         geted for correction, secondary critique consistently prunes
+                                                                   stage-one over-inclusion in a way that translates into higher
+3.2   Full pipeline performance after secondary                    deployment-oriented agreement and F1.
+      critique
+We next evaluate the end-to-end effect of secondary cri-                                  4   Discussion
+tique on a prevalence-representative sample of 150 ran-            Our results demonstrate the efficacy of a two-stage,
+domly sampled passages from the final corpus. Because              precision-first pipeline that uses targeted self-reflection to
+some themes are rare in a purely random sample, we re-             improve the reliability of LLM-assisted qualitative coding.
+port prevalence-corrected performance estimates that com-          A first-pass annotator is tuned to be inclusive, paired with a
+bine the random sample (to estimate empirical prevalence           secondary critic that revisits only the positives in light of an
+and detected-positive rates) with audited predicted-positive       empirically derived error taxonomy and code definitions. In
+                                      Detected Positive Rate             Cohen’s κ                      F1
+
+         Theme                       Gold        S1        S2     S1        S2        ∆          S1      S2        ∆
+
+         Community Vitality            0.21      0.25      0.25   0.90      0.89     −0.01       0.92    0.91    −0.01
+         Corporate Involvement         0.09      0.09      0.09   0.93      0.93      0.00       0.94    0.94      0.00
+         Cultural Alignment            0.11      0.16      0.11   0.80      0.87      0.07       0.83    0.88      0.05
+         Mentor Engagement             0.04      0.05      0.03   0.53      0.78      0.26       0.55    0.79      0.25
+         Policy Compliance             0.29      0.33      0.30   0.76      0.82      0.06       0.83    0.87      0.04
+         Technical and Market          0.05      0.04      0.03   0.50      0.68      0.19       0.52    0.69      0.18
+
+Table 4: Classification performance for stage-one (S1) and stage-two (S2) on 150 randomly sampled passages. F1 and Cohen’s
+κ are reconstructed under empirical prevalence using audits of stage-one-identified positives to stabilize precision estimates.
+
+
+our case study, this design substantially reduced false posi-     assisted qualitative coding.
+tives for some of the most difficult codes, while maintaining
+acceptable agreement with human adjudication on a held-           4.1     Designing LLM-annotation strategy for
+out sample. More generally, it shows how familiar practices               compatibility with critique coding
+of iterative codebook refinement, error analysis, and adjudi-
+cation can be translated into a structured, scalable workflow     In many qualitative schemas, especially as codes multiply
+in which LLMs participate in, rather than replace, qualitative    and definitions become more complex, true positives are
+interpretive labor.                                               sparse for any individual code (even if they are not rare at the
+                                                                  passage-level). Under this prevalence regime, false positives
+   We put forward this approach as a way to leverage au-          are relatively dense among stage-one positives, while false
+tomated self-reflection without granting the model open-          negatives are sparse among stage-one negatives. Concen-
+ended autonomy over its own reasoning. Unlike many self-          trating critique on positives therefore finds and fixes more
+reflection or “chain-of-thought” methods, our critic is imple-    errors per item and accelerates both error analysis and gold-
+mented as a separate, tightly constrained model call that is      standard adjudication (cf. He and Garcia 2009; Saito and
+asked to sharpen an existing decision rather than to freely       Rehmsmeier 2015). A key limitation is that this efficiency
+reflect on it. This has two advantages. First, it gives re-       advantage is conditional: when true positives are common
+searchers explicit control over what the model reflects on:       or false negatives are non-trivial, a positive-only critic will
+the critic prompt can be steered to address specific, empir-      systematically miss an important class of errors unless the
+ically observed error modes in LLM interpretation, rather         workflow is extended to audit and critique negatives as well,
+than relying on generic, hidden, or embedded instructions         which we address below in brief.
+to “think step by step.” Second, because the critic oper-            When positives are rare, stage-one should be configured
+ates only on a subset of cases and is asked for short, struc-     for recall, relying on the stage-two critic to deliver preci-
+tured justifications, it is typically less computationally com-   sion. In practice, stage-one should over-include borderline
+plex and produces shorter, more auditable outputs than more       positives; the critic then applies a sufficiency rule and over-
+elaborate self-reflection or reasoning schemes. In this sense,    turns a positive only if no cited justification remains valid
+our pipeline exemplifies a bounded-autonomy, human-in-            under the code definition. This cascaded, precision-at-accept
+the-loop orientation: self-reflection is present, but it is in-   posture parallels selective prediction / “reject-option” work-
+strumented and directed by the research team.                     flows in ML (Geifman and El-Yaniv 2019; Franc, Prusa,
+   At the same time, treating self-reflection in this targeted    and Voracek 2023). As reported in numerous early studies
+way foregrounds its hermeneutic character. The error tax-         of LLM-assisted qualitative coding, prompt design can be
+onomy and critic instructions we develop are not merely           empirically tweaked for more or less inclusive code inter-
+technical fixes, but codified outcomes of iterative and post-     pretations (White et al. 2023; Törnberg 2024).
+hoc engagement with the corpus, in which researchers re-             We can favor recall by (i) avoiding premature exclusions
+consider both their own coding rules and the model’s read-        that suppress borderline cases, (ii) prompting for brief, text-
+ings of specific passages. Disagreements between annota-          tethered rationales so the critic can evaluate sufficiency (this
+tor, critic, and human labels become occasions to renegoti-       also improves precision), and (iii) using reliable verbal or
+ate how codes should be understood in practice, and those         numerical confidence estimates from the model and lower-
+negotiations are then operationalized in the critic prompt. In    ing the threshold (Chirkova et al. 2025; Gligorić et al. 2025).
+the remainder of the discussion, we consider strategies for       The pipeline remains precision-first because the critic cod-
+pipelines that include critique coding, how our error tax-        ing is designed to filter false positives.
+onomy might generalize to other corpora and qualitative              Positive-only critique also saves compute. In our case, the
+schemes, and the broader role of error analysis in LLM-           stage-one positive rate was 15%, so the critic operated on
+15% of passages, an 85% reduction in critique-stage API             dominant failure mechanisms, and introduce targeted sub-
+calls relative to re-scoring the full corpus. This compute ad-      types only for recurrent misinterpretations within a specific
+vantage is not universal: it scales with the observed posi-         code. Particularly slippery codes may warrant multiple nar-
+tive rate, so corpora or codes with higher base rates will see      rowly defined subtypes rather than a single omnibus rule;
+smaller savings.                                                    attempting to catch every edge case at once tends to bloat
+   Some corpora (or codes) have many true positives. Here,          prompts and degrade LLM reliability.
+false negatives become non-trivial, and it is appropriate to
+conduct an error analysis of negative codings. A minimal            4.3   The role of iterative and post-hoc error
+procedure is:                                                             analyses in LLM-assisted qualitative analysis
+1. Sample a small set of stage-one negatives for the code.          Error analysis in LLM-assisted coding extends familiar
+2. Estimate the FN rate on the sample; if it’s appreciable,         qualitative practices around training coders, revising code-
+    prompt for negative critique.                                   books, and adjudicating disagreement into a more explic-
+                                                                    itly dialogic, hermeneutic engagement among researchers,
+3. Run the critic with a flipped sufficiency rule: change neg-
+                                                                    their data, and the model. Classic qualitative texts treat coder
+    ative→positive if any valid justification exists in the pas-
+                                                                    disagreement as an analytic resource: a prompt to surface
+    sage under the code definition (i.e., the stage-one rule,
+                                                                    ambiguities in the codebook, document interpretive deci-
+    not the exclusion logic used to overturn positives).
+                                                                    sions, and sometimes reconsider the research focus itself
+This can be done in conjunction with the process of false-          rather than simply forcing consensus or maximizing a relia-
+positive pruning, or possibly combined into a single prompt,        bility coefficient (e.g., Miles, Huberman, and Saldaña 2020;
+depending on the FP rate and error complexity.                      O’Connor and Joffe 2020; Cofie, Braund, and Dalgarno
+                                                                    2022). Recent work on LLM-assisted qualitative research
+4.2   Developing an error taxonomy                                  similarly frames models as partners in a three-way conver-
+We observed two recurrent error modes in first-pass annota-         sation with data, where model outputs invite renewed read-
+tions: misinterpretation and meta-discussion. This schema           ing and theoretical reflection rather than supplying definitive
+is not exhaustive, but is likely to cover a large set of er-        answers (Dunivin 2025; Hayes 2025). From a hermeneu-
+rors in other datasets. Misinterpretation covers violations of      tic perspective, prompts, model responses, and human judg-
+the code definition, particularly in cases where stated scop-       ments together instantiate a shifting “hermeneutic contract”
+ing conditions were not observed by the model, or defini-           between reader and text (Henrickson and Meroño-Peñuela
+tion drifts following re-evaluation. Meta-discussion captures       2025). In this light, examining discrepancies between hu-
+a different failure: passages that are about a criterion (de-       man and model labels or rationales is not merely a matter
+bating its relevance, sufficiency, or meaning) rather than us-      of correcting model mistakes, but part of an ongoing pro-
+ing it as a justification in the evaluation at hand. These two      cess of renegotiating how coding rules, examples, and task
+modes map onto distinct mechanisms—definition/boundary              instructions encode the meanings that researchers take to be
+drift versus use–mention confusions—and together explain            at stake in the corpus.
+every observed false positive in our corpus. Other corpora             It is useful to distinguish between iterative error analy-
+may surface additional dominant mechanisms (or different            sis during annotator strategy development and post-hoc er-
+mixtures of mechanisms), so the taxonomy should be treated          ror analysis after a model has been deployed at scale. Itera-
+as a starting point that is re-derived through local audit rather   tive error analysis operates on relatively small development
+than assumed to transfer wholesale.                                 sets and plays a role analogous to training and calibrating
+   In practice, a critic focused on misinterpretation often suf-    a team of human coders: researchers inspect disagreements,
+fices to improve first-pass annotations. Because these er-          refine prompts and task instructions, and, critically, decide
+rors reflect systematic frictions between the human code-           whether discrepancies reflect a correctable misunderstand-
+book and the model’s reading, they are amenable to clari-           ing of the existing schema or a deeper misalignment that
+fying edits (tightened exclusions, boundary examples) and           calls for revising the schema itself (rather than merely ad-
+other code-specific addenda that the critic can apply consis-       justing the model to it). This is consistent with long-standing
+tently. Meta-discussion errors are more characteristic of dia-      guidance that codebooks should be treated as living docu-
+logic or deliberative settings, where speakers frequently cite      ments that evolve through cycles of application, discussion,
+criteria only to question their applicability or to set rules of    and refinement, rather than as fixed instruments applied once
+debate. In such contexts, a precision-first critic correctly re-    and for all (Miles, Huberman, and Saldaña 2020; Saldaña
+jects many of these cases; further improvement would likely         2021). Recent work on LLM-assisted coding similarly em-
+follow from dialogic modeling (tracking how an utterance            phasizes iterative adaptation of definitions and prompts so
+responds to prior turns) to distinguish mention from use. We        that the model’s operationalization of a code better approxi-
+see promise here, but the capabilities of current models and        mates the interpretive practice of the research team, rather
+the scientific value of large-scale conversational analyses re-     than treating the original codebook as sacrosanct and the
+main open questions.                                                model as a purely mechanical implementer (e.g., Than et al.
+   Although these two modes have been broadly useful for            2025; Schroeder, Roy, and Kabbara 2025).
+us, other settings should surface different, more or less              Post-hoc error analysis takes place after a first-pass anno-
+widely applicable errors. The practical stance is minimal-          tator has been applied to a large corpus. At this stage, re-
+but-extensible: start with a small taxonomy that captures the       searchers can examine richer samples of model decisions,
+including borderline and contentious cases that are too rare       bias. Sociological Methods & Research, Online first.
+to appear in small calibration sets. In our study, systematic      Begg, C. B.; and Greenes, R. A. 1983. Assessment of diag-
+post-hoc review of stage-one positives revealed that meta-         nostic tests when disease verification is subject to selection
+discussion—instances where participants invoked a theme            bias. Biometrics, 39(1): 207–215.
+only to question its relevance, clarify procedural ground
+rules, or explicitly bracket it—constituted a substantial frac-    Chirkova, N.; Ajayi, T. O.; Aycock, S.; Mujahid, Z. M.;
+tion of the model’s false positives. These cases were sparsely     Perlić, V.; Borisova, E.; and Vartampetian, M. 2025. LLM-
+represented in the development set and initially treated as        as-a-qualitative-judge: Automated interpretive evaluation of
+edge cases, but they proved to be both common and struc-           text generation. arXiv preprint arXiv:2506.09147.
+turally patterned at corpus scale. This prompted us to recog-      Cofie, N.; Braund, H.; and Dalgarno, N. 2022. Eight ways
+nize that our original codebook and gold standard had not          to get a grip on intercoder reliability using qualitative-based
+adequately foregrounded a key requirement: that a theme            measures. Canadian Medical Education Journal, 13(2): 73–
+be invoked in service of making a substantive claim about          76.
+project status. Post-hoc error analysis thus led not only to re-   Dunivin, Z. O. 2025. Scaling hermeneutics: A guide to qual-
+vising the model prompts and critic instructions, but also to      itative coding with LLMs for reflexive content analysis. EPJ
+retroactively tightening the human coding rules and correct-       Data Science, 14(1): 28.
+ing a subset of gold labels. More generally, this illustrates      Franc, V.; Prusa, D.; and Voracek, V. 2023. Optimal strate-
+how error analysis at scale can expose systematic ambigu-          gies for reject option classifiers. Journal of Machine Learn-
+ities in human coding practice that are difficult to detect in     ing Research, 24(11): 1–49.
+the relatively small and sparse samples typical of a test-set.
+   A final benefit of sustained error analysis is that it may      Geifman, Y.; and El-Yaniv, R. 2019. Selectivenet: A deep
+reveal limits of the human “gold standard” as well as of the       neural network with an integrated reject option. In Interna-
+model. In long or dense passages, human coders are sus-            tional Conference on Machine Learning, 2151–2159.
+ceptible to fatigue and selective reading, sometimes missing       Gligorić, K.; Zrnic, T.; Lee, C.; Candes, E.; and Jurafsky, D.
+segments that satisfy a code even when, in hindsight, the ra-      2025. Can unconfident LLM annotations be used for confi-
+tionale for coding is clear. When disagreements between an         dent conclusions? In Proceedings of the 2025 Conference of
+LLM and the gold standard are examined carefully, some             the Nations of the Americas Chapter of the Association for
+will turn out to reflect human oversight rather than model         Computational Linguistics: Human Language Technologies
+misinterpretation or inconsistency. In such cases, it may be       (Volume 1: Long Papers), 3514–3533.
+appropriate to revise the gold labels in light of the model’s      Hayes, A. S. 2025. “Conversing” with qualitative data: En-
+reading, treating the LLM as a consistent but fallible col-        hancing qualitative research through large language models
+laborator rather than a subordinate “assistant” whose output       (LLMs). International Journal of Qualitative Methods, 24:
+is only ever corrected downward. Taken together, iterative         16094069251322346.
+and post-hoc error analyses encourage a more symmetric
+                                                                   He, H.; and Garcia, E. A. 2009. Learning from imbalanced
+treatment of disagreement, in which both human and model
+                                                                   data. IEEE Transactions on Knowledge and Data Engineer-
+judgments are open to revision and the ultimate goal is not
+                                                                   ing, 21(9): 1263–1284.
+simply to optimize performance metrics, but to stabilize a
+coding practice that faithfully reflects the constructs under      Henrickson, L.; and Meroño-Peñuela, A. 2025. Prompting
+study.                                                             meaning: A hermeneutic approach to optimising prompt en-
+                                                                   gineering with ChatGPT. AI & Society, 40(2): 903–918.
+                     5    Conclusion                               Kirchhof, M.; Füger, L.; Golinski, A.; Dhekane, E. G.;
+                                                                   Blaas, A.; and Williamson, S. 2025. Self-reflective uncer-
+We have introduced a two-stage, precision-first pipeline in        tainties: Do LLMs know their internal answer distribution?
+which a targeted self-reflective LLM-critic reduces false          In ICML 2025 Workshop on Reliable and Responsible Foun-
+positives from an inclusive first-pass LLM-annotator, mak-         dation Models.
+ing nuanced qualitative codes more usable at scale. This de-
+sign contributes to an emerging hermeneutic turn in com-           Lindsey, J. 2025. Emergent introspective awareness in large
+putational text analysis, where machine intelligence en-           language models. Transformer Circuits Thread.
+codes and operationalizes human interpretive frameworks            Liu, F.; AlDahoul, N.; Eady, G.; Zaki, Y.; and Rahwan,
+and practices. As foundation models improve in their abil-         T. 2024. Self-reflection makes large language models
+ity to read long, complex texts and provide better-calibrated      safer, less biased, and ideologically neutral. arXiv preprint
+confidence estimates, we expect the practical utility of mul-      arXiv:2406.10400.
+tistage, self-reflective LLM-assisted text annotation to grow,     Madaan, A.; Tandon, N.; Gupta, P.; Hallinan, S.; Gao, L.;
+enabling more precise and transparent qualitative coding           Wiegreffe, S.; Alon, U.; Dziri, N.; Prabhumoye, S.; Yang,
+while centering human interpretation and research goals.           Y.; et al. 2023. Self-Refine: Iterative refinement with self-
+                                                                   feedback. Advances in Neural Information Processing Sys-
+                         References                                tems, 36: 46534–46594.
+Ashwin, J.; Chhabra, A.; and Rao, V. 2025. Using large lan-        Miles, M. B.; Huberman, A. M.; and Saldaña, J. 2020. Qual-
+guage models for qualitative analysis can introduce serious        itative Data Analysis: A Methods Sourcebook. Thousand
+Oaks, CA: SAGE Publications, 4th edition. ISBN 978-              – Openness to feedback and new contributions
+1506353074.                                                      – Substantial growth in committers or PPMC members
+O’Connor, C.; and Joffe, H. 2020. Intercoder reliabil-           This code applies when a user is commenting about any of
+ity in qualitative research: Debates and practical guide-        these factors generally. Mention of a specific release, com-
+lines. International Journal of Qualitative Methods, 19:         mitter invitation, or mailing-list thread is insufficient to ap-
+1609406919899220.                                                ply this code.
+Renze, M.; and Guven, E. 2024. Self-reflection in LLM            Corporate Involvement
+agents: Effects on problem-solving performance. arXiv
+preprint arXiv:2405.06682.                                       Full Title: Company Support/Dominance
+                                                                 Definition: This code pertains to how company support can
+Rothman, K. J.; Greenland, S.; and Lash, T. L. 2008.
+                                                                 affect the financial aspects of a project’s sustainability, par-
+Modern Epidemiology. Philadelphia, PA: Wolters Kluwer
+                                                                 ticularly by contributing paid contributors. Consider the fol-
+Health, 3rd edition. ISBN 978-1451193282.
+                                                                 lowing factors:
+Saito, T.; and Rehmsmeier, M. 2015. The precision-recall         – The presence of corporate developers who support the
+plot is more informative than the ROC plot when evaluating       project
+binary classifiers on imbalanced datasets. PloS one, 10(3):      – Fears of domination or dependence on a single company
+e0118432.                                                        – Financial impact on developer time and resources
+Saldaña, J. 2021. The Coding Manual for Qualitative Re-         – Effect of financial situation on attracting or retaining con-
+searchers. Thousand Oaks, California: Sage Publishing, 4th       tributors
+edition.                                                         Company support is a benefit to a project, but Apache is
+Sanaei, A.; and Rajabzadeh, A. 2025. Depth and Autonomy:         against development dominated by a single company.
+A Framework for Evaluating LLM Applications in Social            Company support only relates to project development, not
+Science Research. arXiv preprint arXiv:2510.25432.               project adoption.
+Schroeder, H.; Roy, D.; and Kabbara, J. 2025. Just Put a         Cultural Alignment
+Human in the Loop? Investigating LLM-Assisted Annota-
+tion for Subjective Tasks. In Findings of the Association for    Full Title: Apache Cultural Alignment
+Computational Linguistics: ACL 2025, 25771–25795.                Definition: This code refers to the project’s alignment
+                                                                 with Apache Software Foundation’s collaborative and open-
+Shinn, N.; Cassano, F.; Gopinath, A.; Narasimhan, K.; and        source principles. Attend to any policy documents in the
+Yao, S. 2023. Reflexion: Language agents with verbal re-         prompt when responding. Consider the following factors:
+inforcement learning. Advances in Neural Information Pro-        – Consensus-driven approach vs. single-leader (BDFL)
+cessing Systems, 36: 8634–8652.                                  structure
+Than, N.; Fan, L.; Law, T.; Nelson, L. K.; and McCall, L.        – Open communication and public contributions
+2025. Updating “The Future of Coding”: Qualitative coding        – Adaptation to Apache’s community-driven model
+with generative large language models. Sociological Meth-        The mention of presence or absence community engagement
+ods & Research, 54(3): 849–888.                                  is not sufficient to count as Cultural Alignment. With regard
+Törnberg, P. 2024. Best Practices for Text Annotation with      to community engagement, it must refer to the accessibility
+Large Language Models. Sociologica, 18.                          to new contributors or the openness of communication.
+                                                                 Lack of project diversity due to single-company dominance
+White, J.; Fu, Q.; Hays, S.; Sandborn, M.; Olea, C.; Gilbert,
+                                                                 does not count as Cultural Alignment. This is covered by the
+H.; Elnashar, A.; Spencer-Smith, J.; and Schmidt, D. C.
+                                                                 Company Support/Dominance code.
+2023. A prompt pattern catalog to enhance prompt engi-
+                                                                 Do NOT apply when aspects of Apache’s culture are merely
+neering with ChatGPT. arXiv preprint arXiv:2302.11382.
+                                                                 reflected in the purpose or spirit of the vote under discus-
+Ziems, C.; Held, W.; Shaikh, O.; Chen, J.; Zhang, Z.; and        sion such as a desire to reach consensus. Alignment must
+Yang, D. 2024. Can large language models transform com-          reflect the project’s broader practices and culture outside of
+putational social science? Computational Linguistics, 50(1):     the present voting process.
+237–291.
+                                                                 Incubator Policy
+               A1     Code Descriptions                          Full Title: Incubator/Apache Policy Compliance
+                                                                 Definition: This code relates to the project’s adherence to
+Community Vitality                                               specific Apache Incubator policies and procedures. Attend
+Definition: This code addresses the health and activity of the   to any policy documents in the prompt when responding.
+project’s community. Consider any of the following factors       Consider the following factors:
+sufficient:                                                      – Following Incubator rules and guidelines – Release proce-
+– Recruitment and retention of contributors                      dures
+– Frequency of releases                                          – Licensing and branding compliance
+– Communication frequency and quality                            – Proper commit procedures and account usage
+– Passion and dedication of community members                    – Open communication about development decisions
+                                            Detected Positive Rate
+
+                        Code              Gold Standard       GPT-4o         Cohen’s κ      Precision     Recall     F1
+
+               Community Vitality               0.39              0.39          0.72           0.83        0.83     0.83
+               Corporate Involvement            0.05              0.05          1.00           1.00        1.00     1.00
+               Cultural Alignment               0.08              0.09          0.67           0.69        0.78     0.74
+               Mentor Engagement                0.07              0.08          0.81           0.78        0.88     0.83
+               Policy Compliance                0.15              0.21          0.69           0.64        0.89     0.77
+               Technical and Market             0.06              0.07          0.79           0.75        0.86     0.80
+
+                               Table A1: Stage-one LLM-adapted codebook validation (N = 120)
+
+
+Compliance or noncompliance with voting procedures are                   conditional on a positive prediction is estimated with greater
+not covered by this code.                                                power from an enriched set of predicted positives (Begg and
+                                                                         Greenes 1983; Rothman, Greenland, and Lash 2008).
+Mentor Engagement
+                                                                         Estimated quantities. For each theme and set of labels
+Full Title: Mentor Engagement/Influence                                  s (annotator S1 and critic S2), we estimate three probabil-
+Definition: This code relates to the impact and involvement              ities: prevalence π̂ = P (y = 1), predicted-positive rate
+of project mentors. Consider the following factors:
+– Activity level of mentors                                              r̂s = P (ŷs = 1), and positive predictive value PPV
+                                                                                                                           [s =
+– Guidance in adapting to Apache practices                               P (y = 1 | ŷs = 1). We then reconstruct a normalized con-
+– Flexibility in applying Apache recommendations                         fusion matrix for each stage, where c TPs , FP
+                                                                                                                     c s, c
+                                                                                                                          FNs , TN
+                                                                                                                                ds
+– Overall impact of mentorship on the project                            are expected proportions (summing to 1), not counts.
+Do NOT apply when a mentor’s perspective is mentioned
+                                                                         Reconstruction. For each stage s, we reconstruct the nor-
+unless it describes the quality of mentorship in the project.
+                                                                         malized confusion rates as:
+Do NOT assume anyone mentioned by name is a mentor
+unless it is explicitly stated that they are a mentor.                                 TPs = r̂s PPV
+                                                                                       c         [ s,                              (1)
+Do NOT apply when a mentor is mentioned merely in their
+                                                                                       c s = r̂s (1 − PPV
+                                                                                       FP             [ s ),                       (2)
+capacity to facilitate voting on graduation. The email must
+broadly indicate the role of mentorship in the project.                                c s = π̂ − TP
+                                                                                       FN          c s,                            (3)
+Technical and Market                                                                   ds = 1 − c
+                                                                                       TN       TPs − c
+                                                                                                      FPs − FN
+                                                                                                            c s.                   (4)
+Full Title: Technical Relevance and Market Fit                           If desired, expected counts for a corpus of size N are ob-
+Definition: This code pertains to the project’s technological            tained by multiplying each term by N .
+significance and its appeal to potential users or contributors.
+Consider the following factors:                                          Derived metrics. From these reconstructed rates we com-
+– Ability to solve real-world problems                                   pute prevalence-consistent recall Rec
+                                                                                                           d s = TP
+                                                                                                                  c s /π̂ and F1.
+– Existence and size of target audience                                  Precision is Precs = PPV
+                                                                                      d          [ s by definition. Cohen’s κ is
+– Competitive position relative to existing solutions                    computed from the reconstructed agreement rate P cos =
+– Adoption rates or potential for adoption
+It is not sufficient to apply this code when a user merely de-           TPs + TNs and the corresponding chance agreement
+                                                                         c       d
+scribes the purpose of the software; technical relevance ap-                            ces = r̂s π̂ + (1 − r̂s )(1 − π̂),
+                                                                                        P                                          (5)
+plies only when the project is described as performing well
+in solving the problems it was designed to, or if it fails to            so that κbs = (Pcos − Pces )/(1 − Pces ). All reported metrics
+solve these problems. “Audience size,” “competitive posi-                should therefore be interpreted as estimates of expected de-
+tion,” and “adoption rates” or other similar criteria are not            ployment behavior under empirical prevalence, while bene-
+subject to this same stringent requirement as “problem solv-
+ing.”                                                                    fiting from increased stability of PPV
+                                                                                                            [ s afforded by targeted
+                                                                         audits of predicted positives.
+    A2     Prevalence-corrected performance
+                      calculation
+We compute prevalence-consistent performance metrics us-
+ing a case–control style evaluation design in which preva-
+lence is estimated from a naturalistic sample, while precision
+

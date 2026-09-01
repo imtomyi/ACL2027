@@ -1,0 +1,1198 @@
+                                                     An Evaluation of Chat Safety Moderations in Roblox
+                                                                   Priya Kaushik                                                       Sonja Brown
+                                                          Department of Computer Science                                     Department of Computer Science
+                                                               University of Arizona                                              University of Arizona
+                                                              Tucson, Arizona, USA                                               Tucson, Arizona, USA
+                                                            priyakaushik@arizona.edu                                           sonjabrown@arizona.edu
+
+                                                                  Rakibul Hasan                                                   Sazzadur Rahaman
+                                                          Department of Computer Science                                     Department of Computer Science
+                                                             Arizona State University                                             University of Arizona
+                                                              Tempe, Arizona, USA                                                Tucson, Arizona, USA
+
+
+
+
+arXiv:2605.04491v2 [cs.CY] 7 May 2026
+                                                                rhasan3@asu.edu                                                    sazz@arizona.edu
+                                        ABSTRACT                                                                worldwide [19]. Unfortunately, these platforms can also become
+                                        Roblox is among the most popular online gaming platforms, used          a breeding ground for harmful interactions for minors, such as
+                                        by hundreds of millions of users every day. A substantial portion of    grooming and exploitation. Incidents like the California Kidnap-
+                                        these users are underage, who are at a greater risk, where abusive      ping case [104] highlight that interactions initiated on platforms
+                                        users may utilize Roblox’s real-time chat interface to make the ini-    like Roblox can escalate beyond the virtual environment and may
+                                        tial contact with potential victims. Roblox employs automated chat      lead to real-world harms. Roblox emphasizes strict child safety
+                                        moderation mechanisms to detect potentially abusive messages;           standards [31], and includes a real-time chat moderation system
+                                        however, to date, their effectiveness has not been independently        that scales at billions of messages per day [73] to detect and filter
+                                        investigated. Toward this goal, we collected approximately 2 mil-       inappropriate content [29].
+                                        lion chat messages from four games across multiple age groups and          Unfortunately, even with such protective mechanisms, concerns
+                                        analyzed them to evaluate the moderation system. These messages         about safety, privacy, and exploitation continue to rise. Recent
+                                        were collected from public game servers following ethical and legal     lawsuits filed in the United States and reports in the media raise
+                                        norms as well as Roblox’s terms of service.                             concerns about the effectiveness of Roblox’s moderation system,
+                                           We use this corpus to qualitatively study which types of un-         especially in relation to grooming behavior and off-platform pivot-
+                                        safe chats escape the moderation system and how policy-violating        ing [13, 45, 85, 88]. Unlike explicit profanity or hate speech, groom-
+                                        users evade the moderation system. Given the dataset’s scale, it        ing evolves slowly and varies in style, duration, and intensity [90].
+                                        is prohibitively expensive to conduct qualitative content analysis      Once trust is established, individuals move to extract personalized
+                                        manually. Therefore, we adopt a two-step approach. First, we man-       information, migrate to external platforms, or even arrange to meet
+                                        ually labeled safe and unsafe messages (n=99.8K) and used them          in person [16].
+                                        as a ground truth to evaluate four locally hosted state-of-the-art         Against this backdrop, it is both urgent and critical to scientifi-
+                                        large language models (LLMs). Next, the best-performing LLM was         cally evaluate Roblox’s chat safety moderation [78]. In particular,
+                                        applied to the entire corpus to identify potentially unsafe messages,   we lack understanding of what types of policy violations moder-
+                                        which we manually categorized using iterative open and axial cod-       ation systems capture or miss, and how conversations evolve to
+                                        ing methods until thematic saturation was reached. Overall, our         extract personal information or pivot off-platform. To address this
+                                        findings reveal a troublesome reality: numerous instances of unsafe     gap, we conduct a large-scale measurement study of over two mil-
+                                        chat messages related to grooming, sexualizing minors, bullying, &      lion chat messages across four live interactive Roblox games for
+                                        harassment, violence, self-harm, and sharing sensitive information,     two different age groups (9+ and 13+). In this study, we answer the
+                                        etc., escaped the current moderation. Our analysis of users whose       following research questions:
+                                        messages were previously flagged revealed that they continue to
+                                                                                                                    • RQ1: What child-safety violations are bypassing Roblox’s
+                                        send harmful messages by employing a wide range of techniques
+                                                                                                                      chat moderation system?
+                                        to evade the moderation system.
+                                                                                                                    • RQ2: What strategies are policy-violating users employing
+                                           [WARNING: This paper includes examples of self-harm, violence,
+                                                                                                                      to intentionally bypass the chat moderation system?
+                                        sexually explicit, and profane content that may be triggering.]
+                                                                                                                   Answering these questions required us to overcome a number
+                                        1   INTRODUCTION                                                        of logistical and technical challenges. Unlike other previously stud-
+                                        Massively multiplayer online (MMO) games are large social ecosys-       ied platforms (e.g., [54, 56]), Roblox does not provide any API for
+                                        tems that allow users to interact and build digital adventures with     monitoring or collecting user content. Moreover, chat messages
+                                        others around the world. These platforms mainly attract underage        on Roblox are rendered as part of the game environment and dis-
+                                        players (ages 17 and below) and transform online video games into       appear after some time, which makes it crowdsourcing data from
+                                        a venue for youth socialization [40]. Roblox is among the largest       users infeasible [58, 95]. Furthermore, collecting and analyzing such
+                                        child-oriented MMO platforms with nearly 144M daily active users        datasets have ethical implications. Thus, we collaborated with our
+institutional ethics board to develop a protocol for data collection        to evade moderation. This analysis was guided by the hypothesis
+and analysis, which we summarize below (see §A for details).                that users who exhibited violations are more likely to employ or evolve
+    For ethical concerns, we avoided reverse-engineering proprietary        evasion strategies, making them a representative and information-
+game binaries, and relied on video recordings of live gameplay from         rich subset for studying such behaviors. Specifically, we analyzed
+public servers in a non-intrusive manner. We then built an OCR              12,612 messages to study the evasion behaviors of 94 users. We
+(Optical character recognition)-based framework to extract mes-             selected and analyzed these users via a stratified sampling process
+sages from these videos. As game elements interfere with the chat           based on users’ flagging frequencies, until thematic saturation was
+messages, they add noise and lower the OCR performance. To pre-             reached. Our analysis shows that users respond to moderations by
+vent this, we draw inspiration from metamorphic testing [18], in            attempting to bypass them through language modifications in sub-
+which variations of the original image are created through careful          sequent messages, progressively refining their evasion strategies,
+transformations to assess the OCR model’s output consistency and            resulting in a sustained adversarial cycle. In particular, we observed
+confidence. To ensure a baseline quality, we exclude inconsistent           that, depending on context, users adopt a wide range of bypassing
+and low-confidence outputs in our final corpus. It is worth not-            methods, such as multi-line fragmentations, code words, leet speak,
+ing that our framework is platform-agnostic and can be easily used          alternative spelling strategies, and probing. These techniques ex-
+to collect a real-time chat message corpus from any platform in a           ploit limitations of message-level moderation by distributing intent
+non-intrusive manner. In the end, we collected approximately 2              across turns, obfuscating lexical cues, and incrementally probing
+million (2,040,839) chat messages from 105,214 users across 4               the system’s detection boundaries. Our overall contribution can
+popular Roblox games.                                                       be summarized as follows.
+    To understand which harmful messages escape chat moderation
+(RQ1), we need to identify messages that violate Roblox’s chat                    • We introduce a non-intrusive OCR-based framework for chat
+safety guidelines [28]. Manual labeling of such a large dataset is                  data collection from recordings, enabling empirical auditing
+infeasible; thus, we adopted a semi-automated approach. First, we                   of moderation systems in gaming environments where data
+labeled 2,000 conversations (blocks of 50 messages) and use them as                 is not available in textual format. In the end, we collected
+ground truths to test several state-of-the-art large language mod-                  approximately 2 million messages from 105,214 users.
+els using a few-shot prompting strategy. All models were locally                  • We develop a saturation-based qualitative thematic analysis
+hosted to avoid uploading data to third-party cloud servers. After                  approach with LLM-based pre-filtering to extract concrete
+evaluation, the best performing model, (gpt-oss-120b [1]), was ap-                  insights from data at this scale.
+plied to the full corpus to identify potentially harmful content. The             • We characterize moderation failures by identifying concrete
+model identified 7,254 conversations to be unsafe. We classified                    cases of harmful patterns that escaped moderation and also
+these messages into multiple categories based on the LLM’s reason-                  by capturing the evasion strategies used to bypass it.
+ing outputs. Next, we use a saturation-based qualitative thematic              Given the skepticism, this paper takes the first look at Roblox’s
+analysis to find out (1) if a given message is truly unsafe; (2) identify   chat moderation system, only to find how harmful interactions
+the specific factors that make it problematic. Note that while this         persist (§4) and evade detection (§6). We hope these insights and
+model-assisted pipeline reduces annotation efforts, it may miss sub-        the recommendations (§7.2) will help build more robust and context-
+tle or rare unsafe categories due to (1) false negatives in the initial     aware chat moderation systems to protect minors from physical
+model-based filtering and (2) saturation-driven analysis, where sat-        and mental harm.
+uration is reached once no new categories emerge from the sampled
+data, potentially overlooking low-frequency phenomena outside
+the observed sample. We argue that this pipeline is reasonable for          2     DATA COLLECTION
+capturing the dominant patterns of unsafe behavior at scale, even           This section describes our data collection process and framework
+if it does not exhaustively enumerate all edge-case categories.             for transforming video recordings into text transcripts.
+    Our analysis revealed a troublesome reality. We found Roblox’s
+moderation system, while filtering isolated explicit terms, grossly
+                                                                            2.1     Game Selection
+fails to detect unsafe content that emerges over the course of con-
+versations. Even for the filtered one, often the intent was leaked.         Since Roblox hosts millions of games, it is infeasible to systemati-
+Thus, generally unsafe content remained visible in most of the cat-         cally capture chat data across the entire platform; thus, we focus
+egories, such as grooming, sexually explicit content, harassment,           on popular games. For this study, we selected 4 games appearing
+PII leakage, and violent language, that Roblox’s moderation sys-            in Roblox’s “popular” section, and have a visible interactive chat
+tem aims to filter. For a child-centered platform, this is particularly     window [30]. These games were: Brookhaven RP, Adopt Me!, Royal
+concerning, as benign social interactions can evolve into harmful           High, and Berry Avenue RP. Each game has two age-based settings:
+trajectories involving personal information disclosure, coercion,           (9+ and 13+), resulting in eight distinct game-age combinations.
+and off-platform migration – opening potentials for wide ranges of          Table 1 summarizes the server capacities and total visit counts for
+physical, sexual, and mental abuses.                                        each game as of 2024. Here, server capacity refers to the maximum
+    Next, we examined what strategies users adopted to evade mod-           number of players that can simultaneously occupy a single game
+eration (RQ2). Specifically, we focus on users who have been mod-           instance or “server”. While passively observing, we can observe at
+erated before (i.e., their messages have been filtered by Roblox’s          most the behavior of players co-located on the same server instance
+moderation system) to examine if and how they subsequently tried            at a given time; thus, server size puts an upper bound.
+                                           Chat Window                     intervals. In total, we collected 336 hours of chat footage across
+                                                                           different time periods in 2024 and 2025.
+                                                       Chat Bubbles
+                                                                           Frame Extraction and Deduplication. First, each recorded video
+                                                                           was converted into a sequence of image frames. Since frame rates
+                                                                           might outpace chat rates, the same chat messages may appear across
+                                                                           multiple consecutive frames. To deduplicate such frames, we used
+                                                                           the structural similarity index (SSIM)-based approach [109]. SSIM
+                                                                           quantifies how similar two images are by comparing luminance,
+                                                                           contrast, and structural information [111]. This has been shown
+                                                                           to perform better than pixel-by-pixel comparisons and has been
+                                                                           used in many prior research (e.g, [48]). It produces a similarity
+                                                                           score ranging from -1 to 1, where higher values indicate greater
+                                                                           visual similarity [14, 84]. In our framework, for deduplication, we
+Figure 1: Example of Roblox’s graphical user interface with chat bubbles   compared SSIM scores between consecutive frames and discarded
+and chat window with dynamic background (anonymized).                      the lower-scoring frame if the score was 0.9 or higher. After that,
+                                                                           we crop the frames to retain only the chat window for transcription.
+        Table 1: Server size and popularity of games we study.
+
+                               Server Size       Total Visits                         Table 2: Total Messages in our ground truth dataset.
+        Game
+                              (Max Players)       (Billions)                        Game                       13+     9+     Total per game
+        Brookhaven RP                18               38.7                          Adopt Me!                 2,108   1,705       3,813
+        Adopt Me!                    48               34.5                          Brookhaven RP              980    1,062       2,042
+        Royal High                   15                9.3                          Royal High                 442     511         953
+        Berry Avenue RP              30                2.0                          Berry Avenue RP           1,962   1,961       3,923
+                                                                                    Grand Total               5,492   5,239       10,731
+2.2    Chat Recording and Frame Deduplication
+Chat Video Recording. We record the chat messages as a video               2.3      Image-to-Text Conversion
+stream of screen recording at 60 frames per second (FPS). In Roblox,       This section describes an optical character recognition (OCR)-based
+players primarily interact through live, in-game chat messaging.           chat transcription method. During our preliminary analysis, we
+Roblox displays the chat stream in one of two ways: (1) in a small         observed that OCR’s performance is drastically impaired by the dy-
+transparent window anchored to the upper-left corner of the screen,        namic gameplay background. Thus, drawing inspiration from meta-
+or (2) as a chat bubble above the avatar (Figure 1). Chat window           morphic testing [18], we created several variations of the original
+displays chat messages from all players as well as server messages         image through careful transformations to assess the OCR model’s
+at a fixed screen location in a chronological order. Chat bubbles,         consistency and confidence. We first apply grayscale, Gaussian blur,
+by contrast, are spatially tied to moving avatars and display only         and Otsu binarization along with different polarity settings (nor-
+individual messages, making them less reliable for systematic data         mal/inverted) [10] to the original image, creating 6 variants of a
+collection and transcription. Thus, our recording framework only           single image for OCR transcription with PyTesseract1 . Thus, for
+focuses on the chat window. Since chat messages are moderated be-          a given image, we accept the transcription if the OCR’s average
+fore they appear on the screen, we collected the moderated version         confidence exceeds 95%. Otherwise, we first create a new variation
+of the chat stream [34, 35, 73].                                           by suppressing the background (§C.1) to improve the contrast be-
+   Roblox games are hosted across multiple servers (see Table 1)           tween chat messages and the background. Then, we proceed with
+with (variable) maximum user capacity. Servers are typically cate-         the 6 variants of the background-suppressed version and accept the
+gorized as: (1) Public, owned and managed by the game platform             transcription if OCR’s average confidence exceeds 95%.
+(Roblox) and created dynamically based on user demand [6, 23,                 If OCR’s confidence falls below 95% in this case, we switch from
+26, 33], or (2) Private, owned and controlled by individual users          a whole-frame-based approach to a segmentation-based approach.
+(players). We recorded chat messages from public servers. Thus, play-      Specifically, we detect text box to localize text regions containing
+ers who enter through the default play flow are algorithmically            chat lines; localization has shown to improve text recognition per-
+matched into available public server instances. To prevent servers         formance in complex visual environments [103]. Note that this line-
+from preserving inactive sessions, Roblox also removes users who           level OCR operates on smaller, noisier regions, where relying on
+are inactive for 20 minutes [27]. Thus, we used PyAutoGUI [102]            near-perfect confidence would discard many usable transcriptions
+to automate the mouse and keyboard controls in the game and                and reduce overall recall. Thus, the specific confidence threshold
+refresh server connections every hour, allowing us to sample mul-          (median confidence ≥ 74%, mean confidence ≥ %70) for this was
+tiple servers over time across recording sessions. For each game           determined through manual investigation of a random subset. After
+and age category, we recorded the chat window continuously for
+                                                                           1 https://pypi.org/project/pytesseract/
+seven consecutive days. Recording ran in approximately 24-hour
+transcription, we deduplicate text messages based on a similarity            Table 4: Overall statistics of our chat dataset across 4 different games.
+threshold of 85%, i.e., if two strings are more than 85% similar, they       Here, “Affected Lines” refers to chat messages affected by moderation (i.e.,
+                                                                             parts of them replaced with “###”), “Masked Contents” refers to the total
+are removed from the final transcription. Again, we determine this
+                                                                             number of contents (e.g., words) in chat messages that were masked.
+threshold by manual observation. After that, we anonymize (§2.5)
+the dataset before analyzing it.                                              Game             Total        Total      Affected   Masked       Avg. Span
+                                                                                               Users        Lines       Lines     Contents           Len.
+2.4    Transcription Framework Performance                                    AdoptMe          16,813      201,252      5,956       10,926           7.46
+To measure the performance of our OCR-based video transcription               BerryAve         25,290      504,891      31,986      61,180           5.93
+framework, we first manually create a ground truth dataset from               Brookhaven       46,425      900,881      37,550      58,552           6.42
+the video, then compare its performance against this dataset.                 RoyaleHigh       16,686      333,981      13,231      22,127           7.42
+Ground truth Transcription Dataset Creation. To create our                    Total           105,214    2,040,839     88,273      152,785
+ground truth dataset, we randomly select 20-minute videos across
+all the games to a total recording duration of two hours and manu-
+ally transcribe them. Table 2 shows a summary of it.
+Comparison Result. Our performance comparison mainly an-
+swers three questions: (1) Ablation study 1: how would our frame-
+work perform if it were only implemented with original image vari-           2.5      Final Dataset
+ations? (2) Ablation study 2: How would our framework perform
+if it were only implemented with variations of the background-               After processing all the chat recordings with our transcription
+suppressed version? and (3) Overall performance: how does our                framework, we produced a corpus of ∼ 2 𝑚𝑖𝑙𝑙𝑖𝑜𝑛 chat messages. A
+final OCR-based transcription framework perform in comparison                summary of this corpus is presented in Table 4.
+with the ground truth? Metrics: For performance comparison we                Anonymizing the dataset. After transcription, we anonymized
+use two metrics: Recall and Average Matched Similarity (AMS).                usernames and redacted any personally identifiable information
+Recall represents the proportion of chats successfully recovered             (PII) that users may have intentionally or inadvertently shared
+by the OCR-based system in comparison with the ground truth,                 (details in §B.1). Although our analysis is performed using local
+while AMS measures how closely the recovered messages match                  models, we enforce anonymization to ensure ethical handling of
+the corresponding ones from the ground truth set (Details in §C.2).          users’ data and to prevent potential exposure through intermediate
+Results are summarized in table 3.                                           artifacts such as logs, outputs, or illustrative examples. These steps
+Ablation study 1: We found that by only using the original image             ensure that our analysis remains both methodologically robust and
+                                                                             aligned with ethical standards.
+variants, we can retain 71% of the chats with an average matched
+similarity of 96% in comparison with the ground truth set. This
+indicates that while the OCR system produces highly accurate                 3     RQ1 (ESCAPED CATEGORIES): METHOD
+text when matches are found, a portion of the ground-truth lines
+                                                                             Here we detail how we identified unsafe messages that bypassed
+remain undetected due to missed extractions. The low match rate
+                                                                             Roblox’s moderation. Given the scale of our dataset, it is prohibi-
+is primarily due to the overlay effect of background changes.
+                                                                             tively expensive to perform rigorous qualitative content analysis.
+Ablation study 2: Interestingly, OCR-based transcription with the
+                                                                             Inspired by Thomas et al. [105] pre-filtering design pattern for using
+variants of our background-suppressed version alone could retain             LLMs to filter out safe content and pass only unsafe content for
+80%, which is ∼9% more compared to original image variants, but              human review, we design a two-stage framework for our post hoc
+surprisingly, the overall similarity score dropped to 90.89%.                analysis as well. Next, we discuss how we designed this framework.
+Overall Performance: As shown in table 3, the performance of our
+final OCR-based transcription framework is much higher than the
+variants of original image or background-suppressed methods, indi-           3.1      Messages to Conversations
+vidually. Specifically, it could retain 11% more chat messages (91.76%       Given a chat message, both humans and LLMs would require the
+of the ground truth set) with a higher similarity score (97.44%).            context under which the classification is made. This is because,
+                                                                             given the surrounding conversation, a given message can be either
+Table 3: Comparison of OCR text recovery across original image variants,     benign or unsafe (e.g., grooming). Thus, to support analysis at
+background-suppressed image variants, and our transcription framework        the conversation level, we organized the chat messages into 50-
+with ground truth chat transcriptions. Here, Recall denotes the percentage   line conversations, yielding a total of 38,856 chat conversations.
+of retained chat messages relative to the ground truth set, and AMS stands   We selected this cluster size to preserve conversational context
+for average matched similarity, which measures the similarity between the    within a single interaction thread, including turn-taking, i.e., the
+retained chats and their corresponding ground truth.                         sequential exchange of messages between users, intent progression,
+                                                                             and response dependencies, while maintaining input lengths that
+      Type (Variation Counts)                    Recall      AMS
+                                                                             are manageable for both LLM-based analysis and manual review.
+      Original Image Variants (6)                71.09%     96.09%           This design also mitigates long-context limitations such as the
+      Background-Suppressed Variants (6)         80.27%     90.89%           “Lost-in-the-Middle” (LiM) effect, where models tend to underutilize
+      Our Framework                              91.76%     97.44%           information positioned in the middle of long sequences [108].
+ Table 5: Labels generated with gpt-oss-120B with few-shot prompting            In Table 6, we show the distribution of unsafe categories based
+                                                                             on how the model characterizes the prevalence of different types of
+                    Label                     Count
+                                                                             harmful behaviors across the corpus. These “Labels” are inspired by
+                    Absolutely UNSAFE           5,208                        Roblox community standards [28], where they specify their toler-
+                    Possibly SAFE               5,734                        ance policy for the platform. It is important to note that these counts
+                    Absolutely SAFE            24,834                        are not mutually exclusive; rather, they represent the frequency of
+                    Possibly SAFE               1,081                        specific unsafe behaviors extracted from LLM’s reasoning. For ex-
+                                                                             ample, a single conversation may contribute to multiple categories
+                                                                             (e.g., grooming co-occurring with requests for personal information
+3.2      Pre-filtering and Thematic Analysis                                 or off-platform migration), leading to overlapping counts across
+                                                                             categories. Table 6 also reports the number of instances reviewed
+Pre-filtering with LLMs. For pre-filtering safe messages on the
+                                                                             during our saturation-based thematic analysis, along with those
+full dataset, we used gpt-oss-120B with few-shot prompting. The
+                                                                             identified as false positives. Consequently, the absolute counts of
+selection process was guided with a manually curated ground truth
+                                                                             unsafe messages in Table 6 should not be interpreted as exact esti-
+sample of 2,000 conversations, where gpt-oss-120B with few-shot
+                                                                             mates; instead, they are more appropriately used to compare the
+prompting achieved 44.13% F1 score with 31.39% precision and
+                                                                             relative prominence of different categories of unsafe content.
+71.43% recall (details in §C.3). Here, low precision would eventu-
+ally lead to more manual effort; thus, we adopt a saturation-based
+technique. However, given saturation-based analysis and the fact             4      RQ1 (ESCAPED CATEGORIES): FINDINGS
+that we are missing at least 1 our of 4 unsafe messages, these re-           The following subsections summarize each category of chat safety
+sults indicate the lower-bound estimate of the prevalence of unsafe          violations with representative examples from the annotated corpus.
+interactions. The results after the filtration are shown in table 5.         Signals for unsafe messages are highlighted in red. Red texts in
+For the sake of analysis feasibility, for unsafe message analysis, we        square braces ([text]) indicate either that the content is anonymized
+only consider the messages labeled as unsafe with high confidence            for privacy or rephrased for explicitness.
+(“Absolutely UNSAFE”). Next, for these messages, we extracted
+category-specific keywords (e.g., grooming”, sexual content”, bully-         4.1      Grooming
+ing”, harassment”, profanity”, and attempts to move conversations            Grooming was the largest category in the reviewed corpus, in part
+“off-platform”) from the model-generated explanations associated             because it often combined several harmful strategies in a single con-
+with each conversation and categorized the conversations based on            versation. Prior research on child grooming defines it as a predatory
+these keywords to enable category-specific thematic analysis.                behavior where users attempt to build trust, move communication
+Saturation-based Thematic Analysis. The unsafe message cor-                  into less moderated spaces, or normalize sexual interaction with a
+pus, organized into categories, serves as the basis for our qualitative      minor [36]. These harmful strategies that enable grooming on such
+analysis. We treat each category as an independent analytical unit           patterns include, but are not limited to, manipulative behavior, re-
+and conduct an inductive thematic analysis within each category.             quests for usernames or off-platform channels, questions about age
+Specifically, we perform the analysis iteratively by sampling con-           or gender, sexualized prompts, intimidation, emotional targeting,
+versations across strata, where each stratum corresponds to a game           and the disclosure or solicitation of identifying information.
+(by age group) within a category, ensuring coverage of diverse
+                                                                              #1: Persuading for in-person meetings. In the following case,
+interaction contexts. In each iteration, we randomly select one
+                                                                             the interaction moves from a desire to see another player toward
+conversation per stratum and code it based on themes, which are
+                                                                             location disclosure and an in-person meeting. While not harmful
+iteratively refined. We define thematic saturation for a category
+                                                                             independently, taken collectively, these patterns signal a trajectory
+as the point at which no new violation patterns emerge for 5 it-
+                                                                             that may expose children to exploitation. A prime example is the
+erations, and declare saturation when successive iterations across
+                                                                             California kidnap case [104], which indicates that sharing a physical
+strata yield no additional patterns [82].
+                                                                             address and arranging to meet strangers from Roblox can escalate
+                                                                             to real-world harm, underscoring the risks of such interactions and
+Table 6: Distribution of unsafe content categories across the full dataset   the need for early intervention [112].
+and the reviewed subset (until saturation).
+                                                                                 Grooming Intended to Disclose Location and In-Person Meeting
+ Label                       Total Conv.   Total Reviewed Conv.   TP/FP
+                                                                                 User1: “I want to see you” → User2: “me too i’m in [728] with a
+                                                 (Messages)
+                                                                                 [blue toyota and white ford]” → User2: “well the [white ford] is
+ Profanity                      1,425            40 (1,600)         32/8         not there rn” → User2: “omg what add” → User2: “dress” → User1:
+ Bullying & Harassment          1,350            60 (2,550)         51/9         “Let’s grind” → User2: “what address” → User2: ####### → User1:
+ Grooming                       1,255            80 (2,666)        54/26         “Ok my mom doesn’t tell anyone but my guests” → User2: “i?’m so
+ Sexual Content                 1,231            80 (1,950)        39/41         glad we’re close” → User1: “like iwanna meet u today” ...
+ Threats / Violence              923             60 (2,450)        49/11
+ Redirecting off-platform         40             37 (1,850)         37/3
+ Hate Speech                     273             40 (1,450)        29/11        Realization of potential harms due to personal detail leakage can
+ Self-harm Related Content       192             120 (700)          14/6     cause emotional trauma originating from fear and anxiety [94]. We
+ Request for PII                  91              20 (850)          17/3
+                                                                             observed cases when users realized the risks of sharing such info
+ Total                          7,254          440 (16,066)       322/118
+                                                                             afterward and panicked about their safety, as shown below.
+  Panic After Sharing Location Infortion                                    Grooming-Oriented flirt and Platform Migration
+  User1: “IM FREAKING OUT” → User2: “User3 someone texted User1” →          User1: “That’s a compliment sweetie” → User2: “miss” → User2:
+  User2: ‘‘and said they know where she lives” → User3: “WAIT WHAT”         “E dates” → User2: “here...” → User1: “how do you know my first
+  → User3: “BLOCK IT” → User3: “NOW” → User2: “Ask them to say              name” → User2: “IKR” → User1: “Wanna resolve it over vc?” (short
+  your exact location” → User1: “I DID” → User1: “THEY KNOW” →              for Video call/chat) → User2: “yes babe” ...
+  User3: “THEY KNOW UR EXACT LOCATION?!” → User3: “HURRY AND BLOCK
+  THE NUMBER RN” → User4: “and havent u herd or gamecharlie1”
+                                                                           4.2    Bullying, Harassment, and Hate Speech
+   After investigation, we found that gamecharlie1 is an urban             This category captures targeted insults, intimidation, ridicule, re-
+legend within the Roblox community about an 11-year-old girl who           peated antagonism, and discriminatory abuse directed at another
+was groomed and kidnapped after sharing personal information in            user or identity group. Although bullying and harassment, and hate
+Roblox [49]. This story is often used as a cautionary tale.                speech were labeled separately during annotation, we discuss them
+ #2: Persuading for sexual exploitation. Another prevalent                 together here because they frequently appeared in the same context.
+case of grooming is persuading seemingly underage children for             Recent work further supports this approach, arguing that intent is
+sexual exploitation either online or in-person, as shown below.            inexorably intertwined and involves multiple dimensions [41, 110].
+                                                                           In the reviewed conversations, discriminatory language was often
+                                                                           used as a harassment tactic, using race, gender identity, sexuality,
+  Grooming Intended to Disclosure Age and Sexual Insinuations
+                                                                           appearance, or social status to degrade or provoke another player.
+  User3: “how old r u?” → User4: “nine” → User3: “are you into
+  anything?” → User3: “do you want to like do something” → User3:          As a result, separating hate speech from bullying and harassment
+  “like this” → User4: “Sure” → User4: “I’m be back 1. A min” →            sometimes obscured how these harms operated together in chat.
+  User3: “abc if you want to have s (suggestive for Sex)”
+                                                                           Next, we discuss some examples based on their types.
+                                                                            #5: Use of profane abuse for bullying and harassments. The
+  Persuasion for Online Sexual Engagement                                  most prevalent case of bullying and harrasment involves the use of
+  User5: “Party ??” → User6: “Adult?” → User5: yes! → User6: “both         profane and deregatory language directed at other users as shown
+  of us”→ User6: “get it” → User6: “create a babyy or babys” →             in the following example.
+  User5: “Come to my home ok” → User3: onnnhhhhhhhhhhhnnn
+
+                                                                            Use of profane language for bullying
+                                                                            User1: “So Don’t F4 Tell” → User1: “first off stop acting ghetto”
+ #3: Persuading to share personal explicit images. We also                  → User2: “GhEtTo” → User1: “Ur hella embarrassing” → User1:
+observed chat conversations where one user tries to persuade the            “Btc” (Alternate for Bitch) → User1: “Look at your ugly assi”
+other (potentially underage) to share personal, explicit images. At         (“ass”) → User2: Newer → User1: “Sthu” ...
+times, these chats can turn into transactional coercions too. In the
+following example, User1 pressures User2 to share explicit images.            Our analysis shows that Roblox’s moderation system usually
+The request begins with a seemingly ordinary request for Korblox –         masks common profane words. Thus, users would oftentimes use
+a high-cost, elite, and popular avatar bundle series [25]. The request     coded language to bypass the moderation. We discuss the nature of
+begins with a seemingly ordinary request for korblox, but the con-         profane language itself in §4.6 and the common techniques used to
+versation shifts towards an intimate image request and bargaining          bypass the moderations in §6.
+over the type of image expected. The rest of the content in this            #6: Harassments through racial remarks. Another prevalent
+conversation is not displayed on purpose because it is explicit.           case of harassment is the use of racial remarks. The following exam-
+                                                                           ple shows racialized harassment, where one user interprets another
+                                                                           user’s “monkey” comment as targeting their Black identity and ex-
+  Transactional Coercion for Sharing Explicit Images
+  User1: “buy me korblox” → User2: “ok send me” ... “a nak” → User1:
+                                                                           plicitly identifies the exchange as racist. Although Roblox masked
+  “buy me korblox for a face pic” → User2: Negotiates and requests         part of the final message, the surrounding context still makes the
+  [explicit content]                                                       racialized insult recoverable. Collectively, these examples show
+                                                                           that harassment often operates through escalation, with discrim-
+   Sharing such sensitive content with strangers can lead to ex-           inatory language and identity-based degradation (in the form of
+ploitation, extortion, and long-term harm. In such cases, early inter-     hate speech) used to intensify interpersonal conflict.
+ventions can help prevent harm and mitigate lasting psychological
+                                                                            Social Degradation
+distress in children [99].
+                                                                            User3: Racism runs both ways → User4: “Cuz black figures always
+ #4: Persuading to share off-platform accounts. Other in-                   thinking about seafood” ### → User4: Look atu → User3: Yes →
+stances of grooming we observed are to shift communication to an            User4: AHEN → User3: Look at u lol → User4: ever said such things
+external platform (e.g., TikTok) along with mild flirting (e.g., calling    → User3: Ong → User4: “This monkey” → User4: Is ###### → User3:
+                                                                            That’s racist → User4: Cuz everyone is monkeys → User3: “Ima
+“sweetie”) to gain trust, thereby moving the conversation beyond            monkey bc I’m black” → User3: That’s how u acting → User4: “U
+the moderated environment and reducing oversight.                           can be white while being a ###### # # ####”
+
+
+                                                                              Note that, in the final message from User4, moderation is applied
+  Grooming-Oriented Platform Migration
+  User2: “What other apps do you have that you can text” → User1:
+                                                                           at the phrase level rather than at the individual word level. This
+  “what do u have” → User2: “Tt” (Shortform of Tiktok)                     suggests that Roblox’s moderation is not purely keyword-based, but
+                                                                           instead leverages AI to capture contextual meaning, as described in
+their official documentation [21]. However, the observed outcome           Roleplay using explicit language
+highlights inconsistencies in such AI-based systems, as the majority       User1: “in mouth” → User1: “I [Explicit content]”
+of the harmful exchanges remained unfiltered.
+ #7: Hate speech based on race and identity. Hate speech refers            #10: Objectifying with explicit language. Another prevalent
+to expressions that attack, demean, or incite hostility or violence       pattern involves users reducing others to sexual attributes or body
+against an individual or group based on protected characteristics         parts using explicit language as shown below. Such objectification
+such as race, ethnicity, religion, gender, sexual orientation, or dis-    exposes minors to inappropriate sexual content, normalizes harm-
+ability. The following are some examples of hate speech we ob-            ful behavior, and increases their vulnerability to grooming and
+served based on race and sexual orientation.                              exploitation.
+
+ Explicit Racist Hate Speech and Slur                                      Objectifying with explicit language
+ User3: “NILGG ERS = SLAVES” → User3: “#H## ck lives, D,.ONT.              User1: “bigassnegro” → User2: “a pretty one tonight” → User2:
+ matter.” → User3: “### LIVE ES MAntER‘(ekcept niggers)” → User3:          “ima girl” → User2: “if u were a king would u make me ur queen” →
+ “### about you quit pick ing cot ton and pick uP” → User3:                User3: “bigblacktittie” → User2: “soo ami pretty” → User2: “do
+ “wedontsellniggas*”                                                       u wanna get busy”
+
+
+ Hate Speech based on Sexual Orientation                                   #11: Sexualized rumors about other entities. We also observed
+ User4: “Ru being home o phobic” → User4: ‘Is it bc ’m trans ...          several instances of users spreading or amplifying sexualized ru-
+ Ru telling her to die” → User5: “Ur not the government” → User4:         mors about peers, public figures, or authority figures, often naming
+ “niether r yall” → User4: “Atleast we aren’t blonde basic and
+ skinny” → User5: “Little miss is having a tantrum”                       individuals and attaching explicit or suggestive claims. The follow-
+                                                                          ing example shows such an instance involving teachers.
+
+4.3    Sexual Content                                                      Sexualized Rumor Involving an Authority Figure
+This category captures messages involving sexualized language,             User1: “I heard [name] had ### with the teacher” → User2: “NOT
+                                                                           THE SCINCE TEACHER” ... “ACTUALLY THAT MAKES SENSE.” → User1: “HE
+propositions, suggestive roleplay, flirtatious escalation, and requests    RLLY [explicit content] SO SHE COULD GET AN A.”
+for intimate content. Sexual content often appeared in partial words,
+euphemistic phrasing, fragmented spelling, or context-dependent
+innuendo. In some cases, users described simulated sexual contact,        4.4    Threats, Violence, and Self-Related Harm
+unwanted pregnancy, etc. These conversations included extended            Threats, violence, and self-related harm captures messages that
+adult-themed content, raising concerns about children’s exposure          describe, encourage, or fantasize about physical harm toward an-
+to age-inappropriate narratives. Although we exclude these exam-          other person or character. In the reviewed conversations, these
+ples due to their disturbing nature, these examples underscore the        included direct threats, descriptions of severe physical injury, en-
+importance of identifying sexualized content as a developmental           couragement of violence, and disturbing references to forced or
+safety concern, as adolescent health research links early sexual atti-    self-directed harm. Although some cases appear as exaggerated
+tudes, dating violence, sexting, and sexual risk behaviors to broader     roleplay or joking escalation, they remain visible in chat and con-
+reproductive health risks and sexual normalization [70, 96, 99].          sequently expose others, especially minors, to violent imagery and
+ #8: Soliciting Sex. A prevalent pattern involves users explicitly or     harmful language. Prior research suggests that this exposure can af-
+implicitly requesting sexual content or engaging others in sexually       fect emotional development, increasing distress while contributing
+suggestive exchanges. Some of the example phrases used for such           to desensitization of violent behavior towards others [83].
+solicitation are shown below.                                              #12: Threats and violence. We show two representative exam-
+                                                                          ples of threats and violence below.
+  Solicitation for Sex (Example Phrases)
+  Phrase 1: “Can you give me a H.J” (Hand-Job)                             Forced-Harm Scenario in Roleplay
+  Phrase 2: “IM HURNYY (Horny)”                                            User1: “kind of created a demon inside [name]” → User2: “WHY WOULD
+  Phrase 3: “anyone know of any good sugar daddies around”                 YOU DO THAT” → User1: “[name] a demon” → User2: “Yea uhm” →
+                                                                           User1: “made her jump of the roof” → User1: “Of a random house”
+
+ #9: Sexting and roleplay. Sexting [44] is defined as the exchange
+of sexually explicit or suggestive messages, often in a conversational     Escalating Threats of Physical Violence
+or roleplay context. We observe that such interactions begin as role-      User3: User3: “WILL RIP HIS VOCAL CORDS OUT” → User3: “OR HIS
+                                                                           LUNGS” → User3: “OR MAYBEEEEE” → User4: “just kick him” → User4:
+play and gradually escalate into more explicit exchanges. Examples         “many times” → User4: “to where he is near the brink of death”
+like the ones below indicate the challenges for real-time moderation
+to detect such cases, as they often unfold incrementally across
+                                                                             The first describes making another character jump from a roof,
+messages and rely on implicit context.
+                                                                          blending roleplay language with a forced harm scenario. The second
+                                                                          escalates from a threat to mutilate someone’s body to a suggestion of
+  Roleplay using implicit language
+                                                                          repeatedly kicking them until they are near death. These examples
+  User1: “Do you want me to do it hotter?” → User2: “Oh yeah” →
+  User1: “Do you want me to put it in there?”                             show how violent content remains visible not only through explicit
+                                                                          threats but through roleplay and fantasy violence.
+ #13: Self-harm (ideation). The following phrases indicate ex-              Possible Unauthorized Account Access
+plicit expressions of self-harm or acute distress. Such language            User1: “he’s stupid so it must be an easv nass” → User2: “FINNALY
+signals possible susceptibility and requires careful contextual in-         DID IT” → User3: “BRO THE PASSWORD WAS [password]” → User3: “OK
+                                                                            ITS DOWNLOADING” → User3: “HES GONNA NOTICE” → User3: “WELL IDC”
+terpretation. The prevalence of such content is harmful as it can           → User2: “NOW” → User3: “imma log into his acc”
+normalize self-harm ideation in children.
+                                                                        4.6      Profanity
+ Self-Harm (Example Phrases)
+                                                                        Profanity captures messages containing explicit, implied, and vulgar
+ Phrase 1: “i wish i can die”
+ Phrase 2: “HELP IM DYING”                                              swear words, at times appearing in partial or altered forms.
+ Phrase 3: “I’m gonna drown myself”                                      #16: Profanity in altered form. As shown below, most of the
+                                                                        profanity examples use altered spellings, abbreviations, or substi-
+                                                                        tute forms (e.g., “f4,” “bi$hs,” and “btx”).
+4.5    Sharing and Requesting PIIs
+Off-platform redirection and PII disclosure capture messages in             Examples of Profanity
+which users attempt to move interactions beyond Roblox or share             P1. f4 off you dumb b4              P2. allur bi$hs
+                                                                            P3. Shithatfeelsgoodg               P4. Dam imagine callin me a btc
+information that could help another user identify, locate, or contact
+                                                                            P5. I look ugly as hell like this   P6. ufelt so good f4 yeah ff
+them elsewhere. Next, we discuss our observations in this category.         P7. she ndam gokng to wip           P8. HELL TO THE NO
+ #14: Sharing or Requesting Off-platform Handles. These ex-                 Yourassi
+changes can be of two types: (1) a user sharing their own identity or
+(2) requesting others’ identities in other platforms, such as TikTok,      Profanity was not limited to isolated swearing; it also appeared in
+YouTube, and Snapchat. While not explicitly threatening or abusive,     exchanges involving casual emphasis, direct insults, sexual remarks,
+they remain pertinent because they create pathways for predators        and aggressive escalation. Note that, here, we treat profanity as a
+to track or continue communicating with children [118]. For ex-         category of unsafe policy violations that remained visible in the
+ample, in 2024, a 15-year-old boy took his own life after shifting      corpus. In RQ2 (§6), we return to these patterns from a different
+conversations to Discord, after severe manipulative coercion [104].     angle, examining how users adapted the language to bypass the
+                                                                        moderation system.
+ Sharing Self-identity in Other Platforms
+ User1: “yo uu got a tt account” → User1: “DO YALL WHATCH MY YOUTUBE”
+                                                                        5     RQ2 (EVASION TECHNIQUES): METHOD
+ → User2: Do vou post codes ## ## → User1: Can v’all whatch it          This section describes the methods and results of Roblox users’
+ it’s [OFFPLATFORM_HANDLE_001] → User1: [OFFPLATFORM_HANDLE_001]
+                                                                        attempts to evade moderation. Since previously moderated users
+                                                                        are more likely to engage in evasive behaviors, we first identify
+ Requesting other’s identity
+                                                                        moderated messages (i.e., masked by Roblox) and then examine
+ User1: “m recording in tik” → User2: “whats ur user” →                 subsequent behaviors of their senders. We manually review the
+ User1: “Its kinda long” → User2: “ok tell me” → User1:                 full chat history of these users and perform thematic analysis to
+ “[OFFPLATFORM_HANDLE_001]” → User2: “and post the tt after you
+ tell and thx”
+                                                                        develop a taxonomy of evasion patterns, which we discuss next.
+                                                                        Moderated Chat Message Detection. Roblox replaces potentially
+                                                                        unsafe messages with sequences of hash (‘#’) characters [24]; thus,
+   Interestingly, off-platform redirects appear through ordinary so-    we search for such sequences in the transcribed messages to identify
+cial conversation and not overtly suspicious language. In the first     moderated or sanctioned content. We observe that, since hash (‘#’) is
+example above, a user asks whether others have a TikTok account,        a special character, our OCR framework often recognizes the series
+promotes a YouTube channel, and provides a recognizable account         of hashes as a series “H” or “4”. To improve the precision of our mod-
+name. In the second, a user tells others they are recording for their   erated chat message detection, we score each span using rule-based
+channel, subsequently providing a period-linked username. While         features, such as length, repeated structure, character composition,
+difficult to classify as harmful in isolated messages alone, their      and penalties for forms that resemble common words or likely false
+safety significance becomes clearer when read in context. Requests      positives (e.g., “AHHHH” or “HAHAHA”). We exclude masked spans of
+for usernames and references to outside platforms are extreme           length one or two, as these spans are disproportionately difficult to
+safety concern because the destination platform may have differ-        distinguish from low-information moderation events. Instead, we
+ent moderation standards or detect coercive behavior in private         prioritize masked spans of length three or greater, as they likely
+messages. As a result, even seemingly ordinary requests to follow,      enhance support for sequence-level analysis of bypass behavior. Ta-
+post, or share usernames can increase children’s exposure to inter-     ble 4 summarizes the distribution of masked content across games
+actions that occur outside the protections and visibility of Roblox’s   with observed user count. Figure 3 in §C.4 shows the distribution
+moderation environment.                                                 of masked content of different lengths.
+ #15: Sharing Other’s Sensitive Information. Another not-so-            Thematic Analysis to Understand Evasion Patterns. Next, we
+prevalent but interesting observation is that users can use platforms   manually review masked content and surrounding messages based
+like Roblox to share sensitive information on others – third-party      on users to surface evasive behaviors. Due to the large volume
+entities, who might not even be on Roblox. One such example is          of masked content, we prioritize the ones most likely to support
+provided below, where one user shared another person’s password.        meaningful qualitative interpretation. Figure 2 shows how the rank
+distribution of users was highly skewed, with a small subset of                • Both conditions must hold for three consecutive candidate
+users accounting for the bulk of moderated messages. Therefore, to               windows. We add this condition to provide additional safe-
+reduce the overrepresentation of a small number of highly active                 guard against premature saturation caused by incidental
+users or a single game environment, we select review targets in a                redundancy in the review sequence.
+stratified manner across games and user-level frequency groups.
+                                                                           In total, we analyzed 12,612 messages from 94 users until the-
+We use a cutoff at users with at least seven masked messages to
+                                                                         matic saturation was reached.
+focus our effort on high-information-density users. When we assign
+
+                                                                         6     RQ2 (EVASION TECHNIQUES): FINDINGS
+                                                                         This section summarizes the recurring evasion techniques users
+                                                                         employed to adapt their language after content was filtered. Similar
+                                                                         to §4, relevant contents supporting the narratives are highlighted
+                                                                         in red, and anonymized contents are highlighted in [text].
+
+                                                                         6.1      Multi-Line Fragmentation
+                                                                         Multi-line fragmentation captures cases where users attempted to
+         Figure 2: Moderated/hashed message count per user.              preserve meaning by distributing fragments of filtered or partially
+                                                                         filtered messages across adjacent lines (turns). Rather than replac-
+users to frequency groups, we do so based on the proportion of           ing a blocked word with a single alternate form, users repeated,
+their hashed messages that met our confidence criteria. Specifically,    continued, or repaired the filtered message over several consecutive
+we compute a frequency ratio by dividing the number of hashed            messages. This pattern appeared most frequently in the reviewed
+messages by the total number of messages. Users with a ratio of          saturation set due to the sequential structure of the chat stream,
+above 0.90 are assigned to the high-frequency group. Users with          allowing for active response to filtered feedback.
+ratios between 0.50 and 0.90 are assigned to the medium-frequency         #1: Bypassing for whole sequences. In some cases, the origi-
+group, and users with ratios of 0.50 or below are assigned to the low-   nal message was entirely filtered, to only later reconstruct the in-
+frequency group. Note that Roblox’s moderation is often partial,         tended meaning in subsequent turns. The following example shows
+which means only part of the message is masked; thus, it is still        a heavily masked sequence, accompanied by partial fragments, ma-
+valuable to analyze users with a high frequency ratio. Table 7 shows     terializing the self-destructive language. Multi-line fragmentation
+some examples of users selected for manual review.                       effectively bypasses sentence-level moderation, as users can dis-
+                                                                         tribute meaning across multiple lines, revealing intent even some
+  Table 7: Representative candidate users selected for manual review.    individual lines are partially masked.
+           Game          User        Freq.   Masked Freq.
+                                     Level    Msgs. Ratio                    (b) Multi-line retry when whole sentence was masked
+                                                                             User: ################## → User: “I just want to” → User: ### →
+           AdoptMe       U15127   High            11    1.00                 User: ### → User: “die”
+           AdoptMe       U09489 Medium            18    0.89
+           BerryAve      U03241   High            12    0.92
+           BerryAve      U32259    Low            14    0.43              #2: Bypassing for partial sequences. In other cases, only part
+           Brookhaven    U75564   High            11    0.91             of the original message was filtered. In this example, an insult
+           Brookhaven    U62192 Medium            18    0.83             sequence begins with a partially masked accusation, then continues
+           RoyaleHigh    U86959   High            16    1.00             across ensuing texts: CALLED ME, A, #####, and finally “BTC”. The
+           RoyaleHigh    U11452 Medium            15    0.73             surrounding sequence narrows the interpretation and makes the
+                                                                         intended profanity legible through context. This illustrates how
+   The selected masked content and surrounding messages were             users can use feedback over neighboring turns for bypassing.
+then manually annotated by following an iterative thematic analy-
+sis process. Following prior taxonomy work [17, 37, 81], we used             (c) Multi-line retry when partial sentence was redacted
+saturation as a stopping condition. We consider saturation has been          User: “NAWW SOMEONE ###### ## # #####” → User: “CALLED ME” →
+                                                                             User: “A” → User: ##### → User: “BTC”
+reached when all three of the following conditions are satisfied:
+     • Including a newly reviewed candidate does not expand the
+       set of unique evasion techniques or alter the defining prop-       #3: Bypassing for a sequence. Multi-line fragmentation also
+       erties of an existing theme. Saturation is the coupling of        appeared when users split a filtered word in multiple turns. In
+       diminishing returns and information redundancy, and not           the following example, the exchange begins with an ordinary age-
+       evidence that all possible techniques have been exhausted.        related question, then escalates to a request for contact information.
+     • The focal candidate must contain sufficient interpretable         The requester uses a shorthand symbol reference, “#,” then a masked
+       context to support comparison with previously reviewed            message indicating the more direct version may have triggered
+       cases. This criterion prevents saturation from being declared     moderation. Instead of stopping, the user repairs the request in the
+       on the basis of sparse or uninformative cases.                    next two turns.
+ (a) Multi-line retry                                                      begins with a nonstandard spelling of the term, encounters filtering,
+ User1: “that’s cool! What grade u in now?” → User2: [6th] → User2:        then reissues the term in a phonetically distorted form. Although
+ “I’m young” → User1: “u have a #” → User1: “A what” → User1:
+ ###### → User1: “numbe” → User1: “r”                                      the variation evolves across turns, the user modified the word’s
+                                                                           surface to avoid the exact spelling that triggered masking.
+6.2    Lexical Retry
+                                                                             (b) Altered Spelling
+Lexical retry portrays cases where users responded to moderation             User: “eat ur posay ma’am” → User: ###### → User: “pOHSSAY”
+by restating blocked content in a modified form. Instead of reiter-
+ating the same message in later turns, users changed the wording,
+spelling, or representation of the original content while still preserv-   6.4    Code Word
+ing the underlying intent. This pattern distinguishes reformulation        Code word cases involve substitute forms, abbreviations, or short-
+from repetition by illustrating that a message may change on the           ened terms. Unlike altered spelling or leet speak, code words do
+surface, but the communicative goal remains the same.                      not preserve the original visual form of the word. Instead, they rely
+ #4: Bypassing through word reformat. In some cases, users re-             on context, sequence, and shared interpretation. This category also
+formulated filtered information by revising its representation. In the     connects with the escaped category analysis in §4.6, where forms
+following example, a user initially sends a numeric sequence, parts        such as f4 and btx illustrate how numbered substitutes and married
+of which were masked by the third line, then continued spelling            keys (“x” and “c”), allowed profane language to remain in chat.
+out numbers as words. The retry, therefore, did not introduce new           #8: Bypassing for profanity. All the instances of code words
+content but changed the surface form of sensitive information after        that we observed are used to express expletive insults. In the fol-
+moderation. This bypass technique is useful for communicating              lowing examples, users first produced a partially filtered message,
+sensitive information, such as phone numbers.                              then replaced it with a shortened substitute such as b or BTC. The
+                                                                           preceding messages prepare the interpretation, and the substitute
+ (a) Lexical Retry For Sending Numbers                                     term supplies the recoverable meaning.
+ User: “A code” → User: “Its” → User: “[234]” → User: “[567]”
+ → User: ### → User: #### → User: “[Four]” → User: “[Three]”
+ → User: “[Two]”                                                             (a) Code Word For Profanity
+                                                                             User: “u ugly ####” → User: “mind ur business” → User: “u b” →
+                                                                             User: “yea run away b”
+ #5: Bypassing through sentence revision. In other cases, users
+responded to filtering by revising the sentence rather than split-
+ting the content over subsequent turns. In this example, the user            (b) Another Example of Code Word for Profanity
+attempts to relay their name, but the original term is partially fil-        User: “NAWW SOMEONE ###### ## # #####” → User: “CALLED ME” →
+tered. The user then reformulates the sentence, preserving the same          User: “A” → User: ##### → User: “BTC”
+
+disclosure while changing the ordering.
+                                                                               In the final example below, the user moves through several hos-
+ (b) Lexical Retry For Other Sensitive Info                                tile turns using terminology as surrogates for profane language
+ User: “My name is also #####” → User: “[Sarah] is mv name too”            in an escalating exchange. The surrounding phrases make their
+                                                                           function clear, for example, “f4” appears inside the familiar phrase
+6.3    Altered Spelling                                                    “get the [f-word] out.” This makes substitution more direct than a
+Altered spelling captures cases where users truncate or substitute         vague code word, as the sentence frame strongly identifies what
+the written form of a filtered term. These alterations include pho-        kind of word belongs there.
+netic spellings, added or removed letters, and spacing changes.
+Unlike lexical retry, which may revise the sentence, altered spelling       Direct textual substitution
+                                                                            User: “Your not involved btc” → User: “Get the hell out” → User:
+operates primarily at the word level. The user keeps the same un-           “Before shii get ugly” → User: “Get the f4 out”
+derlying term but modifies how it appears on the screen.
+ #6: Bypassing for profane language. In some cases, users used
+adapted spelling to preserve profane language after filtering. In the      6.5    Leet Speak
+following example, a filtered phrase was reissued in a version that        Leet speak replaces standard letters with visually similar numbers,
+added a period after the determiner, then altered the spelling of the      special characters, or other orthographic variations [100]. Leet
+profane term. Rather than abandoning the blocked expression, the           exists on a spectrum, where basic forms are often readable to the
+added punctuation disrupted the original phrase structure, while           human eye (e.g. h4cker or n00b), and harder forms use denser symbol
+the nonstandard spelling changed the word form itself.                     substitution making them difficult to detect. This makes leet useful
+                                                                           given that it exploits the gap between how people read a language
+ (a) Altered Spelling
+ User: “I #### ### ake #### in your lab” → User: “I need to take
+                                                                           and how automated systems process text as literal string matching.
+ a. shi in your lab”                                                        #9: Bypassing with symbolic substitution. In some cases, leet
+                                                                           speak appeared as a character-level strategy for modifying filtered
+ #7: Bypassing for sexually explicit language. Users also al-              words. In the following example, a user replaces the letter “a” with
+tered spelling to sexually explicit terms. In this example, the user       “@” resembling the letter shape in some stylized writing forms.
+  (a) Leet Speak                                                             (b) Probing for Sharing Location Information
+  User: ################## → User: “what’s your” → User: “n@me” →            User1: “you live in [El Paso] right” → User1: “do you live in [El
+                                                                             Paso]?” → User2: “yea” ... User1: “bc the time is diffrent in the
+                                                                             diff cities” → User3: # #### ## ####### [Houston] → User3: “what
+                                                                             time is it right now for u”
+ #10: Bypassing with numeric substitution. In the next ex-
+ample, leet speak occured through numerical substitutions. Words
+containing leet digits can activate the intended word base with little   7     DISCUSSION
+processing, explaining why forms similar to CHAT5 and d8ing reg-         In this paper, we analyzed a large-scale, real-world chat corpus
+ularize into a letter or sound based on its position [89]. In CHAT5,     from popular games on Roblox. Our analysis identified a wide
+the “5” functions as an “S” due to its visual resemblence. The “8” in    range of harmful content that evaded Roblox’s moderation system.
+“d8ting” is a phonetic compression with “eight” approximating the        Categorization of these messages shows that grooming dominates
+sound sequence in “ate.”                                                 harmful behaviors, followed by bullying and threats to violence
+                                                                         (table 6). This is troublesome, but perhaps unsurprising, given that
+  (b) Leet Speak                                                         the popularity of these games among minors may attract predators.
+  User: “I SCRE2ENSHOTTED CHAT5” → User: “Y’all are d8ing”                  Our analysis further detected evasive tactics that users adopted
+                                                                         to sneak in harmful content. These include well-known techniques
+                                                                         like leet speak and algospeak, which are popular on other online
+6.6    Probing                                                           platforms, as well as techniques likely invented specifically for the
+Probing captures cases where users test multiple variants of a           conversational settings Roblox games offer, such as splitting the
+blocked term or phrase. Unlike lexical retry, where users redesign       content into multiple turns and trying out variants of a moderated
+the filtered message in format and sentence revision, these exam-        message.
+ples involve an explicit trial-and-error process attempting alternate
+forms such as abbreviations, descriptions, or partial spellings. Using   7.1      Implications of our findings
+this technique, users explore information about what the modera-
+                                                                         Our findings emphasize the limitations of message-level moderation
+tion system will allow or disallow.
+                                                                         in capturing conversational and context-dependent harm. This
+ #11: Bypassing for off-platforms. In some probing cases, users
+                                                                         highlights the need for context-aware moderation that is capable of
+attempt to reference an off-platform application, only to have the
+                                                                         filtering multi-turn conversations. Note that during our pre-filtering
+moderation system completely masked the name. In the follow-
+                                                                         step, the best model achieved a recall of 72.4% (table 8), which means
+ing example, after the initial question, “do yall have #######,” the
+                                                                         it missed one in every four messages; thus, harmful interactions
+user attempts to compress the name through abbreviation and com-
+                                                                         are more prevalent than what this result shows. In addition to the
+ments on the outcome. This comment is important because it shows
+                                                                         observed evasion strategies, we would like to highlight one other
+awareness of the filter as an active constraint in the conversation.
+                                                                         observation, as fig. 2 shows, a small number of users are responsible
+The user does not merely repeat the blocked work, but adjusts their
+                                                                         for the bulk of the harmful content, and they are persistent in
+next trail to describe it as starting with “disco” and ending in “rd”
+                                                                         bypassing the moderation. This implies that moderation decisions
+for the completed spelling “discord”. Each step supplies new infor-
+                                                                         are largely made at the message level without incorporating user-
+mation while avoiding the exact form that previously triggered
+                                                                         level behavioral context, allowing persistent offenders to repeatedly
+moderation. This type of probing offers a significant challenge to
+                                                                         bypass safeguards and continue engaging in harmful interactions.
+the robustness of the moderation system.
+
+                                                                         7.2      Recommendations
+ (a) Probing for Moving Off-platform
+ User: “do yall have #######” → User: “DSC” → User: “WHY DOES            In light of our findings, we propose the following recommendations:
+ ####### TAGS” → User: “the app that starts with disco” → User:           Recommendation #1: mix deterministic and probabilistic
+ “ends with” → User: “rd”
+                                                                         approaches. Many evasive techniques used spelling variants of
+                                                                         the harmful word or phrases, such as mixing characters and sym-
+ #12: Bypassing for geographical information. In other prob-             bols or intentionally misspelling. Deterministic approaches—like
+ing cases, users test whether geographical information could pass        regular expressions and approximate string matching coupled with
+through filtering. Unlike ordinary location sharing, these exam-         regularly updated datasets of popular slangs and codewords—might
+ples show users actively negotiating what could be said, where it        detect them better than probabilistic language models, and within a
+could be placed, and whether the system would continue to mask           shorter time and with less computing resources. Language models
+it. In this example, the exchange begins with a question concern-        can then focus on more serious cases, such as grooming.
+ing a specific city, then a partially masked phrase before Houston        Recommendation #2: judge based on ‘conversation’ rather
+(anonymized), suggesting that the moderation system responds             than individual messages. As our data shows, often users split a
+consistently to reference or surrounding wording. The unevenness         single message into multiple turns to bypass moderation. We also
+encourages additional experimentation with the user moving to            found that certain messages can be determined as abusive only
+question the other’s current time. This probing behavior creates a       when considered within the context or implicit cues. Thus, instead
+privacy risk because location disclosure can support off-platform        of judging messages in isolation, maintaining a window of conver-
+contact, identification, or real-world harm.                             sational messages is required to improve the detection accuracy.
+This is easier said than done: focusing on the continuous conver-        social norms or ad hoc judgments [5, 38]. As platforms grew, mod-
+sation stream will dramatically increase computing demand, and           eration systems evolved by establishing centralized control [5, 97,
+can be unsustainable at the million-user scale. Rather, continuous       115]. Social media and gaming platforms shifted towards auto-
+monitoring may focus on a few high-risk users, as explained next.        mated moderation [55, 77] with formal guidelines and reporting
+ Recommendation #3: longitudinal and cross-game exami-                   systems [12, 67, 98]. These platform-automated approaches spanned
+nation of users. We found that a small number of users post bulk         keyword filtering, machine learning classifiers [2, 4], and AI-based
+of the offensive messages, and repeatedly get filtered by the exist-     systems [75, 106, 116] designed to identify harmful content [59, 92].
+ing moderation system. Roblox could deploy a more sophisticated          Automated Approaches to Child Safety. Comparatively little
+moderation strategy (e.g., a better but slower language model that       research examines how violations unfold within MMO environ-
+supports longer context, possibly assisted by human moderators)          ments. Existing work that focuses on age-inappropriate content [2,
+reserved for users whose messages had already been moderated             46, 52, 63, 76, 93], cyberbullying [3, 62, 80], or predatory behav-
+beyond a certain threshold. User-level information could be shared       ior [9, 47, 51, 112], fails to develop intervention methods that shield
+across servers or games, so that someone who was blocked from            children from online abuse. Legal frameworks such as COPPA [20]
+one game would face stricter moderation in another. Indeed, Roblox       mandate age filters and parental consent, yet studies report chil-
+game creators have demanded such platform-level moderation as-           dren often circumvent age-verification tools [87] and parental con-
+sistance [74], noting the challenges in coordinating and exchanging      trols are inconsistently applied [22, 66]. Recent advances in ma-
+information within the current setup.                                    chine learning, LLMs, and computer vision offer new ways to iden-
+ Recommendation #4: improve the reporting mechanism                      tify harmful content at scale [39, 53, 61]. Yet automated classifiers
+and build trust among the users. The mechanism to report                 trained on toxicity benchmarks struggle with nuanced aggression,
+misbehaving users is the fallback mechanism when moderation fails.       age-inappropriate content, and manipulation [8, 42, 98, 117]. Com-
+Roblox should strengthen and promote its reporting mechanism             puter vision demonstrates that OCR can reliably extract text embed-
+to create awareness of it [74]. We also suspect that there is a lack     ded within images, and then classify messages using deep learning
+of trust in the system, i.e., users may not believe that by reporting,   techniques [11, 72, 101]. Yet these pipelines still struggle with text
+they will achieve anything. This is justifiable as they see abusive      orientations, lighting, and background noise that require continu-
+messages getting filtered (indicating that the system can detect         ous human-in-the-loop review [43, 68].
+them), but the abuser is still able to send more messages. Thus,         Positioning Our Work. Our work fills several gaps in the existing
+we also recommend that platforms build trust by showing that             literature. Prior works mainly focused on online networking plat-
+reporting users help make the platform safer.                            forms (e.g., [54, 56]) that provide a different interaction environment
+                                                                         than MMO platforms. The latter is characterized by interactions
+                                                                         among a small number of users in a private or semi-private envi-
+7.3    Study Limitations                                                 ronment hidden from public view. Furthermore, MMO platforms,
+Our team could only collect publicly available data from public-         and in particular Roblox, have a disproportionately large number
+facing game servers; thus, our results are not generalizable to pri-     of underage users. Thus, the distribution of different harmful con-
+vate servers. Additionally, because Roblox attracts underage players,    tent and their severity are expected to vary; in particular, MMO
+many messages reflect early writing skills that include grammatical      platforms may be abused for grooming and sexual or mental abuse
+errors, misspellings, acronyms, and jargon. While we believe we          of minors. However, no prior work has evaluated how effectively
+can understand most discussions, some generational colloquialisms        current moderation techniques can prevent such abuses. Addition-
+may not be recognized. Finally, video recordings rotated servers pe-     ally, prior audits examined moderating actions [57, 64, 69, 107] but
+riodically to prevent freezing, game updates, and UI changes, which      did not study how users adapt to bypass moderation. Our study
+may introduce minor content disruption between sessions. After           addresses this gap by identifying tactics people use to evade detec-
+transcription, the textual data retained some noise, particularly in     tion while sending harmful messages. Finally, research on chat or
+cases involving non-English languages or emoticons.                      messaging platforms have predominantly used crowdsourced data,
+    We also note that due to ethical reasons, we used gpt-oss-120B       which is susceptible to selection bias [58, 95]. To our knowledge,
+with few-shot prompting with an F1 score of 44.13%, with 31.39%          this is the first study using chat messages collected in the wild; the
+precision and 71.43% recall. The impact of low precision on our over-    findings are thus expected to better represent the reality.
+all result is minimal, as it only increased our effort during manual
+thematic analysis. However, 71.43% recall indicates a fair amount of
+                                                                         9   CONCLUSION
+unsafe messages escaped our pre-filtration process. Similarly, our
+saturation-based analysis might also miss some rare patterns. Thus,      We conduct the first large-scale analysis of chat messages on Roblox.
+our findings should be interpreted as a lower-bound estimate on          This study surfaces the limitations of Roblox’s current chat moder-
+the true prevalence of unsafe interactions.                              ation pipeline, and importantly, suggests that any improvement in
+                                                                         moderation will be followed by users inventing new tactics to evade
+                                                                         it. We conclude by strongly recommending a user-centered (rather
+8     RELATED WORK                                                       than individual message-centered), layered moderation pipeline,
+Content Moderation in Online Platforms. Online content mod-              where behaviors of the same user across sessions, or even across
+eration began largely as human volunteer-driven processes [7, 71,        games, need to be evaluated collectively, with an increasingly so-
+79, 114], where rules were often informal and enforced through           phisticated mechanism after each flagged instance.
+10     ACKNOWLEDGEMENTS                                                                   [18] Tsong Yueh Chen, Shing-Chi Cheung, and Siu-Ming Yiu. 2020. Metamorphic
+                                                                                               Testing: A New Approach for Generating Next Test Cases. CoRR abs/2002.12543
+This paper was edited for grammar using Grammarly [60]. Sam-                                   (2020). arXiv:2002.12543 https://arxiv.org/abs/2002.12543
+ple videos and images provided in this paper and in the artifacts                         [19] Jessica Clement. 2025. Roblox Global Daily Active Users. https://www.statista.
+                                                                                               com/statistics/1192573/daily-active-users-global-roblox/. (2025).
+were generated through ChatGPT and Gemini Pro 3.1 [15, 86] for                            [20] Federal Trade Commission. 2013. Children’s Online Privacy Protection Rule: Final
+anonymization purposes. This project benefited from many con-                                  Rule Amendments. 16 C.F.R. Part 312. (2013). https://www.ftc.gov/legal-library/
+tributors who deserve recognition. We would like to extend our                                 browse/rules/childrens-online-privacy-protection-rule-coppa 78 FR 3972.
+                                                                                          [21] Roblox Corporation. 2020. How We Scaled Bert to Serve 1+ Billion Daily Re-
+gratitude to the current and former members of SPRLab at the Uni-                              quests on CPUs. (May 2020). https://about.roblox.com/newsroom/2020/05/
+versity of Arizona, including Jesse Chen, Rubin Yang, Muhammad                                 scaled-bert-serve-1-billion-daily-requests-cpus
+Bilal, Talha Abrar, Md Moyeen Uddin, Saiful Islam Salim, and Xin                          [22] Roblox Corporation. 2025. Parental Controls Overview. https://en.help.roblox.
+                                                                                               com/hc/en-us/articles/30428310121620-Parental-Controls-Overview. (2025).
+Li, for helpful discussions and feedback on the manuscript. Special                       [23] Roblox Corporation. 2026. Attributes and Signals. (2026). https://create.roblox.
+thanks to Saiful for suggesting a computer vision-based approach                               com/docs/matchmaking/attributes-and-signals#existing-signals
+                                                                                          [24] Roblox Corporation. 2026. Content Moderation on Roblox. https://en.help.roblox.
+for data collection and to Saiful, Jesse, and Rubin for helping Priya                          com/hc/en-us/articles/21416271342868-Content-Moderation-on-Roblox. (2026).
+during the initial stages of data collection and analysis. Finally,                       [25] Roblox Corporation. 2026. Korblox Deathwalker. (2026). https://www.roblox.
+we thank Mihai Surdeanu for letting us use his lab’s computing                                 com/bundles/319226/Korblox-Deathwalker
+                                                                                          [26] Roblox Corporation. 2026. Matchmaking. (2026). https://create.roblox.com/docs/
+resources for this project.                                                                    matchmaking
+                                                                                          [27] Roblox Corporation. 2026. Player. (2026). https://create.roblox.com/docs/
+                                                                                               reference/engine/classes/Player#Idled
+REFERENCES                                                                                [28] Roblox Corporation. 2026. Roblox Community Standards. https://en.help.roblox.
+ [1] Sandhini Agarwal, Lama Ahmad, Jason Ai, Sam Altman, Andy Applebaum, Edwin                 com/hc/en-us/articles/203313410-Roblox-Community-Standards. (2026).
+     Arbus, Rahul K Arora, Yu Bai, Bowen Baker, Haiming Bao, et al. 2025. gpt-oss-120b    [29] Roblox Corporation. 2026.          Roblox Community Standards | Roblox —
+     & gpt-oss-20b model card. arXiv preprint arXiv:2508.10925 (2025).                         about.roblox.com. https://about.roblox.com/community-standards. (2026).
+ [2] Syed Hammad Ahmed, Shengnan Hu, and Gita Reese Sukthankar. 2023. The                 [30] Roblox Corporation. 2026. Roblox experiences. (2026). https://www.roblox.com/
+     Potential of Vision-Language Models for Content Moderation of Children’s                  charts?device=computer&country=us
+     Videos. 2023 International Conference on Machine Learning and Applications           [31] Roblox Corporation. 2026. Roblox Safety Tools. https://about.roblox.com/
+     (ICMLA) (2023), 1237–1241. https://api.semanticscholar.org/CorpusID:266053028             safety-tools. (2026).
+ [3] Çinare O𝑢 guz Aliyeva and Mete Ya𝑢 gano𝑢 glu. 2025. Deep learning approach to        [32] Roblox Corporation. 2026. Roblox Terms of Use — en.help.roblox.com. https://
+     detect cyberbullying on twitter. Multimedia Tools and Applications 84, 19 (2025),         en.help.roblox.com/hc/en-us/articles/115004647846-{R}oblox-{T}erms-of-{U}se.
+     20497–20520.                                                                              (2026).
+ [4] Heajun An, Marcos Silva, Qi Zhang, Arav Singh, Minqian Liu, Xinyi Zhang,             [33] Roblox Corporation. 2026. Server Scoring. (2026). https://create.roblox.com/
+     Sarvech Qadir, Sang Won Lee, Lifu Huang, Pamela Wisnieswski, et al. 2025.                 docs/matchmaking/scoring
+     Toward Integrated Solutions: A Systematic Interdisciplinary Review of Cyber-         [34] Roblox Corporation. 2026. Text chat overview. (2026). https://create.roblox.com/
+     grooming Research. arXiv preprint arXiv:2503.05727 (2025).                                docs/chat/in-experience-text-chat
+ [5] Issa Annamoradnejad. 2022. Requirements for automating moderation in com-            [35] Roblox Corporation. 2026. Text filtering. (2026). https://create.roblox.com/docs/
+     munity question-answering websites. In Proceedings of the 15th Innovations in             ui/text-filtering
+     Software Engineering Conference. Association for Computing Machinery, New            [36] Samantha Craven, Sarah Brown, and Elizabeth Gilchrist. 2006. Sexual grooming
+     York, NY, USA, 1–4.                                                                       of children: Review of literature and theoretical considerations. Journal of sexual
+ [6] Senior Vice President of Engineering Anupam Singh. 2025. The infrastructure               aggression 12, 3 (2006), 287–299.
+     supporting record-breaking experiences. (Jun 2025). https://about.roblox.com/        [37] Wajeeh Daher. 2023. Saturation in Qualitative Educational Technology Research.
+     newsroom/2025/06/roblox-infrastructure-supporting-record-breaking-games                   Education Sciences 13, 2 (2023). https://doi.org/10.3390/educsci13020098
+ [7] A. Arnt and S. Zilberstein. 2003. Learning to Perform Moderation in Online           [38] Primavera De Filippi and Nathan Schneider. 2021. Peer Governance in Online
+     Forums. In Proceedings IEEE/WIC International Conference on Web Intelligence              Communities. (2021), 771586 pages.
+     (WI 2003). IEEE, Halifax, NS, Canada, 637–641. https://doi.org/10.1109/WI.2003.      [39] Naveen Reddy Dendi. 2025. Real-Time Content Moderation in Gaming Platforms:
+     1241285                                                                                   Technical Frameworks for Child Protection. Journal of Computer Science and
+ [8] Basel Barakat and Sardar Jaf. 2025. Beyond Traditional Classifiers: Evaluating            Technology Studies 7, 9 (Aug. 2025), 01–08. https://doi.org/10.32996/jcsts.2025.7.9.1
+     Large Language Models for Robust Hate Speech Detection. Computation 13, 8,           [40] Statista Research Department. 2025. Gaming Reach Worldwide by Age
+     Article 196 (2025), 19 pages. https://doi.org/10.3390/computation13080196                 and Gender 2025. (Nov 2025). https://www.statista.com/statistics/326420/
+ [9] Geetanjali Bihani and Julia Rayz. 2025. A Fuzzy Evaluation of Sentence Encoders           console-gamers-gender/
+     on Grooming Risk Classification. (2025). arXiv:cs.CL/2502.12576 https://arxiv.       [41] J. Angel Diaz-Garcia and Joao Paulo Carvalho. 2025. A Literature Review of
+     org/abs/2502.12576                                                                        Textual Cyber Abuse Detection Using Cutting-Edge Natural Language Processing
+[10] G Bradski. 2025. OpenCV: Image Thresholding — docs.opencv.org. https://docs.              Techniques: Language Models and Large Language Models. WIREs Data Mining
+     opencv.org/4.x/d7/da8/tutorial_table_of_content_imgproc.html. (2025). [Ac-                and Knowledge Discovery 15, 3 (2025), 38. https://doi.org/10.1002/widm.70029
+     cessed 19-03-2026].                                                                       arXiv:https://wires.onlinelibrary.wiley.com/doi/pdf/10.1002/widm.70029
+[11] J. Briskilal, M. Jaya Karthik, and Sai Praneeth. 2024. Detection of offensive text   [42] J. Angel Diaz-Garcia and Joao Paulo Carvalho. 2025. A Literature Review of
+     in memes using Deep Learning Techniques. AIP Conference Proceedings 3075 (Jul             Textual Cyber Abuse Detection Using Cutting-Edge Natural Language Processing
+     2024), 124484–124498. https://doi.org/10.1063/5.0217063                                   Techniques: Language Models and Large Language Models. WIREs Data Mining
+[12] Jie Cai, Aashka Patel, Azadeh Naderi, and Donghee Yvette Wohn. 2024. Content              and Knowledge Discovery 15, 3 (Jun 2025), 38. https://doi.org/10.1002/widm.70029
+     moderation justice and fairness on social media: Comparisons across different        [43] P. Divya, G. Samprakash, B. Yazhini, R. Kesavan, R. Saravanakumar, and S. Jeya
+     contexts and platforms. In Extended Abstracts of the CHI Conference on Human              Lakshmi. 2025. AI-based Content Moderation System for Offensive Data Detec-
+     Factors in Computing Systems. Association for Computing Machinery, New York,              tion. 2025 8th International Conference on Computing Methodologies and Commu-
+     NY, USA, Article 84, 9 pages. https://doi.org/10.1145/3613905.3650882                     nication (ICCMC) (2025), 1803–1809. https://doi.org/10.1109/ICCMC65190.2025.
+[13] Olivia Carville and Cecilia D’Anastasio. 2024. Roblox’s Pedophile Problam. (2024).        11140757
+     https://www.bloomberg.com/features/2024-roblox-pedophile-problem/                    [44] Nicola Döring. 2014. Consensual sexting among adolescents: Risk prevention
+[14] Teng-Chang Chang, Sendren Sheng-Dong Xu, and Shun-Feng Su. 2015. SSIM-                    through abstinence education or safer sexting? Cyberpsychology: Journal of
+     based quality-on-demand energy-saving schemes for OLED displays. IEEE Trans-              Psychosocial Research on Cyberspace 8, 1 (2014).
+     actions on Systems, Man, and Cybernetics: Systems 46, 5 (2015), 623–635.             [45] Ben Ellery. 2025.          Roblox Safety Failings Leave Children at Risk,
+[15] Chatbot App. 2026. AI Chatbot. https://chat.chatbot.app/?model=gemini-3-pro.              Claim Experts.           (2025).       https://www.thetimes.com/uk/law/article/
+     (2026). Accessed: 2026-04-30.                                                             roblox-kk-swastikas-childrens-safety-fx5n6tcl7
+[16] Mohamed Chawki. 2025. AI Moderation and Legal Frameworks in Child-                   [46] Fatmaelzahraa Eltaher, Rahul Krishna Gajula, Luis Miralles-Pechuán, Patrick
+     Centric Social Media: A Case Study of Roblox. (2025). https://doi.org/10.3390/            Crotty, Juan Martínez-Otero, Christina Thorpe, and Susan McKeever. 2025. Pro-
+     laws14030029                                                                              tecting Young Users on Social Media: Evaluating the Effectiveness of Content
+[17] Jesse Chen, Dharun Anandayuvaraj, James C Davis, and Sazzadur Rahaman. 2024.              Moderation and Legal Safeguards on Video Sharing Platforms. (2025).
+     (Jul 2024). https://arxiv.org/pdf/2310.01653
+[47] Larissa Engelmann, Christine A Weirich, and Corinne May-Chahal. 2025. Devel-              1109/ACCTHPA65749.2025.11168676
+     oping quality standards for community-based online child sexual exploitation         [69] Prerna Juneja, Md Momen Bhuiyan, and Tanushree Mitra. 2023. Assessing
+     and abuse interventions. Child Abuse & Neglect 164 (2025), 107444.                        enactment of content regulation policies: A post hoc crowd-sourced audit of
+[48] Ahmet M Eskicioglu and Paul S Fisher. 1995. Image quality measures and their              election misinformation on YouTube. In Proceedings of the 2023 CHI Conference
+     performance. IEEE Transactions on communications 43, 12 (1995), 2959–2965.                on Human Factors in Computing Systems (CHI ’23). Association for Computing
+[49] Fandom. 2021. GameCharlie1. (2021). https://robloxcities.fandom.com/wiki/                 Machinery, New York, NY, USA, Article 545, 22 pages. https://doi.org/10.1145/
+     GameCharlie1                                                                              3544548.3580846
+[50] Casey Fiesler, Nathan Beard, and Brian C. Keegan. 2020. No Robots, Spiders,          [70] Caroline W Kabiru, Helen H Habib, Sam Beckwith, Anthony Idowu Ajayi, Sheila
+     or Scrapers: Legal and Ethical Regulation of Data Collection Methods in Social            Mukabana, Beryl Nyatuga Machoka, Robert Wm Blum, and Anna E Kagesten.
+     Media Terms of Service. In Proceedings of the Fourteenth International AAAI               2024. Risk and Protective Factors for the Sexual and Reproductive Health of
+     Conference on Web and Social Media, ICWSM 2020, Held Virtually, Original Venue:           Young Adolescents: Lessons Learnt in the Past Decade and Research Priorities
+     Atlanta, Georgia, USA, June 8-11, 2020, Munmun De Choudhury, Rumi Chunara,                Moving Forward. (Oct 2024). https://doi.org/10.1016/j.jadohealth.2024.03.007
+     Aron Culotta, and Brooke Foucault Welles (Eds.). AAAI Press, 187–196.                [71] Joseph M Kayany. 1998. Contexts of Uninhibited Online Behavior: Flaming in
+[51] David Finkelhor, Heather Turner, and Deirdre Colburn. 2022. Prevalence of                 Social Newsgroups on Usenet. Journal of the American Society for Information
+     online sexual offenses against children in the US. JAMA network open 5, 10 (2022),        Science 49, 12 (1998), 1135–1141.
+     e2234471–e2234471.                                                                   [72] Sangmin Kim, Byeongcheon Lee, Muazzam Maqsood, Jihoon Moon, and Seung-
+[52] Susan Flynn, Rose Doolan Maher, and Julie Byrne. 2024. Child protection and               min Rho. 2025. Deep Learning-Based Natural Language Processing Model and
+     welfare risks and opportunities related to disability and internet use: Broadening        Optical Character Recognition for Detection of Online Grooming on Social Net-
+     current conceptualisations through critical literature review. Children and Youth         working Services. Computer Modeling in Engineering & Sciences 143, 2 (2025),
+     Services Review 157 (2024), 107410.                                                       2079–2108. https://doi.org/10.32604/cmes.2025.061653
+[53] Roberto Gallotta, Graham Todd, Marvin Zammit, Sam Earle, Antonios Liapis,            [73] Naren Koneru. 2025. How Roblox uses AI to Moderate Content on a
+     Julian Togelius, and Georgios N. Yannakakis. 2024. Large Language Models                  Massive Scale. (Jul 2025). https://about.roblox.com/newsroom/2025/07/
+     and Games: A Survey and Roadmap. IEEE Transactions on Games (2024), 1–18.                 roblox-ai-moderation-massive-scale
+     https://doi.org/10.1109/TG.2024.3461510                                              [74] Yubo Kou, Rie Helene Hernandez, and Xinning Gui. 2025. “The System is Made
+[54] Valerio La Gatta, Luca Luceri, Francesco Fabbri, and Emilio Ferrara. 2023. The            to Inherently Push Child Gambling in my Opinion”: Child Safety, Monetization,
+     interconnected nature of online harm and moderation: Investigating the cross-             and Moderation on Roblox. In Proceedings of the 2025 CHI Conference on Human
+     platform spread of harmful content between youtube and twitter. In Proceedings            Factors in Computing Systems. 1–18.
+     of the 34th ACM conference on hypertext and social media. 1–10.                      [75] Deepak Kumar, Yousef Anees AbuHashem, and Zakir Durumeric. 2024. Watch
+[55] Tarleton Gillespie. 2020. Content moderation, AI, and the question of scale. Big          your language: Investigating content moderation with large language models.
+     Data & Society 7, 2 (2020), 2053951720943234.                                             Proceedings of the International AAAI Conference on Web and Social Media 18
+[56] Ian Goldstein, Laura Edelson, Minh-Kha Nguyen, Oana Goga, Damon McCoy, and                (May 2024), 865–878. https://doi.org/10.1609/icwsm.v18i1.31358
+     Tobias Lauinger. 2023. Understanding the (in) effectiveness of content moderation:   [76] Sonia Livingstone and Leslie Haddon. 2012. Children, risk and safety on the
+     A case study of facebook in the context of the us capitol riot. arXiv preprint            internet: Research and policy challenges in comparative perspective. Policy Press,
+     arXiv:2301.02737 (2023).                                                                  Chicago, IL, USA.
+[57] Ian Goldstein, Laura Edelson, Minh-Kha Nguyen, Oana Goga, Damon McCoy,               [77] Rahul Makhijani, Parikshit Shah, Vashist Avadhanula, Caner Gocmen, Nicolás E
+     and Tobias Lauinger. 2023. Understanding the (In)Effectiveness of Content                 Stier-Moses, and Julián Mestre. 2021. Quest: Queue simulation for content
+     Moderation: A Case Study of Facebook in the Context of the U.S. Capitol Riot.             moderation at scale. arXiv preprint arXiv:2103.16816 2103.16816 (2021), 9.
+     (2023). arXiv:cs.SI/2301.02737 https://arxiv.org/abs/2301.02737                      [78] Alvaro Maranon and Dalia Wrocherinsky. 2023. Public Panics and Youth
+[58] Kênia C Gonçalves, Flávio Soriano, Humberto T Marques-Neto, and Jussara M                 Online Safety – a Deep Dive. (Jul 2023). https://project-disco.org/featured/
+     Almeida. 2026. Potential Exposure of Kids to Age-Inappropriate Content on                 public-panics-and-youth-online-safety-a-deep-dive/
+     Twitch: A Comparative Cross-Country Study. Social Network Analysis and Mining        [79] J Nathan Matias. 2019. The Civic Labor of Volunteer Moderators Online. Social
+     16, 1 (2026), 1.                                                                          Media+ Society 5, 2 (2019), 2056305119836778.
+[59] Agam Goyal, Xianyang Zhan, Yilun Chen, Koustuv Saha, and Eshwar Chan-                [80] Niall McCrae, Sheryl Gettings, and Edward Purssell. 2017. Social media and de-
+     drasekharan. 2025. MoMoE: Mixture of Moderation Experts Framework for AI-                 pressive symptoms in childhood and adolescence: A systematic review. Adolescent
+     Assisted Online Governance. In Proceedings of the 2025 Congerence on Empirical            Research Review 2, 4 (2017), 315–330.
+     Methods in Natural Language Processing. Association for Computational Linguis-       [81] Favourate Y. Mpofu. 2025. The Saturation Dilemma Reconsidered: Role, Chal-
+     tics, Suzhou, China, 12645–12660. https://doi.org/10.18653/v1/2025.emnlp-main.            lenges and Controversies for Qualitative Research in the Digital Era. Inter-
+     638                                                                                       national Journal of Qualitative Methods 24 (2025), 16094069251348542. https:
+[60] Grammarly, Inc. 2026. Grammarly. (2026). https://app.grammarly.com/ Accessed:             //doi.org/10.1177/16094069251348542
+     30 April 2026.                                                                       [82] Favourate Y. Mpofu and Samantha Lufuno Mudau. 2026. Saturation in the digital
+[61] Mahmudul Hasan, Kishan Shamsundar Athrey, Arfeen Khalid, Danfeng Xie,                     qualitative research: examining the factors influencing saturation attainment.
+     Ehsan Younessian, and Tony Braskich. 2024. Computer Vision: Challenges, Trends,           Cogent Arts & Humanities 13, 1 (2026), 2639313. https://doi.org/10.1080/23311983.
+     and Opportunies. CRC Press, Boca Raton, FL, Chapter Applications of computer              2026.2639313
+     vision in entertainment and Media Industry, 205–238. https://doi.org/10.1201/        [83] Sylvie Mrug, Anjana Madan, and Michael Windle. 2016. Emotional desensitization
+     9781003328957-10                                                                          to violence contributes to adolescents’ violent behavior. Journal of abnormal
+[62] Sameer Hinduja and Justin W Patchin. 2013. Social influences on cyberbully-               child psychology 44, 1 (2016), 75–86.
+     ing behaviors among middle and high school students. Journal of youth and            [84] Vicky Mudeng, Minseok Kim, and Se-woon Choe. 2022. Prospects of structural
+     adolescence 42, 5 (2013), 711–722.                                                        similarity index for medical image analysis. Applied Sciences 12, 8 (2022), 3754.
+[63] Monica Hong. 2024. The impact of social media in child sexual abuse. Journal of      [85] US Distric Court Eastern District of Kentucky. 2025. Seitz v. Roblox. https:
+     Paediatrics and Child Health 60, 10 (2024), 476–478.                                      //www.anapolweiss.com/2025-10-20-complaint.pdf. (2025). Filed: October 20,
+[64] Traci Hong, Zilu Tang, Manyuan Lu, Yunwen Wang, Jiaxi Wu, and Derry Wijaya.               2025.
+     2025. Effects of #coronavirus content moderation on misinformation and anti-         [86] OpenAI. 2026. ChatGPT. https://chatgpt.com/. (2026). Accessed: 2026-04-30.
+     Asian hate on Instagram. New Media & Society 27, 2 (2025), 931–954. https:           [87] Liliana Pasquale, Paola Zippo, Cliona Curley, Brian O’Neill, and Marina Mongiello.
+     //doi.org/10.1177/14614448231187529                                                       2020. Digital age of consent and age verification: can they protect children? IEEE
+[65] James M Hudson and Amy Bruckman. 2004. “Go away”: Participant objections                  software 39, 3 (2020), 50–57.
+     to being studied and the ethics of chatroom research. The information society 20,    [88] People of the State of California, ex rel. Los Angeles County Counsel. 2026. People
+     2 (2004), 127–139.                                                                        v. Roblox. https://file.lacounty.gov/SDSInter/lac/1202405_Complaint-Peoplev.
+[66] Instagram. 2025.        Parental Supervision.         https://help.instagram.com/         Roblox.pdf. (2026). Filed: February 19, 2026.
+     309877544512275. (2025).                                                             [89] Manuel Perea, Jon Andoni Duñabeitia, and Manuel Carreiras. 2008. R34D1NG
+[67] Jialun ’Aaron’ Jiang, Skyler Middler, Jed R. Brubaker, and Casey Fiesler. 2020.           W0RD5 W1TH NUMB3R5. Journal of Experimental Psychology: Human Perception
+     Characterizing Community Guidelines on Social Media Platforms. In Companion               and Performance 34 (02 2008), 237–241. https://doi.org/10.1037/0096-1523.34.1.237
+     Publication of the 2020 Conference on Computer Supported Cooperative Work and        [90] Carly Porcelli, Flora Anderson, and Juliane A. Kloess. 0. Unraveling the Complex-
+     Social Computing (CSCW ’20 Companion). Association for Computing Machinery,               ities of Offender Strategies as Part of Online Sexual Grooming and Technology-
+     New York, NY, USA, 287–291. https://doi.org/10.1145/3406865.3418312                       Assisted Child Sexual Abuse: A Systematic Review. Trauma, Violence, & Abuse
+[68] Mekha Jose, Jocelyn Anthony, Jose V Joseph, Joshwa Thomas, and Sharon Baby                0, 0 (0), 15248380251411261. https://doi.org/10.1177/15248380251411261 PMID:
+     Thomas. 2025. Automated Detection of Offensive Text in Social Media Images. In            41618489.
+     2025 Advanced Computing and Communication Technologies for High Performance          [91] Nicholas Proferes, Naiyan Jones, Sarah Gilbert, Casey Fiesler, and Michael Zim-
+     Applications (ACCTHPA). IEEE, Cochin, Kerala, India, 1–6. https://doi.org/10.             mer. 2021. Studying reddit: A systematic overview of disciplines, approaches,
+     methods, and ethics. Social media+ society 7, 2 (2021), 20563051211019004.                   Aggression and violent behavior 18, 1 (2013), 62–70.
+[92] Muhammad Deedahwar Mazhar Qureshi, M Atif Qureshi, and Wael Rashwan.                    [113] Gustav Wickström and Tom Bendix. 2000. The" Hawthorne effect"—what did
+     2025. Explainable AI for Hate Speech Moderation: A Stakeholder-Centered                      the original Hawthorne studies actually show? Scandinavian journal of work,
+     and Socially Grounded Review. (aug 2025). https://doi.org/10.36227/techrxiv.                 environment & health (2000), 363–367.
+     175440435.54783623/v1                                                                   [114] Donghee Yvette Wohn. 2019. Volunteer Moderators in Twitch Micro Commu-
+[93] Jenny Radesky, Enrica Bridgewater, Shira Black, August O’Neil, Yilin Sun, Alexan-            nities: How They Get Involved, the Roles They Play, and the Emotional Labor
+     dria Schaller, Heidi M Weeks, and Scott W Campbell. 2024. Algorithmic content                They Experience. In Proceedings of the 2019 CHI Conference on Human Factors in
+     recommendations on a video-sharing platform used by children. JAMA Network                   Computing Systems. Association for Computing Machinery, New York, NY, USA,
+     Open 7, 5 (2024), e2413855–e2413855.                                                         Article 160, 13 pages. https://doi.org/10.1145/3290605.3300390
+[94] Sansa Aldira Ramadhani, Rifqi Taufiqurrohman Khodari, Naily Ulfiah, and Aprilia         [115] Eugene Yang, David D Lewis, and Ophir Frieder. 2021. TAR on social media: A
+     Rosydawati. 2025. Silence Out of Fear: A Case Study of the Spiral of Silence in              framework for online content moderation. arXiv preprint arXiv:2108.12752 2950
+     Social Media Doxxing Victims. Jurnal Multidisiplin Indonesia 4, 6 (Dec 2025),                (2021), 147–155.
+     417–428. https://doi.org/10.58344/jmi.v4i6.2506                                         [116] Shuo Yang, Yuqin Dai, Guoqing Wang, Xinran Zheng, Jinfeng Xu, Jinze Li,
+[95] Afsaneh Razi, Ashwaq Alsoubai, Seunghyun Kim, Shiza Ali, Gianluca Stringhini,                Zhenzhe Ying, Weiqiang Wang, and Edith C. H. Ngai. 2025. RealFactBench: A
+     Munmun De Choudhury, and Pamela J Wisniewski. 2023. Sliding into my DMs:                     Benchmark for Evaluating Large Language Models in Real-World Fact-Checking.
+     Detecting uncomfortable or unsafe sexual risk experiences within Instagram                   Proceedings of the 33rd ACM International Conference on Multimedia (2025),
+     direct messages grounded in the perspective of youth. Proceedings of the ACM on              13435–13441. https://api.semanticscholar.org/CorpusID:279403389
+     human-computer interaction 7, CSCW1 (2023), 1–29.                                       [117] Kanwal Yousaf and Tabassam Nawaz. 2022. A deep learning-based approach
+[96] Yanet Ruvalcaba, Laura M Mercer Kollar, Sherry Everett Jones, Melissa C Mercado,             for inappropriate content detection and classification of youtube videos. IEEE
+     Ruth W Leemis, and Zhen-Qiang. 2023. Adolescent Sexting, Violence, and Sexual                Access 10 (2022), 16283–16298.
+     Behaviors: An Analysis of 2014 and 2016 Pennsylvania Youth Risk Behavior                [118] Jun Zhao, Ge Wang, Carys Dally, Petr Slovak, Julian Edbrooke-Childs, Max
+     Survey Data. (Aug 2023). https://doi.org/10.1111/josh.13290                                  Van Kleek, and Nigel Shadbolt. 2019. I make up a silly name’ Understanding
+[97] Joseph Seering, Tony Wang, Jina Yoon, and Geoff Kaufman. 2019. Moderator                     Children’s Perception of Privacy Risks Online. In Proceedings of the 2019 CHI
+     engagement and community development in the age of algorithms. New media                     conference on human factors in computing systems. Association for Computing
+     & society 21, 7 (2019), 1417–1443.                                                           Machinery, New York, NY, USA, Article 106, 13 pages. https://doi.org/10.1145/
+[98] Mohit Singhal, Chen Ling, Pujan Paudel, Poojitha Thota, Nihal Kumarswamy,                    3290605.3300336
+     Gianluca Stringhini, and Shirin Nilizadeh. 2023. SoK: Content Moderation in
+     Social Media, from Guidelines to Enforcement, and Research to Practice. In 2023
+     IEEE 8th European Symposium on Security and Privacy (EuroS&P). IEEE, Delft,
+     Netherlands, 868–895. https://doi.org/10.1109/EuroSP57164.2023.00056                    A     ETHICAL CONSIDERATIONS
+[99] Lakshmi Sravanti, Arul Jayendra Pradeep Velusamy, Kiragasur Madegowda Ra-
+     jendra, and John Vijay Sagar Kommu. 2025. Childhood Digital Exposure to Sexual          This study involves collecting chat messages involving minors
+     Content: Through the Lens of Developmental Psychopathology. Journal of Psy-
+     chosexual Health 7, 2 (2025), 115–119. https://doi.org/10.1177/26318318251322555
+                                                                                             from third-party servers. Even if these servers are public, i.e., any
+[100] Simona Stano et al. 2023. Linguistic guerrilla warfare 2.0: On the “forms” of          registered users can access them, adhering to the highest ethical
+     online resistance. Rivista Italiana di Filosofia del Linguaggio 2022 (2023), 177–186.   standards is paramount for ensuring the protection, privacy, and
+[101] J. Rajesh Surya, C. Kiran Mai, and M. Gangappa. 2025. Real-Time Multimodal
+     Content Moderation and Account Suspension System. In 2025 IEEE 5th Inter-               well-being of the individuals, especially minors, represented in
+     national Conference on ICT in Business Industry & Government (ICTBIG). IEEE,            the dataset [50]. Thus, we worked with our Institutional Review
+     Madhya Pradesh, India, 1–7. https://doi.org/10.1109/ICTBIG68706.2025.11323612           Board (IRB) to design a study protocol that responsibly manages
+[102] Al Sweigart. 2025. PyAutoGUI: Cross-platform GUI automation for Python.
+     (2025). https://github.com/asweigart/pyautogui                                          all the ethical and legal requirements. The protocol underwent a
+[103] Richard Szeliski. 2022. Computer vision: algorithms and applications. Springer         full board review before it was approved, with the condition that
+     Nature.
+[104] Eli Tan. 2025. He Made a Friend on Roblox. Their Relationship Turned
+                                                                                             any changes be reported within 6 months, which we complied with.
+     Sinister.    (Sep 2025).       https://www.nytimes.com/2025/09/12/technology/           One significant concern with the protocol was the lack of consent
+     roblox-lawsuit-child-safety.html                                                        from game server owners or the individuals involved in the chat.
+[105] Kurt Thomas, Patrick Gage Kelley, David Tao, Sarah Meiklejohn, Owen Vallis,
+     Shunwen Tan, Blaz Bratanic, Felipe Tiengo Ferreira, Vijay Kumar Eranti, and Elie        Previous studies have shown that revealing the nature of observa-
+     Bursztein. 2025. Supporting Human Raters with the Detection of Harmful Content          tional studies like ours can significantly alter users’ actions [113],
+     Using Large Language Models. In IEEE Symposium on Security and Privacy, SP              undermining the purpose of the study. Also, prior work shows that
+     2025, San Francisco, CA, USA, May 12-15, 2025, Marina Blanton, William Enck,
+     and Cristina Nita-Rotaru (Eds.). IEEE, 2772–2789.                                       obtaining consent in chat environments like ours is impractical [65],
+[106] Kurt Thomas, Patrick Gage Kelley, David Tao, Sarah Meiklejohn, Owen Vallis,            as either researchers were banned from the chatrooms or only a
+     Shunwen Tan, Blaz Bratanic, Felipe Tiengo Ferreira, Vijay Kumar Eranti, and Elie
+     Bursztein. 2025. Supporting Human Raters with the Detection of Harmful Content
+                                                                                             small number of people consented, rendering the study statistically
+     Using Large Language Models. In IEEE Symposium on Security and Privacy, SP              unrepresentative. An attempt to obtain consent after data collection
+     2025, Marina Blanton, William Enck, and Cristina Nita-Rotaru (Eds.). IEEE, San          would be impractical, given that 105,214 users were involved and
+     Francisco, CA, USA, 2772–2789. https://doi.org/10.1109/SP61157.2025.00082
+[107] Amaury Trujillo, Tiziano Fagni, and Stefano Cresci. 2025. The DSA Transparency         could risk re-identifying individuals.
+     Database: Auditing Self-reported Moderation Actions by Social Media. Proc.                  We argue that despite the absence of explicit consent, the bene-
+     ACM Hum.-Comput. Interact. 9, 2, Article CSCW187 (May 2025), 28 pages. https:           fits of this study outweigh the risks, given the careful and proactive
+     //doi.org/10.1145/3711085
+[108] Blerta Veseli, Julian Chibane, Mariya Toneva, and Alexander Koller. 2025. Posi-        measures we take to mitigate potential harms. Firstly, we designed
+     tional Biases Shift as Inputs Approach Context Window Limits. arXiv preprint            a non-intrusive method for data collection to comply with the Terms
+     arXiv:2508.07479 (2025).
+[109] Alberto Fernández Villán. 2019. Mastering OpenCV 4 with Python: a practical
+                                                                                             of Use of Roblox, including the “License to and Restrictions of Ser-
+     guide covering topics from image processing, augmented reality to deep learning         vices” provisions [32]. In accordance with these terms, the study
+     with OpenCV 4 and Python 3.7. Packt Publishing Ltd, Birmingham, UK.                     did not involve any reverse engineering, disassembly, or modi-
+[110] Xinyu Wang, Sai Koneru, Pranav Narayanan Venkit, Brett Frischmann, and Sarah
+     Rajtmajer. 2025. The unappreciated role of intent in algorithmic moderation             fication of Roblox’s technology, nor did it access any restricted
+     of abusive content on social media: HKS Misinformation Review. (Jul 2025).              servers. Secondly, data involving minors introduces risks such as
+     https://doi.org/10.37016/mr-2020-180                                                    unintended re-identification, exposure of sensitive content [91],
+[111] Zhou Wang, Alan C Bovik, Hamid R Sheikh, and Eero P Simoncelli. 2004. Image
+     quality assessment: from error visibility to structural similarity. IEEE transactions   and potential misuse if harmful interaction patterns are reproduced
+     on image processing 13, 4 (2004), 600–612.                                              without safeguards. Secondly, to mitigate these concerns, we ap-
+[112] Helen Whittle, Catherine Hamilton-Giachritsis, Anthony Beech, and Guy
+     Collings. 2013. A review of online grooming: Characteristics and concerns.
+                                                                                             ply deanonymization as soon as we transcribe the chat messages
+for downstream analysis and store the raw data on a password-            the ground-truth set for all variants. On average, the best perform-
+protected, air-gapped hard drive. Thirdly, to prevent data exposure      ing variant (for all games) achieves an accuracy of approximately
+to third-party LLM services, we only used open-source local LLMs         90%, with 80% lines successfully matched (both numbers averaged
+in this study. Fourthly, we selectively redacted or minimally quoted     for all games). Accordingly, the best-performing RGB variant is
+the examples to preserve analytical value while preventing trace-        selected on a per-game basis and applied across the corresponding
+ability in the paper. We do not release raw datasets and instead         corpus to suppress background content. As a result, for each origi-
+report only aggregated findings. Finally, we are in the process of       nal image, we got a corresponding background-suppressed image
+responsibly disclosing our findings to Roblox, including examples        across the whole corpus.
+of moderation bypasses, recurring evasion patterns, and harmful
+interaction patterns identified in our analysis, in the hope of help-    C.2    Recall and Average Matched Similarity
+ing them design a better moderation system that will positively          For every step where we compared the text from the ground-
+impact all users on their platform.                                      truth set with the OCR-generated text either from original images,
+                                                                         background-suppressed images, or from different phases of the
+B APPENDIX                                                               framework, we compared them using the following approach.
+                                                                            Given a manually-transcribed string 𝑠𝑔𝑡 and an OCR-extracted
+B.1 Anonymization of Usernames                                           string 𝑠𝑜𝑐𝑟 , we compute their similarity as:
+To anonymize the usernames found in the recording transcripts, we
+designed a script to first identify common name formats and OCR                                                  2 · 𝑀 (𝑠𝑔𝑡 , 𝑠𝑜𝑐𝑟 )
+                                                                                           Sim(𝑠𝑔𝑡 , 𝑠𝑜𝑐𝑟 ) =                              (1)
+variants (e.g., brackets, colons, pipes, and punctuation). The role                                               |𝑠𝑔𝑡 | + |𝑠𝑜𝑐𝑟 |
+tags, such as “[VIP]” and “[Team],” were removed to avoid being             where |𝑠𝑔𝑡 | and |𝑠𝑜𝑐𝑟 | denote the lengths of the strings, and
+mistaken for usernames. Once a possible username was found, the          𝑀 (𝑠𝑔𝑡 , 𝑠𝑜𝑐𝑟 ) represents the number of matching characters between
+script normalized the text by lowercasing it, removing accents/extra     the two strings.
+punctuation, collapsing spaces, and keeping only letters, numbers,          A match between the two strings is determined using a similarity
+and underscores. Next, to avoid treating OCR errors as different         threshold 𝜏:
+monikers, the script compared newly detected usernames to pre-                                               (
+viously identified ones. If a new candidate was >90% similar to a                                              1, if Sim(𝑠𝑔𝑡 , 𝑠𝑜𝑐𝑟 ) ≥ 𝜏
+                                                                                        Match(𝑠𝑔𝑡 , 𝑠𝑜𝑐𝑟 ) =                               (2)
+known username, the script reused the known username rather than                                               0, otherwise
+creating a separate identity. This threshold helped account for small       In our evaluation, we set 𝜏 = 0.8, allowing for minor OCR er-
+OCR distortions, such as missing characters, extra punctuation, or       rors such as character substitutions, spacing inconsistencies, and
+visually similar characters, while reducing the chance of merging        punctuation differences. A stricter threshold (e.g., 𝜏 = 1.0) would
+unrelated users. After parsing and normalization, each unique user-      require exact string matches and would incorrectly penalize other-
+name was replaced with a pseudonym such as “user_00001,” and             wise accurate OCR outputs that differ only in minor formatting or
+“user_00002.” These pseudonyms were assigned globally across all         recognition errors.
+files, so the same detected user kept the same anonymized label             AMS (Average Matched Similarity) is computed as the average
+wherever they appeared. Lines that were identified as server mes-        similarity over all successfully matched pairs:
+sages were labeled “server,” and lines where the speaker could not
+be confidently identified were labeled “unknown.” The anonymized                                           𝑁
+output kept only the pseudonymous speaker label and message                                 1             ∑︁
+                                                                         AMS = Í              (𝑖 ) (𝑖 )
+                                                                                                                Match(𝑠𝑔𝑡(𝑖 ) , 𝑠𝑜𝑐𝑟
+                                                                                                                                 (𝑖 )
+                                                                                                                                      ) · Sim(𝑠𝑔𝑡(𝑖 ) , 𝑠𝑜𝑐𝑟
+                                                                                                                                                         (𝑖 )
+                                                                                                                                                              )
+text. A separate username mapping file was created for internal au-                𝑁
+                                                                                   𝑖=1 Match(𝑠𝑔𝑡 , 𝑠𝑜𝑐𝑟 ) 𝑖=1
+diting, ensuring analysis focused exclusively on de-identified data.                                                                     (3)
+This allowed us to preserve conversational structure and repeated           Recall is computed as the proportion of ground-truth lines that
+speaker patterns without exposing original Roblox usernames.             are successfully matched to an OCR-extracted line:
+                                                                                                         𝑁
+                                                                                                     1 ∑︁
+C  ADDITIONAL STEPS FOR DATA                                                              Recall =         Match(𝑠𝑔𝑡(𝑖 ) , 𝑠𝑜𝑐𝑟
+                                                                                                                            (𝑖 )
+                                                                                                                                 )                         (4)
+                                                                                                     𝑁 𝑖=1
+   PROCESSING & ANALYSIS
+                                                                           where 𝑁 is the total number of ground-truth lines.
+C.1 Background-Suppression
+We apply background suppression using an empirically adjusted            C.3    LLM Selection
+RGB threshold combination. To obtain an optimal threshold for            To select an LLM with reasonable performance, we evaluate the
+the background suppression, we generated RGB masks thresholds            performance of several state-of-the-art LLMs on a manually cu-
+using values drawn from the set {50, 100, 150, 200}, yielding 64 can-    rated ground truth dataset. Here, we discuss our dataset annotation
+didate RGB threshold combinations (e.g., (50, 50, 50), (50, 50, 100)     process and our evaluation results.
+. . . (200, 200, 200)). We applied these RGB thresholds on the ground-   Data Annotation. To create the ground truth dataset, we ran-
+truth set to generate respective background-suppressed images for        domly sampled 2,000 conversations across games and age categories,
+all 64 variants. We then generate text using the OCR for the ground-     which were labeled by two annotators. Both annotators had prior
+truth set and compare the OCR-generated text against the text from       familiarity with online safety risks on youth-oriented platforms,
+including exposure to common indicators of grooming, harassment,           C.4    Hash Span Length Distribution
+and inappropriate content through academic coursework, research
+experience in content moderation, and engagement with relevant
+online platforms. Disagreements were resolved through discussion.
+We restricted the annotation and analysis to English conversations
+(33 out of 2000 conversations were non-English). Finally, we la-
+beled 1,680 conversations as safe and 287 conversations as unsafe,
+reflecting the relative rarity of unsafe interactions; it also creates
+a realistic imbalanced evaluation setting in which models must
+reliably identify a minority class of high importance.
+LLM Selection and Prompting Methods. Using the ground truth
+dataset described above, we evaluated four open-weight models:
+Mistral 7B, Llama4, Phi-4, and gpt-oss-120b. All models were de-
+ployed locally using Ollama to avoid uploading messages to third-
+party cloud servers. For evaluation, we used both zero-shot and
+few-shot prompting approaches. For zero-shot, the models were
+prompted to label one conversation at a time using the prompt              Figure 3: Distribution of hash span lengths less than 50 characters long
+shown in fig. 4. When a model’s performance (precision, recall,
+and F1-score) was unsatisfactory, we analyzed cases where they
+                                                                           C.5    LLM Prompt
+diverged from the ground truth and identified systematic failure pat-
+terns. For example, grooming interactions were missed when they
+were expressed as trust-building. Based on this analysis, we selected
+examples representing false negatives, false positives, and repre-
+sentative correct classifications. For each example, we extracted a
+short conversation segment and aimed to capture a range of inter-
+action patterns. These examples were then incorporated into the
+base prompt to guide few-shot prompting.
+
+Table 8: Evaluation results of candidate LLMs with zero- and few-shot
+prompting strategy in percentage. Here, accuracy means how often the LLM
+correctly labels safe or unsafe messages, and precision means how often
+the LLM marks a conversation as unsafe that is actually unsafe, whereas
+Recall means how often the LLM correctly labels it as unsafe.
+
+ Model          Accuracy   Precision   Recall    F1     Prompt-Strategy
+ gpt-oss-120B     69.48      26.09     73.46    38.51          zero-shot
+ gpt-oss-120B     74.04      31.93     71.43    44.13           few-shot
+ Mistral 7B       66.23      20.34     46.34    28.27          zero-shot
+ Mistral 7B       43.87      18.63     86.41    30.66           few-shot
+ Llama4           41.22      17.26     81.53    28.48          zero-shot
+ Llama4           64.88      22.59     59.58    32.76           few-shot
+ Phi-4            79.40      32.12     40.07    35.66          zero-shot
+ Phi-4            80.69      35.48     42.16    38.54           few-shot
+
+
+Results. We adopt a four-label schema (as defined in fig. 4) during
+inference to capture varying degrees of safety and model uncer-
+tainty (e.g., borderline or vague cases), which are common in infor-
+mal and context-dependent chat. This approach allows the model
+to better express nuanced judgments and reduces forced binary
+decisions during classification. As the models produced outputs
+across four labels, we map “Absolutely SAFE” to the safe class and
+the remaining labels to unsafe for binary evaluation. This map-
+ping reflects a design choice, where any indication of potential risk
+is treated as unsafe, aligning with the goal of minimizing missed
+harmful content. Implementing this approach, we compute stan-
+dard evaluation metrics, including accuracy, precision, recall, and
+F1-score. As table 8 shows, gpt-oss-120b with few-shot prompting
+achieves the most balanced performance across Accuracy and recall,
+resulting in the most robust overall F1-score.
+Standardized Prompt for LLM Classification.
+
+Role: You are a content safety classifier trained to detect whether text conversations are unsafe for minors under the age of 18. Your goal is to classify the conversation into one
+of four categories:
+Absolutely UNSAFE:
+Clear and strong unsafe behavior, including:
+      - Sexual content, sexual innuendo, like talking about gay, lesbian, or any kind of sexuality
+      - Explicit or mild flirting (Example: Want sum tonight, wanna go to bed, etc.)
+      - Grooming behaviors (trust building, isolation, secrecy), including asking for personal information like age or birthdays
+      - Attempts to move to another platform (YouTube, Instagram, Discord, Snapchat, etc.) includng saying usernames
+      - Asking for age, gender, photos, or private contact information with suspicious intent
+      - Explicit threats, harassment, hate speech, or discrimination or bullying by insulting or bad-mouthing someone
+      - Encouraging self-harm, drugs, or alcohol use
+      - Mild profanity without harmful context (e.g., "damn", "hell", "WTH", Ass/*ss/A$$/ASSI, f4 (f-word), btc (bitch))
+
+Possibly UNSAFE:
+Ambiguous but concerning signals, including:
+     - Mild flirting without clear sexual intent
+     - Asking for age, gender, photos, or private contact information with suspicious intent
+     - Context that may indicate grooming, but not explicit
+
+Possibly SAFE:
+Ambiguous but likely harmless:
+     - Compliments without romantic/sexual intent
+     - Single personal question without follow-up
+     - Short unclear phrases
+     - Casual joking
+
+Absolutely SAFE:
+Clearly harmless conversation, including:
+      - Normal game discussion like "asking a charcater it’s location in the gaming environment" or "asking a character to follow them in the game."
+      - Friendly banter without inappropriate intent
+      - Roleplay like "mom", "dad", "brother", "sister" that mimics family(Example: "Can you be my dad!")
+      - Ambiguous Statements
+      - Noisy OCR text that is unreadable and garbled
+      - Non-English text
+
+IMPORTANT RULES:
+    - Random OCR noise is SAFE
+    - Non-English text is SAFE
+    - Do NOT mark unsafe unless there is a clear risk
+    - Focus on intent, not isolated words
+
+OUTPUT FORMAT (STRICT):
+Return EXACTLY two lines:
+Decision: <Absolutely SAFE | Possibly SAFE | Possibly UNSAFE | Absolutely UNSAFE>
+Reason: <brief explanation referencing key behavior or pattern>
+Now classify this conversation:
+Conversation: <conversation_text>
+
+
+                                       Figure 4: Standardized prompt used for LLM-based classification of conversations.
+

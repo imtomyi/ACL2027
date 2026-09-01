@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/rq2/contextual-flattening-edit-v2.json",
+  "title": "Atomic contextual-flattening edit proposal",
+  "$defs": {
+    "positions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "integer", "enum": [1, 2, 3, 4, 5, 6]}
+    },
+    "direct_field_edit": {
+      "type": "object",
+      "required": ["edit_field", "replacement_text", "evidence_positions", "edit_intent_code"],
+      "properties": {
+        "edit_field": {"enum": ["claim", "explanation"]},
+        "replacement_text": {"type": "string", "minLength": 1},
+        "evidence_positions": {"$ref": "#/$defs/positions"},
+        "edit_intent_code": {"const": "collapse_one_local_noncontradictory_distinction"}
+      },
+      "additionalProperties": false
+    },
+    "boundary_edit": {
+      "type": "object",
+      "required": [
+        "edit_field",
+        "boundary_slot",
+        "replacement_text",
+        "evidence_positions",
+        "edit_intent_code"
+      ],
+      "properties": {
+        "edit_field": {"const": "boundary_condition"},
+        "boundary_slot": {"type": "integer", "enum": [1, 2, 3, 4, 5, 6]},
+        "replacement_text": {"type": "string", "minLength": 1},
+        "evidence_positions": {"$ref": "#/$defs/positions"},
+        "edit_intent_code": {"const": "collapse_one_local_noncontradictory_distinction"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["edit_schema_version", "status", "patch"],
+      "properties": {
+        "edit_schema_version": {"const": "rq2-contextual-flattening-edit-v2"},
+        "status": {"const": "proposed"},
+        "patch": {
+          "oneOf": [
+            {"$ref": "#/$defs/direct_field_edit"},
+            {"$ref": "#/$defs/boundary_edit"}
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["edit_schema_version", "status", "reason_codes"],
+      "properties": {
+        "edit_schema_version": {"const": "rq2-contextual-flattening-edit-v2"},
+        "status": {"const": "not_constructable"},
+        "reason_codes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "no_consequential_local_distinction",
+              "atomic_replacement_not_possible",
+              "edit_would_introduce_second_flaw",
+              "distinction_anchor_unclear"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

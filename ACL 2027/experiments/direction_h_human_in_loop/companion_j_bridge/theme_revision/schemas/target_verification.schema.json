@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-j-theme/target-verification-v1.json",
+  "title": "Independent itemwise verification for Direction J theme-revision targets",
+  "type": "object",
+  "required": [
+    "verification_version", "verification_id", "status", "first_stage_lock_sha256",
+    "private_item_key_sha256", "verifier_id", "verifier_is_charlie",
+    "verifier_constructed_items", "verified_at_utc", "items"
+  ],
+  "properties": {
+    "verification_version": {"const": "direction-h-j-theme-target-verification-v1"},
+    "verification_id": {"type": ["string", "null"], "minLength": 1},
+    "status": {"enum": ["template_incomplete", "complete"]},
+    "first_stage_lock_sha256": {
+      "oneOf": [{"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"}, {"type": "null"}]
+    },
+    "private_item_key_sha256": {
+      "oneOf": [{"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"}, {"type": "null"}]
+    },
+    "verifier_id": {"type": ["string", "null"], "minLength": 1},
+    "verifier_is_charlie": {"type": ["boolean", "null"]},
+    "verifier_constructed_items": {"type": ["boolean", "null"]},
+    "verified_at_utc": {"type": ["string", "null"], "format": "date-time"},
+    "items": {"type": "array", "items": {"$ref": "#/$defs/item"}}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "complete"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "verification_id": {"type": "string"},
+          "first_stage_lock_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+          "private_item_key_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+          "verifier_id": {"type": "string", "not": {"const": "charlie"}},
+          "verifier_is_charlie": {"const": false},
+          "verifier_constructed_items": {"const": false},
+          "verified_at_utc": {"type": "string"},
+          "items": {"minItems": 1}
+        }
+      },
+      "else": {
+        "properties": {
+          "verification_id": {"type": "null"},
+          "first_stage_lock_sha256": {"type": "null"},
+          "private_item_key_sha256": {"type": "null"},
+          "verifier_id": {"type": "null"},
+          "verifier_is_charlie": {"type": "null"},
+          "verifier_constructed_items": {"type": "null"},
+          "verified_at_utc": {"type": "null"},
+          "items": {"maxItems": 0}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "item": {
+      "type": "object",
+      "required": [
+        "item_id", "item_payload_sha256", "private_truth_record_sha256",
+        "classification", "target_error_flags", "target_item_locations",
+        "target_evidence_excerpt_ids", "second_material_defect_absent",
+        "repair_feedback_eligible", "rationale"
+      ],
+      "properties": {
+        "item_id": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"},
+        "item_payload_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+        "private_truth_record_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+        "classification": {"enum": ["verified_defective", "verified_control", "workflow_only", "reject"]},
+        "target_error_flags": {"type": "array", "items": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/errorFlag"}, "uniqueItems": true},
+        "target_item_locations": {"type": "array", "items": {"type": "string", "pattern": "^/"}, "uniqueItems": true},
+        "target_evidence_excerpt_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "second_material_defect_absent": {"type": ["boolean", "null"]},
+        "repair_feedback_eligible": {"type": "boolean"},
+        "rationale": {"type": "string", "minLength": 1, "maxLength": 3000}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"classification": {"const": "verified_defective"}}, "required": ["classification"]},
+          "then": {
+            "properties": {
+              "target_error_flags": {"minItems": 1},
+              "target_item_locations": {"minItems": 1},
+              "second_material_defect_absent": {"const": true}
+            }
+          },
+          "else": {
+            "properties": {
+              "target_error_flags": {"maxItems": 0},
+              "target_item_locations": {"maxItems": 0}
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

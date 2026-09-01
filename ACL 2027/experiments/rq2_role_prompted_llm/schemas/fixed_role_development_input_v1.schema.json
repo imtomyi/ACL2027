@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/rq2/fixed-role-development-input-v1.json",
+  "title": "Source-free development projection for Qwen3 fixed-role selection",
+  "type": "object",
+  "required": [
+    "input_schema_version",
+    "study_id",
+    "lane",
+    "qualification_gate_passed",
+    "qualification_seal_sha256",
+    "heldout_accessed_before_selection",
+    "reviewer_model",
+    "primary_repetition",
+    "minimum_items_per_family",
+    "minimum_independent_clusters_per_family",
+    "items"
+  ],
+  "properties": {
+    "input_schema_version": {
+      "const": "rq2-fixed-role-development-input-v1"
+    },
+    "study_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lane": {
+      "type": "object",
+      "required": ["corpus", "split", "experimental_role", "heldout"],
+      "properties": {
+        "corpus": {"const": "dreaddit"},
+        "split": {"const": "official_train"},
+        "experimental_role": {"const": "development"},
+        "heldout": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "qualification_gate_passed": {"const": true},
+    "qualification_seal_sha256": {"$ref": "#/$defs/sha256"},
+    "heldout_accessed_before_selection": {"const": false},
+    "reviewer_model": {
+      "type": "object",
+      "required": ["model_id", "model_snapshot_sha256"],
+      "properties": {
+        "model_id": {"const": "qwen3:8b"},
+        "model_snapshot_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "primary_repetition": {"const": 1},
+    "minimum_items_per_family": {"type": "integer", "minimum": 1},
+    "minimum_independent_clusters_per_family": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/item"}
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "errorFamily": {
+      "enum": [
+        "unsupported_evidence",
+        "source_concentration",
+        "counterevidence_loss",
+        "contextual_flattening",
+        "unsupported_abstraction"
+      ]
+    },
+    "targetFlag": {
+      "enum": [
+        "unsupported_inference",
+        "hidden_source_concentration",
+        "lost_negative_case",
+        "contextual_flattening",
+        "unsupported_abstraction"
+      ]
+    },
+    "allErrorFlag": {
+      "enum": [
+        "fabricated_or_altered_quote",
+        "wrong_attribution",
+        "unsupported_inference",
+        "hidden_source_concentration",
+        "lost_negative_case",
+        "contextual_flattening",
+        "unsupported_abstraction",
+        "sensitive_or_diagnostic_inference",
+        "inconsistent_codebook",
+        "other"
+      ]
+    },
+    "ratingProjection": {
+      "type": "object",
+      "required": ["cannot_judge", "serious_error_flags"],
+      "properties": {
+        "cannot_judge": {
+          "type": "array",
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "evidential_credibility",
+              "voice_boundary_preservation",
+              "scope_calibration"
+            ]
+          }
+        },
+        "serious_error_flags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/allErrorFlag"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "actor_id",
+        "model_id",
+        "model_snapshot_sha256",
+        "rating_repetition",
+        "evaluator_item_sha256",
+        "observation_status",
+        "rating",
+        "observation_sha256"
+      ],
+      "properties": {
+        "actor_id": {"type": "string", "minLength": 1},
+        "model_id": {"const": "qwen3:8b"},
+        "model_snapshot_sha256": {"$ref": "#/$defs/sha256"},
+        "rating_repetition": {"const": 1},
+        "evaluator_item_sha256": {"$ref": "#/$defs/sha256"},
+        "observation_status": {
+          "enum": [
+            "valid",
+            "invalid_output",
+            "content_filtered",
+            "timeout",
+            "terminal_failure",
+            "missing"
+          ]
+        },
+        "rating": {
+          "oneOf": [
+            {"$ref": "#/$defs/ratingProjection"},
+            {"type": "null"}
+          ]
+        },
+        "observation_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"observation_status": {"const": "valid"}},
+            "required": ["observation_status"]
+          },
+          "then": {
+            "properties": {"rating": {"$ref": "#/$defs/ratingProjection"}}
+          },
+          "else": {
+            "properties": {"rating": {"type": "null"}}
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "item": {
+      "type": "object",
+      "required": [
+        "item_id",
+        "cluster_id",
+        "error_family",
+        "required_flag",
+        "evaluator_item_sha256",
+        "role_observations"
+      ],
+      "properties": {
+        "item_id": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"},
+        "cluster_id": {"type": "string", "minLength": 1},
+        "error_family": {"$ref": "#/$defs/errorFamily"},
+        "required_flag": {"$ref": "#/$defs/targetFlag"},
+        "evaluator_item_sha256": {"$ref": "#/$defs/sha256"},
+        "role_observations": {
+          "type": "object",
+          "required": ["researcher", "qualitative_methods", "domain"],
+          "properties": {
+            "researcher": {"$ref": "#/$defs/observation"},
+            "qualitative_methods": {"$ref": "#/$defs/observation"},
+            "domain": {"$ref": "#/$defs/observation"}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

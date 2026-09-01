@@ -1,0 +1,428 @@
+                                             Co-Refine: AI-Powered Tool Supporting Qualitative Analysis
+                                                               Athikash Jeyaganthan                                                           Kai Xu
+                                                              psyaj9@nottingham.ac.uk                                              kai.xu@nottingham.ac.uk
+                                                              University of Nottingham                                             University of Nottingham
+                                                             Nottingham, United Kingdom                                           Nottingham, United Kingdom
+
+                                                                   Franziska Becker                                                       Steffen Koch
+                                                        franziska.becker@vis.uni-stuttgart.de                                  Steffen.Koch@vis.uni-stuttgart.de
+                                                                University of Stuttgart                                              University of Stuttgart
+                                                                 Stuttgart, Germany                                                    Stuttgart, Germany
+
+
+
+
+arXiv:2604.19309v1 [cs.HC] 21 Apr 2026                                                   Figure 1: Overview of Co-Refine application.
+                                         Abstract                                                                      Requirements were elicited through semi-structured interviews
+                                         Qualitative coding relies on a researcher’s application of codes to        with three qualitative researchers (U1–U3). The implemented sys-
+                                         textual data. As coding proceeds across large datasets, interpreta-        tem was evaluated through unit, integration, and end-to-end testing,
+                                         tions of codes often shift (temporal drift), reducing the credibility of   supplemented by a formative user study. Co-Refine demonstrates
+                                         the analysis. Existing Computer-Assisted Qualitative Data Analysis         that deterministic scoring can effectively constrain LLM outputs to
+                                         (CAQDAS) tools such as NVivo and ATLAS.ti provide excellent                produce reliable, real-time audit signals for qualitative analysis.
+                                         support for data management and codebook organisation but offer               Code and data availability: The source code, LLM prompts,
+                                         no workflow for real-time detection of these drifts. We present            evaluation datasets, and supplementary materials (including the
+                                         Co-Refine, an AI-augmented qualitative coding platform that deliv-         full SUS questionnaire and thematic analysis codes) are available
+                                         ers continuous, grounded feedback on coding consistency without            upon reasonable request from the author.
+                                         disrupting the researcher’s workflow. The system employs a three-
+                                         stage audit pipeline that operates on every coding decision. Stage
+                                         1 computes deterministic embedding-based metrics that provide
+                                         mathematical consistency signals. Stage 2 grounds LLM verdicts
+                                         within ±0.15 of the deterministic scores. Stage 3 produces code
+                                         definitions from previous coding patterns, creating a feedback loop        CCS Concepts
+                                         that deepens the system’s understanding of each code.                      • Human-centered computing → Interactive systems and
+                                                                                                                    tools; User studies; • Computing methodologies → Natural
+                                                                                                                    language processing.
+                                                                                                                                 Jeyaganthan et al.
+
+
+Keywords                                                                    stage grounds LLM-generated feedback within ±0.15 of these deter-
+Qualitative Coding, Computer-Assisted Qualitative Data Analysis             ministic scores, producing plain-language findings and actionable
+(CAQDAS), Temporal Drift, Intra-coder Consistency, Large Lan-               suggestions tailored to qualitative researchers. A third stage peri-
+guage Models, Embedding-based Similarity, Inter-coder Reliability,          odically synthesises an evolving definition of each code from the
+Visual Analytics, Reflexive Thematic Analysis                               researcher’s own coding patterns, creating a deepening feedback
+                                                                            loop.
+                                                                               Our overall aim is to design and implement a reflective assis-
+1    Introduction                                                           tant that reveals inconsistencies, highlights semantic overlaps, and
+Qualitative research remains central to the social sciences, humani-        supports code refinement while preserving full researcher control
+ties, and many applied domains. Researchers analyse interviews,             at every step. By combining semantic similarity metrics, cluster-
+open-ended survey responses, and documents to uncover meaning,              ing techniques, and constrained LLM reasoning, Co-Refine enables
+patterns, and lived experiences. A foundational step in this process        researchers to engage more deeply with their data rather than
+is qualitative coding (QC), in which researchers assign conceptual          delegating interpretation to the machine. In doing so, the system
+labels — “codes” — to segments of unstructured text to identify             addresses a long-standing methodological gap in qualitative anal-
+themes and behaviours [6].                                                  ysis: the lack of real-time, trustworthy consistency support that
+   Yet coding is inherently challenging. Codes are not static; they         respects the interpretive, iterative, and human-centred nature of
+evolve as researchers deepen their understanding of the data. This          the work.
+interpretive flexibility is a strength of qualitative work, but it also        The remainder of this paper describes the design rationale and
+introduces temporal drift: a researcher’s application of the same           implementation of Co-Refine, presents results from automated
+code can shift subtly over time, so that early and later instances          pipeline evaluation and a formative user study, and discusses impli-
+no longer share the same meaning. Codes may also semantically               cations for future HCI tools that support qualitative research.
+overlap or become poorly differentiated, especially in large projects
+or collaborative settings where multiple coders must maintain a
+shared framework and demonstrate acceptable inter-coder reliabil-
+ity (ICR) [2]. Without mechanisms to surface these inconsistencies          2   Background and Related Works
+in real time, researchers rely on memory and periodic manual re-            Computer-Assisted Qualitative Data Analysis Software (CAQDAS)
+views — a process that quickly becomes cognitively overwhelming             tools have become the industry standard for qualitative researchers.
+and scales poorly as datasets grow.                                         These solutions provide support for core stages of the qualitative
+   The consequences are significant. Inconsistencies undermine the          analysis workflow. This includes importing and organising data
+credibility of findings and make it difficult for peer reviewers to eval-   in various formats, constructing hierarchical codebooks, applying
+uate the reliability of emerging themes. One qualitative researcher         codes to text segments, writing annotations, and retrieving coded
+we interviewed (U1) described a six-month setback when defini-              segments via filtering mechanisms [4, 10].
+tional drift was discovered only during the collaboration phase,               Visualisations include frequency charts, co-occurrence matrices,
+forcing a complete re-examination of already-coded material. An-            and concept maps. In addition, they support collaborative features
+other (U3) noted that the time required for consistency checks              that enable multiple users to work on the same project and perform
+simply was not “worth it,” leading many to accept potential drift           ICR calculations, such as Cohen’s kappa. These traits have enabled
+as inevitable. Existing Computer-Assisted Qualitative Data Analy-           qualitative researchers to manage large datasets, thereby providing
+sis Software (CAQDAS) tools, such as NVivo and ATLAS.ti, help               environments for systematic data analysis and theme development
+organise data and codebooks, but they offer no built-in support             [5, 15].
+for detecting drift or semantic overlap during active coding. Re-              Despite their value, existing CAQDAS tools are limited in the sup-
+searchers are left to perform these checks manually or at the end           port they provide. Features such as consistency checking, semantic
+of analysis, often too late to act effectively.                             drift detection, and code overlap identification are not implemented;
+   Recent advances in machine learning and natural language pro-            they are addressed only through manual reviews that reflect on
+cessing present new opportunities. Embedding models can rep-                previous code usage. This means that researchers must inspect their
+resent semantic relationships among text segments, while large              coded data periodically to ensure consistency, a process that scales
+language models (LLMs) can reason about intent and generate re-             poorly for codes exceeding a manageable limit [4, 10].
+flective feedback [12]. However, most existing AI-assisted tools               Temporal drift and semantic code overlap go unnoticed unless
+either fully automate coding (risking loss of researcher agency)            explicitly recorded, leaving the integrity of the codebook to depend
+or provide post-hoc analysis rather than continuous, actionable             on the researcher’s discipline to be wary of such issues. Researchers
+support within the researcher’s natural workflow.                           must periodically review all of their prior coded data, which be-
+   In this paper, we present Co-Refine, an AI-augmented quali-              comes impractical as the depth of analysis increases. Currently,
+tative coding platform designed to maintain coding consistency              to address such issues, researchers must conduct peer reviews or
+as the codebook evolves—without automating the interpretive act             sessions to discuss disagreements. At this point, it may already be
+itself. Co-Refine embeds a novel three-stage audit pipeline that is         too late; the drift may have already affected the coded data. Current
+triggered at every coding decision. The first stage computes deter-         CAQDAS workflows ensure that consistency is checked only at the
+ministic embedding-based metrics (centroid similarity and temporal          end, rather than continuously, thereby missing the window when
+drift) that provide transparent mathematical signals. The second            issues can be mitigated.
+Co-Refine: AI-Powered Tool Supporting Qualitative Analysis
+
+
+   Recent studies in HCI have explored the use of supervised and       process. Furthermore, researchers have raised concerns regarding
+unsupervised ML techniques to aid in qualitative coding. Early         the potential over-reliance on LLM outputs, as well as the risk of
+solutions incorporated rule-based pattern matching with super-         hallucination and overall loss of reflexive depth when there is a
+vised classifiers to propagate codes to unseen text. This offers a     lack of constraint on outputs by deterministic evidence [3, 4, 7].
+means to semi-automate the process while preserving human con-            Three limitations have been identified with existing systems:
+trol through interactive rule editing [10]. More complex findings            • AI assistance in current solutions is limited to post-hoc eval-
+have shown that leveraging neural embeddings and interactive                   uation or conversational refinement rather than providing
+program synthesis can learn symbolic rule sets across different                real-time deterministic and semantic scoring grounded in a
+features, generating suggestions that researchers can use [5].                 user’s own codebook.
+   Clustering embedding spaces has enabled researchers to discover           • The integration of this into tools is absent from current
+concepts and thematic facets within coded datasets. LLooM com-                 solutions, so users are unaware of potential drifts during
+bines embedded-based groupings with human-guided refinement                    active coding.
+to produce interpretable abstractions that mirror qualitative cod-           • While existing collaborative tools may provide some ICR
+ing practices [8]. LLoom introduces a process known as "concept                metrics to users, they have yet to implement useful conflict
+induction", which utilises four operators (Distill, Cluster, Synthe-           resolution workflows complemented by visualisations.
+sis, and Loop) to produce reliable interpretations from raw data.
+                                                                          Overall, features that existing platforms have not yet imple-
+These methodologies, which employ ML techniques, significantly
+                                                                       mented include deterministic centroid similarity, temporal drift
+improve coding and ICR speed compared to manual workflows;
+                                                                       quantification, and automatic facet clustering using KMeans and
+however, they do not provide real-time feedback [5, 8, 10].
+                                                                       t-SNE.
+   LLMs have transformed the applications of AI for qualitative
+                                                                          From the identified limitations, a critical improvement to the
+analysis. Tools such as CollabCoder integrate GPT models across
+                                                                       current qualitative workflow is needed: a qualitative coding envi-
+their workflow. This includes generating code suggestions during
+                                                                       ronment that provides continuous consistency feedback embedded
+independent coding, resolving disagreements, and supporting the
+                                                                       within the researcher’s workflow. This will require implementing
+finalisation of the codebook [4]. CoAIcoder similarly utilises AI,
+                                                                       several tools. First, a scoring method to quantify how well each
+serving as a shared mediator to accelerate collaborative decision-
+                                                                       new coding decision compares with the researcher’s coding pattern
+making while recording its decision history [3].
+                                                                       for that code. Second, a warning for temporal drift that detects
+   LATA (LLM-Assisted Thematic analysis) has demonstrated that
+                                                                       when the initial meaning of a code has shifted over time. Third,
+GPT-4 can achieve acceptable agreement with researchers, yielding
+                                                                       a constrained LLM feedback layer capable of generating feedback
+a Cohen’s Kappa of 0.73 [14]. In addition, specialised frameworks
+                                                                       without overriding mathematical evidence and keeping hallucina-
+such as AbductiveAI integrate reasoning through chain-of-thought
+                                                                       tions to a minimum. Fourth, a collaborative workflow that allows
+(CoT), thereby deepening the interpretive partnership. Many spe-
+                                                                       teams to identify and resolve coding disagreements. Addressing
+cialised systems have been developed, underlining the various ap-
+                                                                       these gaps will make a valuable contribution to AI-assisted qualita-
+plications of LLMs to qualitative research.
+                                                                       tive research.
+   DeTAILS [11] is a framework that maps LLM assistance directly
+to the thematic analysis framework theorised by Braun and Clarke
+                                                                       3     Co-Refine: Design and Implementation
+through interactive feedback loops, which are designed to preserve
+researcher oversight. An editable codebook is used as an object so     We designed and implemented Co-Refine through a user-centered,
+that any changes to codes or themes are automatically propagated       iterative process that combined requirements elicitation with rapid
+through the coded data.                                                prototyping and evaluation. The goal was to create a reflective assis-
+   Another solution that integrates LLMs is TIQA [13], which ad-       tant that provides real-time consistency feedback while preserving
+dresses the "burden" of research by applying design principles to      full researcher agency.
+reduce the distress researchers experience when analysing sensitive
+data. TIQA uses ML modules (SegmentModeler and CodeModeler)            3.1    Requirements Elicitation
+to identify content that may be perceived as "traumatic" and to        To ground the system in real qualitative research practice, we con-
+provide warnings tailored to the user.                                 ducted semi-structured interviews with three experienced qualita-
+   LOGOS [9] contributes a fully automated framework for the           tive researchers (U1–U3) affiliated with UK institutions (3–12 years
+grounded theory workflow through semantic clustering and itera-        of experience). Interviews lasted 45–60 minutes and were guided
+tive refinement. A conceptual group is produced from the qualita-      by 11 open-ended questions covering data types, current coding
+tive codes, which are aware of the semantic relationships among        workflows, tools, collaboration challenges, inter-coder reliability
+them. These relationships are classified as subsumption, equiva-       (ICR) practices, and attitudes toward AI assistance.
+lence, and orthogonality to create a theoretical framework.               Participants relied primarily on non-CAQDAS tools (Excel, Miro)
+   LLMs have also been used as proxies for participants or as as-      because existing platforms such as NVivo felt cumbersome. Major
+sistants for analysis, raising significant questions about whether     pain points included definition drift (U1 described a six-month set-
+AI can represent real people and about potential bias in replacing     back discovered only during collaboration), time-intensive manual
+human voices with simulations [7]. While solutions that use LLMs       consistency checks (U3 noted the effort was “not worth it”), and
+make analysis less demanding, they provide feedback after the fact     the lack of real-time support for semantic overlap or ICR. All par-
+rather than continuous, grounded audit signals during the coding       ticipants expressed cautious openness to AI but stressed that trust,
+                                                                                                                              Jeyaganthan et al.
+
+
+explainability, and human override were non-negotiable: AI must         (Values in [0.85, 1.0] = strong consistency; [0.65, 0.85) = moderate;
+act “as an assistant” (U2) and be grounded in the researcher’s own      < 0.65 = flagged.)
+data and coding history.                                                   Temporal drift is computed from the five oldest versus five
+   From these interviews we derived five core requirements that         newest segments when ≥ 10 segments exist:
+shaped every design decision:                                                                                𝝁 old · 𝝁 new
+                                                                                             𝛿 drift = 1 −                                (3)
+      • Deterministic evidence must ground all LLM outputs to                                              ∥𝝁 old ∥ 2 ∥𝝁 new ∥ 2
+         ensure trustworthiness.                                        Code overlap between any pair of codes is likewise measured via
+      • Human override must be preserved at every stage; the sys-       centroid cosine similarity (pairs > 0.85 are flagged for possible
+         tem is a reflective partner, not an autonomous coder.          merge).
+      • Researchers must be able to configure audit sensitivity and        Cold-start handling: when a code has fewer than 𝜏min = 3 seg-
+         view deterministic scores when desired.                        ments, its user-provided definition is embedded and used as a
+      • The system must support multi-document projects and             pseudo-centroid; the UI and LLM context clearly flag this condi-
+         small-team collaboration with user-scoped data.                tion.
+      • Feedback must be plain-language, actionable, and integrated
+         into the natural coding workflow.                                 Stage 2: Grounded LLM Audit. Stage-1 metrics, surrounding con-
+   These requirements directly informed the hybrid deterministic-       text, prior segments (sampled via recency + Maximal Marginal
+LLM pipeline and the emphasis on researcher control.                    Relevance), and the latest Stage-3 code reflection are passed to a
+                                                                        reasoning model (GPT-5.2). The model returns a structured JSON
+3.2    Design Principles                                                object whose consistency_score is strictly constrained to ±0.15
+                                                                        of the Stage-1 centroid similarity; any deviation must be explicitly
+Co-Refine was guided by three high-level principles:                    justified. The output also includes intent alignment, severity, head-
+   Scalability. The system must handle arbitrarily long documents       line, plain-language finding, drift warning, action suggestion, and
+and growing numbers of coded segments without introducing la-           alternative codes.
+tency. All audit computation runs in background threads; per-user          Stage 3: Code Reflection. Triggered when a code reaches the auto-
+ChromaDB collections and a persistent HNSW index ensure fast            analysis threshold (default 3 segments) and every 3 additions there-
+nearest-neighbour retrieval regardless of dataset size.                 after, a reasoning model synthesises an evolving definition, theo-
+   Modularity. Backend features are implemented as vertical slices      retical lens, and derivation trace from a diverse sample of up to 30
+(each containing its own router, service, repository, and schemas),     segments. This reflection is injected into all future Stage-2 prompts,
+while the frontend follows a four-layer architecture (app/, widgets/,   creating a deepening feedback loop.
+features/, shared/). This structure kept the codebase maintain-
+able as new capabilities (chat, visualisations, ICR) were added.        3.4    System Architecture and Implementation
+                                                                        Co-Refine follows a client-server architecture (Figure 2). The Re-
+   Usability and Researcher Control. AI agents serve only as advi-
+                                                                        act 19 frontend (TypeScript, Zustand slice pattern, Tailwind CSS)
+sors. Every alert includes a headline, plain-language finding, drift
+                                                                        communicates with a FastAPI backend via REST and authenticated
+warning (if present), and actionable suggestion. Researchers can
+                                                                        WebSockets. Persistence uses SQLite (SQLAlchemy ORM) for rela-
+inspect deterministic scores, override any recommendation, config-
+                                                                        tional data and per-user ChromaDB collections for vectors. LLM
+ure project-level thresholds, and review an immutable edit history.
+                                                                        calls are routed through Azure OpenAI with two deployment tiers:
+Audit alerts appear in a non-intrusive right-hand panel, preserving
+                                                                        a fast model for chat and facet labelling, and a reasoning model for
+the primary document view.
+                                                                        audit and reflection. All primary keys are UUIDs; authentication
+                                                                        tokens are stored in sessionStorage for security.
+3.3    Three-Stage Audit Pipeline                                          Key design decisions include append-only ConsistencyScore
+The central technical contribution of Co-Refine is a three-stage        records (for trend analysis and audit trails), per-user vector collec-
+audit pipeline that triggers automatically on every coding deci-        tions, and deterministic grounding of LLM outputs. Background
+sion (and on sibling re-audits for overlapping segments) without        tasks use dedicated database sessions to ensure thread safety.
+interrupting the researcher’s workflow. Results are delivered via
+WebSocket events.                                                       3.5    User Interface and Key Features
+  Stage 1: Deterministic Scoring. An Azure OpenAI embedding             The interface follows a three-panel layout that mirrors the natural
+model (text-embedding-3-small) maps each new segment e𝑠 ∈               qualitative workflow (Figure 3). The left panel lists documents and
+R𝑑 and stores it in a per-user ChromaDB collection. For a code 𝑐        the colour-coded codebook. The centre panel displays the full doc-
+with 𝑛 prior segments, the centroid 𝝁𝑐 is the ℓ2 -normalised mean       ument with inline highlighting of coded segments. The right panel
+vector:                                                                 contains two tabs: real-time audit alerts and an AI chat assistant.
+                           ē           1 ∑︁
+                                           𝑛
+                                                                           Text selection triggers a popover lets researchers preview the
+                   𝝁𝑐 =         ,  ē =       e𝑖               (1)      span, apply one or more codes, and immediately receive an au-
+                         ∥ē∥ 2         𝑛 𝑖=1
+                                                                        dit card (Figure 4) showing severity, deterministic scores, plain-
+Centroid similarity is the cosine similarity:
+                                                                        language explanation, and an actionable suggestion. Researchers
+                       sim(e𝑠 , 𝝁𝑐 ) = e𝑠 · 𝝁𝑐                   (2)    can dismiss or act on any alert.
+Co-Refine: AI-Powered Tool Supporting Qualitative Analysis
+
+
+
+
+        Figure 2: High-level architecture of Co-Refine.
+
+
+
+
+                                                                        Figure 4: Real-time audit alert showing grounded LLM feed-
+                                                                        back.
+Figure 3: Document viewer with inline coding and audit alerts
+(right panel).
+                                                                        utilities. Integration tests used FastAPI’s TestClient with an in-
+                                                                        memory SQLite database and mocked LLM/ChromaDB services
+    Supporting features include:                                        to verify authentication, cascading deletes, and error handling.
+      • An interactive visualisations dashboard with overview met-      End-to-end tests with Playwright exercised the full workflow in a
+        rics, facet explorer (t-SNE + KMeans clustering), consis-       Chromium browser: registration, project creation, document up-
+        tency timeline, code-overlap heatmap, and co-occurrence         load, text selection, code application, alert delivery, and tab switch-
+        matrix.                                                         ing. Accessibility was audited with axe-core at both component
+      • Collaborative ICR panel computing Cohen’s 𝜅, Fleiss’ 𝜅,         and page levels, targeting WCAG 2.1 AA compliance for keyboard
+        and Krippendorff’s 𝛼, with disagreement classification and      navigation, ARIA labels, and colour contrast.
+        LLM-assisted resolution.                                           Pipeline correctness was assessed on a controlled dataset of
+      • Immutable edit history and project-level settings for thresh-   consistent, boundary, and deliberately inconsistent segments. We
+        old configuration.                                              verified that Stage-1 deterministic scores were accurate and that
+                                                                        Stage-2 LLM consistency scores remained strictly within ±0.15 of
+  The system was evaluated through unit, integration, and end-to-
+                                                                        the centroid similarity.
+end tests (Playwright), accessibility auditing (axe-core, WCAG 2.1
+AA), and a formative user study. Full details appear in Section 4.
+                                                                        4.2    Experimental Setup
+4     Evaluation                                                        All coding tasks and the user study used a resampled subset of
+                                                                        the SemEval-2016 ABSA English hotel-review dataset [1]. This
+We evaluated Co-Refine through automated software testing, pipeline     mixed-sentiment corpus is accessible, domain-neutral, and allows
+correctness checks on synthetic data, and a formative user study        participants from varied backgrounds to focus on tool interaction
+with five participants. The evaluation focused on technical relia-      rather than subject-matter expertise.
+bility, usability, and perceived value for maintaining intra-coder         A formative user study was conducted with five participants (P1–
+consistency.                                                            P5) representing a range of expertise (Table 1). After a brief tutorial,
+                                                                        each completed a 30–45 minute coding task on the dataset. Sessions
+4.1     Testing Strategy                                                ended with a modified 9-item System Usability Scale (SUS) ques-
+Automated tests were implemented at three levels. Unit tests (pytest    tionnaire (scaled to 100) and a semi-structured interview. Thematic
+for backend, Vitest + React Testing Library for frontend) validated     analysis of the transcripts identified perceptions of trust, cognitive
+scoring functions, JSON parsing, component rendering, and pure          load, and workflow integration.
+                                                                                                                                   Jeyaganthan et al.
+
+
+Table 1: Participant backgrounds in the formative user study.                Table 3: Comparison of Co-Refine with related qualitative
+                                                                             analysis tools.
+                    Qual.    Coding     Prev.        AI           Prior AI
+ID    Role          Res.      (hrs)     Tools      Comfort         Qual.
+                                                                                                Real-time Det.      LLM-   ICR+ Drift
+P1    PhD Stud.      Yes         > 50   NVivo   Very comfort.       Yes      Qualitative Tool     audit   scoring grounded resol. detect.
+P2    UG Stud.       No            0    None    Very comfort.       No
+P3    PhD Stud.      Yes         5–20   None    Somew. comfort.     Yes      NVivo / ATLAS.ti       ×          ×         ×       Partial     ×
+P4    UG Stud.       Yes         <5     None    Very comfort.       Yes      CollabCoder [4]        ×          ×         ✓         ✓         ×
+P5    Acad. Staff    Yes         > 50   NVivo   Very uncomfort.     No
+                                                                             CoAIcoder [3]          ×          ×         ✓         ✓         ×
+                                                                             PaTAT [5]              ×        Partial     ×         ×         ×
+             Table 2: Scaled SUS scores (mean = 77.77).                      Cody [10]              ×          ×         ×         ×         ×
+                                                                             Co-Refine              ✓          ✓         ✓         ✓         ✓
+
+        ID     Adjusted Raw (max 36)       Scaled SUS (max 100)
+        P1                  29                     80.55
+        P2                  30                     83.33
+        P3                  31                     86.11                     5.1    Interpretation of Results
+        P4                  27                     75.00
+        P5                  23                     63.88                     Fully automated approaches such as LOGOS [9] aim to replace hu-
+                                                                             man coding for scalability, achieving 80–88% alignment with expert
+                                                                             schemes. While impressive, such systems remove the researcher’s
+                                                                             adaptive, bottom-up interpretive process—an essential element of
+4.3    Results
+                                                                             reflexive thematic analysis (Braun & Clarke). Co-Refine takes the
+The audit pipeline performed as designed: deterministic Stage-1              opposite stance: it uses computational power to support rather than
+scores were accurate, and the ±0.15 grounding constraint success-            replace human judgment. By continuously auditing every coding
+fully eliminated contradictory LLM consistency scores observed               decision against the researcher’s own history, the system surfaces
+in early prototypes. All generated alerts aligned with the expected          temporal drift and semantic overlap at the moment they occur,
+classifications for consistent, boundary, and inconsistent segments.         turning consistency maintenance from a burdensome post-hoc task
+   SUS scores (Table 2) averaged 77.77 (above the 68-point “above-           into an integrated reflective practice.
+average” threshold). Four of five participants rated the system “Ex-            This design aligns particularly well with later phases of reflexive
+cellent” (≥80); the slightly lower score from P5 reflected initial           thematic analysis (phases 4–5: reviewing and defining themes).
+intimidation when encountering active AI alerts. Thematic analysis           The deterministic metrics and code-reflection stage force explicit
+of interviews revealed three recurring themes:                               comparison between intended and actual code usage, addressing the
+      • Trust through grounding. Participants valued that alerts             very pain points participants described in requirements elicitation.
+        were mathematically anchored in their own coding history
+        rather than generic LLM opinions. P1 described the system
+        as a “secondary triangulator” that provided high-level error
+                                                                             5.2    Comparison with Existing Tools
+        checking (e.g., misapplying “perception” for “reception”).           Table 3 contrasts Co-Refine with representative CAQDAS and AI-
+      • Reflective friction without overload. Alerts forced use-             assisted tools. No prior system combines real-time deterministic
+        ful pauses (“cannot be ignored”) yet remained dismissible.           scoring, constrained LLM feedback, drift detection, and integrated
+        The right-hand panel and red-highlighted segments allowed            ICR resolution workflows.
+        researchers to continue coding and review only when ready.
+      • Desire for deeper theoretical grounding. While the                   5.3    Limitations
+        pipeline excelled at intra-code consistency, P1 noted it
+        currently lacks explicit connection to broader theoretical           Technical limitations include text-only support (audio/video require
+        frameworks; participants suggested future extensions such            transcription) and dependence on the quality of the underlying
+        as uploading research papers to contextualise suggestions.           embedding model; specialised or non-English data may yield less
+                                                                             reliable similarity scores. Although the ±0.15 constraint greatly
+   Participants also appreciated the facet explorer for surfacing            reduces score hallucination, narrative explanations can still occa-
+sub-themes and the overlap heatmap for guiding code merges, con-             sionally mislead if researchers over-trust them without inspecting
+firming that the visualisations supported reflective practice.               the deterministic evidence.
+                                                                                Methodologically, both the requirements elicitation (N=3) and
+5     Discussion                                                             formative user study (N=5) involved a convenience sample from UK
+Co-Refine demonstrates that real-time, grounded AI assistance can            institutions; findings may not generalise to non-English-speaking
+meaningfully improve intra-coder consistency without automat-                researchers or those with lower AI familiarity. Pipeline evaluation
+ing interpretation. The ±0.15 deterministic grounding mechanism              used synthetic test segments; performance on highly nuanced real-
+proved effective at constraining LLM outputs, addressing a core              world qualitative data remains an open question. The SUS score
+concern in prior LLM-assisted qualitative tools: hallucinated or             of 77.77, while promising, comes from a formative rather than
+ungrounded scores.                                                           summative study.
+Co-Refine: AI-Powered Tool Supporting Qualitative Analysis
+
+
+6     Conclusion and Future Work                                                              of the CHI Conference on Human Factors in Computing Systems. doi:10.1145/
+                                                                                              3613904.3642002
+We presented Co-Refine, an AI-augmented qualitative coding plat-                          [5] S. A. Gebreegziabher et al. 2023. PaTAT: Human-AI Collaborative Qualitative
+form that delivers real-time, grounded consistency feedback while                             Coding with Explainable Interactive Rule Synthesis. In Proceedings of the 2023 CHI
+                                                                                              Conference on Human Factors in Computing Systems. doi:10.1145/3544548.3581352
+preserving full researcher agency. Its novel three-stage audit pipeline                   [6] Greg Guest, Kathleen M. MacQueen, and Emily E. Namey. 2012. Applied thematic
+combines deterministic embedding metrics (centroid similarity, tem-                           analysis. Sage Publications, Los Angeles.
+poral drift, overlap) with a constrained LLM layer and evolving                           [7] S. Kapania et al. 2025. Simulacrum of Stories: Examining Large Language Models
+                                                                                              as Qualitative Research Participants. In Proceedings of the 2025 CHI Conference
+code reflection, creating a deepening feedback loop that surfaces                             on Human Factors in Computing Systems. doi:10.1145/3706598.3713220
+intra-coder drift as it occurs rather than after the fact.                                [8] M. S. Lam et al. 2024. Concept Induction: Analyzing Unstructured Text with
+                                                                                              High-Level Concepts Using LLooM. In Proceedings of the CHI Conference on
+                                                                                              Human Factors in Computing Systems. doi:10.1145/3613904.3642830
+6.1     Contributions                                                                     [9] Xinyu Pi, Qisen Yang, and Chuong Nguyen. 2026. LOGOS: LLM-driven End-
+The primary contribution is the design and empirical demonstra-                               to-End Grounded Theory Development and Schema Induction for Qualitative
+                                                                                              Research. arXiv:2509.24294 [cs.CL] https://arxiv.org/abs/2509.24294
+tion of a hybrid deterministic-LLM audit pipeline that constrains                        [10] Tim Rietz and Alexander Maedche. 2021. Cody: An AI-Based System to Semi-
+LLM outputs to mathematical evidence, enabling trustworthy real-                              Automate Coding for Qualitative Research. In Proceedings of the CHI Conference
+                                                                                              on Human Factors in Computing Systems. doi:10.1145/3411764.3445591
+time assistance in qualitative workflows. Secondary contributions                        [11] Ansh Sharma, Karen Cochrane, and James R Wallace. 2025. DeTAILS: Deep The-
+include:                                                                                      matic Analysis with Iterative LLM Support. In arXiv preprint arXiv:2510.17575.
+                                                                                         [12] Leo Aleksander Siiman, Meeli Rannastu-Avalos, Johanna Pöysä-Tarhonen, Päivi
+      • Facet discovery via K-Means + silhouette-optimised clus-                              Häkkinen, and Margus Pedaste. 2023. Opportunities and Challenges for AI-
+        tering and t-SNE visualisation, helping researchers identify                          Assisted Qualitative Data Analysis: An Example from Collaborative Problem-
+        latent sub-themes within a single code.                                               Solving Discourse Data. In International Conference on Innovative Technologies
+                                                                                              and Learning. https://api.semanticscholar.org/CorpusID:260888603
+      • An integrated collaborative ICR panel with typed disagree-                       [13] Emily Tseng, Thomas Ristenpart, and Nicola Dell. 2025. Mitigating Trauma in
+        ment classification and LLM-assisted resolution, supported                            Qualitative Research Infrastructure: Roles for Machine Assistance and Trauma-
+        by an immutable audit trail.                                                          Informed Design. Proceedings of the ACM on Human-Computer Interaction (2025).
+                                                                                              To appear at CSCW 2025.
+      • Design principles and interface patterns that prioritise re-                     [14] Q Wang, M Erqsous, KE Barner, and ML Mauriello. 2025. LATA: A Pilot Study
+        searcher control, configurability, and plain-language feed-                           on LLM-Assisted Thematic Analysis of Online Social Network Data Generation
+                                                                                              Experiences. Proceedings of the ACM on Human-Computer Interaction 9 (2025),
+        back.                                                                                 1–28.
+   These elements address a long-standing gap in CAQDAS tools:                           [15] Himanshu Zade, Margaret Drouhard, Bonnie Chinh, Lu Gan, and Cecilia Aragon.
+                                                                                              2018. Conceptualizing Disagreement in Qualitative Coding. In Proceedings of
+the lack of continuous, actionable support for intra-coder consis-                            the 2018 CHI Conference on Human Factors in Computing Systems. doi:10.1145/
+tency during active coding.                                                                   3173574.3173733
+
+6.2     Future Work
+Immediate extensions include support for audio/video via inte-
+grated transcription, local LLM deployment for sensitive data, and
+richer theoretical grounding (e.g., uploading key papers to contextu-
+alise prompts). At the collaborative level, we plan to add negotiation
+threads and code-proposal workflows.
+   Longer-term research opportunities include a controlled com-
+parative study measuring temporal drift reduction when using
+Co-Refine versus traditional or fully automated tools, and longitudi-
+nal field deployments with larger, diverse researcher cohorts. Such
+studies would further validate the system’s impact on analytical
+rigour and the credibility of qualitative findings.
+   By embedding deterministic signals within an otherwise interpre-
+tive workflow, Co-Refine demonstrates how HCI can design AI sys-
+tems that augment rather than replace human expertise—offering a
+promising path toward more reliable, reflexive, and scalable quali-
+tative research.
+
+References
+ [1] Srinivas Billa. 2024. SemEval-2016 ABSA Reviews English Translated Resam-
+     pled Dataset. https://huggingface.co/datasets/srinivasbilla/semeval-2016-absa-
+     reviews-english-translated-resampled.
+ [2] Rosanna Cole. 2024.           Inter-Rater Reliability Methods in Qualitative
+     Case Study Research.           Sociological Methods & Research 53, 4 (2024),
+     1944–1975.        arXiv:https://doi.org/10.1177/00491241231156971 doi:10.1177/
+     00491241231156971
+ [3] J. Gao et al. 2023. CoAIcoder: Examining the Effectiveness of AI-assisted Human-
+     to-Human Collaboration in Qualitative Analysis. In Proceedings of the 2023 CHI
+     Conference on Human Factors in Computing Systems. doi:10.1145/3617362
+ [4] J. Gao et al. 2024. CollabCoder: A Lower-barrier, Rigorous Workflow for Inductive
+     Collaborative Qualitative Analysis with Large Language Models. In Proceedings
+

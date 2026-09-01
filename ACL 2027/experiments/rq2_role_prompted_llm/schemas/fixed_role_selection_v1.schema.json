@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/rq2/fixed-role-selection-v1.json",
+  "title": "Qwen3 fixed-role selection record",
+  "type": "object",
+  "required": [
+    "document_type",
+    "selection_version",
+    "study_id",
+    "selected_role",
+    "tie_order",
+    "selection_metric",
+    "primary_repetition",
+    "development_input_sha256",
+    "qualification_seal_sha256",
+    "reviewer_model",
+    "family_item_counts",
+    "family_cluster_counts",
+    "development_role_summary",
+    "heldout_accessed_before_selection",
+    "reselection_allowed",
+    "contains_source_text",
+    "result_label",
+    "manuscript_eligible"
+  ],
+  "properties": {
+    "document_type": {"const": "rq2_qwen3_fixed_role_selection"},
+    "selection_version": {"const": "rq2-qwen3-fixed-role-selection-v1"},
+    "study_id": {"type": "string", "minLength": 1},
+    "selected_role": {
+      "enum": ["researcher", "qualitative_methods", "domain"]
+    },
+    "tie_order": {
+      "const": ["researcher", "qualitative_methods", "domain"]
+    },
+    "selection_metric": {"const": "repetition_1_micro_recall"},
+    "primary_repetition": {"const": 1},
+    "development_input_sha256": {"$ref": "#/$defs/sha256"},
+    "qualification_seal_sha256": {"$ref": "#/$defs/sha256"},
+    "reviewer_model": {
+      "type": "object",
+      "required": ["model_id", "model_snapshot_sha256"],
+      "properties": {
+        "model_id": {"const": "qwen3:8b"},
+        "model_snapshot_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "family_item_counts": {"$ref": "#/$defs/familyCounts"},
+    "family_cluster_counts": {"$ref": "#/$defs/familyCounts"},
+    "development_role_summary": {
+      "type": "object",
+      "required": ["researcher", "qualitative_methods", "domain"],
+      "properties": {
+        "researcher": {"$ref": "#/$defs/summary"},
+        "qualitative_methods": {"$ref": "#/$defs/summary"},
+        "domain": {"$ref": "#/$defs/summary"}
+      },
+      "additionalProperties": false
+    },
+    "heldout_accessed_before_selection": {"const": false},
+    "reselection_allowed": {"const": false},
+    "contains_source_text": {"const": false},
+    "result_label": {"const": "diagnostic_not_manuscript_evidence"},
+    "manuscript_eligible": {"const": false}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "summary": {
+      "type": "object",
+      "required": ["tp", "fn", "n", "recall"],
+      "properties": {
+        "tp": {"type": "integer", "minimum": 0},
+        "fn": {"type": "integer", "minimum": 0},
+        "n": {"type": "integer", "minimum": 1},
+        "recall": {"type": "number", "minimum": 0, "maximum": 1}
+      },
+      "additionalProperties": false
+    },
+    "familyCounts": {
+      "type": "object",
+      "required": [
+        "unsupported_evidence",
+        "source_concentration",
+        "counterevidence_loss",
+        "contextual_flattening",
+        "unsupported_abstraction"
+      ],
+      "properties": {
+        "unsupported_evidence": {"type": "integer", "minimum": 1},
+        "source_concentration": {"type": "integer", "minimum": 1},
+        "counterevidence_loss": {"type": "integer", "minimum": 1},
+        "contextual_flattening": {"type": "integer", "minimum": 1},
+        "unsupported_abstraction": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    }
+  }
+}

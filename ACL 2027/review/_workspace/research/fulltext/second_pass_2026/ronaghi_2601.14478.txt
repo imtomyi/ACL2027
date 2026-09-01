@@ -1,0 +1,854 @@
+                                         Large Language Models for Large-Scale, Rigorous
+                                          Qualitative Analysis in Applied Health Services
+                                                             Research
+
+                                                Sasha Ronaghi1, 2*, Emma-Louise Aveling3 , Maria Levis4 ,
+                                                         Rachel L. Ross5 , Emily Alsentzer1,2 ,
+                                                    and Sara Singer, for the iPATH investigators5,6,7*
+
+
+
+
+arXiv:2601.14478v1 [cs.CL] 20 Jan 2026
+                                            1
+                                              Department of Computer Science, Stanford University, 353 Jane
+                                                          Stanford Way, Stanford, CA, 94305, USA.
+                                         2
+                                           Department of Biomedical Data Science, Stanford School of Medicine,
+                                                         300 Pasteur Dr, Stanford, CA, 94305, USA.
+                                           3
+                                             Department of Health Policy and Management, Harvard T.H. Chan
+                                         School of Public Health, 677 Huntington Ave, Boston, MA, 02115, USA.
+                                                 4
+                                                   Impactivo LLC, 1606 PR-25, San Juan, PR, 00901, USA.
+                                         5
+                                           Department of Medicine, Stanford School of Medicine, 300 Pasteur Dr,
+                                                                  Stanford, CA, 94305, USA.
+                                              6
+                                                Department of Health Policy, Stanford School of Medicine, 615
+                                                          Crothers Way, Stanford, CA, 94305, USA.
+                                                   7
+                                                     Implementing Scalable, PAtient-centered, Team-based,
+                                            Technology-enabled Care for Adults with Type 2 Diabetes (iPATH)
+                                                      investigators (see Supplementary Information S1).
+
+
+                                                *Corresponding author(s). E-mail(s): sronaghi@stanford.edu;
+                                                                 sara.singer@stanford.edu;
+                                                     Contributing authors: eaveling@hsph.harvard.edu;
+                                                      maria.levis@impactivo.com; rossrl@stanford.edu;
+                                                                  ealsentzer@stanford.edu;
+
+
+                                                                             Abstract
+                                           Large language models (LLMs) show promise for improving the efficiency of
+                                           qualitative analysis in large, multi-site health-services research. Yet method-
+                                           ological guidance for LLM integration into qualitative analysis and evidence
+
+
+
+                                                                                 1
+     of their impact on real-world research methods and outcomes remain limited.
+     We developed a model- and task-agnostic framework for designing human-LLM
+     qualitative analysis methods to support diverse analytic aims. Within a multi-
+     site study of diabetes care at Federally Qualified Health Centers (FQHCs),
+     we leveraged the framework to implement human-LLM methods for (1) qual-
+     itative synthesis of researcher-generated summaries to produce comparative
+     feedback reports and (2) deductive coding of 167 interview transcripts to refine a
+     practice-transformation intervention. LLM assistance enabled timely feedback to
+     practitioners and the incorporation of large-scale qualitative data to inform the-
+     ory and practice changes. This work demonstrates how LLMs can be integrated
+     into applied health-services research to enhance efficiency while preserving rigor,
+     offering guidance for continued innovation with LLMs in qualitative research.
+
+     Keywords: Qualitative Analysis, Large Language Models, Health Services Research,
+     Human–AI Collaboration
+
+
+
+
+1 Introduction
+Qualitative approaches are critical to health-services research because they identify the
+personal and interpersonal experiences, organizational dynamics, and contextual fac-
+tors that shape how care is delivered and received [1]. Yet the demands of large-scale,
+applied health studies often exceed available time and resources, and findings must be
+timely to remain relevant for practitioners [2]. Large Language Models (LLMs) may
+enhance analytic efficiency [3, 4], but their use also risks reducing analysis to superfi-
+cial, context-blind classifications [5, 6] and compromising methodological transparency
+[3, 7, 8].
+    Methodological guidance for integrating LLMs into real-world qualitative anal-
+ysis workflows remains limited. Prior work on human-AI collaboration emphasizes
+maintaining rigor by using AI for specific research tasks and ensuring researchers
+retain interpretive control [9, 10]. However, the flexibility of all-purpose chatbot inter-
+faces like ChatGPT has encouraged more generalized usage across the entire research
+process [7, 11, 12]. Such ubiquity risks undermining methodological transparency, a
+cornerstone of rigor in qualitative analysis [13]. Guidance is therefore needed on how
+to leverage the generality of LLMs and emerging LLM-based analysis tools [14, 15]
+into formalized, task-specific human-LLM qualitative analysis methods, particularly
+in applied studies where analytic goals, data sources, and most helpful way to report
+findings are highly context-dependent.
+    Furthermore, there is a need for greater understanding of how LLM use ultimately
+influences real-world research methods and outcomes. Novel LLM-based systems
+for qualitative analysis designed by computer scientists illustrate methodological
+advancements, but do not focus on integrating LLMs into research studies [14, 15].
+Qualitative scholars have compared LLMs to human analysts for qualitative coding
+[16–19] and thematic analysis [20–23]. Although they highlight the promise and limi-
+tations of LLMs for qualitative analysis, these studies typically prompt LLMs through
+commercial chat interfaces, limiting their ability to demonstrate LLM usability on
+
+
+                                             2
+large-scale, confidential datasets. Integrating LLMs into ongoing, real-world research
+studies through extensive collaboration between qualitative and computer science
+researchers will enable understanding of how LLMs can add value for analyzing large,
+heterogeneous datasets typical of applied health research.
+    In this paper, we propose a framework for designing task-specific human–LLM
+qualitative analysis methods. We demonstrate how this framework provides method-
+ological guidance for the integration of efficient and rigorous LLM-assisted qualitative
+analysis within a large, applied health-services research study focused on under-
+standing and improving diabetes care practices at Federally Qualified Health Centers
+(FQHCs) [24].
+    The study spans four research teams from California, Ohio, Massachusetts, and
+Puerto Rico, involving more than 35 research personnel. Between April and December
+2024, researchers conducted a comparative case study across 12 FQHCs, including 167
+interviews with clinicians, administrators, patient representatives, and other key stake-
+holders, to identify organizational conditions and processes that supported or impeded
+effective diabetes care. The team sought to generate findings for scholarly dissemina-
+tion, provide actionable feedback to practitioners, and refine a practice transformation
+intervention designed to improve diabetes care at FQHCs. After refining the inter-
+vention, research teams intend to implement the intervention across eight additional
+FQHC sites and evaluate its impact on patient outcomes.
+    Through a collaboration of qualitative and computer science researchers, we uti-
+lized LLMs in two distinct qualitative analysis tasks after data collection for the
+comparative case study across 12 FQHCs. Task 1 involved qualitative synthesis to
+generate comparative summary reports for feedback to FQHCs, analyzing high-level
+summaries produced by the research teams about key elements of diabetes care
+(∼31,200 total words). Task 2 entailed deductive qualitative coding of 167 inter-
+view transcripts (∼8,600 total minutes, ∼1,327,000 total words) to refine the planned
+intervention.
+
+2 Results
+We present a framework for designing task-specific human-LLM qualitative analysis
+methods and report results from its application to two analytic tasks: (1) qualitative
+synthesis to generate comparative summary reports for feedback to FQHCs, and (2)
+deductive qualitative coding to refine the planned study intervention. For each task,
+we followed the four steps described below and depicted in Fig. 1.
+Step 1: Define Task. We manually completed the task on a small data sample to
+clarify goals, finalize output format, document workflow, and set quality expectations.
+We also identified which components must be done by qualitative researchers to ensure
+their familiarity with the data, necessary for future evaluation and interpretation of
+LLM outputs.
+Step 2: Design human-LLM method. We divided the task into discrete parts to
+surface actions by qualitative researchers difficult to identify by viewing the task holis-
+tically, such as applying context-dependent judgment or drawing on prior knowledge.
+For each part, we specified its purpose, identified the researcher’s tacit contributions,
+
+
+                                            3
+Fig. 1 The framework we developed and applied for developing task-specific human-LLM qualitative
+analysis methods.
+
+
+and considered whether to use LLMs, allowing us to test different configurations of
+human and LLM involvement within each task.
+Step 3: Evaluate human-LLM method at small-scale. Two researchers com-
+pared outputs generated with and without LLM assistance on a small dataset, and
+their assessments informed team discussion. This approach enabled rigorous evaluation
+through blending the diverse expertise of the team [25].
+    One challenge in evaluating LLMs for qualitative analysis is the absence of a clear
+“gold standard,” since replicability is a contested marker of quality in qualitative
+research [26]. Common quantitative measures such as inter-rater reliability or over-
+lapping thematic coverage [14, 17, 20] fail to capture whether use of an LLM can
+achieve the same interpretative depth of insight as qualitative investigators and over-
+look that appropriate quality markers are contingent on task and study specifics.
+Instead, we evaluated findings against task-specific goals and established criteria of
+qualitative rigor such as: grounding in the data, integration of theory and data, align-
+ment with the research question, significance and relevance to the field, and usefulness
+for practitioners [13].
+    These evaluations guided how LLM outputs were integrated and interpreted when
+applied to the larger dataset. In both tasks, we considered the human-LLM approach
+sufficient for application to the larger dataset when the variation in outputs between
+manual and human-LLM analyses resembled the variation we would expect to observe
+between two human researchers applying the same methods (e.g., showing similar
+interpretive quality, fit with analytic goals, and utility in the overall analytical process).
+This benchmark offered a practical way to determine at which steps to incorporate
+LLMs.
+
+                                               4
+Step 4: Apply and evaluate human-LLM method for entire task. We doc-
+umented use of human-LLM output in practice and evaluated its impact on research
+goals and efficiency.
+
+
+2.1 Task 1. Providing Comparative Summary Reports to
+    Participating FQHCs: a Qualitative Synthesis Task
+Step 1: Define Task. The objective of Task 1 was to transform the qualita-
+tive data from the comparative case study into actionable feedback for participating
+FQHC sites to use for organizational learning and improvement. Specifically, qual-
+itative researchers sought to generate site-level summaries and cross-site syntheses
+across 22 care practice domains (e.g. information and communication technology,
+staff development, patient-provider relationship; see Supplementary Information S2.1),
+aligned with a widely used management framework [27] and the study’s research ques-
+tions. Qualitative researchers, in consultation with physicians, first developed site-level
+summaries (3–5 bullet points per domain) without LLM assistance to deepen their
+familiarity with the data and engage in collaborative reflection about lessons learned.
+LLMs were then introduced to support cross-site synthesis of each domain. Participat-
+ing sites each received a report with their own site-level summary and the cross-site
+synthesis for each domain.
+
+Step 2: Design human-LLM method. Researchers manually produced cross-site
+syntheses for each domain first, by grouping site-level summary data into themes, then
+by synthesizing findings into an actionable summary. This process informed the stages
+in which we incorporated LLMs.
+    Qualitative researchers first grouped each site’s summary bullets for a given domain
+into themes to facilitate pattern identification across sites, ignoring bullet points
+deemed less relevant. To mirror this step, we prompted OpenAI’s ChatGPT-4o model
+to produce output organized into themes. We instructed the LLM to sort original bul-
+let points from all sites within one domain into categorical themes without altering
+the original data points and creating a “miscellaneous” category for remaining content
+so all data remained visible to qualitative researchers.
+    After organizing site summary data into themes, qualitative researchers developed
+the final cross-site summary for each domain, identifying actionable insights, lessons
+learned, and creative or good practices. Similarly, we prompted OpenAI’s o1 model to
+generate a cross-site synthesis based on every site’s data for the domain. We provided
+the LLM with the task goal, four example manually-derived cross-site syntheses to
+demonstrate the desired structure and depth—a strategy known as few-shot prompting
+[28]—and domain definitions that reflected the management framework and guided
+how researchers manually interpreted findings. See Supplementary Information S2.2
+for prompts.
+
+Step 3: Evaluate human-LLM method at small-scale. Two qualitative
+researchers generated cross-site syntheses for two similar domains: information and
+communication technology and technology for clinical care. Each produced one sum-
+mary manually and the other with the LLM outputs as reference, ensuring that both
+
+
+                                            5
+approaches were applied to both domains while accounting for individual researcher
+differences.
+    The quality of the site summaries developed with and without LLM assistance
+were comparable in analytic quality and research conclusions, similar to having two
+qualitative researchers with different perspectives approach the same dataset and ques-
+tion. The AI-assisted approach reduced time by 30% for Researcher 1 and 55% for
+Researcher 2 (calculated as the difference in time to complete summaries with and
+without LLM support for the two comparable domains). We attribute this discrepancy
+to Researcher 1 having greater familiarity with the task and dataset.
+    The LLM’s thematically organized output aligned closely with how researchers
+grouped the data manually. Researchers retained most LLM-generated themes but
+revised them to be more descriptive, use practitioner-oriented language, and high-
+light innovation. The miscellaneous category often captured vague or misaligned input
+data, which, analogous to what inter-rater reliability would reveal, signaled when site
+teams may have misinterpreted domain definitions. Fig. S3 in Supplementary Informa-
+tion S2.3 illustrates modifications for the information and communication technology
+domain.
+    Comparing the LLM syntheses to those developed manually, we determined that
+LLMs could not replace researchers’ final interpretation. LLM outputs lacked the
+nuance and specificity required to be actionable for FQHC sites, shown in Fig. 2. LLMs
+also incorporated all input data into the cross-site summary, regardless of whether the
+data produced novel, useful, and non-redundant insights. In contrast, researchers omit-
+ted themes they determined to add little value based on their knowledge of relevant
+literature and existing practices (example in Fig. S3 in Supplementary Information
+S2.3). Additionally, because practices varied at sites, input site summaries did not
+always align with domain definitions, especially if researchers emphasized different
+facets of more broadly defined domains. While researchers moved misaligned data to
+other domains while organizing themes, the LLM included it in the cross-site synthesis
+(example in Fig. S3 in Supplementary Information S2.3). These observations high-
+lighted the importance of qualitative researchers making final interpretations of the
+data to ensure the outputs aligned with the task goal of being actionable and novel
+for FQHCs.
+    The LLM proved useful for organizing site-level data such that qualitative
+researchers had a comprehensive view of the site summary data, increasing researchers’
+confidence that no information was missed in their final interpretation of data.
+Although LLM-generated summaries were not usable as final output, researchers still
+found them helpful for identifying patterns across sites and sometimes providing use-
+ful language. Based on these findings, we finalized a human-LLM approach (Fig. 3)
+where the LLM thematically organizes site summary data for each domain, which the
+researchers refine and synthesize into a final cross-site synthesis.
+
+
+Step 4: Apply and evaluate human-LLM method for entire task. Using
+LLMs to organize data into patterns lightened cognitive load and enabled researchers
+to more quickly arrive at a final draft compared to the manual process, ultimately
+reducing time from data collection to actionable feedback for sites.
+
+
+                                          6
+Fig. 2 Illustrative differences in cross-site synthesis output by human and LLM (independently)
+for telehealth and appointment management themes within the “Information and Communication
+Technology” domain
+
+
+
+2.2 Task 2. Refining Intervention Design: a Deductive
+    Qualitative Analysis Task
+Step 1: Define Task. In a prior study [29], researchers had developed and piloted a
+practice transformation intervention based on primary care best practices to improve
+type 2 diabetes patient outcomes at Federally Qualified Health Centers (FQHCs). The
+objective of Task 2 was to understand the alignment between aspects of diabetes care
+organization and delivery targeted by the intervention (“practice areas”) and practices
+observed at the 12 sites in this qualitative comparative case study in order to inform
+refinement of the intervention for implementation in the next study phase. Specifically,
+researchers developed a coding framework with 19 broad, semantic, topic summary-
+type codes covering the practice areas [30]. LLMs were introduced to generate site-
+level descriptions for each practice area code supported by evidence from interview
+transcripts which researchers would analyze to modify components of the intervention.
+The coding framework is available in Supplementary Information S2.3.
+
+Step 2: Design human-LLM method. To inform development of the LLM-
+integration approach, a researcher coded two interviews from one site for two practice
+
+
+                                              7
+Fig. 3 Final Task 1 human-LLM method. Step 1, qualitative researchers define domains and
+create site-level summaries for each one. Step 2, LLM groups data for each domain into themes and
+provides cross-site synthesis. Step 3, qualitative researcher modifies LLM thematic groups. Step 4,
+qualitative researchers finalize cross-site synthesis for each domain, highlighting actionable insights
+and best practices.
+
+
+
+area codes of differing complexity: transportation accessibility (simple) and team-
+based care (complex). After familiarization with the dataset, the researcher followed a
+typical deductive coding process for each code: identifying relevant transcript excerpts,
+then synthesizing and organizing findings based on their judgment of relevance to the
+code. This process informed iterative development of a human-LLM deductive coding
+method shown in Fig. 4.
+    Using OpenAI’s ChatGPT-4o, we first aimed to identify transcript excerpts rele-
+vant for each code. Prompting the model with an entire interview and code definition
+yielded vague outputs that missed relevant information, consistent with evidence that
+LLMs struggle with long-context inputs [31]. Given our goal to produce site-level
+analysis, including all interviews per site within a single query was also infeasible:
+the combined transcripts for each site averaged 157,179 tokens, and 6 of 12 sites
+exceeded ChatGPT-4o’s 128k token context window limit [32]. We therefore imple-
+mented retrieval-augmented generation (RAG) [33], which retrieves excerpts before
+passing them to the LLM. Since abstract concepts such as “team-based care” could
+not be easily captured through keyword retrieval, we used embedding-based retrieval
+to surface semantically and contextually similar excerpts without requiring predefined
+keywords.
+    The manual approach highlighted that the researcher’s interpretations of code
+definitions, domain expertise, and dataset familiarity guided how they identified rel-
+evant excerpts. For example, the researcher coded excerpts about how teams worked
+
+
+                                                  8
+Fig. 4 The human-LLM coding method for each code. Researchers first generate sub-
+questions for relevant aspects of the code, then discuss and refine them as a team to ensure alignment.
+For each sub-question, researchers add two additional questions: 1) if there are examples in the
+sub-question, the same question without examples (‘example’ bias), and 2) a question on the same
+topic focused on challenges and barriers (‘positivity’ bias). Next, for each sub-question, we perform
+Retrieval Augmented Generation: embedding-based retrieval identifies relevant excerpts, and the LLM
+is prompted to answer using these excerpts. An automated script concatenates LLM outputs for all
+questions into a single output, and merges duplicate bullet points tied to the same quote, and vali-
+dates that all quotes appear in the interview text. Finally, the LLM sorts the validated bullet points,
+which are then provided to the research team.
+
+
+
+together to provide health education as “team-based care,” even though “health edu-
+cation” was not explicit within the code definition. Connections between seemingly
+disparate topics are commonly surfaced in qualitative analysis but are not reliably
+captured by embedding-based retrieval because they depend on tacit knowledge,
+contextual interpretation, and researcher expertise rather than lexical or semantic sim-
+ilarity. Embedding models surface associations represented in their training data, and,
+thus, may miss the novel or emergent connections that human analysts often iden-
+tify. Furthermore, single-vector embeddings, such as OpenAI’s text-embedding-3-large
+model, cannot capture the full range of relevance relationships between data points, a
+limitation that amplifies as datasets grow [34].
+    To capture excerpts not explicitly in code definitions but deemed relevant by
+researchers, three researchers drafted and refined sub-questions for each code through
+discussion and consensus [35]. Each sub-question targeted a single topic to yield specific
+
+
+                                                  9
+outputs [32]. Several sub-questions included examples of what researchers expected
+based on their expertise and familiarization with the dataset, a common practice when
+developing a qualitative codebook. Unlike humans who may read examples and simul-
+taneously consider novel contexts, we observed that LLMs overfit to examples, likely
+due to sycophancy bias [36] from training with reinforcement learning from human
+feedback [37]. To counter this “example bias,” we posed each question twice—once
+with and once without examples. We also observed a “positivity bias,” with LLM
+responses emphasizing positive accounts of what sites were doing and underreport-
+ing barriers or challenges. We paired each sub-question with a “counter-perspective”
+question focused on barriers, similar to the established qualitative practice of seeking
+“deviant cases” [38].
+    For each sub-question of the code, we performed retrieval-augmented generation
+(RAG). Reflecting what the team found effective in manual completion of the task
+and in task 1, we instructed the LLM to produce three to five bullet points, each
+with a one-sentence summary and illustrative quote. Our experimentation showed that
+requiring a quote for each statement reduced hallucinations and was more efficient for
+researchers than reviewing the full set of retrieved excerpts, which were difficult to
+parse due to abrupt sentence breaks and irrelevant content.
+    Finally, we aggregated bullet points across sub-questions for each code, removed
+quotes duplicated across bullet points and verified quotes against transcripts using an
+automated Python script. We then applied an LLM-as-judge approach to sort bullet
+points by relevance [39] before providing them to the research team for analysis. LLM
+prompts are available in Supplementary Information S3.2
+
+Step 3: Evaluate human-LLM method at small-scale. We compared the LLM-
+assisted method to manual coding of three interviews each from two FQHC sites (6
+total interviews) for four codes of varying levels of conceptual complexity (digital
+health, patient-provider relationship, defining roles and responsibilities, and patient
+supports).
+    Overall, the two methods differed in ways similar to how human researchers
+interpret the same data from different perspectives. Human analysis produced more
+detailed explanations with fewer quotes, whereas the LLM generated more summary
+points and supporting quotes, often overlapping thematically due to similarity between
+sub-questions within each code. Seeing the same theme supported by excerpts from
+different parts of the dataset increased researchers’ confidence in the LLM-derived
+findings. Consistent with Levitt & Saban [23], the human and LLM analyses also
+identified complementary points: human analysis emphasized interpersonal dynamics,
+whereas the LLM focused more on structures and processes (Fig. 5).
+    A key limitation of the LLM output was that our use of RAG restricted its
+understanding of the dataset to fragmented, decontextualized excerpts, whereas the
+researcher read through every transcript for the site. Because the team was distributed
+and site practices varied, not all codes were equally represented: researcher expertise
+shaped conversation flow, and some codes (e.g., remote work) were irrelevant at cer-
+tain sites. In these cases, retrieval surfaced low-similarity excerpts, which the LLM
+treated as relevant without access to the broader dataset, resulting in an output of tan-
+gentially related content. In contrast, the researcher noted reasons for the absence of
+
+
+                                           10
+Fig. 5 Different summary statement/quote points brought up by the human and LLMs
+for the ‘patient–provider relationship’ code. Human focuses on interpersonal dynamics and
+LLM on structures and processes. All other summary statement/quote points for this code were very
+similar.
+
+
+
+relevant material. Even when the researcher and LLM both selected the same quotes,
+the LLM summaries often lacked perspective, overlooked context, and overgeneral-
+ized their meaning, reasoning as if excerpts represented the entire site (Fig. 6). This
+limitation was acute because, in our dataset, each interview reflected a distinct per-
+spective requiring nuanced synthesis. These patterns mirror broader limitations of
+LLMs: trained to produce complete-sounding outputs, they can overstate conclusions
+even when information is insufficient [32].
+    Our evaluation revealed that the human-LLM deductive coding method could
+sufficiently organize and identify for analysis and interpretation by researchers.
+Unlike human-generated coding outputs, however, LLM-generated summary state-
+ments require greater researcher judgment to validate and contextualize due to the
+LLM’s limited contextual understanding of the study goals and dataset.
+
+Step 4: Apply and evaluate human-LLM method for entire task. Across
+the 19 codes, the researchers developed 177 sub-questions, averaging 9 per code (4 – 15
+sub-questions per topic). The final LLM output was structured as a matrix with codes
+as columns and FQHC sites as rows. Each cell contained ∼30 bullet points per code
+per site, with each bullet point pairing a summary statement and a supporting quote.
+    Researchers examined the LLM output for each practice-area code to test hypothe-
+ses informed by field experience from pilot implementations and interviews of the
+cross-site case study comparison that they conducted. For example, they observed
+post-COVID retention challenges at FQHCs. Findings from the “employee wellbeing”
+and “organizational culture” codes confirmed staff retention as a widespread challenge
+across all sites. Researchers then incorporated employee wellbeing innovations surfaced
+through the analysis (e.g. building in opportunities for reflection or checking in) into
+the intervention, although employee wellbeing was not part of the original interven-
+tion or its underlying primary care framework [40]. Similarly, researchers hypothesized
+
+
+                                               11
+Fig. 6 Same quotes identified by human and LLM, summarized differently Even though
+they both selected the same quotes, the LLM often overgeneralized their meaning. This limitation
+was acute in our dataset, where each interview reflected a distinct perspective requiring nuanced
+synthesis.
+
+
+
+
+that fewer sites were practicing empanelment according to its definition (the assign-
+ment of patients to providers), despite its centrality to many primary care models,
+because it was hard to implement in practice. Analysis of the “patient–provider rela-
+tionship” code confirmed this pattern, prompting a shift of focus from empanelment
+to strategies maintaining strong patient–provider trust.
+    Researchers typically reviewed the consolidated outputs for each code across sites
+and consulted sub-question outputs for specific aspects of interest. Because Step 3
+showed that summary statements required validation, they often revisited original
+transcripts to gain more context, and attribute the output’s listing of the source inter-
+view for facilitating efficient review. While researchers found the summary statements
+useful for locating relevant quotes, they did not rely on them heavily for analysis.
+
+
+                                               12
+    Given a deadline for implementing the refined intervention nine months after col-
+lecting data, incorporating findings from all practice areas and sites would have been
+infeasible without LLMs. In Step 3, the qualitative researcher spent 20 hours coding
+three transcripts for four codes: 3.5 hours reading through transcripts for entire site,
+15 hours coding, and 1.5 hours synthesizing. At that pace, coding one site (∼13 inter-
+views and 19 codes) would require 310 hours (7.75 workweeks) and all 12 sites nearly
+two years of full-time work (93 workweeks). While not accounting for efficiency gains or
+individual coding rate variation, these estimates illustrate the substantial time savings
+of LLMs for qualitative analysis at scale.
+
+
+3 Discussion
+We demonstrated how large language models (LLMs) can be integrated into large,
+multi-site qualitative health-services research through our structured framework that
+preserves rigor while enabling efficiency. Our framework is especially suitable for
+applied studies, such as ours, that seek to leverage LLMs to analyze large, het-
+erogeneous datasets and produce outputs tailored to specific goals under time
+constraints.
+    Our framework guided our understanding of LLM capabilities within the context
+of our study, informing our integration of LLMs into the research workflow. We used
+LLMs primarily for organizational and high-level analytic steps, while reserving theory
+development and generation of final insights for researchers. In Task 1, LLMs per-
+formed on par with researchers in thematically organizing site-level summaries, but
+they could not judge the relevance or novelty of insights. As a result, researchers relied
+on LLM-organized data to construct the final cross-site syntheses. In Task 2, LLMs suc-
+cessfully applied a deductive coding framework and identified relevant excerpts across
+a large dataset, but frequently lacked perspective, overlooked context, or overgeneral-
+ized from single data points in summarization. Consequently, researchers treated LLM
+coding outputs differently from human-generated codes: researchers relied less on inter-
+pretations and revisited data more often to ground findings in context. Furthermore,
+researchers needed access to raw data to demonstrate how their final conclusions were
+derived, and LLM-generated insights abstracted away both the data and analytic pro-
+cess. This undermined transparency, credibility, reflexivity, and the ability to assess
+potential biases in LLM-generated findings, such as the reinforcement of assumptions
+embedded in questions or dominant discourses in training data. Our findings align
+with prior human–AI collaboration literature underscoring the need for researchers to
+retain interpretive control [9, 10]. We also extend prior work comparing humans and
+LLM analysis capabilities [16–23] by showing how evaluations of human and LLM
+abilities informed the design of our human–LLM methods.
+    While our framework showed that LLMs could perform organizational, high-level
+analytic steps effectively, these uses still posed risks to the quality of final interpreta-
+tions. For instance, outputs could become generic, descriptive summaries when data
+was fragmented or decontextualized. Completing tasks manually on a small scale pro-
+vided a reference structure that helped us guide LLMs toward outputs clearly traceable
+to source data, supporting more robust explanatory analysis. Another risk was that
+
+
+                                            13
+researchers could lose familiarity with the data if LLMs replaced activities such as
+reading transcripts in full. We mitigated this by specifying at the beginning which
+steps were essential for researchers to remain engaged with data. Furthermore, we
+observed that variation within our dataset, an inevitable challenge of large, distributed
+teams, introduced variability in model behavior, making the LLM’s organization less
+consistent with the researcher’s. Small-scale evaluation helped us identify variability
+and informed how the team interpreted resulting LLM outputs.
+    Our interdisciplinary collaboration was essential for operationalizing our frame-
+work, and required iteratively developing, evaluating, and implementing task-specific,
+custom LLM-based tools and methods, as existing options were not viable. Open-
+source software often relied on commercial APIs that were not secure for high-risk
+data [14, 15]. Commercial platforms were prohibitively expensive, unable to handle
+large datasets, and slow to receive institutional approval. Additionally, the propri-
+etary nature of commercial tools reduces transparency in how they implement LLMs,
+critical for methodological rigor, and limits researchers’ ability to judge appropriate
+application. Existing options are also rigid: for instance, we could not find a tool that
+supported specification of output requirements, comparative feedback from matrix
+inputs, verbatim data reorganization rather than summarization. These limitations
+matter, especially in applied studies, which often require unique analytic processes and
+reporting structures, and show how existing tools fail to reflect the well-established
+principle that task-specific methods are critical for rigorous human–AI collaboration
+in qualitative analysis [9, 10].
+    Iterative collaboration between computer science and qualitative researchers
+allowed us to overcome these barriers. Computer science researchers enabled our team
+to implement LLMs in a useful, productive way for our study (e.g., data-processing
+pipelines based on the study’s existing infrastructure, build reusable prompts and API-
+based workflows for scalable LLM use, and incorporation of technical innovations such
+as embedding-based retrieval-augmented generation (RAG)). Qualitative researchers
+guided technical development to address real analytic bottlenecks and ensured that
+LLM use did not compromise analytic goals or core quality standards. Additionally,
+our evaluations were informed both by how qualitative researchers would assess the
+value of LLM assistance and by technical insights into model behavior and recent
+advances in computer science. As suggested by prior research [7], having both per-
+spectives was critical to integrating LLMs fruitfully into our ongoing research study,
+likely explaining why so few projects to date have successfully embedded LLMs into
+real-world qualitative studies.
+    Our successful implementation of LLMs through our framework demonstrates their
+value for analytic efficiency and research outcomes in large-scale, real-world quali-
+tative studies. LLM use accelerated the generation of comparative feedback reports,
+delivering more timely input to care teams, and enabled the incorporation of insights
+from 167 transcripts into 19 practice areas of a practice transformation intervention
+that will be implemented at eight FQHCs in the coming year and may reshape how
+diabetes care is delivered at FQHCs more broadly. Limitations from our study suggest
+that advances in LLM long-context reasoning and accessible domain knowledge trans-
+fer may further improve LLM capabilities in qualitative analysis, as current models
+
+
+
+                                           14
+lacked the expertise and capacity to reason across large datasets required for generat-
+ing insights directly from raw data. Future work should sustain collaboration between
+qualitative and computer science researchers to ensure methods remain both tech-
+nically robust and epistemologically grounded. Importantly, our framework can be
+reapplied across analytic tasks and study contexts, and alongside rapid advances in
+LLMs, creating opportunities for continued innovations in human–LLM integration
+for qualitative analysis.
+
+4 Methods
+We integrated LLMs within the Implementing Scalable, PAtient-centered, Team-
+based, Technology-enabled Care for Adults with Type 2 Diabetes (iPATH) research
+study. This multi-year study involves a collaborative network of research teams from
+Stanford, Harvard, The Ohio State University, and Impactivo, LLC and focuses
+on practice-relevant research of diabetes care in federally qualified health centers
+(FQHCs). Investigators collected interview data between April and December 2024
+and performed analysis with LLM assistance. The study was approved by Advarra’s
+Institutional Review Board (protocol ID Pro00071432).
+    To comply with high-risk medical data security standards, we used the Stanford
+SecureGPT [41] to access commercial LLMs via API, experimenting with models
+including OpenAI’s ChatGPT-4o and o1, Google Gemini 2.5, Claude Sonnet 3.5, and
+DeepSeek r1. ChatGPT-4o and o1 consistently followed instructions best and produced
+the strongest interpretations.
+Task 1. We developed a Python pipeline to transform an Excel matrix with domains,
+domain definitions, and site-level summaries into prompts for an LLM and return
+desired outputs into the study’s existing Microsoft Teams environment. Both Ope-
+nAI models produced strong thematic organizations, but o1 offered greater depth in
+summarization. To balance quality, cost, and efficiency, we used ChatGPT-4o for the-
+matic organization and o1 for final cross-site summaries. Supplementary Information
+S2 contains domains and definitions (S2.1) and prompts (S2.2).
+Task 2. We built a locally run chat interface to experiment with question types,
+output formats, and model configurations. Interview documents with metadata (i.e.
+research team, site, interviewee role, and interviewee role category) were embed-
+ded using OpenAI’s text-embedding-3-large model (the largest available through
+SecureGPT) and stored in a Qdrant vector database [42], enabling pre-search fil-
+tering. Users could filter by metadata, adjust model choice (e.g., ChatGPT-4o, o1),
+parameters (temperature, token limit), retrieval settings (similarity threshold, num-
+ber of results), and specify output formats before submitting questions. The interface
+returned both the retrieved excerpts and the LLM outputs, providing transparency
+into which data informed responses. After finalizing our settings and questions, the
+interface supported grid-based analysis to compare outputs across metadata partitions,
+which we used to construct the final output matrix.
+    ChatGPT-4o and o1 performed comparably on both the RAG and sorting prompts.
+ChatGPT-4o was selected for cost and efficiency. To reduce hallucinations, we set
+model temperature to 0.0. We empirically determined a similarity threshold of 0.4
+
+
+                                          15
+captured meaningfully relevant excerpts, though we lowered it to 0.3 as some questions
+returned no results at 0.4. The maximum output length was 4,000 tokens, the limit of
+Stanford SecureGPT.
+   Supplementary Information S3 contains each code and its researcher-developed
+sub-questions (S3.1), prompts (S3.2), and more details on the interface developed to
+generate analyses (S3.3).
+
+Declarations
+4.1 Author contribution
+S.R. led the study, contributing towards conceptualization of research goals and
+aims, data analysis, conducting of investigation, development of methodology, project
+administration, producing software, preparation of presentation of work, and prepa-
+ration and creation of draft. E.L.A. contributed to research goals and aims, data
+curation, data analysis, development of methodology, supervision, and revisions of
+draft. M.L. contributed to development of Task 2 methodology. R.R. and E.A. pro-
+vided manuscript feedback. S.S. served as principal investigator and contributed
+towards conceptualization of research goals and aims, data analysis, conducting of
+investigation, development of methodology, supervision, funding acquisitions, project
+administration, resources for study completion, and revisions of draft.
+
+4.2 Funding
+Research reported in this publication was supported by the National Institute On
+Minority Health And Health Disparities of the National Institutes of Health under
+Award Number R01MD017870. The content is solely the responsibility of the authors
+and does not necessarily represent the official views of the National Institutes of Health.
+The funder played no role in study design, data collection, analysis and interpretation
+of data, or the writing of this manuscript.
+
+4.3 Acknowledgments
+We gratefully acknowledge the organizations that participated in the comparative case
+study (TBN), and the individuals who participated in study interviews. We thank Cati
+Brown Johnson and Anna Sophia Lesios of the Evaluative Sciences Unit at Stanford
+School of Medicine for their assistance with coding interview transcripts as part of our
+human-LLM methodology testing.
+
+4.4 Competing interests
+All authors declare no financial or non-financial competing interests.
+
+4.5 Data availability
+The datasets generated and/or analyzed during the current study are not publicly
+available due to the sensitive nature of the interview data and the risk of compromising
+
+
+                                            16
+participant confidentiality. De-identified excerpts relevant to the study findings are
+available from the corresponding author on reasonable request.
+
+4.6 Code availability
+The underlying code for this study is available in a public Github repos-
+itory, sronaghi/LLMsinQualAnalysis, and can be accessed via this link
+https://github.com/sronaghi/LLMsinQualAnalysis.
+
+4.7 Consent to Participate
+All participants involved in generating analyses for human–LLM comparisons pro-
+vided informed consent to participate. Participants involved in the interviews provided
+informed consent under the Implementing Scalable, PAtient-centered, Team-based,
+Technology-enabled Care for Adults with Type 2 Diabetes (iPATH) study, approved
+by Advarra’s Institutional Review Board (IRB protocol Pro00071432).
+
+References
+ [1] Murphy, E. Qualitative Methods and Health Policy Research 1st edn (Routledge,
+     New York, 2003).
+
+ [2] Ramanadhan, S., Revette, A. C., Lee, R. M. & Aveling, E. L. Pragmatic
+     approaches to analyzing qualitative data for implementation science: an introduc-
+     tion. Implementation Science Communications 2, 70 (2021).
+
+ [3] Acheampong, I. O. & Nyaaba, M. Review of qualitative research in the era of
+     generative artificial intelligence. SSRN Electronic Journal (2024). URL https:
+     //ssrn.com/abstract=4686920.
+
+ [4] Hayes, A. S. “conversing” with qualitative data: Enhancing qualitative research
+     through large language models (llms). International Journal of Qualitative Meth-
+     ods 24 (2025). URL https://doi.org/10.1177/16094069251322346. Original work
+     published 2025.
+
+ [5] Friese, S. Conversational analysis with ai — ca to the power of ai: Rethinking
+     coding in qualitative analysis. SSRN Electronic Journal (2025). URL https:
+     //ssrn.com/abstract=5232579.
+
+ [6] Morgan, D. L. Exploring the use of artificial intelligence for qualitative data
+     analysis: The case of chatgpt. International Journal of Qualitative Methods 22,
+     1–10 (2023). URL https://journals.sagepub.com/doi/full/10.1177/1609406923
+     1211248.
+
+ [7] Schroeder, H., Quéré, M. A. L., Randazzo, C., Mimno, D. & Schoenebeck, S. Large
+     language models in qualitative research: Uses, tensions, and intentions (2025).
+     URL https://arxiv.org/abs/2410.07362. arXiv:2410.07362.
+
+
+                                          17
+ [8] Ashwin, J., Chhabra, A. & Rao, V. Using large language models for qualitative
+     analysis can introduce serious bias (2023). URL https://arxiv.org/abs/2309.171
+     47. arXiv:2309.17147.
+
+ [9] Jiang, J. A., Wade, K., Fiesler, C. & Brubaker, J. R. Supporting serendipity:
+     Opportunities and challenges for human-ai collaboration in qualitative analysis.
+     Proc. ACM Hum.-Comput. Interact. 5 (2021). URL https://doi.org/10.1145/34
+     49168.
+
+[10] Feuston, J. L. & Brubaker, J. R. Putting tools in their place: The role of time
+     and perspective in human-ai collaboration for qualitative analysis. Proc. ACM
+     Hum.-Comput. Interact. 5 (2021). URL https://doi.org/10.1145/3479856.
+
+[11] Liao, Z. et al. Llms as research tools: A large scale survey of researchers’ usage and
+     perceptions (2024). URL https://arxiv.org/abs/2411.05025. arXiv:2411.05025.
+
+[12] Narayanan, A. & Kapoor, S. AI Snake Oil: What Artificial Intelligence Can
+     Do, What It Can’t, and How to Tell the Difference (Princeton University Press,
+     Princeton, NJ, 2024).
+
+[13] Tracy, S. J. Qualitative quality: Eight “big-tent” criteria for excellent qualitative
+     research. Qualitative Inquiry 16, 837–851 (2010).
+
+[14] Lam, M. S., Teoh, J., Landay, J., Heer, J. & Bernstein, M. S. Concept induction:
+     Analyzing unstructured text with high-level concepts using lloom. Proceedings
+     of the 2024 CHI Conference on Human Factors in Computing Systems (2024).
+     URL https://api.semanticscholar.org/CorpusID:269214633.
+
+[15] Gao, J. et al. Collabcoder: A lower-barrier, rigorous workflow for inductive col-
+     laborative qualitative analysis with large language models (2024). URL https:
+     //arxiv.org/abs/2304.07366. arXiv:2304.07366.
+
+[16] Tai, R. H. et al. An examination of the use of large language models to aid
+     analysis of textual data. International Journal of Qualitative Methods 23, 1–14
+     (2024). URL https://doi.org/10.1177/16094069241231168.
+
+[17] Liu, X. et al. Qualitative coding with gpt-4: Where it works better. Journal of
+     Learning Analytics 12, 169–185 (2025). URL https://learning-analytics.info/in
+     dex.php/JLA/article/view/8575.
+
+[18] Than, N., Fan, L., Law, T., Nelson, L. K. & McCall, L. Qualitative coding with
+     generative large language models. Sociological Methods & Research 54, 849–888
+     (2025). URL https://journals.sagepub.com/doi/abs/10.1177/004912412513391
+     88.
+
+[19] Dunivin, Z. O. Scalable qualitative coding with llms: Chain-of-thought reasoning
+     matches human performance in some hermeneutic tasks (2024). URL https:
+
+
+                                            18
+    //arxiv.org/abs/2401.15170. arXiv:2401.15170.
+
+[20] Wachinger, J., Bärnighausen, K., Schäfer, L. N., Scott, K. & McMahon, S. A.
+     Prompts, pearls, imperfections: Comparing chatgpt and a human researcher in
+     qualitative data analysis. Qualitative Health Research 35, 951–966 (2025). URL
+     https://journals.sagepub.com/doi/10.1177/10497323241244669.
+
+[21] Parkington, K. et al. Human vs. llm-based thematic analysis for digital
+     mental health research: Proof-of-concept comparative study. arXiv preprint
+     arXiv:2507.08002 (2025).
+
+[22] Naeem, M., Smith, T. & Thomas, L. Thematic analysis and artificial intelligence:
+     A step-by-step process for using chatgpt in thematic analysis. International Jour-
+     nal of Qualitative Methods 24, 1–13 (2025). URL https://doi.org/10.1177/1609
+     4069251333886.
+
+[23] Levit, N. S. & Saban, M. When investigator meets large language models: a qual-
+     itative analysis of cancer patient decision-making journeys. npj Digital Medicine
+     8, 336 (2025). URL https://doi.org/10.1038/s41746-025-01747-3.
+
+[24] Singer, S. R01: Implementing scalable, patient-centered team-based care for
+     adults with type 2 diabetes and health disparities (ipath). Rethinking Clinical
+     Trials — demonstration project overview (2025). URL https://rethinkingclinical
+     trials.org/demonstration-projects/ipath/. https://rethinkingclinicaltrials.org/d
+     emonstration-projects/ipath/.
+
+[25] Levitt, H. M., Ipekci, B., Morrill, Z. & Rizo, J. L. Intersubjective recognition as
+     the methodological enactment of epistemic privilege: A critical basis for consensus
+     and intersubjective confirmation procedures. Qualitative Psychology 8, 407–427
+     (2021).
+
+[26] Pownall, M. Is replication possible in qualitative research? a response to makel
+     et al. (2022). Educational Research and Evaluation 29, 1–7 (2024). URL https:
+     //www.tandfonline.com/doi/full/10.1080/13803611.2024.2314526.
+
+[27] Bodenheimer, T., Wagner, E. H. & Grumbach, K. Improving primary care for
+     patients with chronic illness: The chronic care model, part 2. JAMA 288, 1909–
+     1914 (2002). URL https://doi.org/10.1001/jama.288.15.1909.
+
+[28] Brown, T. B. et al. Language models are few-shot learners (2020). URL https:
+     //arxiv.org/abs/2005.14165. arXiv:2005.14165.
+
+[29] Impactivo. Patient-Centered Medical Home Transformation Series Handbook
+     (Impactivo, 2019).
+
+[30] Braun, V. & Clarke, V. Using thematic analysis in psychology. Qualitative
+     Research in Psychology 3, 77–101 (2006). URL https://doi.org/10.1191/147808
+
+
+                                          19
+    8706qp063oa.
+
+[31] Liu, N. F. et al. Lost in the middle: How language models use long contexts
+     (2023). URL https://arxiv.org/abs/2307.03172. arXiv:2307.03172.
+
+[32] OpenAI et al. Gpt-4 technical report (2024). URL https://arxiv.org/abs/2303.0
+     8774. arXiv:2303.08774.
+
+[33] Lewis, P. et al. Retrieval-augmented generation for knowledge-intensive nlp tasks
+     (2021). URL https://arxiv.org/abs/2005.11401. arXiv:2005.11401.
+
+[34] Weller, O., Boratko, M., Naim, I. & Lee, J. On the theoretical limitations of
+     embedding-based retrieval. arXiv preprint arXiv:2508.21038 (2025).
+
+[35] Richards, K. A. R. & Hemphill, M. A. A practical guide to collaborative qual-
+     itative data analysis. Journal of Teaching in Physical Education 37, 225–231
+     (2018). URL https://doi.org/10.1123/jtpe.2017-0084.
+
+[36] Perez, E. et al. Discovering language model behaviors with model-written
+     evaluations (2022). URL https://arxiv.org/abs/2212.09251. arXiv:2212.09251.
+
+[37] Ouyang, L. et al. Training language models to follow instructions with human
+     feedback (2022). URL https://arxiv.org/abs/2203.02155. arXiv:2203.02155.
+
+[38] Anderson, C. Presenting and evaluating qualitative research. American Journal
+     of Pharmaceutical Education 74, 141 (2010). URL https://doi.org/10.5688/aj74
+     08141.
+
+[39] Gu, J. et al. A survey on llm-as-a-judge (2025). URL https://arxiv.org/abs/24
+     11.15594. arXiv:2411.15594.
+
+[40] Hahn, K. A., Gonzalez, M. M., Etz, R. S. & Crabtree, B. F. National committee
+     for quality assurance (ncqa) patient-centered medical home (pcmh) recognition
+     is suboptimal even among innovative primary care practices. Journal of the
+     American Board of Family Medicine 27, 312–313 (2014).
+
+[41] Ng, M. Y., Helzer, J., Pfeffer, M. A., Seto, T. & Hernandez-Boussard, T. Devel-
+     opment of secure infrastructure for advancing generative ai research in healthcare
+     at an academic medical center. Research Square rs.3.rs–5095287 (2024). URL
+     https://doi.org/10.21203/rs.3.rs-5095287/v1.
+
+[42] Qdrant. qdrant/qdrant. https://github.com/qdrant/qdrant (2025). GitHub
+     repository.
+
+
+
+
+                                          20
+

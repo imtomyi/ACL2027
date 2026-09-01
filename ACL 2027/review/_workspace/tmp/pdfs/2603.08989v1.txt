@@ -1,0 +1,493 @@
+                                               Automated Thematic Analysis for Clinical Qualitative Data: Iterative
+                                                          Codebook Refinement with Full Provenance
+                                                Seungjun Yi, MS1 , Joakim Nguyen, MS2 , Huimin Xu, MS3 , Terence Lim, PhD4,5 ,
+                                                           Joseph Skrovan, MS3 , Mehak Beri, MS3 , Hitakshi Modi, MS6 ,
+                                                           Andrew Well, MD, MPH, MSHCT7,8 , Carlos M Mery, MD7,8 ,
+                                                           Yan Zhang, PhD3 , Mia K Markey, PhD1 , Ying Ding, PhD3,11 *
+                                         1
+                                           Department of Biomedical Engineering, University of Texas at Austin, Austin, TX, USA
+                                              2
+                                                Department of Computer Science, University of Texas at Austin, Austin, TX, USA
+                                                      3
+                                                        School of Information, University of Texas at Austin, Austin, TX, USA
+                                                  4
+                                                     College of Natural Sciences, University of Texas at Austin, Austin, TX, USA
+                                                                       5
+                                                                         Graphen, Inc., New York, NY, USA
+
+
+
+
+arXiv:2603.08989v1 [cs.CL] 9 Mar 2026
+                                                    6
+                                                      Department of Pediatrics, University of Texas at Austin, Austin, TX, USA
+                                             7
+                                                Department of Cardiac Surgery, Division of Pediatric Cardiac Surgery, Vanderbilt
+                                                                 University School of Medicine, Nashville, TN, USA
+                                        8
+                                          Pediatric Heart Institute, Monroe Carell Jr. Children’s Hospital at Vanderbilt, Nashville,
+                                                                                      TN, USA
+                                          11
+                                              Department of Population Health, Dell Medical School, University of Texas at Austin,
+                                                                                  Austin, TX, USA
+
+                                        Abstract
+
+                                        Thematic analysis (TA) is widely used in health research to extract patterns from patient interviews, yet manual TA
+                                        faces challenges in scalability and reproducibility. LLM-based automation can help, but existing approaches pro-
+                                        duce codebooks with limited generalizability and lack analytic auditability. We present an automated TA framework
+                                        combining iterative codebook refinement with full provenance tracking. Evaluated on five corpora spanning clinical
+                                        interviews, social media, and public transcripts, the framework achieves the highest composite quality score on four
+                                        of five datasets compared to six baselines. Iterative refinement yields statistically significant improvements on four
+                                        datasets (p < 0.01, paired t-test, n=5 replicates) with large effect sizes (d > 2.7), driven by gains in code reusability
+                                        and distributional consistency while preserving descriptive quality. On two clinical corpora (pediatric cardiology),
+                                        generated themes align with expert-annotated themes (mean cosine similarity .487–.494).
+
+                                        Introduction
+
+                                        Thematic analysis (TA) is essential for understanding patient and family experiences in health research.1, 2, 3 In pe-
+                                        diatric cardiology, for example, interviews with families affected by congenital heart disease generate rich narra-
+                                        tives4 that, when coded and organized into themes, yield actionable insights for care delivery. However, manual TA
+                                        faces well-documented challenges in scalability,5 consistency,6 and reproducibility,7 particularly as clinical qualitative
+                                        datasets grow. Large language models (LLMs) have emerged as promising tools for automating this workflow, with
+                                        early results demonstrating gains in efficiency and consistency.8, 9, 10 Yet a key gap limits their adoption in clinical
+                                        settings: generalizability gap. Single-pass coding methods produce codebooks that overfit to text seen during gener-
+                                        ation and fail to transfer to unseen data,11 a problem compounded in health research where codebooks must generalize
+                                        across diverse patient narratives to support clinical guidelines and quality improvement initiatives.1, 12 Furthermore,
+                                        existing LLM-based frameworks report final themes without exposing intermediate decisions,11, 13, 14, 15, 16 making it
+                                        difficult for researchers to verify or reproduce the analytic process.
+                                        We present an automated TA framework that addresses the generalizability gap through an iterative codebook refine-
+                                        ment loop, which progressively improves codebook generalizability by exposing it to diverse training samples across
+                                        multiple rounds, consolidating overlapping codes and surfacing missing ones without degrading descriptive quality.
+                                        To address the auditability concern, the framework maintains full provenance: every artifact (quotes, codes, sub-
+                                        themes, and themes) receives a persistent identifier and every agent operation is logged in an auditable action ledger.
+The pipeline integrates a grounded coding module11 with a synthesis stage (Auto-TA17 ) that constructs the thematic
+hierarchy. We evaluate on five corpora spanning clinical interviews (AAOCA, SV-CHD), social media (Dreaddit),
+research interviews (Sheffield), and public transcripts (Ali Abdaal), addressing three research questions:
+
+   1. How does the framework’s coding quality compare to existing automated methods across diverse datasets?
+   2. Does iterative refinement produce statistically significant improvements in codebook generalizability?
+   3. How well do generated themes align with human-annotated themes on clinical datasets?
+
+Across five datasets and six baselines, the framework achieves the highest composite quality score on four of five
+corpora, with iterative refinement yielding statistically significant improvements (p < 0.01, n=5 replicates) and large
+effect sizes (d > 2.7) on four datasets. On the two clinical corpora, generated themes show meaningful alignment
+with expert-annotated themes (mean cosine similarity .487–.494).
+
+Related Work
+
+Thematic Analysis in Health Research. TA is among the most widely adopted qualitative methods in health sci-
+ences, used to surface patient perspectives and unmet needs from interview and focus-group data.1, 3 In clinical set-
+tings, TA transforms unstructured narratives into themes that inform care delivery and policy. Despite its value, TA
+remains labor-intensive: manual coding requires multiple trained analysts, iterative consensus-building, and extensive
+documentation,2, 7 limiting the scale at which qualitative insights can be extracted from growing clinical data sources.
+Established qualitative data analysis platforms (e.g., NVivo, Dedoose) support code-to-source traceability for manual
+workflows; however, existing LLM-based frameworks lack comparable provenance mechanisms.
+
+LLM-Assisted Qualitative Analysis. Recent work explores LLMs as qualitative coding assistants, from first-pass
+open coding8, 18, 9 to end-to-end TA pipelines.19 Early approaches position LLMs as coding aides that generate can-
+didate labels for researcher review.8, 10 More recent systems automate larger portions of the workflow: concept
+induction with human-in-the-loop sensemaking (LLooM15 ), hierarchical inductive coding (HICode16 ), multi-agent
+workflows (Thematic-LM13 ), and iterative schema induction with generation–critique cycles (LOGOS11 ). Retrieval-
+augmented approaches (GraphRAG,20 LightRAG21 ) improve factual grounding, while DeTAILS14 and TAMA22 em-
+phasize human-in-the-loop refinement. A common limitation is that these systems diverge into two camps: some
+(LOGOS, HICode, LLooM) treat the codebook as the final output without synthesizing higher-order themes, while
+others (Thematic-LM, DeTAILS) generate themes directly but without an explicit codebook stage, sacrificing the
+code-level traceability needed for auditability. Our framework bridges this gap by combining iterative codebook re-
+finement (via LOGOS) with inductive theme synthesis (via Auto-TA), producing a complete thematic hierarchy with
+end-to-end provenance from themes back to source evidence.
+
+Methods
+
+Datasets. We evaluate on five corpora spanning public and restricted-access qualitative data across clinical and non-
+clinical settings. (1) AAOCA transcripts. Nine de-identified transcripts from nine focus groups with 42 parents of
+children with Anomalous Aortic Origin of a Coronary Artery4 (mean 10,987 words; collected Aug 2021–May 2022).
+(2) SV-CHD transcripts. 28 de-identified transcripts from experience-group sessions and one-on-one interviews with
+patients, parents, siblings, and partners of families affected by Single-Ventricle Congenital Heart Disease4 (mean
+11,198 words; collected Feb–Sep 2020). Approved by UT IRB (#2019080031); available upon reasonable request.
+(3) Ali Abdaal transcripts. We collected 163 YouTube video transcripts on productivity, entrepreneurship, and
+personal development (mean 6,477 words each), filtering out short-form content under 500 words. (4) Sheffield
+transcripts. A publicly available collection of 15 semi-structured interviews (mean 6,927 words) with academic
+researchers discussing open research data sharing practices, hosted on the University of Sheffield’s ORDA repository.
+(5) Dreaddit dataset. A public corpus of 3,553 Reddit posts ( 318,000 words) from ten stress-related subreddits,23
+included to test our framework generalization to informal, user-generated social-media text.
+The Traceable Thematic Analysis Framework. This framework provides an end-to-end automated thematic anal-
+ysis pipeline with five main stages. Given a raw transcript, it produces a hierarchical thematic structure consisting
+of themes, subthemes, and codes, each grounded in supporting quotes from the source text. The analytical progres-
+sion follows the conventional qualitative workflow: quotes → codes → subthemes → themes. The quotes → codes
+step is implemented by adopting the coding procedure of LOGOS,11 while the subsequent synthesis steps (codes →
+subthemes → themes) are performed by our Auto-TA17 module. A central design requirement of this framework
+is transparency: every intermediate artifact is assigned a persistent unique identifier, and every agent operation is
+recorded as an auditable action with a unique action ID, enabling full traceability from any final theme back to the
+exact transcript evidence. Details for each step are provided below.
+
+
+
+
+                                Figure 1: The Traceable Thematic Analysis Framework
+
+Inputs, outputs, and core artifacts. The input is a single transcript document (or a set of transcripts), represented as
+raw text with optional structural metadata (e.g., speaker labels, turn boundaries). The output is a thematic hierarchy
+H = {T , S, C, Q} where themes T contain subthemes S, subthemes contain codes C, and codes link to evidence
+quotes Q. Each artifact type—quote, code, subtheme, and theme—stores a persistent unique identifier, a label or text
+span, a definition or description, and directed links to its parent and child artifacts, enabling full provenance traversal
+from any theme down to the exact transcript evidence.
+
+Stages 0–1: Preprocessing, segmentation, and quote extraction. The framework first normalizes transcripts through
+turn parsing, which segments text into speaker-attributed units with unique turn ids, and chunking, which splits
+transcripts exceeding the model’s context window into overlapping segments (default 8,000 characters) that respect
+natural boundaries. Each chunk receives a stable chunk id for cross-chunk consistency. During coding (Stage 2),
+the Coder agent simultaneously extracts candidate evidence quotes—short, self-contained passages conveying a single
+idea or experience—and assigns each a stable quote id linked to its source turn, enabling traceability back to the
+original transcript. Minimum length constraints filter non-substantive utterances, and passages exceeding 1,000 char-
+acters are automatically segmented. The output is a set of quote-code associations grounding every code in specific
+transcript evidence.
+
+Stage 2: Grounded quotes → codes mapping (Coding Module). This stage assigns codes to transcript chunks via a
+modular coding backend that supports multiple instantiations. The default implementation follows the grounded cod-
+ing procedure described in LOGOS11 : for each chunk, the coding agent generates a fixed number of codes (default 20),
+where each code comprises a short label (5–12 words) capturing the central meaning and a description (40–80 words)
+clarifying its scope. Codes are tagged with their source chunk identifier for traceability. After initial generation, a nor-
+malization pass deduplicates codes by name across chunks (incrementing frequency counts for repeated codes), then
+consolidates codes through pairwise relationship classification. For each pair of codes exceeding a cosine-similarity
+threshold, the LLM classifies the relationship as one of four types: equivalent (same concept, merged via union-find),
+subordinate (A is a subcategory of B), reverse (B is a subcategory of A), or orthogonal (unrelated). The classified
+relations are assembled into a directed code hierarchy graph with transitive inference (e.g., if A→B and B→C, then
+A→C). A three-step cleanup then applies: (1) equivalent codes are merged, retaining the code with the highest merge
+score (weighted by frequency and in-degree); (2) low-frequency codes with parents are subsumed into their parent;
+(3) remaining low-frequency orphan codes are dropped. Alternative coding backends24, 15, 16, 20, 21 can be substituted
+at this stage for systematic comparison across methods (see Table 1). The coding stage outputs the code set C with
+frequency and hierarchy metadata.
+
+Stages 3–4: Auto-TA17 synthesis (codes → subthemes → themes). Auto-TA constructs a two-level thematic hierar-
+chy through two successive passes. In the first pass, semantically related codes are grouped into candidate subthemes
+S based on shared meaning or complementary facets, generating for each a subtheme label, a description capturing the
+common thread, and the list of constituent codes. In the second pass, related subthemes are aggregated into overarch-
+ing themes T by identifying higher-order patterns across subtheme clusters, generating for each a theme label (5–10
+words), a detailed description (60–80 words), and the list of subsumed subthemes. The system ensures comprehensive
+coverage by assigning every code to at least one subtheme and every subtheme to at least one theme, while maintaining
+semantic distinctness across both hierarchical levels.
+
+Stage 5: Iterative refinement and stabilization. This stage refines the hierarchy over multiple rounds, typically
+alternating between (i) structural edits and (ii) semantic edits.
+
+    • Reviewer pass. A reviewer agent checks for common failure modes such as: duplicated concepts across
+      branches, inconsistent granularity (some themes too broad while others too narrow), orphan codes/subthemes,
+      and weak grounding (themes supported by very few quotes).
+    • Edit operations. Refinements are expressed using a constrained set of actions: generate (create new artifact),
+      merge (combine artifacts), split (divide an artifact), revise (edit label/definition), move (reassign child
+      links), delete (remove artifact). Each action produces a new action entry a ∈ A with explicit provenance.
+    • Stopping criteria. Refinement stops when the reviewer proposes no substantive structural edits in a full pass
+      (or when a configured maximum number of rounds is reached). The final output is the stabilized hierarchy H.
+
+Transparency via provenance and action logging. To ensure transparency, we maintain an action ledger A where
+each agent operation is logged as:
+
+       A = ⟨aid, agent role, action type, inputs, outputs, justification, timestamp⟩.
+
+The inputs/outputs fields store the specific artifact IDs affected (e.g., merging codes cid 1,cid 2 into cid new).
+This makes the pipeline replayable: users can reconstruct how any theme evolved across iterations and inspect exactly
+which operations produced (or altered) each artifact. For example, a generated theme such as “Communication chal-
+lenges in healthcare” can be traced through its constituent subthemes and codes down to specific evidence quotes (e.g.,
+Q47 from Turn 15 of Transcript 3), with every grouping and refinement step recorded in A.
+
+Experiments. We address three research questions: (1) How does our framework compare to other coding methods
+across diverse datasets? (2) Does iterative refinement in the coding stage improve performance? (3) How do the
+generated themes align with human-annotated ground truth?
+
+Experiment 1 – Comparative Performance (RQ1). This experiment evaluates whether LOGOS produces code-
+books of higher quality than existing automated coding methods. All methods are evaluated on the same train/test
+splits using the five quality metrics described in Section ; LLM-based metrics (Fitness, Coverage) use GPT-4o-mini
+at temperature 0.3 on 5 sampled test chunks. All baselines share the same underlying LLM to isolate algorithmic
+differences from model capacity. We report two LOGOS variants: LOGOS (Iter-1), the codebook from the initial
+pipeline before refinement, and LOGOS (Best), the codebook from the iteration achieving the highest composite
+score. To assess robustness, we run n=5 independent replicates per dataset (seeds s ∈ {42−46}, up to 10 iterations
+each) with the train/test split held fixed, and report mean scores with significance via two-tailed paired t-tests (df = 4)
+and Cohen’s d. Refinement terminates early when the Jaccard similarity between successive codebooks exceeds 0.95.
+
+Experiment 2 – Iterative Refinement (RQ2). This experiment isolates the refinement loop’s contribution by tracking
+all five metrics across iterations. For each dataset, LOGOS produces an initial codebook (Iter-0), then refines it for
+up to 10 iterations—sampling training chunks, proposing code revisions, and re-evaluating on the held-out test set.
+Statistical testing follows Experiment 1 (paired t-tests, Cohen’s d, n=5).
+
+Experiment 3 – Theme Alignment with Human Annotations (RQ3). For the two clinical datasets (AAOCA and
+SV-CHD), we compare generated themes against independently developed human-annotated themes4 by computing
+cosine similarity (all-MiniLM-L6-v2) between each generated theme and all human themes, reporting the closest
+match as a quantitative proxy for semantic alignment.
+
+Evaluation Metrics. We adopt the same evaluation protocol and codebook-quality metrics as in previous work11 .
+Concretely, the codebook is learned on the training split, and we then perform deductive coding on the test split using
+only the train-derived codebook (i.e., the model selects up to 20 existing codes and is not allowed to introduce new
+codes). We report the following metrics, computed from the resulting test-set code assignments.
+
+    • Reusability measures how many codes in the learned codebook are actually used on unseen data:
+
+                                                                 #used codes
+                                                 Reusability =               ,                                         (1)
+                                                                 #all codes
+      where a used code is assigned at least once to a test chunk.
+    • Descriptive Fitness is an LLM-judged score (originally 1–10, rescaled to [0, 1]) that quantifies how well the
+      assigned codes appropriately describe a test chunk (even if only partially).
+    • Descriptive Coverage is an LLM-judged score (originally 1–10, rescaled to [0, 1]) that evaluates whether the
+      assigned codes capture all essential aspects of a test chunk relevant to the research question (i.e., completeness).
+    • Parsimoniousness captures redundancy among codes via average pairwise cosine similarity:
+                                                                    2     X
+                                     Parsimoniousness = 1 −                   cos(ci , cj ),                           (2)
+                                                                 n(n − 1) i<j
+
+      where n is the number of codes and cos(ci , cj ) is cosine similarity between code representations.
+
+    • Consistency measures train–test agreement in code usage by penalizing divergence between the empirical code
+      distributions:
+                                           Consistency = 1 − JSD(P ∥ Q),                                       (3)
+      where P and Q are the empirical code-frequency distributions on the training and test splits, respectively.
+    • Composite score combines the above dimensions via a weighted sum; following LOGOS11 , we use equal
+      weights unless otherwise stated.
+
+Experimental Settings. All experiments use gpt-4o-mini via the OpenAI API; each corpus is segmented into
+2,048-word chunks with 200-word overlap, split into training (80%) and test (20%) sets (seed s=42). Embedding-
+based metrics use all-MiniLM-L6-v2 (384-d). All baselines share the same LLM, chunking, and splits.
+Table 1: Comparative performance across methods. Scores report the composite quality metric (mean of Reusability,
+Fitness, Coverage, Parsimony, and Consistency). LOGOS (Iter-1) and LOGOS (Best) report means over n=5 inde-
+pendent replicates. ∆ denotes improvement from iterative refinement. Statistical significance is assessed via paired
+t-tests: *** p < 0.01.
+
+                          AAOCA4              SV-CHD4                   Ali            Dreaddit23         Sheffield
+   Method              Score   ∆           Score    ∆           Score         ∆     Score     ∆         Score     ∆
+   OpenCoding24        0.493               0.450                0.473               0.428               0.516
+   LLOOM15             0.476               0.495                0.491               0.458               0.484
+   GraphRAG20          0.433               0.391                0.431               0.382               0.467
+   LightRAG21          0.415               0.501                0.504               0.368               0.505
+   Thematic-LM13       0.485               0.473                0.395               0.375               0.629
+   HICode16            0.412               0.378                0.421               0.436               0.496
+   LOGOS11 (Iter-1)    0.471               0.632                0.469               0.414               0.564
+   LOGOS11 (Best)      0.509    +.039∗∗∗   0.688    +.056∗∗∗    0.533    +.064∗∗∗   0.462   +.048∗∗∗    0.571   +.007
+
+
+Results and Discussion
+
+Experiment 1 – Comparative Performance (RQ1). We evaluated LOGOS against six baseline methods across
+five datasets (Table 1). LOGOS (Best) achieves the highest composite score on four of five datasets, with statisti-
+cally significant improvements (p < 0.01, paired t-test) over the initial codebook on Ali (+.064), Dreaddit (+.048),
+AAOCA (+.039), and SV-CHD (+.056). The largest absolute score is on SV-CHD (0.688), outperforming the next-
+best method by +.187. On Sheffield, Thematic-LM13 achieves the highest score (0.629); LOGOS reaches 0.571 with
+a non-significant improvement (+.007, p = 0.13), likely due to the small corpus size limiting refinement diversity.
+Figure 2 presents the per-metric breakdown. LOGOS (Best) achieves the highest Reusability (0.41) and Consistency
+(0.57) by substantial margins, indicating superior generalizability, with trade-offs in Fitness (0.62) and Coverage
+(0.60) where single-pass baselines that optimize for immediate descriptive quality score higher. The composite scores
+demonstrate that generalizability gains outweigh modest decreases in descriptive metrics, yielding superior overall
+performance for codebooks intended for use beyond the training corpus. A detailed per-metric statistical breakdown
+is provided in Appendix .
+
+
+
+
+         Figure 2: Average quality metric scores across five datasets. Error bars indicate ±σ across datasets.
+
+Experiment 2 – Iterative Refinement (RQ2). To understand the dynamics of iterative refinement, we tracked all five
+quality metrics across 10 iterations on each dataset (Figure 3). The most striking pattern is the behavior of Reusability:
+starting from low initial values (0.05–0.20), it shows consistent upward trends across all datasets, roughly doubling on
+AAOCA and SV-CHD by iteration 10. In contrast, Fitness and Coverage remain stable (0.60–0.75) throughout refine-
+Figure 3: Quality metric trajectories across iterative refinement for all five datasets (n=5 replicates each). Solid lines
+show the mean; shaded bands denote 95% confidence intervals. Metrics shown: Reusability, Fitness, Coverage,
+Parsimony, Consistency, and Overall (dashed grey; unweighted mean). Iteration 0 is the initial codebook before
+refinement. Gains emerge within 2–4 iterations and plateau thereafter.
+
+ment, confirming that descriptive quality is established early and preserved. Parsimony is similarly stable (0.55–0.75),
+while Consistency shows dataset-dependent variability—rising sharply on Sheffield but remaining flat on Dreaddit.
+The composite Overall score improves gradually, driven primarily by Reusability gains, with convergence typically
+occurring within 2–4 iterations on AAOCA and SV-CHD and continuing through iteration 10 on Ali Abdaal and
+Sheffield. These trajectories confirm that iterative refinement improves generalizability (Reusability, Consistency)
+without degrading descriptive quality (Fitness, Coverage, Parsimony), and that the gains in Table 1 emerge from
+cumulative refinement rather than initial codebook generation alone.
+
+Experiment 3 – Theme Alignment with Human Annotations (RQ3). To assess clinical meaningfulness, we com-
+pared generated themes against human-annotated ground truth4 using cosine similarity (all-MiniLM-L6-v2; Table 2).
+On AAOCA (8 themes, mean similarity .487) and SV-CHD (13 themes, mean .494), the framework recovers themes
+that align with core human-identified constructs. The strongest alignments (> .5) capture the most emotionally salient
+family experiences: communication breakdowns between families and providers (.726), evolving parenting roles dur-
+ing treatment transitions (.620), and parental protective instincts around child safety (.587). These reflect central con-
+cerns in the pediatric cardiology qualitative literature.4 Moderate-alignment themes (.4–.5) identify similar constructs
+but frame them from different analytical angles (e.g., “Parental advocacy & empowerment” (.452) emphasizes family
+agency, while the matched human theme foregrounds information processing). Lower-alignment themes (< .4) surface
+dimensions not prioritized in the original manual analysis or group more broadly than human coders. A notable pattern
+across all tiers is that generated themes tend toward higher abstraction than human themes: for instance, “Parenting
+& family dynamics” is broad enough to encompass many subconcepts, whereas the matched human theme “Change
+in parent role as child transitions” is specific and clinically actionable. This suggests that without domain-specific
+constraints, the framework favors generality over the targeted specificity that expert coders bring. Additionally, cosine
+similarity based on sentence embeddings can overestimate alignment when themes share topical vocabulary but differ
+in meaning—e.g., “Balancing caregiving & professional responsibilities” (.558) and “Partnership with the care team”
+address distinct constructs despite lexical overlap in the caregiving domain. To illustrate the framework’s traceability,
+consider the generated AAOCA theme “Emotional and psychological impacts”: it decomposes into subthemes such as
+“Need for counseling support,” which groups codes like “Proactive information acquisition for child health decisions,”
+each grounded in participant quotes (e.g., P4006: “the therapy, the counseling should be mandatory for the child or
+for the family”). Every link in this chain—theme to subtheme to code to quote to transcript turn—is recorded in the
+action ledger, enabling researchers to audit how any theme was derived from source evidence. Formal evaluation with
+domain experts remains necessary to validate true semantic alignment and determine whether divergences represent
+complementary perspectives or missed clinical nuances.
+
+Conclusion, Limitations, and Future Work
+
+We presented a traceable thematic analysis framework with end-to-end provenance from themes back to source ev-
+idence. Across five datasets and six baselines, iterative refinement produces statistically significant improvements
+(p < 0.01, n=5) with large effect sizes (d > 2.7) on four datasets, selectively improving generalizability (Reusability,
+Consistency) while preserving descriptive quality. Several limitations remain. First, the optimal refinement iteration
+Table 2: Comparison of framework-generated themes with human-annotated themes,4 matched by cosine similarity
+(all-MiniLM-L6-v2). Rows sorted by descending similarity.
+
+            Generated Theme                               Closest Human Theme                               Sim.
+            AAOCA (8 generated; mean = .487)
+            Parental fears & protective instincts         Feeling that my child is safe                     .587
+            Balancing caregiving & prof. responsibilities Partnership with the care team                    .558
+            Child’s engagement & understanding            Feeling that my child is safe                     .515
+            Emotional & psychological impacts             Coping with stress, anxiety, depression           .504
+            Communication complexities in health mgmt. Communicating risks appropriately                    .496
+            Healthcare communication & trust              Empathetic relationship-centered care             .480
+            Managing asymptomatic & chronic conditions No consistent diagnostic/treatment paradigm          .446
+            Post-operative recovery & normalization       No consistent diagnostic/treatment paradigm       .308
+            SV-CHD (13 generated; mean = .494)
+            Communication challenges in healthcare        Communication deficiencies disrupt continuity     .726
+            Parenting & family dynamics                   Change in parent role as child transitions        .620
+            Emotional experiences of parents              Rarely receive specialized mental health care     .558
+            Hospitalization & recovery experiences        Hospital-to-home transition presents challenges   .547
+            Healthcare resource & expertise challenges    Other specialties have limited CHD knowledge      .525
+            Children’s understanding & involvement        Change in parent role as child transitions        .493
+            Navigating healthcare systems                 Hospital-to-home transition presents challenges   .469
+            Adapting to lifestyle changes                 Smooth transition between life stages             .463
+            Parental advocacy & empowerment               Parents synthesize critical medical information   .452
+            Decision-making & autonomy                    Accessible information about goals/expectations   .421
+            Medical interventions & their impact          Preparation to independently manage condition     .402
+            Educational & informational needs             Accessible information about goals/expectations   .380
+            Support networks & community                  Lack connection to peers affected by SV-CHD       .370
+
+
+is identified post hoc; a principled early-stopping criterion beyond the Jaccard proxy is needed. Second, the co-
+movement of Reusability and Consistency suggests these metrics may capture overlapping facets of generalizability,
+and Sheffield’s non-significant improvement highlights a corpus-size dependency. Third, Fitness and Coverage rely
+on LLM-based judgments from the same model family used for generation, potentially introducing systematic bias.
+Fourth, embedding-based cosine similarity can inflate theme alignment scores when themes share domain vocabulary
+but differ in meaning, and generated themes tend toward higher abstraction than clinically specific human-annotated
+themes—expert qualitative review and domain constraints could address both issues. Finally, integrating human-
+in-the-loop checkpoints for safety-critical healthcare applications and reducing per-replicate API cost are key future
+directions.
+
+Appendix
+
+Statistical Analysis of Iterative Refinement
+
+To rigorously evaluate whether LOGOS’s iterative refinement loop yields meaningful improvements, we conducted
+n=5 independent replicates of the full refinement pipeline (10 iterations each) on every dataset, varying the random
+seed that governs chunk sampling during both refinement and evaluation. Table 3 reports the per-metric breakdown
+comparing the initial codebook (Iter-1) against the best-performing iteration within each replicate. Statistical signif-
+icance is assessed via two-tailed paired t-tests on the per-replicate scores (df = 4), and effect magnitude is quantified
+using Cohen’s d for paired samples. Across all five datasets, Fitness and Coverage—the two metrics that directly
+measure how well codes describe and capture the content of unseen text—exhibit the most consistent gains. Coverage
+improvements range from +.013 (Sheffield) to +.173 (Dreaddit), reaching significance (p < 0.01) on four of five
+datasets with uniformly large effect sizes (d > 1.6). Fitness gains range from +.071 to +.107 and are significant on
+three datasets. Consistency, which measures the stability of code-frequency distributions between train and test splits,
+shows the single largest per-metric improvement on SV-CHD (+.170, p < 0.001, d = 18.99), indicating that refine-
+ment substantially stabilizes how codes distribute across unseen data. Reusability—the fraction of codes that match
+at least one test chunk—improves significantly on Ali (+.070, p < 0.001), AAOCA (+.021, p < 0.01), and Sheffield
+(+.090, p < 0.05). Parsimony gains are modest, reaching significance only on AAOCA (+.039, p < 0.001); on
+datasets where the initial codebook is already compact, there is limited room for further redundancy reduction. The
+composite Overall score improves significantly (p < 0.01) on four of five datasets, with large effect sizes (d > 2.7) on
+AAOCA, SV-CHD, Ali, and Dreaddit. Sheffield is the sole exception (∆ = +.007, p = 0.13), which we attribute to its
+small corpus (15 documents, 49 train chunks): the limited diversity of available text constrains the refinement loop’s
+ability to discover meaningfully distinct codes across iterations. Notably, even on Sheffield, all per-metric deltas are
+non-negative and the effect size for the overall score is still large (d = 0.84), suggesting that the lack of significance
+reflects low statistical power rather than a failure of the refinement mechanism. Figure 3 visualizes the trajectory of
+each metric across iterations, with shaded bands denoting 95% confidence intervals computed over the five replicates.
+The plots confirm that improvements emerge within the first 2–4 iterations and generally plateau thereafter, consistent
+with the Jaccard-based convergence criterion (Section ).
+
+Table 3: Per-metric statistical analysis of iterative refinement (Iter-1 vs. Best). All values are means over n=5 inde-
+pendent replicates. ∆: improvement from refinement. t: paired t-statistic (df = 4). d: Cohen’s d (paired). ** p < 0.05;
+*** p < 0.01. Effect sizes: S = small (|d| < 0.5), M = medium (|d| < 0.8), L = large (|d| ≥ 0.8).
+
+                    Dataset      Metric        Iter-1 Best      ∆          t       p Sig. d / Effect
+                    AAOCA        Reusability    .119   .140   +.021    −4.98  .008 ***       2.23 / L
+                                 Fitness        .702   .791   +.089    −4.00  .016 **        1.79 / L
+                                 Coverage       .600   .760   +.160    −6.47  .003 ***       2.89 / L
+                                 Parsimony      .569   .608   +.039   −15.92 <.001 ***       7.12 / L
+                                 Consistency    .362   .362    .000       —     — —            —
+                                 Overall        .471   .509   +.039    −6.23  .003 ***       2.78 / L
+                    SV-CHD       Reusability    .620   .622   +.001    −1.00  .374           0.45 / S
+                                 Fitness        .680   .773   +.093    −2.54  .064           1.13 / L
+                                 Coverage       .640   .733   +.093    −5.72  .005 ***       2.56 / L
+                                 Parsimony      .548   .555   +.007    −2.35  .079           1.05 / L
+                                 Consistency    .671   .841   +.170   −42.46 <.001 ***      18.99 / L
+                                 Overall        .632   .688   +.056    −6.89  .002 ***       3.08 / L
+                    Ali Abdaal Reusability      .171   .240   +.070 −47.18 <.001 ***        21.10 / L
+                               Fitness          .631   .711   +.080  −4.81   .009 ***        2.15 / L
+                               Coverage         .493   .662   +.169  −3.73   .020 **         1.67 / L
+                               Parsimony        .789   .789    .000      —     — —             —
+                               Consistency      .260   .347   +.087 −124.08 <.001 ***       55.49 / L
+                               Overall          .469   .533   +.064  −6.56   .003 ***        2.93 / L
+                    Dreaddit     Reusability    .040   .070   +.030   −2.23     .090        1.00 / L
+                                 Fitness        .711   .818   +.107   −4.95     .008 ***    2.21 / L
+                                 Coverage       .551   .724   +.173   −6.29     .003 ***    2.81 / L
+                                 Parsimony      .667   .669   +.002   −1.56     .195        0.70 / M
+                                 Consistency    .100   .130   +.030   −1.17     .307        0.52 / M
+                                 Overall        .414   .462   +.048   −6.33     .003 ***    2.83 / L
+                    Sheffield    Reusability    .302   .393   +.090   −4.50     .011   **   2.01 / L
+                                 Fitness        .640   .711   +.071   −1.61     .182        0.72 / M
+                                 Coverage       .689   .702   +.013   −1.00     .374        0.45 / S
+                                 Parsimony      .697   .700   +.002   −1.60     .184        0.72 / M
+                                 Consistency    .490   .527   +.036   −2.18     .094        0.98 / L
+                                 Overall        .564   .571   +.007   −1.88     .134        0.84 / L
+                                                          References
+ 1. Braun V, Clarke V. What can ”thematic analysis” offer health and wellbeing researchers? International Journal of Qualitative
+    Studies on Health and Well-being. 2014;9:26152.
+ 2. Braun V, Clarke V. Thematic Analysis: A Practical Guide. SAGE Publications; 2021.
+ 3. Campbell KA, Orr E, Durepos P, Nguyen L, Li L, Whitmore C, et al. Reflexive Thematic Analysis for Applied Qualitative
+    Health Research. The Qualitative Report. 2021;26(6):2011-28.
+ 4. Mery CM, Well A, Taylor K, et al. Examining the Real-Life Journey of Individuals and Families Affected by Single-Ventricle
+    Congenital Heart Disease. Journal of the American Heart Association. 2023;12(5):e027556.
+ 5. Milat AJ, King L, Bauman AE, Redman S. The Concept of Scalability: Increasing the Scale and Potential Adoption of Health
+    Promotion Interventions into Policy and Practice. Health Promotion International. 2012;28(3):285-98.
+ 6. Vaismoradi M, Turunen H, Bondas T. Content Analysis and Thematic Analysis: Implications for Conducting a Qualitative
+    Descriptive Study. Nursing & Health Sciences. 2013;15(3):398-405.
+ 7. Braun V, Clarke V. A critical review of the reporting of reflexive thematic analysis in Health Promotion International. Health
+    Promotion International. 2024;39(3):daae049.
+ 8. Bijker R, Merkouris S, Dowling N, Rodda S. ChatGPT for Automated Qualitative Research: Content Analysis. Journal of
+    Medical Internet Research. 2024;26:e59050. Available from: https://www.jmir.org/2024/1/e59050.
+ 9. Dunivin ZO. Scaling hermeneutics: a guide to qualitative coding with LLMs for reflexive content analysis. EPJ Data Science.
+    2025;14:28. Available from: https://doi.org/10.1140/epjds/s13688-025-00548-8.
+10. Mathis WS, Zhao S, Pratt N, Weleff J, De Paoli S. Inductive thematic analysis of healthcare qualitative interviews using open-
+    source large language models: How does it compare to traditional methods? Computer Methods and Programs in Biomedicine.
+    2024;255:108356.
+11. Pi X, Yang Q, Nguyen C. LOGOS: LLM-driven End-to-End Grounded Theory Development and Schema Induction for Qual-
+    itative Research; 2025. Available from: https://arxiv.org/abs/2509.24294.
+12. Yi S, Nguyen J, Lim T, Well A, Skrovan J, Beri M, et al.. Position: Thematic Analysis of Unstructured Clinical Transcripts
+    with Large Language Models; 2025. Available from: https://arxiv.org/abs/2509.14597.
+13. Qiao T, Walker C, Cunningham C, Koh YS. Thematic-LM: A LLM-based Multi-agent System for Large-scale Thematic
+    Analysis. In: Proceedings of the ACM on Web Conference 2025. WWW ’25. New York, NY, USA: Association for Computing
+    Machinery; 2025. p. 649-58. Available from: https://doi.org/10.1145/3696410.3714595.
+14. Sharma A, Cochrane K, Wallace J. DeTAILS: Deep Thematic Analysis with Iterative LLM Support. In: Proceedings of the 7th
+    ACM Conference on Conversational User Interfaces. CUI ’25. New York, NY, USA: Association for Computing Machinery;
+    2025. Available from: https://doi.org/10.1145/3719160.3735657.
+15. Lam MS, Teoh J, Landay JA, Heer J, Bernstein MS. Concept Induction: Analyzing Unstructured Text with High-Level
+    Concepts Using LLooM. In: Proceedings of the CHI Conference on Human Factors in Computing Systems. CHI ’24. ACM;
+    2024. p. 1-28. Available from: http://dx.doi.org/10.1145/3613904.3642830.
+16. Zhong M, Wang P, Field A. HICode: Hierarchical Inductive Coding with LLMs; 2025. Available from: https://arxiv.org/abs/
+    2509.17946.
+17. Yi S, Nguyen J, Xu H, Lim T, Well A, Markey M, et al. Auto-TA: Towards Scalable Automated Thematic Analysis (TA)
+    via Multi-Agent Large Language Models with Reinforcement Learning. In: ACL 2025 Student Research Workshop; 2025.
+    Available from: https://openreview.net/forum?id=vWVXGfwONH.
+18. Zhang H, Wu C, Xie J, Rubino F, Graver S, Kim C, et al.. When Qualitative Research Meets Large Language Model: Exploring
+    the Potential of QualiGPT as a Tool for Qualitative Coding; 2024. Available from: https://arxiv.org/abs/2407.14925.
+19. Yi S, Nguyen J, Xu H, Lim T, Skrovan J, Beri M, et al.. SFT-TA: Supervised Fine-Tuned Agents in Multi-Agent LLMs for
+    Automated Inductive Thematic Analysis; 2025. Available from: https://arxiv.org/abs/2509.17167.
+20. Edge D, Trinh H, Cheng N, Bradley J, Chao A, Mody A, et al.. From Local to Global: A Graph RAG Approach to Query-
+    Focused Summarization; 2025. Available from: https://arxiv.org/abs/2404.16130.
+21. Guo Z, Xia L, Yu Y, Ao T, Huang C. LightRAG: Simple and Fast Retrieval-Augmented Generation; 2025. Available from:
+    https://arxiv.org/abs/2410.05779.
+22. Xu H, Yi S, Lim T, Xu J, Well A, Mery C, et al.. TAMA: A Human-AI Collaborative Thematic Analysis Framework Using
+    Multi-Agent LLMs for Clinical Interviews; 2025. Available from: https://arxiv.org/abs/2503.20666.
+23. Turcan E, McKeown K. Dreaddit: A Reddit Dataset for Stress Analysis in Social Media. In: Holderness E, Jimeno Yepes
+    A, Lavelli A, Minard AL, Pustejovsky J, Rinaldi F, editors. Proceedings of the Tenth International Workshop on Health Text
+    Mining and Information Analysis (LOUHI 2019). Hong Kong: Association for Computational Linguistics; 2019. p. 97-107.
+    Available from: https://aclanthology.org/D19-6213/.
+24. Strauss A, Corbin J. Basics of Qualitative Research: Techniques and Procedures for Developing Grounded Theory. Sage
+    Publications; 1998.
+

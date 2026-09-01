@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-j-theme/revision-case-v1.json",
+  "title": "Paired theme-level revision case for one exact Direction J item",
+  "type": "object",
+  "required": [
+    "revision_case_version",
+    "revision_case_id",
+    "paired_case_group_id",
+    "repeat_index",
+    "item_id",
+    "assignment_id",
+    "item_payload_sha256",
+    "rating_record_sha256",
+    "timing_receipt_sha256",
+    "feedback_record_sha256",
+    "freeze_id",
+    "freeze_sha256",
+    "feedback_arm",
+    "feedback_record_id",
+    "target_verification_item_sha256",
+    "target_brief_commitment_sha256",
+    "model_input",
+    "model_input_sha256",
+    "contains_target_truth",
+    "contains_condition_label",
+    "contains_feedback_author_identity",
+    "created_at_utc"
+  ],
+  "properties": {
+    "revision_case_version": {"const": "direction-h-j-theme-revision-case-v1"},
+    "revision_case_id": {"type": "string", "pattern": "^DHJRC_[a-f0-9]{20}$"},
+    "paired_case_group_id": {"type": "string", "pattern": "^DHJPG_[a-f0-9]{20}$"},
+    "repeat_index": {"type": "integer", "minimum": 1},
+    "item_id": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"},
+    "assignment_id": {"type": "string", "pattern": "^DJA_[a-f0-9]{16}$"},
+    "item_payload_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+    "rating_record_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+    "timing_receipt_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+    "feedback_record_sha256": {
+      "oneOf": [
+        {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+        {"type": "null"}
+      ]
+    },
+    "freeze_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "freeze_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+    "feedback_arm": {"enum": ["no_feedback", "charlie_feedback"]},
+    "feedback_record_id": {"type": ["string", "null"], "minLength": 1, "maxLength": 160},
+    "target_verification_item_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+    "target_brief_commitment_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+    "model_input": {
+      "type": "object",
+      "required": ["input_version", "blinded_case_id", "task", "evaluator_item", "reviewer_feedback"],
+      "properties": {
+        "input_version": {"const": "direction-h-j-theme-revision-input-v1"},
+        "blinded_case_id": {"type": "string", "pattern": "^DHJBI_[a-f0-9]{20}$"},
+        "task": {"const": "Revise one proposed qualitative interpretation and its candidate evidence assertions using only the displayed synthetic item and the frozen analytic contract."},
+        "evaluator_item": {"$ref": "https://warrantroute.local/schemas/direction-j/evaluator-item-v1.json"},
+        "reviewer_feedback": {
+          "oneOf": [
+            {"$ref": "https://warrantroute.local/schemas/direction-h-feedback-record-v1.json#/$defs/modelFeedback"},
+            {"type": "null"}
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "model_input_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+    "contains_target_truth": {"const": false},
+    "contains_condition_label": {"const": false},
+    "contains_feedback_author_identity": {"const": false},
+    "created_at_utc": {"type": "string", "format": "date-time"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"feedback_arm": {"const": "no_feedback"}}, "required": ["feedback_arm"]},
+      "then": {
+        "properties": {
+          "feedback_record_id": {"type": "null"},
+          "feedback_record_sha256": {"type": "null"},
+          "model_input": {"properties": {"reviewer_feedback": {"type": "null"}}}
+        }
+      },
+      "else": {
+        "properties": {
+          "feedback_record_id": {"type": "string"},
+          "feedback_record_sha256": {"$ref": "https://warrantroute.local/schemas/direction-h-j-theme/common-v1.json#/$defs/sha256"},
+          "model_input": {"properties": {"reviewer_feedback": {"$ref": "https://warrantroute.local/schemas/direction-h-feedback-record-v1.json#/$defs/modelFeedback"}}}
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,464 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-j/actor-registry-v1.json",
+  "title": "Direction J evaluator actor registry",
+  "description": "A separately frozen registry for human qualifications and LLM configuration. An LLM actor can never satisfy a human evaluator-group branch.",
+  "type": "object",
+  "required": [
+    "actor_registry_schema_version",
+    "registry_id",
+    "frozen_at_utc",
+    "actors"
+  ],
+  "properties": {
+    "actor_registry_schema_version": {
+      "const": "direction-j-actor-registry-v1"
+    },
+    "registry_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "frozen_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "actors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/actor"
+      }
+    }
+  },
+  "$defs": {
+    "actor": {
+      "type": "object",
+      "required": [
+        "actor_id",
+        "actor_kind",
+        "analysis_status",
+        "exclusion_reason"
+      ],
+      "properties": {
+        "actor_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Pseudonymous human identifier or study-specific LLM identifier. Never a name or email address."
+        },
+        "actor_kind": {
+          "enum": [
+            "human",
+            "llm"
+          ]
+        },
+        "analysis_status": {
+          "enum": [
+            "primary",
+            "sensitivity_only",
+            "excluded"
+          ]
+        },
+        "exclusion_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "human_profile": {
+          "$ref": "#/$defs/humanProfile"
+        },
+        "llm_profile": {
+          "$ref": "#/$defs/llmProfile"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "actor_kind": {
+                "const": "human"
+              }
+            },
+            "required": [
+              "actor_kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "human_profile"
+            ],
+            "not": {
+              "required": [
+                "llm_profile"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "llm_profile"
+            ],
+            "not": {
+              "required": [
+                "human_profile"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "analysis_status": {
+                "const": "excluded"
+              }
+            },
+            "required": [
+              "analysis_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "exclusion_reason": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "exclusion_reason": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "actor_kind": {
+                "const": "llm"
+              },
+              "analysis_status": {
+                "const": "primary"
+              }
+            },
+            "required": [
+              "actor_kind",
+              "analysis_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "llm_profile": {
+                "properties": {
+                  "judge_role": {
+                    "const": "primary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "actor_kind": {
+                "const": "llm"
+              },
+              "analysis_status": {
+                "const": "sensitivity_only"
+              }
+            },
+            "required": [
+              "actor_kind",
+              "analysis_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "llm_profile": {
+                "properties": {
+                  "judge_role": {
+                    "enum": [
+                      "same_family_sensitivity",
+                      "cross_family_sensitivity"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "humanProfile": {
+      "type": "object",
+      "required": [
+        "evaluator_group",
+        "helped_construct",
+        "independence_eligibility",
+        "qualifications_recorded",
+        "tutorial_version",
+        "comprehension_check_status",
+        "corpus_familiarity"
+      ],
+      "properties": {
+        "evaluator_group": {
+          "enum": [
+            "researcher",
+            "qualitative_methods_expert",
+            "domain_expert",
+            "dual_expertise"
+          ]
+        },
+        "helped_construct": {
+          "type": "boolean"
+        },
+        "independence_eligibility": {
+          "enum": [
+            "eligible_primary",
+            "sensitivity_only",
+            "ineligible"
+          ]
+        },
+        "qualifications_recorded": {
+          "type": "boolean"
+        },
+        "tutorial_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "comprehension_check_status": {
+          "enum": [
+            "passed",
+            "passed_after_retraining",
+            "failed",
+            "not_required"
+          ]
+        },
+        "corpus_familiarity": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "corpus_id",
+              "level"
+            ],
+            "properties": {
+              "corpus_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "level": {
+                "enum": [
+                  "none",
+                  "some",
+                  "substantial"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "llmProfile": {
+      "type": "object",
+      "required": [
+        "provider",
+        "model_id",
+        "model_family",
+        "model_snapshot",
+        "surface",
+        "reasoning_mode",
+        "reasoning_effort",
+        "temperature",
+        "top_p",
+        "seed",
+        "max_output_tokens",
+        "response_count",
+        "structured_output",
+        "tools_enabled",
+        "web_enabled",
+        "function_calling_enabled",
+        "retrieval_enabled",
+        "url_context_enabled",
+        "code_execution_enabled",
+        "memory_enabled",
+        "judge_role",
+        "candidate_family_overlap",
+        "data_processing_scope",
+        "provider_processing_profile_id"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_snapshot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "surface": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reasoning_mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reasoning_effort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "temperature": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "top_p": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_output_tokens": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "response_count": {
+          "const": 1
+        },
+        "structured_output": {
+          "const": true
+        },
+        "tools_enabled": {
+          "const": false
+        },
+        "web_enabled": {
+          "const": false
+        },
+        "function_calling_enabled": {
+          "const": false
+        },
+        "retrieval_enabled": {
+          "const": false
+        },
+        "url_context_enabled": {
+          "const": false
+        },
+        "code_execution_enabled": {
+          "const": false
+        },
+        "memory_enabled": {
+          "const": false
+        },
+        "judge_role": {
+          "enum": [
+            "primary",
+            "same_family_sensitivity",
+            "cross_family_sensitivity"
+          ]
+        },
+        "candidate_family_overlap": {
+          "type": "boolean"
+        },
+        "data_processing_scope": {
+          "enum": [
+            "synthetic_only",
+            "approved_real_data"
+          ]
+        },
+        "provider_processing_profile_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identifier for the separately approved retention, training-use, and access configuration."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "judge_role": {
+                "const": "primary"
+              }
+            },
+            "required": [
+              "judge_role"
+            ]
+          },
+          "then": {
+            "properties": {
+              "candidate_family_overlap": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "judge_role": {
+                "const": "same_family_sensitivity"
+              }
+            },
+            "required": [
+              "judge_role"
+            ]
+          },
+          "then": {
+            "properties": {
+              "candidate_family_overlap": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "judge_role": {
+                "const": "cross_family_sensitivity"
+              }
+            },
+            "required": [
+              "judge_role"
+            ]
+          },
+          "then": {
+            "properties": {
+              "candidate_family_overlap": {
+                "const": false
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

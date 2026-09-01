@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/experiment-record-v1.json",
+  "title": "WarrantRoute restricted experiment record",
+  "description": "Minimum shared record shape for Dreaddit, AGYW, KODIS, and CANDOR. A conforming record may still contain identifiable natural-language text and must remain access restricted.",
+  "type": "object",
+  "required": [
+    "record_id",
+    "corpus",
+    "split",
+    "source_id",
+    "speaker_id",
+    "text",
+    "context",
+    "sampling_strata",
+    "provenance",
+    "quality"
+  ],
+  "properties": {
+    "record_id": {"type": "string", "minLength": 1},
+    "corpus": {
+      "type": "string",
+      "enum": ["dreaddit", "agyw_focus_groups", "kodis", "candor"]
+    },
+    "split": {"type": "string", "minLength": 1},
+    "source_id": {"type": "string", "minLength": 1},
+    "speaker_id": {"type": ["string", "null"]},
+    "text": {"type": "string", "minLength": 1},
+    "context": {
+      "type": "object",
+      "required": ["preceding_record_ids", "moderator_question"],
+      "properties": {
+        "preceding_record_ids": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "moderator_question": {"type": ["string", "null"]},
+        "reply_to_record_id": {"type": ["string", "null"]},
+        "turn_index": {"type": ["integer", "string", "null"]}
+      },
+      "additionalProperties": true
+    },
+    "sampling_strata": {"type": "object"},
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "source_file_role": {"type": "string"},
+        "source_row": {"type": "integer", "minimum": 1},
+        "source_line_start": {"type": "integer", "minimum": 1},
+        "source_line_end": {"type": "integer", "minimum": 1},
+        "source_turn_index": {"type": ["integer", "string", "null"]},
+        "source_text_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_text_hmac_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "anyOf": [
+        {"required": ["source_text_sha256"]},
+        {"required": ["source_text_hmac_sha256"]}
+      ],
+      "additionalProperties": true
+    },
+    "quality": {
+      "type": "object",
+      "required": [
+        "eligible_for_packet_sampling",
+        "ineligible_reasons",
+        "privacy_masks_applied",
+        "manual_excerpt_review_required"
+      ],
+      "properties": {
+        "eligible_for_packet_sampling": {"type": "boolean"},
+        "ineligible_reasons": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "privacy_masks_applied": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "manual_excerpt_review_required": {"type": "boolean"},
+        "privacy_review_status": {
+          "type": "string",
+          "enum": ["pending", "approved_restricted", "approved_for_release", "rejected"]
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/model-neutral-result-v1.json",
+  "title": "Source-free model-neutral WarrantRoute reduction result",
+  "type": "object",
+  "required": [
+    "result_schema_version",
+    "reviewer_profile_id",
+    "adapter_freeze_sha256",
+    "reviewer_profile_sha256",
+    "reviewer_model_id",
+    "study_id",
+    "item_id",
+    "evaluator_item_sha256",
+    "matrix_sha256",
+    "route",
+    "selected_roles",
+    "selected_observation_sha256",
+    "selected_serious_error_flags",
+    "selected_role_failures",
+    "aggregation",
+    "fallback_used",
+    "merged_rating_created",
+    "contains_source_text",
+    "software_contract_fixture",
+    "manuscript_eligible"
+  ],
+  "properties": {
+    "result_schema_version": {"const": "warrantroute-model-neutral-result-v1"},
+    "reviewer_profile_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"},
+    "adapter_freeze_sha256": {"$ref": "#/$defs/sha256"},
+    "reviewer_profile_sha256": {"$ref": "#/$defs/sha256"},
+    "reviewer_model_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$"},
+    "study_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "item_id": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"},
+    "evaluator_item_sha256": {"$ref": "#/$defs/sha256"},
+    "matrix_sha256": {"$ref": "#/$defs/sha256"},
+    "route": {"enum": ["none", "qualitative_methods", "domain", "both"]},
+    "selected_roles": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/role"}
+    },
+    "selected_observation_sha256": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/sha256"}
+    },
+    "selected_serious_error_flags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/flag"}
+    },
+    "selected_role_failures": {
+      "type": "array",
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/role"}
+    },
+    "aggregation": {"enum": ["repetition_1", "two_of_three"]},
+    "fallback_used": {"const": false},
+    "merged_rating_created": {"const": false},
+    "contains_source_text": {"const": false},
+    "software_contract_fixture": {"const": true},
+    "manuscript_eligible": {"const": false}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"route": {"const": "none"}}, "required": ["route"]},
+      "then": {
+        "properties": {
+          "selected_roles": {"const": ["researcher"]},
+          "selected_role_failures": {"enum": [[], ["researcher"]]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"route": {"const": "qualitative_methods"}}, "required": ["route"]},
+      "then": {
+        "properties": {
+          "selected_roles": {"const": ["qualitative_methods"]},
+          "selected_role_failures": {"enum": [[], ["qualitative_methods"]]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"route": {"const": "domain"}}, "required": ["route"]},
+      "then": {
+        "properties": {
+          "selected_roles": {"const": ["domain"]},
+          "selected_role_failures": {"enum": [[], ["domain"]]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"route": {"const": "both"}}, "required": ["route"]},
+      "then": {
+        "properties": {
+          "selected_roles": {"const": ["qualitative_methods", "domain"]},
+          "selected_role_failures": {
+            "enum": [[], ["qualitative_methods"], ["domain"], ["qualitative_methods", "domain"]]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "aggregation": {"const": "repetition_1"},
+          "route": {"enum": ["none", "qualitative_methods", "domain"]}
+        },
+        "required": ["aggregation", "route"]
+      },
+      "then": {"properties": {"selected_observation_sha256": {"minItems": 1, "maxItems": 1}}}
+    },
+    {
+      "if": {
+        "properties": {"aggregation": {"const": "repetition_1"}, "route": {"const": "both"}},
+        "required": ["aggregation", "route"]
+      },
+      "then": {"properties": {"selected_observation_sha256": {"minItems": 2, "maxItems": 2}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "aggregation": {"const": "two_of_three"},
+          "route": {"enum": ["none", "qualitative_methods", "domain"]}
+        },
+        "required": ["aggregation", "route"]
+      },
+      "then": {"properties": {"selected_observation_sha256": {"minItems": 3, "maxItems": 3}}}
+    },
+    {
+      "if": {
+        "properties": {"aggregation": {"const": "two_of_three"}, "route": {"const": "both"}},
+        "required": ["aggregation", "route"]
+      },
+      "then": {"properties": {"selected_observation_sha256": {"minItems": 6, "maxItems": 6}}}
+    }
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "role": {"enum": ["researcher", "qualitative_methods", "domain"]},
+    "flag": {
+      "enum": [
+        "fabricated_or_altered_quote",
+        "wrong_attribution",
+        "unsupported_inference",
+        "hidden_source_concentration",
+        "lost_negative_case",
+        "contextual_flattening",
+        "unsupported_abstraction",
+        "sensitive_or_diagnostic_inference",
+        "inconsistent_codebook",
+        "other"
+      ]
+    }
+  }
+}

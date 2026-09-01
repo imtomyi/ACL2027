@@ -1,0 +1,959 @@
+                                            From Variance to Invariance: Qualitative Content Analysis for
+                                                            Narrative Graph Annotation
+
+                                                     Junbo Huang∗ , Max Weinig† , Ulrich Fritsche† , Ricardo Usbeck‡
+                                                                  ∗
+                                                                   Department of Computer Science, University of Hamburg
+                                                                               junbo.huang@uni-hamburg.de
+                                                                   †
+                                                                     Department of Socioeconomics, University of Hamburg
+                                                                        {max.weinig, ulrich.fritsche}@uni-hamburg.de
+                                                               ‡
+                                                                 AI and Explanability Group, Leuphana University of Lüneburg
+                                                                                ricardo.usbeck@leuphana.de
+                                                                                              Abstract
+                                        Narratives in news discourse play a critical role in shaping public understanding of economic events, such as inflation.
+                                        Annotating and evaluating these narratives in a structured manner remains a key challenge for Natural Language
+
+
+
+
+arXiv:2603.01930v2 [cs.CL] 4 Mar 2026
+                                        Processing (NLP). In this work, we introduce a narrative graph annotation framework that integrates principles
+                                        from qualitative content analysis (QCA) to prioritize annotation quality by reducing annotation errors. We present
+                                        a dataset of inflation narratives annotated as directed acyclic graphs (DAGs), where nodes represent events and
+                                        edges encode causal relations. To evaluate annotation quality, we employed a 6 × 3 factorial experimental design to
+                                        examine the effects of narrative representation (six levels) and distance metric type (three levels) on inter-annotator
+                                        agreement (Krippendorrf’s α), capturing the presence of human label variation (HLV) in narrative interpretations. Our
+                                        analysis shows that (1) lenient metrics (overlap-based distance) overestimate reliability, and (2) locally-constrained
+                                        representations (e.g., one-hop neighbors) reduce annotation variability. Our annotation and implementation of
+                                        graph-based Krippendorrf’s α are open-sourced. The annotation framework and evaluation results provide practical
+                                        guidance for NLP research on graph-based narrative annotation under HLV.
+
+                                        Keywords: Narrative Graph Annotation, Qualitative Content Analysis, Human Label Variation
+
+                                                        1.    Introduction
+
+                                        In recent years, there has been growing interest in
+                                        the study of narratives in economics (Shiller, 2017;
+                                        Roos and Reccius, 2023) and social sciences (Pol-
+                                        letta et al., 2011; Beckert and Bronk, 2018). Nar-
+                                        ratives are of central importance in these fields
+                                        because they “[...] give meaning to life’s activities,
+                                        to sense truth, and to create the commitment to
+                                        act” (Tuckett, 2011, xvii), and they may trigger shifts
+                                        or turning points that drive economic and societal
+                                        dynamics (Roos and Reccius, 2023). Within the lit-
+                                        erature they are commonly defined as a “sequence
+                                        of causally linked events” (Akerlof and Shiller, 2010)        Figure 1: Example of narrative graph annotation
+                                        and are formally represented as Directed Acyclic              under human label variation.
+                                        Graphs (DAGs) (Eliaz and Spiegler, 2020).
+                                           As an important application of Natural Language
+                                        Processing (NLP), identifying and extracting narra-           identifying and linking events across larger text seg-
+                                        tives from large text corpora is a central objective          ments. This requires interpretive judgments that
+                                        in many interdisciplinary research areas. In this             are often subjective and context-dependent, mak-
+                                        paper, we present an inflation narrative dataset              ing consistency and reproducibility more difficult to
+                                        constructed from news articles, with a strong focus           achieve with conventional annotation frameworks.
+                                        on ensuring a transparent and rigorous approach               Integrating qualitative methodologies such as Qual-
+                                        to narrative graph annotation and evaluation.                 itative Content Analysis (QCA), widely used in the
+                                           To begin with, we identify three major challenges          humanities and social sciences, can address this
+                                        in narrative annotation and its evaluation from an            challenge by providing a systematic procedure for
+                                        interdisciplinary perspective. First, annotating              interpreting and validating complex narrative struc-
+                                        narratives presents additional challenges com-                tures. Yet their adoption in NLP remains limited.
+                                        pared to standard sequence classification or la-                 Second, as in Fig. 1, graph-based representa-
+                                        beling tasks in NLP. Narrative annotation involves            tions introduce substantial variation across an-
+ notators. Unlike flat representations of narratives,    2.1.   Inflation Narratives as Graphs
+ such as assigning a single label to a sequence,
+                                                         We conceptualize news discourse narratives as
+ graph-based structures provide greater degrees of
+                                                         structured representations of events and their
+ freedom in how events are connected. Annotators
+                                                         causal linkages. Conversely, early work in eco-
+ may differ in identifying relevant events, choosing
+                                                         nomics and social sciences often relied on broad
+ relation types, or determining graph granularity, all
+                                                         definitions, treating narratives as “stories that offer
+ of which can lead to divergent yet plausible anno-
+                                                         interpretations of economic events, morals, or hints
+ tations. Research on human label variation (HLV)
+                                                         of theories about the economy” (Shiller, 2017), and
+ indicates that “there exists genuine human varia-
+                                                         operationalized them through topics or sentiment-
+ tion in labeling due to disagreement, subjectivity in
+                                                         based features (Müller et al., 2022; Ter Ellen et al.,
+ annotation or multiple plausible answers” (Plank,
+                                                         2022; Weinig and Fritsche, 2025). While these ap-
+ 2022).
+                                                         proaches capture general trends, they offer limited
+    Third, there is no established consensus on
+                                                         insight into the structural complexity of narratives.
+ how to assess inter-annotator agreement (IAA)
+                                                            More recent methods aim to structurally iden-
+ for narrative graph annotations. Existing graph
+                                                         tify core narrative elements (e.g., agents, rela-
+ distance metrics, such as graph edit distance, cap-
+                                                         tions, actions, outcomes) to better represent nar-
+ ture different structural or semantic dimensions of
+                                                         ratives (Gehring and Grigoletto, 2023; Ash et al.,
+ similarity, and their relevance often depends on the
+                                                         2024; Gueta et al., 2025). However, most still over-
+ specific analytic goals or application domains. This
+                                                         look interpretive variation, offering limited insight
+ lack of standardization complicates the interpreta-
+                                                         into the subjective nature of narrative interpretation,
+ tion of agreement scores, particularly in the pres-
+                                                         where multiple plausible readings of the same text
+ ence of HLV. To address this, we compute multiple
+                                                         coexist.
+ IAA measures based on diverse distance metrics
+                                                            Furthermore, these approaches lack alignment
+ and narrative representations, following the com-
+                                                         with the formal definition of narratives grounded in
+ parative evaluation approach proposed by Passon-
+                                                         the DAG framework (Pearl, 2009), as introduced
+ neau (2006).
+                                                         by Eliaz and Spiegler (2020). Following this idea,
+    To our knowledge, no previous work has jointly       they define narratives, in line with the literature
+ addressed these challenges in narrative annota-         studies definitions of narratives (Abbott, 2002), as
+ tion and evaluation. Our contributions are three-       a series of events that are causally linked. This
+ fold: (1) we propose a QCA-based methodology            formalization enables narratives to be represented
+ for narrative graph annotation; (2) we develop an       as graphs, where nodes correspond to events
+ graph-based annotation evaluation framework that        and edges encode directed causal relations 1 .
+ accounts for HLV, and (3) we identify a reliable           To this end, we grounded our narrative repre-
+ graph representation that balances contextual com-      sentation as DAGs. In the context of text-to-graph
+ pleteness with annotation consistency, capturing        annotation, the annotated DAGs, in contrast to Hed-
+ core narrative elements while maintaining robust        daya et al. (2024), are not restricted in size. Given
+ reliability. We ask the following questions.            the presence of HLV in narrative annotation, we ad-
+                                                         dress having multiple plausible annotations not
+RQ1: How can QCA enhance the reliability and             as an issue, but a signal to reveal the commonly-
+     methodological rigor of narrative graph anno-       perceived story within a news article.
+     tation with the presence of HLV?
+                                                         2.2.   Qualitative Content Analysis
+RQ2: How does the choice of narrative represen-
+     tation (categorical vs. graph-based) and dis-       Qualitative methods commonly used in social sci-
+     tance metric (lenient vs. moderate vs. strict)      ences and humanities have the ability to capture
+     affect reliability score?                           rich and complex information, including manifest
+                                                         content and latent meaning. One widely used em-
+                                                         pirical method for text analysis is QCA (Selvi, 2019).
+RQ3: Which graph representation best captures re-        Unlike other interpretative methods, QCA follows a
+     liable and commonly-perceived narrative ele-        rule-based procedure that ensures a high degree
+     ments while maintaining contextual complete-        of inter-subjective verifiability, making it a natural
+     ness?                                               candidate for narrative annotation under HLV. Un-
+                                                         like formal annotation frameworks in NLP, QCA is a
+                                                         context-sensitive method that derives coding cate-
+               2.   Preliminaries                        gories from both theoretical considerations and the
+
+ We briefly introduce narrative representation, QCA,        1
+                                                              We use the term node instead of vertex throughout
+ and the computation of Krippendorff’s alpha for IAA.    the paper for simplicity
+                                                          annotation of complex, context-dependent phenom-
+                                                          ena such as narratives. In our work, we applied
+                                                          QCA during a pilot phase to refine both the cat-
+                                                          egory system and annotation guidelines. In the
+                                                          final annotation stage, QCA-based group dis-
+                                                          cussions facilitated a shared understanding of
+                                                          the iteratively-refined category system among
+                                                          annotators.
+
+                                                          2.3.     Krippendorff’s Alpha for Graphs
+                                                          To measure IAA rigorously, we opt for the Krippen-
+                                                          dorff’s alpha (α). It is a reliability coefficient which
+                                                          accounts for chance agreement and can handle
+                                                          missing data (Krippendorff, 2011). In contrast to
+Figure 2: Flowchart of iterative QCA research pro-        Cohen’s kappa, it can handle any number of an-
+cedure                                                    notators and does not assume equal distribution
+                                                          across labels (Parfenova et al., 2025).
+                                                            The general form for α is:
+textual material itself. In Fig. 2, we provide a flow
+diagram that explains our procedure. The central                                          Do
+                                                                               α=1−                             (1)
+unit of analysis is the category system, which is                                         De
+deductively derived from existing theoretical and
+empirical research (Mayring, 2014). Our category          , where Do is the observed disagreement among
+system is primarily based on the work of Andre            annotators per annotation item (i.e, per document)
+et al. (2026), who study existing backward-looking        and De denotes the expected total disagreement
+inflation narratives among households and experts         within- and between-item. To capture disagreement
+in the US. They group these narratives into three su-     denoted by Do and De , well-defined graph distance
+percategories (supply, demand and miscellaneous)          metrics are required. For the detailed computation
+with their corresponding subcategories.                   of Do and De , we refer readers to Krippendorff
+   Following Przyborksi and Wohlrab-Sahr (2022)’s         (2011).
+understanding of qualitative research as an open             The value of α ranges from -1 to 1, where α < 0
+and circular process, we inductively extend and           implies a systematic disagreement, likely caused
+adjust the initial category system during the annota-     by annotators not instructed well for the annota-
+tion process (Fig. 2). Acknowledging temporal and         tion task. α = 0 suggests no agreement beyond
+contextual differences in narrative structures, we it-    chance, and α > 0 the observed agreement is
+eratively develop additional narrative subcategories      beyond chance-level (e.g., annotators understand
+through regular group discussions involving annota-       the annotation task well and have some degree
+tors and the research team. Additionally, we refine       of agreement). It is worth mentioning that val-
+our coding guidelines throughout the annotation           ues assigned to items can be categorical, ordi-
+process to reduce annotation errors and improve           nal, interval, or ratio, and any distance metric can
+consistency. Finally, we arrived at 26 fine-granular      be applied. However, to our best knowledge, no
+subcategories (five for demand2 , 9 for supply3 ,         publicly available implementation of Krippendorff’s
+and 12 for miscellaneous4 ). The final category           α exists for graph annotations. To this end, we
+system, including explanation of each subcategory         modified the current implementation of α and ex-
+is provided in the appendix.                              tended its computation for graph features, which
+   To sum up, QCA is a systematic, human-                 includes distance metrics for nodes, edges and
+centered approach to text interpretation that inte-       graphs5 . Formally, we represent narrative graphs
+grates categorical coding with iterative refinement,      as a set of subject-predicate-object triples, e.g.,
+supporting transparent and theoretically-grounded         {{sub1 , pred1 , obj1 }, {sub2 , pred2 , obj2 }}. The fol-
+                                                          lowing distance metrics are considered.
+   2
+     Demand: Government Spending, Monetary Policy,
+Pent-up Demand, Demand Shift, Demand (Residuals).         2.3.1.    Lenient Distance Metric
+   3
+     Supply: Supply Chain Issues, Transportation Costs,
+Labor Shortage, Wages, Energy Prices, Food Prices,        Node/Edge Overlap Distance As shown in Eq. 2,
+Housing Costs, Supply (Residual).                         given two sets of nodes or edges (a set of strings),
+   4
+     Miscellaneous: Pandemic, Politics, War, Inflation
+                                                             5
+Expectations, Base Effect, Government Debt, Tax In-          We open-source the implementation of Krip-
+creases, Exchange Rates, Medical Costs, Education         pendorff’s α for graph under https://pypi.org/
+Costs, Climate Crisis, Price-Gouging.                     project/krippendorff-graph/
+n1 and n2 , node/edge overlap distance measures                           2.3.3.      Strict Distance Metric
+if these two sets overlap. The measurement of set
+                                                                          Node/Edge Exact Match Eq. 7 defines the ex-
+overlap is a lenient measurement of distance.
+                                                                          act match between two sets of nodes or edges.
+                                                                          dstrict (n1 , n2 ) assigns a distance of 0 only when
+                                                                          the two sets are identical; if any element differs
+                                 (
+                                     0,    if |n1 ∩ n2 | > 0
+         dlenient (n1 , n2 ) =                                      (2)   between them, the distance is 1.
+                                     1,    otherwise
+                                                                                                          (
+                                                                                                           0, if n1 = n2
+  where | · | denotes the cardinality of a set.                                      dstrict (n1 , n2 ) =                   (7)
+                                                                                                           1, otherwise
+
+Graph Overlap Distance Similar to node/edge                               Graph Exact Match For the strictest compari-
+overlap distance, graph overlap distance (Eq. 3)                          son, we compute graph-level exact match, which re-
+measures if two graphs (a set of triples), g1 and g2 ,                    quires two graphs to be structurally identical—that
+overlap.                                                                  is, they must contain the same set of triples (sub-
+                                                                          ject, relation, object) with identical labels. As shown
+                                 (                                        in Equation 8, any missing, extra, or mismatched
+                                     0,    if |g1 ∩ g2 | > 0              node or edge results in a maximal distance of 1.
+         dlenient (g1 , g2 ) =                                      (3)
+                                     1,    otherwise                                                      (
+                                                                                                            0, if g1 = g2
+                                                                                     dstrict (g1 , g2 ) =                      (8)
+2.3.2.     Moderate Distance Metric                                                                         1, otherwise
+
+Node/Edge Jaccard Distance To capture partial                                This metric captures complete structural equiva-
+similarity, we adopt the Jaccard distance, which                          lence between two narrative graphs and penalizes
+measures the proportion of shared nodes or edges                          even minor discrepancies, providing a conservative
+between two sets (Eq. 4). It provides a graded                            lower bound on inter-annotator reliability. While it
+measure of agreement, reducing overestimation                             highlights exact agreement, it may underestimate
+from simple overlap.                                                      consistency in cases where annotators capture the
+                                                                          same underlying causal structure using slightly dif-
+                                              |n1 ∩ n2 |                  ferent formulations or graph sizes.
+            dmoderate (n1 , n2 ) = 1 −                              (4)
+                                              |n1 ∪ n2 |
+                                                                                 3.    Narrative Graph Annotation
+   The Jaccard distance ranges from 0 (identical)
+to 1 (no overlap).                                                        We detail the dataset sampling and filtering criteria,
+                                                                          and outline the narrative annotation task as well as
+Graph Edit Distance Eq. 5 defines this standard                           the annotator recruitment process. Furthermore,
+similarity measure between two graphs.                                    we explain how the annotation guidelines and cate-
+                                                                          gory system were iteratively refined through a QCA-
+                                                                          based pilot study to minimize annotation errors.
+                                                                          Note that this QCA-based annotation methodology
+                                                     X
+    dstrict (g1 , g2 ) =             min                   c(ei )   (5)
+                           (e1 ,...ek )∈P(g1 ,g2 )
+                                                     i=1                  is best suited when annotation quality is the top pri-
+                                                                          ority, especially for annotation tasks where human
+   P(g1 , g2 ) represents the set of edit operations                      label variation (i.e., disagreement, subjectivity and
+required to transform graph g1 into g2 . Each edit                        multiple plausible answers) is of interest. Addition-
+operation ei can be a node or edge insertion, dele-                       ally, the discussion around reproducibility should
+tion, or substitution. The cost function c(ei ) assigns                   be focused on the annotation methodology as well
+a constant cost of 1 to each edit, and the total dis-                     as evaluation methodology, rather than the dataset
+tance corresponds to the minimal number of edits                          itself, which is unfortunately not open-sourced due
+needed to make the two graphs identical.                                  to licensing restrictions.
+   Because annotated graphs can vary substantially
+in size, normalization is necessary to ensure scale                       3.1.     Data Source
+invariance. The raw edit distance between g1 and
+g2 is therefore normalized by the sum of their re-                        We use the English news corpus from the Dow
+spective distances to an empty graph (g0 ), yielding                      Jones Newswires Machine Text Feed and Archive
+a bounded score between 0 and 1 (Equation 6).                             (DJN)6 database. The dataset includes content
+
+                                                                             6
+                                                                              Unfortunately DJN is a licensed corpus. There-
+                                 dstrict (g1 , g2 )                       fore we can not open-source the original text. We
+ dˆstrict (g1 , g2 ) =                                         (6)        nevertheless open-sourced the annotation and anal-
+                       dstrict (g1 , g0 ) + dstrict (g2 , g0 )
+from the following areas: market-moving M&A, ex-          in graduate programs with a substantial economics
+clusives, and earnings news; full-text feeds from         component at the time of the study. Four of them
+Dow Jones sources (Newswires, Barron’s, Mar-              have experience with QCA through their academic
+ketWatch); global company news; central bank,             coursework. All annotators were between 24 and
+macroeconomic, political, FX, commodities, and            30 years old, and two out of seven reported having
+energy news; and third-party press release wires          a migration background. The hourly wage is €14.37
+(BusinessWire, PR Newswire, Globe Newswire,               for the pilot study, and €18.30 for the final study.
+among others). Notably, the corpus includes con-          Further details are provided in Appendix 8.1.
+tent from one of the largest US newspapers, The
+Wall Street Journal.                                      3.4.   Pilot Study
+                                                          We began with a simple assumption: fewer anno-
+3.2.     Tasks Description
+                                                          tation errors should lead to higher IAA, even
+Our annotation process is two-fold. We begin with a       accounting for inevitable differences in interpreta-
+document-level classification task. This is followed      tion. To refine our setup and minimize errors, we
+by an extraction task, which involves highlighting        conducted a pilot study8 within a QCA framework.
+event spans and relations.                                    We identified three main sources of annotation
+                                                          errors: (i) under-specified guidelines, which left
+3.2.1.    Task 1: Narrative Identification                annotators uncertain about decision boundaries;
+                                                          (ii) misunderstandings of the category system,
+To determine whether a document addresses the             where annotators misinterpreted correct definitions
+cause(s) of inflation, Task 1 is a classification task    or failed to apply them as intended; and (iii) ambi-
+with the following three classes:                         guities in class definitions within the category
+ 1. Inflation-cause-dominant: The document dis-           system itself, where the wording allowed multiple
+    cusses the cause(s) of inflation.                     reasonable interpretations even for careful readers.
+                                                          Rather than explicitly measuring annotation errors
+ 2. Inflation-related: The document mentions in-          or separating them from inherent human variation,
+    flation but not inflation cause(s).                   we focused on iterative improvement of the annota-
+                                                          tion setup. After each annotation round, annotators
+ 3. Non-inflation-related: The document neither           participated in group discussions to resolve misun-
+    mentions causes of inflation nor inflation.           derstandings, clarified ambiguous definitions, and
+                                                          aligned on task interpretations, guideline usage,
+3.2.2.    Task 2: Narrative Extraction                    and the category system. The pilot study targeted
+The second annotation task consists of two steps.         four design questions:
+First, annotators mark relevant event spans using           • Q1 (Sampling strategy): Does the initial tem-
+the derived category system. Second, annotators               porally equal-weighted stratified sampling ap-
+identify the causal relation between the marked               proach9 yield enough articles primarily focused
+events (i.e., Increases or Decreases). Although an-           on causes of inflation?
+notation is performed at the span level, the resulting
+                                                            • Q2 (Annotation workflow): How does per-
+representation is aggregated at the document level,
+                                                              forming Task 2 immediately after Task 1 for
+abstracting from the exact span boundaries. Ap-
+                                                              each document compare to completing Task 1
+pendix 8.3 provides an example with annotations.
+                                                              for all documents before selecting a subset for
+                                                              Task 2?
+3.3.     Annotator Recruitment
+                                                            • Q3 (Category System): Which categories in
+Given the complexity of the task and the importance           the category system are ambiguous or difficult
+of domain-specific knowledge, we recruited stu-               to apply consistently?
+dents with academic training in economics to carry
+out the data annotation. In total, seven students           • Q4 (Span annotation): How does document
+participate in the study, three in the pilot phase (one       length affect annotation quality in identifying
+cisgender female and two cisgender males7 ) and               relevant spans, and can pre-annotation (e.g.,
+four in the final annotation phase (two cisgender             automated highlighting of candidate spans) im-
+females and two cisgender males). All annotators              prove accuracy and reduce annotator fatigue?
+have studied economics, at least during their bache-      We have the following findings:
+lor’s degrees, and five out of the seven are enrolled
+                                                             8
+                                                             Conducted from August to September 2024.
+                                                             9
+yses: https://github.com/semantic-systems/                   Samples are drawn by dividing the corpus into time-
+LREC2026-From-Variance-to-Invariance.                     based strata and randomly selecting documents within
+   7
+     All genders are self-identified.                     each stratum.
+Q1: Annotators reported that temporally equal-              made it harder to identify precise spans, with a
+weighted stratified samples produced mostly non-            tendency to either overlook relevant segments or
+inflation-related documents. This bias likely reflects      select overly broad spans. On average, each doc-
+the tendency for inflation-related coverage to surge        ument required approximately 15 minutes to an-
+during price hikes. To address this, we revised the         notate in Task 2, which is longer than the initially-
+strategy to sample only from inflation-peak years10         estimated 10 minutes, further motivating the need
+between 1990 and 2023 (identified using Consumer            to reduce cognitive load during annotation. To ad-
+Price Index data) (Figure 4). More descriptive statis-      dress this, we introduced a pre-annotation step
+tics of the sampled documents are provided in the           using the Gliner model12 (Zaratiana et al., 2024).
+Appendix 8.2. While this increased the volume               Gliner is a BERT-based, zero-shot, similarity-driven
+of inflation-related documents, many were still not         entity extraction model trained on large news cor-
+cause-dominant. We then applied LLaMA-3.111 for             pora. At inference time, it computes distance met-
+zero-shot classification as a filtering step, which         rics between entity-type embeddings and mention
+raised the average proportion of documents anno-            embeddings, enabling entity extraction for arbitrary
+tated with inflation-cause-dominant from ∼10% to            sets of entity types without task-specific fine-tuning.
+∼40% across annotators.                                     Annotators were free to ignore or modify the auto-
+                                                            matically highlighted spans, which served purely
+Q2: Increasing the share of cause-dominant doc-             as navigational aids rather than prescriptive labels.
+uments did not guarantee sufficient annotation over-        In the final annotated graphs, 41.08% of nodes
+lap for Task 2 annotations. Under the original se-          were manually added by annotators, reflecting both
+quential labeling design, annotators can proceed            the model’s bias toward named entities and its im-
+to Task 2 if they label a document from Task 1 as           perfect coverage. Annotators were explicitly en-
+cause-dominant. With a small annotator pool, this           couraged to challenge Gliner’s suggestions and to
+leads to sparse Task 2 coverage: only 31.3% of 99           mark additional spans when relevant content was
+pilot documents have three annotations.To resolve           missed. According to annotator feedback, this pre-
+this, we adopted a batch labeling procedure: first,         annotation strategy effectively reduced the cogni-
+all documents are fully annotated for Task 1. Then          tive effort while preserving independent interpretive
+the most frequently cause-dominant documents                judgment.
+are selected for Task 2.
+                                                                    4.    Annotation Evaluation
+Q3: Annotators repeatedly reported ambiguity
+in distinguishing between the Pent-up Demand                For Task 1, we present a standard annotation eval-
+and Demand (Residual) categories, as well as                uation practice with a single IAA score (Krippen-
+between Government Spending and Government                  dorff’s α). For Task 2, we employed a 6 × 3 factorial
+Debt. These ambiguities informed targeted discus-           experimental design to evaluate the effects of two
+sion and revisions to the coding guideline. More-           independent variables on Krippendorff’s α: (1) nar-
+over, annotators identified cases where a finer-            rative representation and (2) distance metric type.
+grained category system was required, as many               This design yielded 18 distinct reliability scores, en-
+such events frequently appeared in the corpus.              abling a systematic comparison of how both factors
+Specifically, we introduced additional event cate-          influence annotation reliability.
+gories Transportation Costs, Wages, Food Prices,
+Housing Costs, Trade Balance, Exchange Rates,               4.1.   Task 1: Narrative Identification
+Medical Costs, Education Costs, and Climate Cri-
+sis, which are novel relative to the original category      Turning to Task 1, which involves classification
+system by Andre et al. (2026). We also renamed              across three labels, we note that no missing or
+the labels Energy Crisis and War in Ukraine to En-          invalid values were recorded by the four annotators.
+ergy Prices and War, enhancing temporal general-            Krippendorff’s alpha (α = 0.668) is computed with a
+izability. Finally, we introduced the Wages category        nominal distance metric, where distance between
+to capture a broader range of labor market dynam-           two annotations is 0 if and only if they are identical.
+ics beyond Labor Shortage, while retaining the lat-         The acquired α indicates a moderate agreement.
+ter to support a more fine-grained classification.             Instead of developing an optimal model for identi-
+                                                            fying narratives mentioning causes of inflation, the
+Q4: Annotators reported that annotating long doc-           goal of Task 1 is to select a subset of the annotated
+uments (some documents are above 1000 words)                sample (N = 488) for which annotators consistently
+                                                            agree that inflation causes are explicitly reported
+  10
+     Inflation-peak years include 1990, 1991, 1999, 2001,   by the media. Among the 488 documents, there
+2007, 2008, 2021, 2022 and 2023                               12
+  11                                                             https://huggingface.co/
+     https://huggingface.co/meta-llama/
+Llama-3.1-8B                                                EmergentMethods/gliner_large_news-v2.1
+                (a) All Events                                 (b) Adjacent Events                      (c) Relations
+
+
+
+
+                 (d) Full Story                          (e) Adjacent Story                 (f) Extended Story
+
+Figure 3: Visual example of six types of narrative representations. (a-c) represent the categorical
+representation of narratives, where (a) includes all annotated events causing and affected by Inflation, (b)
+includes only events directly causing Inflation and (c) includes a set of relations (Increases or Decreases)
+from (e). (d-f) represent the graph-based representation of narratives, where (d) includes all annotated
+events and their relations from and to Inflation, (e) includes only annotated events directly causing Inflation,
+as well as their relations, and (f) includes only annotated events directly and indirectly causing Inflation,
+as well as their relations.
+
+
+are 227 instances where all four annotators as-               ing all events identified by annotators14 ; (2) Adja-
+signed the same label from the label set: 33 for              cent Events, a set of node labels in a one-hop
+inflation-cause-dominant, 37 for inflation-related,           subgraph reachable to Inflation, limited to anno-
+and 157 for non-inflation-related. 261 documents              tated events causing a change in Inflation15 ; and
+depict disagreement. Of these 261 disagreed docu-             (3) Relations, a set of edge labels in Adjacent
+ments, 202 instances have a unique dominant label             Story (described below), representing annotators’
+via majority voting (71 for inflation-cause-dominant,         perceived direction of change in Inflation16 . The
+84 for inflation-related, and 47 for non-inflation-           remaining three are graph-based representations:
+related). In cases without a clear majority, it is            (4) Full Story, a multi-hop subgraph encompassing
+assigned to inflation-related. We concatenated                all annotated events and relations in triple forms
+these 33 documents labeled as inflation-cause-                {{ei , rij , ej }, {ej , rjk , ek }}; (5) Adjacent Story, a
+dominant by all four annotators and 71 majority-              one-hop subgraph of Full Story, restricted to events
+voted inflation-cause-dominant documents. These               and their relations directly causing a change in Infla-
+104 documents are the basis for Task 2.                       tion; and (6) Extended Story, a multi-hop subgraph
+                                                              extended from Adjacent Story, including events and
+                                                              their relations indirectly causing a change in Infla-
+4.2.   Task 2: Narrative Extraction                           tion.
+As Task 2 is formulated as a graph-based annota-                 The second factor, distance metric type, consists
+tion task, we employed a 6×3 factorial experimental           of three types: (1) Lenient metric, based on partial
+design to examine the effects of narrative represen-          overlaps between annotations (Section 2.3.1); (2)
+tation (six levels) and distance metric type (three           Moderate metric, which captures graded similarity
+levels) on narrative annotation reliability. Since only       by considering the proportion of shared elements
+a single set of IAA measurements was available,               between annotations (Section 2.3.2), and (3) Strict
+we report only descriptive statistics, instead of pro-        metric, which requires exact matches in a set of
+viding significance tests13 .                                 nodes, edges or triples (Section 2.3.3).
+   The first factor, narrative representation (see               It is important to note that IAA scores for nodes
+Fig. 3), spans six variants capturing different lev-          and edges are not directly comparable to those for
+els of abstraction and structural complexity. Three           graphs, since categorical features and graph fea-
+are categorical representations: (1) All Events, a            tures measure different aspects of narratives, and
+set of node labels in a multi-hop subgraph reach-             they require different distance metrics. On the other
+able from and to the target node Inflation, includ-           hand, a comparison of IAA scores between cate-
+                                                                 14
+                                                                    A set of node labels in Full Story.
+  13                                                             15
+   Typically, a 6 × 3 factorial design requires at least 15         A set of node labels in Adjacent Story.
+                                                                 16
+samples per group to enable ANOVA.                                  A set of relation labels in Adjacent Story.
+                                   Distance Metric Type
+                                                                 ∆lm      ∆ms      ∆ls     µ(| · |)   sdt(| · |)
+ Narrative Representation      Lenient Moderate Strict
+              All Events        0.868      0.481     0.244      0.387    0.237    0.624    2.764       1.809
+ Category    Adj. Events        0.717      0.424     0.285      0.293    0.139    0.432    2.112       1.452
+              Relations         0.642      0.513     0.483      0.129    0.030    0.159    1.220       0.415
+               Full Story       0.678      0.320     0.127      0.358    0.193    0.551    2.783       2.070
+ Graph        Adj. Story        0.702      0.441     0.202      0.261    0.239    0.500    2.143       1.567
+              Ext. Story        0.702      0.356     0.184      0.346    0.172    0.518    2.573       1.886
+
+Table 1: Effects of narrative representation and distance metric type on Krippendorff’s α for narrative
+extraction task. ∆ denotes the difference in α between lenient, moderate and strict metrics. | · | indicates
+the average set cardinality (i.e., the number of events, relations, or triples per annotation). µ(·) and std(·)
+denote mean and standard deviation operation.
+
+
+gorical representations or between graph represen-       (i.e., the number of nodes, edges or triples per an-
+tations describes the influence of representation        notation) for Relations (0.415) and Adjacent Story
+granularity to annotation variability.                   (1.567). On the contrary, full annotation coverage
+   A closer examination of Table 1 reveals three         introduces the largest mean cardinality and car-
+key observations regarding the effects of narrative      dinality spread (All Events: µ=2.764, std=1.809;
+representation and distance metric type on IAA.          Full Story: µ=2.783, std=2.070), which exhibits the
+                                                         largest lenient to strict evaluation gaps (∆ls ). This
+   First, lenient metrics overestimate reliability
+                                                         highlights a trade-off between coverage of narrative
+in narrative annotation for both categorical and
+                                                         graph annotation and inter-annotator consistency.
+graph-based representation. For example, the
+notably high α for All Events (0.861) with the lenient      Third, Adjacent Story provides the most re-
+metric, followed by a sharp decline under the mod-       liable and consistent graph representation.
+erate metric (0.481, ∆ls =0.387) and strict metric       Among graph-based variants, Adjacent Story
+(0.244, ∆ls =0.624), indicates that overlap-based        achieves the highest agreement across all dis-
+lenient metrics tend to overestimate agreement for       tance metrics (lenient: 0.702, moderate: 0.441,
+dense, high-coverage annotations, which increase         strict: 0.202) while maintaining smaller or compa-
+incidental overlaps between annotators. As a result,     rable gaps in reliability scores (e.g., ∆lm =0.261,
+lenient metric masks the difference in how annota-       ∆ms =0.239) compared to Full Story and Extended
+tors identify events and interpret causal relations.     Story. In short, constraining graphs to immediate
+This decline of α is observed across all narrative       neighbors of the target node yields the best overall
+representations, indicating stricter metrics reveals     balance between contextual coverage and reliabil-
+and penalizes more types of dissimilarity, e.g., mis-    ity robustness in our annotations, suggesting that
+matched or missing nodes and edges. Therefore,           Adjacent Story can be considered a reliable and
+we encourage reporting multiple reliability scores       consistent graph-based representation for evaluat-
+across distance metrics of varying granularity in        ing narrative extraction datasets.
+narrative graph annotation task, offering an infor-
+mative overview of the dataset.
+                                                         4.3.   Where Do Annotators Disagree?
+   Second, locally-constrained representations
+yields higher annotation consistency (or lower           To investigate label-specific disagreement in Task 1,
+annotation variability). Annotators show higher          we conduct an analysis of variance (ANOVA) to
+agreement and consistency when the annotation            test whether the proportion of documents with full
+scope is limited to local structures. The Relations      annotator agreement differs across majority-voted
+category yields the highest moderate (0.513) and         labels. In other words, we examine whether an-
+strict (0.483) α, while having the smallest declines     notators achieve higher consensus for certain la-
+(∆lm =0.129, ∆ms =0.030, ∆ls =0.159), indicating         bels than for others. As shown in Fig. 6, arti-
+that annotators more consistently identify direc-        cles with the majority label non-inflation-related ex-
+tional relations than events or graphs. Similarly,       hibit a substantially higher rate of full agreement
+the Adjacent Story achieves the most balanced            (µ=0.770, sdt=0.422) compared to those labeled
+agreement among graph-based representations              inflation-related (µ=0.205, sdt=0.405) and inflation-
+(lenient: 0.702, moderate: 0.441, strict: 0.202).        cause-dominant (µ=0.317, sdt=0.468). The ANOVA
+In other words, its relatively high reliability score    results indicate a statistically significant differ-
+experiences a less-pronounced decline. Notably,          ence across labels (df =2, F =91.701∗∗∗ , p<0.001,
+higher annotation consistency is also reflected in       η 2 =0.274). Post-hoc pairwise Student’s t-tests fur-
+lower standard deviation of annotation cardinality       ther show significant differences between inflation-
+related and non-inflation-related (t=−13.348∗∗∗ ,           ing Agreement on Set-valued Items (MASI) metric
+p<0.001), between inflation-related and inflation-          extends Jaccard similarity by assigning weights to
+cause-dominant (t=−2.035∗ , p<0.05), and between            different type of edit operations, applied in coref-
+non-inflation-related and inflation-cause-dominant          erence resolution (Passonneau, 2004) and docu-
+(t=8.290∗∗∗ , p<0.001). These results suggest               ment summarization (Passonneau, 2006). Building
+that annotators have greater difficulty reaching            on this foundation, we introduce a family of dis-
+agreement on inflation-related and inflation-cause-         tance metrics (lenient, moderate, and strict) that
+dominant instances than on non-inflation-related            capture different granularities of reliability to bet-
+ones. For Task 2, we analyze disagreement at the            ter capture the complex phenomenon of narrative
+triple level by identifying, for each article, the least-   annotation. Labeled Attachment Score (LAS) and
+agreed triples—that is, those annotated least fre-          Unlabeled Attachment Score (UAS) are distance
+quently across annotators. For each article, we first       metrics used in dependency parsing (Buchholz and
+compute the union of all annotated triples and then         Marsi, 2006). While LAS provides a stricter, more
+determine which triples have the lowest annotation          fine-grained measure by requiring both the correct
+frequency. Across 104 articles (each annotated              head and dependency label, UAS is a more lenient
+by four annotators), the five least-agreed triples          metric that only considers structural correctness.
+are: (Supply (residual), Increases, Inflation), (Mon-       We draw a parallel between LAS/UAS and our pro-
+etary Policy, Increases, Inflation), (Energy Prices,        posal of providing lenient vs. moderate vs. strict
+Increases, Inflation), (Monetary Policy, Decreases,         metrics for narrative graph evaluation. However,
+Inflation), and (Wages, Increases, Inflation). These        unlike LAS/UAS which are used to assess parser
+findings should be interpreted as preliminary. Fu-          performance, our metrics are designed to evaluate
+ture work should develop more systematic and fine-          annotation quality in terms of providing multiple IAA
+grained methods to quantify and characterize an-            scores under different conditions, a critical step in
+notator disagreement.                                       understanding human variation in complex tasks
+                                                            like narrative understanding.
+               5.    Related work
+                                                                            6.   Conclusion
+5.1.   Integrating QCA in NLP
+The integration of QCA as a methodological frame-           In this work, we presented a narrative graph dataset
+work for data annotation remains limited in NLP. Yu         on inflation narratives. We introduced a QCA-
+et al. (2011) provided epistemological arguments            based annotation methodology to reduce annota-
+for the compatibility of computational and qualita-         tion errors by iteratively refining our category sys-
+tive research methods, and the importance of itera-         tem and annotation guideline. An important goal
+tive refinement of category system. Birhane et al.          of this QCA-based annotation methodology is to
+(2022) applied QCA at a meta-research level, pro-           establish a common-ground understanding of the
+viding an analysis of research culture and values in        task. To evaluate the annotation under HLV, we em-
+ML papers. Another line of work attempts to auto-           ployed a 6 × 3 factorial experimental design to ex-
+mate QCA by training models to perform the coding           amine the effects of narrative representations and
+process on textual data (Liew et al., 2014; Grandeit        distance metrics on annotation reliability. Our anal-
+et al., 2020; Fischer and Biemann, 2024; Overney            ysis demonstrates that both the choice of narrative
+et al., 2024). While this approach leverages compu-         representation and distance metric strongly influ-
+tational efficiency, it differs from a human-centered       ence IAA. Specifically, while lenient, overlap-based
+QCA workflow, where iterative interpretation and            distance metrics overestimate reliability in narra-
+discussion guide the annotation process. To our             tive annotation, stricter metrics revealed commonly-
+knowledge, no prior work has applied QCA as a               perceived narrative elements among annotators.
+methodological framework for data annotation in             This reflects the coexistence of multiple plausible
+machine learning. This may be attributed to the             readings of the same text. Furthermore, constrain-
+inherently time-intensive process of QCA, which             ing annotation to local structures, as in Relations
+contrasts with the fast-paced, benchmark-driven             and Adjacent Story, improves consistency in relia-
+culture typical of machine learning research.               bility while retaining essential narrative elements.
+                                                            Multi-hop subgraph representations, while richer
+5.2.   Evaluation on Narrative Graph                        in context, reduce strict agreement and highlight a
+                                                            trade-off between contextual completeness and re-
+       Annotations
+                                                            liability. These findings provide practical guidance
+The most similar work to our annotation evaluation          for the design and evaluation of narrative graph an-
+framework is in NLP concerns using suitable dis-            notations and underscore the value of comparing
+tance metrics that account for the complex phenom-          multiple reliability scores to capture the complexity
+ena of semantic and pragmatic annotation. Measur-           of narrative interpretation.
+             Acknowledgments                            6.2.   Localization of Disagreements
+
+The authors acknowledge the financial support by        Although we conduct quantitative analyses to iden-
+the Hub of Computing and Data Science (HCDS) of         tify where disagreement occurs, our approach to
+University of Hamburg within the Cross-Disciplinary     localizing disagreement remains relatively coarse-
+Lab programme, as well as by the Institute of Infor-    grained. For Task 1, disagreement is measured
+mation Systems (IIS) of the Leuphana University         at the document level through majority labels and
+Lüneburg.                                               full-agreement proportions, which does not capture
+                                                        more nuanced patterns such as partial agreement,
+                                                        systematic pairwise disagreement, or uncertainty
+                                                        concentrated around specific linguistic construc-
+Ethics Statement and Broader Impacts
+                                                        tions. As a result, the analysis may obscure fine-
+                                                        grained sources of ambiguity.
+To our knowledge, this work does not concern any
+                                                           For Task 2, disagreement is measured with an-
+substantial ethical issue. No private or sensitive
+                                                        notation frequency of triples. While this provides
+data is used or displayed. Annotators were trained
+                                                        an initial indication of which triples are less con-
+and informed about the research purpose. Identity
+                                                        sistently identified, it does not distinguish between
+of annotators is not revealed. The dataset and
+                                                        different types of disagreement (e.g., structural dif-
+evaluation methodology can benefit applications
+                                                        ferences between graphs vs. semantic differences
+in media narrative analysis, economic forecasting,
+                                                        between nodes or edges).
+and social science research, where understanding
+narratives is crucial. At the same time, users should      Future work should therefore adopt more system-
+be mindful that even with structured annotations,       atic methods for measuring disagreement.
+narratives reflect human interpretation and may not
+fully capture all perspectives or nuances in news       6.3.   Narrative Representation and
+reporting.                                                     Distance Metrics
+                                                        In terms of narrative representation, DAGs effec-
+                  Limitations                           tively capture the semantic structure of narratives,
+                                                        such as events and their causal relationships, but
+6.1.   Data, Annotators and Annotation                  fall short in representing narrative discourse fea-
+       Methodology                                      tures. These include the manner in which a story
+                                                        is told, e.g., aspects of tone, emotion, and cultural
+In terms of data, the dataset used in this study        framing. Naturally, the discussion of what the dis-
+is both limited in size and constrained by licens-      tance metrics are measuring arises when we speak
+ing, which may hinder reproducibility and broader       about feature representation. Current evaluations
+adoption. Its relatively small scale also reduces       of graph annotations do not consider the seman-
+statistical power and limits the generalizability of    tic similarity of node labels. This means that con-
+findings across domains or narrative genres.            cepts with similar meanings but different labels are
+   In terms of annotators, on the one hand, the re-     treated as completely different. This could result
+cruitment criteria could be improved by including       in annotators’ actual agreement being underesti-
+a more diverse range of sociodemographic back-          mated. Moreover, weighted edit-distance as in Pas-
+grounds. On the other hand, the limited number of       sonneau (2006) can further granulate the notion
+annotators restricts our ability to perform rigorous    of similarity, in the context of narrative graph. Fu-
+statistical testing. Future work should include a       ture work should further explore the theory-driven
+larger and more diverse participant pool to support     measure of narrative similarity.
+more robust experimental designs and statistically
+sound comparisons.                                      6.4.   Representing Core Narrative
+   By deductively introducing our initial category             Elements
+system, rather than developing it solely induc-
+tively from the data, we predefine interpretations of   A key question in narrative annotation is which rep-
+events, which may lead to a higher level of dis-        resentations effectively capture core narrative el-
+agreement among our annotators. Additionally,           ements. Drawing from literary structuralism, the
+establishing shared understanding among anno-           smallest functional units in narratives are events
+tators required ongoing negotiation of theoretical      that cause a change of state. As Abbott (2002)
+and methodological perspectives. This process is        note, narratives consist of constituent events, with-
+context-dependent and time-intensive, increasing        out which the story would fundamentally change
+the difficulty to achieve standardization (Stamann      or would not make sense. They are crucial to the
+and Janssen, 2019).                                     plot’s development, driving the narrative forward.
+While our results suggest that graph-based repre-        on Fairness, Accountability, and Transparency,
+sentations, such as Adjacent Story, reflect some         Seoul, Republic of Korea, June 21 - 24, 2022,
+level of shared understanding among annotators,          pages 173–184. ACM.
+they do not provide a direct measure of core narra-
+tive elements. Addressing this limitation requires a   Sabine Buchholz and Erwin Marsi. 2006. Conll-x
+more precise operationalization of what constitutes      shared task on multilingual dependency pars-
+a “core” event within a narrative. Recent work in        ing. In Proceedings of the Tenth Conference
+NLP has begun to explore this direction: Antoniak        on Computational Natural Language Learning,
+et al. (2024) proposed methods to extract salient        CoNLL 2006, New York City, USA, June 8-9,
+elements from Reddit stories, while Huang and            2006, pages 149–164. ACL.
+Usbeck (2024) highlighted the importance of ex-
+tracting "core story" and distinguished constituent    Kfir Eliaz and Ran Spiegler. 2020. A Model of Com-
+events from supplementary events, which served           peting Narratives. American Economic Review,
+a decorative purpose in narratives. Future work          110(12):3786–3816.
+should build on these insights to define and evalu-
+ate core narrative elements more rigorously.           Tim Fischer and Chris Biemann. 2024. Explor-
+                                                         ing large language models for qualitative data
+                                                         analysis. In Proceedings of the 4th International
+     7.   Bibliographical References                     Conference on Natural Language Processing for
+                                                         Digital Humanities, pages 423–437, Miami, USA.
+                                                         Association for Computational Linguistics.
+H. Porter Abbott. 2002. The Cambridge introduc-
+                                                       Kai Gehring and Matteo Grigoletto. 2023. Ana-
+  tion to narrative. Cambridge University Press,
+                                                         lyzing Climate Change Policy Narratives with
+  Cambridge, UK; New York, NY, USA.
+                                                         the Character-Role Narrative Framework. SSRN
+George A. Akerlof and Robert J. Shiller. 2010. An-       Electronic Journal.
+ imal spirits: how human psychology drives the
+ economy, and why it matters for global capital-       Philipp Grandeit, Carolyn Haberkern, Maximiliane
+ ism. Princeton University Press, Princeton, N.J         Lang, Jens Albrecht, and Robert Lehmann. 2020.
+ Woodstock.                                              Using BERT for qualitative content analysis in
+                                                         psychosocial online counseling. In Proceedings
+Peter Andre, Ingar Haaland, Christopher Roth,            of the Fourth Workshop on Natural Language
+  Mirko Wiederholt, and Johannes Wohlfart. 2026.         Processing and Computational Social Science,
+  Narratives about the macroeconomy*. The Re-            pages 11–23, Online. Association for Computa-
+  view of Economic Studies, page rdag014.                tional Linguistics.
+
+Maria Antoniak, Joel Mire, Maarten Sap, Elliott Ash,   Almog Gueta, Amir Feder, Zorik Gekhman, Ariel
+ and Andrew Piper. 2024. Where do people tell            Goldstein, and Roi Reichart. 2025. Can LLMs
+ stories online? story detection across online com-      learn macroeconomic narratives from social me-
+ munities. In Proceedings of the 62nd Annual             dia? In Findings of the Association for Compu-
+ Meeting of the Association for Computational            tational Linguistics: NAACL 2025, pages 57–78,
+ Linguistics (Volume 1: Long Papers), ACL 2024,          Albuquerque, New Mexico. Association for Com-
+ Bangkok, Thailand, August 11-16, 2024, pages            putational Linguistics.
+ 7104–7130. Association for Computational Lin-
+ guistics.                                             Mourad Heddaya, Qingcheng Zeng, Alexander Zen-
+                                                        tefis, Rob Voigt, and Chenhao Tan. 2024. Causal
+Elliott Ash, Germain Gauthier, and Philine Widmer.
+                                                        micro-narratives. In Proceedings of the 6th Work-
+   2024. Relatio: Text Semantics Capture Politi-
+                                                        shop on Narrative Understanding, pages 67–84,
+   cal and Economic Narratives. Political Analysis,
+                                                        Miami, Florida, USA. Association for Computa-
+   32(1):115–132.
+                                                        tional Linguistics.
+Jens Beckert and Richard Bronk, editors. 2018.
+  Uncertain futures: imaginaries, narratives, and      Junbo Huang and Ricardo Usbeck. 2024. Narra-
+  calculation in the economy, first edition edition.     tion as functions: from events to narratives. In
+  Oxford University Press, Oxford New York, NY.          Proceedings of the 6th Workshop on Narrative
+                                                         Understanding, pages 1–7, Miami, Florida, USA.
+Abeba Birhane, Pratyusha Kalluri, Dallas Card,           Association for Computational Linguistics.
+ William Agnew, Ravit Dotan, and Michelle Bao.
+  2022. The values encoded in machine learning         Klaus Krippendorff. 2011. Computing krippendorff’s
+  research. In FAccT ’22: 2022 ACM Conference            alpha-reliability.
+Jasy Suet Yan Liew, Nancy McCracken, Shichun             pages 10671–10682. Association for Computa-
+  Zhou, and Kevin Crowston. 2014. Optimizing fea-        tional Linguistics.
+  tures in active machine learning for complex qual-
+  itative content analysis. In Proceedings of the      Francesca Polletta, Pang Ching Bobby Chen,
+  ACL 2014 Workshop on Language Technologies             Beth Gharrity Gardner, and Alice Motes. 2011.
+  and Computational Social Science, pages 44–48,         The Sociology of Storytelling. Annual Review of
+  Baltimore, MD, USA. Association for Computa-           Sociology, 37(1):109–130.
+  tional Linguistics.                                  Aglaja Przyborksi and Wohlrab-Sahr. 2022.
+Philipp Mayring. 2014. Qualitative content analy-        Forschungsdesign für die qualitative Sozial-
+  sis: theoretical foundation, basic procedures and      forschung. In Nina Baur and Jörg Blasius,
+  software solution. Klagenfurt.                         editors, Handbuch Methoden der empirischen
+                                                         Sozialforschung. Springer Fachmedien Wies-
+Henrik Müller, Tobias Schmidt, Jonas Rieger,             baden, Wiesbaden.
+ Lena Maria Hufnagel, and Nico Hornig. 2022.
+ A German Inflation Narrative. DoCMA Working           Michael Roos and Matthias Reccius. 2023. Narra-
+ Paper;9. Publisher: TU Dortmund.                        tives in economics. Journal of Economic Surveys,
+                                                         page joes.12576.
+Cassandra Overney, Belén Saldías, Dimitra Dim-
+ itrakopoulou, and Deb Roy. 2024. Sensemate:           Ali Fuad Selvi. 2019. Qualitative content analysis.
+ An accessible and beginner-friendly human-ai            In Jim McKinley and Heath Rose, editors, The
+ platform for qualitative data analysis. In Pro-         Routledge Handbook of Research Methods in
+ ceedings of the 29th International Conference on        Applied Linguistics, 1 edition. Routledge, New
+ Intelligent User Interfaces, IUI 2024, Greenville,      York : Taylor and Francis, 2020. Series: Rout-
+ SC, USA, March 18-21, 2024, pages 922–939.              ledge handbooks in applied linguistics.
+ ACM.                                                  Robert J. Shiller. 2017. Narrative Economics. Amer-
+Angelina Parfenova, Andreas Marfurt, Jürgen Pfef-        ican Economic Review, 107(4):967–1004.
+  fer, and Alexander Denzler. 2025. Text annotation    Christoph Stamann and Markus Janssen. 2019.
+  via inductive coding: Comparing human experts         Becoming able to work together as a cen-
+  to LLMs in qualitative data analysis. In Findings     tral challenge for a successful joint prac-
+  of the Association for Computational Linguistics:     tice—experiences from a qualitative content anal-
+  NAACL 2025, pages 6471–6484, Albuquerque,             ysis interpretation group and suggestions for ar-
+  New Mexico. Association for Computational Lin-        ranging interpretation group sessions. Forum
+  guistics.                                             Qualitative Sozialforschung: Qualitative Social
+Rebecca J. Passonneau. 2004. Computing relia-           Research, 20(3).
+ bility for coreference annotation. In Proceedings     Saskia Ter Ellen, Vegard H. Larsen, and Leif An-
+ of the Fourth International Conference on Lan-          ders Thorsrud. 2022. Narrative Monetary Pol-
+ guage Resources and Evaluation, LREC 2004,              icy Surprises and the Media. Journal of Money,
+ May 26-28, 2004, Lisbon, Portugal. European             Credit and Banking, 54(5):1525–1549.
+ Language Resources Association.
+                                                       David Tuckett. 2011. Minding the Markets: An
+Rebecca J. Passonneau. 2006. Measuring agree-           Emotional Finance View of Financial Instability.
+  ment on set-valued items (MASI) for semantic          Palgrave Macmillan UK.
+  and pragmatic annotation. In Proceedings of
+  the Fifth International Conference on Language       Max Weinig and Ulrich Fritsche. 2025. Going vi-
+  Resources and Evaluation, LREC 2006, Genoa,           ral: Inflation narratives and the macroeconomy.
+  Italy, May 22-28, 2006, pages 831–836. Euro-          WiSo-HH Working Paper Series 86, Universität
+  pean Language Resources Association (ELRA).           Hamburg, Fakultät für Wirtschafts- und Sozial-
+                                                        wissenschaften, WiSo-Forschungslabor, Ham-
+Judea Pearl. 2009. Causality: Models, reasoning,        burg.
+  and inference, 2 edition. Cambridge University
+  Press, Cambridge.                                    Chong Ho Yu, Angel Jannasch-Pennell, and
+                                                        Samuel DiGangi. 2011. Compatibility between
+Barbara Plank. 2022. The "problem" of human la-         text mining and qualitative research in the per-
+  bel variation: On ground truth in data, modeling      spectives of grounded theory, content analysis,
+  and evaluation. In Proceedings of the 2022 Con-       and reliability. Qualitative Report, 16(3):730–744.
+  ference on Empirical Methods in Natural Lan-
+  guage Processing, EMNLP 2022, Abu Dhabi,             Urchade Zaratiana, Nadi Tomeh, Pierre Holat, and
+  United Arab Emirates, December 7-11, 2022,             Thierry Charnois. 2024. Gliner: Generalist model
+  for named entity recognition using bidirectional
+  transformer. In Proceedings of the 2024 Confer-
+  ence of the North American Chapter of the As-
+  sociation for Computational Linguistics: Human
+  Language Technologies (Volume 1: Long Pa-
+  pers), NAACL 2024, Mexico City, Mexico, June
+  16-21, 2024, pages 5364–5376. Association for
+  Computational Linguistics.
+
+
+                 8.   Appendices
+
+8.1.     Further Annotator Recruitment
+         Information
+                                                         Figure 4: Distribution of documents across pub-
+The students involved in the pilot phase are stu-        lication years. The sampling strategy focuses
+dent assistants already affiliated with our research     on inflation-peak years: 1990, 1991, 1999, 2001,
+group. They are compensated according to the             2007, 2008, 2021, 2022 and 2023.
+standard student assistant payment at the time of
+the study: €13.52 per hour (without a bachelor’s
+degree) and €15.21 per hour (with a bachelor’s
+degree or higher).
+  For the final study, we employ four additional
+students under short-term service contracts. To
+ensure fair compensation and promote high-quality
+annotation, we provide payment above standard
+student rates. Each annotator receives a total
+of €912.60. Given 488 documents annotated in
+Task 1 (expected time: 4 minutes per document)
+and 104 documents in Task 2 (expected time: 10
+minutes per document), the total estimated work-
+load amounts to approximately 50 hours. This cor-
+responds to an effective hourly wage of €18.30, ex-      Figure 5: Average word count of documents across
+ceeding both the standard student assistant wage         publication years.
+at our institution and the country-level minimum
+wage by over €6 per hour.
+                                                             tighten monetary policies to deal with the
+                                                             scourge.
+8.2.     Descriptive Statistics of the
+         Annotated Dataset                                   The bank is reviewing its growth fore-
+                                                             cast of 7.6% this year for Asia, exclud-
+The dataset consists of 488 documents, with an               ing Japan, amid concerns inflation will
+average length of 609 words (min: 112, max: 1774,            widen income inequality in the region and
+median: 541). Articles are attributed with their pub-        cause more people to plunge into poverty,
+lication year, as shown in Fig. 4. The sampling strat-       said its managing director general Rajat
+egy focuses on inflation-peak years: 1990, 1991,             M.Nag.
+1999, 2001, 2007, 2008, 2021, 2022 and 2023
+                                                             ...
+(only until January). Fig. 5 shows an increase of
+word counts through time.                                    Annotator 1:
+                                                             [(’Energy Prices’, ’Increases’, ’Inflation’),
+8.3.     Annotation Example                                  (’Monetary Policy’, ’Decreases’, ’Inflation’),
+                                                             (’Food Prices’, ’Increases’, ’Inflation’)]
+Snippet of a sample article:
+                                                             Annotator 2:
+       ADB Exec Calls For Tighter Monetary Poli-
+       cies In Asia                                          [(’Energy Prices’, ’Increases’, ’Inflation’),
+                                                             (’Monetary Policy’, ’Decreases’, ’Inflation’),
+       KUALA LUMPUR (AP)–Asia’s growth is
+                                                             (’Food Prices’, ’Increases’, ’Inflation’)]
+       being threatened by spiraling inflation due
+       to higher food and fuel cost, an Asian De-            Annotator 3:
+       velopment Bank executive warned Sun-                  [(’Energy Prices’, ’Increases’, ’Inflation’),
+       day, as he called on governments to                   (’Food Prices’, ’Increases’, ’Inflation’)]
+                                                         Stage II: Text-Span Annotation
+                                                         For documents labeled as Inflation-cause-
+                                                         dominant, identify text spans that indicate event
+                                                         mentions related to inflation causes. An event
+                                                         mention is a specific instance in text that describes
+                                                         an action, occurrence, or state change. It typically
+                                                         includes key information like the action itself (often
+                                                         expressed by a verb and/or noun), involved partici-
+                                                         pants, and sometimes a time or place. Each event
+                                                         mentioned reflects one occurrence of an event
+                                                         as described in the text. A selection of possible
+                                                         events are shown in Table 1. We distinguish
+                                                         between Demand, Supply, and Miscellaneous
+                                                         Events.
+                                                         When highlighting the event spans:
+Figure 6: Proportion of Articles with Full Annotators
+                                                           • Highlight only the minimum span (single/few
+Agreement per Label.
+                                                             token if possible)
+                                                           • Usually, events include verbs and nouns, and
+       Annotator 4:                                          sometimes adjectives
+       [(’Energy Prices’, ’Increases’, ’Inflation’),
+       (’Government Spending’, ’Increases’, ’In-           • If you are uncertain, always make a note and
+       flation’), (’Food Prices’, ’Increases’, ’Infla-       discuss it in the plenary sessions
+       tion’)]                                              To support event detection and increase the num-
+                                                         ber of matching text spans, we pre-annotated the
+8.4.     Annotation Guidelines                           text using a pre-trained Named Entity Recognition
+                                                         (NER) zero-shot language model that outperforms
+Objective: Identify inflation narratives in large text
+                                                         general-purpose models like ChatGPT. However,
+corpora using a two-stage annotation process.
+                                                         due to potential prediction errors, human validation
+Stage I: Document-level Classification                   is essential . Specifically, some events might not
+Determine whether the article addresses the cause        be identified correctly or may not be labeled at all.
+of inflation. There are three cases:                        Furthermore, we aim to identify the narrated
+                                                         causal structure of the narratives. Therefore, you
+  • Inflation-cause-dominant: The text discusses         need to establish the causal relationships between
+    the causes of inflation.                             the annotated events using Label Studio. To
+                                                         distinguish the effect direction, we include two
+  • Inflation-related: The text mentions inflation
+                                                         relational attributes: Decreases and Increases.
+    but not inflation causes.
+
+  • Non-inflation-related: The text neither men-
+    tions causes of inflation nor inflation.             8.5.   Category System for QCA
+What is inflation? The rate of inflation indicates
+how much prices in a country rise from year
+to year, measured in percent. It is defined as
+the annual growth in the general price level of
+goods and services. A decline in the price level is
+commonly referred to as deflation. For example,
+an inflation rate of 2% means that consumer
+prices rise by 2% over 12 months. A basket of
+typical monthly purchases that costs €1,000 at
+the beginning of the year costs €1,020 at the end
+of the year. Therefore, texts that mention solely
+movements in single prices (e.g. crude oil or wheat
+prices) are not to be labeled as “inflation-related”
+or “inflation-cause-dominant”. Results from this
+stage are reviewed to select documents for further
+annotation.
+  Category             Subcategory        Explanation
+                Government Spending       Adjustments in government spending (e.g., stimulus
+                                          payments)
+  Demand              Monetary Policy     Monetary policy by the Federal Reserve or other Cen-
+                                          tral Banks
+                     Pent-up Demand       Reopening of the economy and the associated higher
+                                          incomes, new spending opportunities, and optimism
+                                          about the future
+                        Demand Shift      Shift of demand across sectors (particularly increases
+                                          in durables)
+                  Demand (Residuals)      Increase in demand that cannot be attributed to the
+                                          other channels
+                 Supply Chain Issues      Disruption of global supply chains
+                 Transportation Costs     Rising shipping and freight costs, including container
+                                          shortages and port congestion
+                      Labor Shortage      Shortage of workers, e.g., due to some workers drop-
+   Supply
+                                          ping out of the labor force, and higher wage costs
+                               Wages      Changes in wage levels driven by labor market dy-
+                                          namics, such as increased labor demand or worker
+                                          bargaining power
+                        Energy Prices     Higher energy prices, e.g., due to the global energy
+                                          crisis, leading to shortages of oil and natural gas
+                          Food Prices     Increases in food prices, e.g., driven by rising input
+                                          costs, or global agricultural disruptions
+                      Housing Costs       Rising housing and rental costs
+                    Supply (Residual)     Other negative supply effects
+                           Pandemic       The COVID-19 pandemic, the global pandemic re-
+                                          cession, lockdowns, and other policy measures
+                               Politics   Policy failure, and mismanagement by policymakers,
+                                          policymakers are blamed
+                                  War     Armed conflict involving state or non-state actors,
+                                          such as the Russian invasion of Ukraine and the as-
+Miscellaneous                             sociated international economic, political, and military
+                                          responses
+                 Inflation Expectations   Expectations about high inflation in the coming years,
+                                          making firms preemptively increase prices and work-
+                                          ers bargain for higher wage
+                           Base Effect    Mentions that inflation is high due to a base effect,
+                                          i.e., a very low inflation rate during the pandemic,
+                                          leading almost mechanically to high inflation rates
+                                          now
+                    Government Debt       High level of government debt
+                       Tax Increases      Tax increases, such as VAT hikes
+                      Trade Balance       Inflationary pressures linked to changes in exports,
+                                          imports, or trade deficits
+                      Exchange Rates      Effects of exchange rate fluctuations on import prices
+                                          and domestic inflation
+                        Medical Costs     Rising healthcare or insurance costs, including struc-
+                                          tural issues in medical pricing
+                      Education Costs     Increases in education-related expenses such as tu-
+                                          ition fees
+                        Climate Crisis    All aspects related to the climate crisis and natural
+                                          disasters, as well as related environmental and eco-
+                                          nomic consequences
+                        Price-Gouging     Companies exploit opportunities to increase profits
+
+                Table 2: Events and Explanations in the Category System.
+

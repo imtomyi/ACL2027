@@ -1,0 +1,560 @@
+        LLM-in-the-loop: Leveraging Large Language Model for Thematic
+                                   Analysis
+
+                       Shih-Chieh Dai1        Aiping Xiong2       Lun-Wei Ku3
+    1                                     2                                  3
+        University of Texas at Austin       Pennsylvania State University      Academia Sinica
+            1                         2                       3
+              sjdai@utexas.edu          axx29@psu.edu           lwku@iis.sinica.edu.tw
+
+
+
+                          Abstract                                    Large language models (LLMs) have ad-
+                                                                   vanced artificial intelligence (AI) tremendously re-
+        Thematic analysis (TA) has been widely used                cently (Brown et al., 2020; Chowdhery et al., 2022;
+        for analyzing qualitative data in many disci-              Scao et al., 2022; Touvron et al., 2023). Prompt-
+        plines and fields. To ensure reliable analysis,
+                                                                   ing techniques such as in-context learning (ICL),
+        the same piece of data is typically assigned to at
+        least two human coders. Moreover, to produce               chain-of-thought, and reasoning and action elicit
+        meaningful and useful analysis, human coders               decent results on various natural language process-
+        develop and deepen their data interpretation               ing (NLP) tasks (Wei et al., 2022; Kojima et al.,
+        and coding over multiple iterations, making TA             2022; Suzgun et al., 2022; Yao et al., 2023). LLM-
+        labor-intensive and time-consuming. Recently               based applications continue to multiply, including
+        the emerging field of large language models                Copilot for programming,2 LaMDA for dialogue
+        (LLMs) research has shown that LLMs have                   generation (Thoppilan et al., 2022), and ChatGPT.3
+        the potential replicate human-like behavior in
+        various tasks: in particular, LLMs outperform
+                                                                   Indeed, several studies show that LLMs outperform
+        crowd workers on text-annotation tasks, sug-               human annotator performance on crowdsourcing
+        gesting an opportunity to leverage LLMs on                 tasks (Gilardi et al., 2023; Chiang and Lee, 2023;
+        TA. We propose a human–LLM collaboration                   Ziems et al., 2023), which indicates a potential op-
+        framework (i.e., LLM-in-the-loop) to conduct               portunity to leverage LLMs for TA. Thus, in this
+        TA with in-context learning (ICL). This frame-             work, we address the research question: can NLP
+        work provides the prompt to frame discussions              techniques (i.e., LLMs) enhance the efficiency of
+        with a LLM (e.g., GPT-3.5) to generate the final
+                                                                   TA?
+        codebook for TA. We demonstrate the utility
+        of this framework using survey datasets on the                We loop ChatGPT to act as a machine coder
+        aspects of the music listening experience and              (MC) and work with a human coder (HC) on TA.
+        the usage of a password manager. Results of                Following Braun and Clarke (2006), we leverage
+        the two case studies show that the proposed                ICL to design the prompt for each step. The HC
+        framework yields similar coding quality to that            first becomes familiar with the data, after which
+        of human coders but reduces TA’s labor and                 the MC extracts the initial codes based on the re-
+        time demands. 1
+                                                                   search question and free-text responses. Next, the
+                                                                   MC groups the similar initial codes into represen-
+1       Introduction                                               tative codes representing the responses and which
+Braun and Clarke (2006) propose thematic analysis                  answer the research question. We design a discus-
+(TA) to identify themes that represent qualitative                 sion prompt for the MC and HC to use to refine
+data (e.g. free-text response). TA, which relies on                the codes. The discussion ends once the HC and
+at least two human coders with relevant expertise                  MC come to agreement, after which the codebook
+to run the whole process, is widely used in qualita-               is generated. Following the TA procedure, the HC
+tive research (QR). However, TA is labor-intensive                 and MC utilize the codebook to code the responses
+and time-consuming. For instance, for an in-depth                  and calculate the inner-annotator agreement (IAA)
+understanding of the data, coders require multiple                 to measure the quality of the work. See Section 3
+rounds of discussion to resolve ambiguities and                    for detailed information.
+achieve consensus.                                                    We study the effectiveness of this human–LLM
+    1                                                                 2
+      The code repository is publicly available              at:          https://github.com/features/copilot
+                                                                      3
+https://github.com/sjdai/LLM-thematic-analysis                            https://openai.com/blog/chatgpt
+
+                                                               9993
+                   Findings of the Association for Computational Linguistics: EMNLP 2023, pages 9993–10001
+                             December 6-10, 2023 ©2023 Association for Computational Linguistics
+                                             Step 3.                                   Step 4.
+      Step 1.
+                                             Code Refinement &                         Theme Identification & Evaluation
+      Data Familiarization &
+                                             Initial Codebook Generation
+      Exemplar Generation
+                                                 Action: Delete
+                                                 Reason: I deleted the "Reflective
+                                                 and Mood-setting Songs", … codes,
+                                 Exemplars       since they are all covered under
+                                                 "Emotional and Relatable Songs"                                Themes
+                                                                                            Data   Codebook
+        Data
+
+
+      Step 2.
+      Initial Code Generation
+                                                               Codes
+
+
+                                                                                           Annotated          Annotated
+                                                                                             Data               Data
+        Data                      Initial
+                                  Codes
+                                                Decision: Agree
+    Exemplars                                   Reason: These codes can be
+                                                merged into the 'Emotional and               Inner-Annotator-Agreement
+                                                Relatable Songs' code as they all
+                                                relate to emotional responses.
+      Human      GPT
+
+
+
+
+                                Figure 1: Workflow of the LLM-in-the-Loop Framework.
+
+
+collaboration framework by adopting the frame-                    into themes based on their sentiment polarity. Guet-
+work on two cases: Music Shuffle (MS), a sur-                     terman et al. (2018) cluster phrases by their Wu–
+vey measuring aspects of music listening experi-                  Palmer similarity scores (Wu and Palmer, 1994).
+ences (Sanfilippo et al., 2020) and Password Man-                    Models can be trained to learn how humans
+ager (PM), a survey on password manager us-                       code (Rietz et al., 2020). Human–AI collaboration
+age (Mayer et al., 2022). Considering the LLM                     frameworks for TA have been proposed (Gauthier
+input size limitations, we randomly divided the re-               and Wallace, 2022; Gebreegziabher et al., 2023;
+sponses of PM into two separate pools and applied                 Jiang et al., 2021).
+one pool for codebook generation. Subsequently,                      QR and NLP researchers are now exploring the
+we sampled responses from both pools for final cod-               opportunity to leverage LLMs for TA. Xiao et al.
+ing and IAA calculation. The results suggest that                 (2023) investigate the use of LLMs to support
+the proposed LLM-in-the-loop framework yields                     deductive coding: they combine GPT-3 with an
+work quality comparable to two HCs.                               expert-drafted codebook. Gao et al. (2023) pro-
+   The contributions of this work are as follows:                 pose a user-friendly interface for collaborative qual-
+1) we propose a human–LLM collaboration frame-                    itative analysis, leveraging LLMs for initial code
+work for TA; 2) we design a loop to facilitate dis-               generation and to help in decision-making. Paoli
+cussions between a human coder and a LLM; 3)                      (2023) studies the potential usage of ChatGPT for
+we propose a solution for long-text qualitative data              TA following the six TA phases proposed by Braun
+when using a LLM for TA.                                          and Clarke (2006). In the theme refinement phase,
+                                                                  the author generates three versions of themes by
+2    Background and Related Work                                  modifying the temperature parameter,4 after which
+                                                                  the themes are reviewed by a HC (the author).
+Given the substantial amount of free-text responses,                 Coding can be divided into inductive coding and
+it seems obvious that NLP techniques can be poten-                deductive coding. Inductive coding is a bottom-up
+tial solutions to facilitate TA. Existing work tends              process of developing a codebook, and deductive
+to rely on topic modeling to extract key topics that              coding is a top-down process in which all data
+represent the data (Leeson et al., 2019; Jelodar
+                                                                     4
+et al., 2020). Another approach is clustering: for                     The temperature parameter determines the output
+                                                                  randomness: higher values yield more random output.
+instance, Oyebode et al. (2021) extract phrases, cal-             https://platform.openai.com/docs/api-reference/
+culate their sentiment scores, and group the phrases              chat/create
+
+                                                           9994
+                                                             Code Refinement and Initial Codebook Genera-
+                                                             tion The model groups the similar initial codes
+                                                             into certain codes which the MC and HC begin to
+                                                             refine. Step 3 in Figure 1 illustrates a cycle of the
+                                                             discussion process. First an HC reviews the codes
+                                                             and edits the codes if necessary. If the HC modifies
+                                                             any code, he/she states the changes and provides
+                                                             the rationales behind them. After evaluating the
+Figure 2: An exemplar for initial code extraction. Green     changes and the rationales, the MC indicates agree-
+depicts the quoted sentence, blue indicates the definition   ment or disagreement with explanations. The HC
+of a code, and red represents the code.                      then reviews the MC’s responses and revises the
+                                                             code if needed. The HC initiates a new cycle by
+                                                             editing the codes and providing justification. Such
+is coded using the codebook. We complete both                refinement continues until the HC and MC are both
+inductive and deductive coding via human–AI col-             satisfied with the result. The refined codes are then
+laboration and showcase the feasibility of our ap-           used to generate the initial codebook.
+proach using two existing open-access datasets.
+                                                             Theme Identification and Evaluation The MC
+3   Human–LLM Collaboration                                  and HC generate the final codebook by identify-
+                                                             ing the themes of the codes. MC and HC code
+    Framework
+                                                             the whole qualitative data according to the final
+Figure 1 illustrates the framework, which consists           codebook. Cohen’s κ agreement (Cohen, 1960) is
+of four steps.                                               calculated to evaluate the work quality of the MC
+                                                             and HC.
+Data Familiarization and Exemplar Generation                 4     Evaluation
+We used in-context learning (ICL) to design the
+paradigm of prompt for the initial code extrac-              4.1    Metrics
+tion (Garg et al., 2022). To write the exemplars             The inner-annotator agreement (IAA) is the main
+for initial code extraction, the HC must be familiar         method for evaluating the quality of coding (Krip-
+with the qualitative data. Each HC produces four to          pendorff, 2011). IAA measures the clarity and
+eight exemplars, following Min et al. (2022). Each           interpretability of a codebook among the coders.
+exemplar includes a response for an open-ended               A higher IAA suggests the codebook is clear and
+question and the associated actions. Given a free-           effectively captures the meaning of the data. We
+text response may contain multiple codes, we think           use Cohen’s κ to compare the results of the two
+“step by step” and “code by code” that were in-              datasets. In addition, to evaluate whether the codes
+spired by chain-of thought (CoT) prompting (Wei              from our framework meet the research goal of the
+et al., 2022; Kojima et al., 2022). To code a re-            original work, we treat the codes generated by the
+sponse, the format of an action is “quote refers to          authors of the two datasets as the gold label. We
+definition of the code. Thus, we got a code:                 calculate the cosine similarity between codes devel-
+code”. Figure 2 shows one instance. The quote is             oped by us and those proposed by the original au-
+the sentence in the response that is related to the          thors. We used the text-embedding-ada-002 em-
+code.                                                        bedding provided by OpenAI to embed the codes
+                                                             and then calculated their cosine similarity.
+Initial Code Generation At this step, codes are
+extracted that capture the semantic and latent mean-         4.2    Setting
+ings of the free-text responses at a fine granularity.       MS In our case study, we focused on the first-
+The core of the prompt is the exemplar generated             asked question because the authors mentioned that
+in the first step. The prompt also contains the task         some participants provided the same or similar an-
+goal and the open-ended question, which provide              swers to all four questions. The sampled question
+the MC with a clear understanding of the purpose             is “What’s the first thing that comes into your mind
+of the study. The prompts we used are shown in               about this track?” Preprocessing yielded 35 re-
+Appendix D.                                                  sponses for our study.
+                                                         9995
+                Music Shuffle         Password Manager       LLM is suited for thematic analysis. The re-
+                    All              Seen Unseen All         sults of the MS case study suggest that HC+MC
+   HC + MC          0.87              0.8    0.82  0.81      achieves the best agreement compared to all other
+ Coder3 + MC        0.54             0.47    0.34  0.47
+                                                             settings, where the κ of HC+MC is 0.87 (almost
+ Coder3 + HC        0.62             0.48    0.38  0.43
+                                                             perfect agreement), and that of Gold is 0.66 (sub-
+     Gold           0.66               –      –    0.77
+                                                             stantial agreement). Further, even though the κ
+Table 1: Cohen’s κ of the two cases. The HC, MC, and         decreases in the Coder 3 settings, Coder 3+MC and
+Coder 3 used the same codebook for final coding. Seen        Coder 3+HC still exhibit similar agreement com-
+and Unseen indicate the data was sampled from the            pared to Gold: The κ of Coder 3+MC and Coder
+responses used or not used for developing the codebook,      3+HC are 0.54 (moderate to substantial agreement)
+where All means Seen + Unseen.                               and 0.62 (substantial agreement), respectively. This
+                                                             indicates that our framework achieves reasonable
+                              MS       PM                    performance. In the results of the PM case study,
+               Similarity   0.8864    0.8895                 HC+MC (κ = 0.81: almost perfect agreement)
+               Accuracy      0.84      0.83
+                                                             outperforms Gold (κ = 0.77: substantial agree-
+                 Recall      0.72      0.87
+                                                             ment). The cosine similarity also shows that the
+Table 2: Cosine similarity, accuracy, and recall between     MC-extracted codes capture the semantic meaning
+the codes extracted by our framework and the dataset’s       of the codes provided by the authors of the datasets.
+authors.                                                     We thus conclude that the human–LLM collabo-
+                                                             ration framework can perform as well as the two
+                                                             human coders on thematic analysis, but with one
+PM Of the eight open-ended questions, we se-                 human coder instead of two, which reduces labor
+lected the first question—“Please describe how you           and time demands.
+manage your passwords across accounts”—as this
+question is general, and seems to have elicited bet-         A discrepancy discussion process might be neces-
+ter responses. Due to the GPT input limitations,             sary. The relatively poorer results of Coder 3 still
+we could not feed all the data into GPT-3.5. Thus            indicate a nearly fair to moderate agreement. The κ
+we randomly sampled 100 responses for codebook               of Coder 3+MC and Coder 3+HC are (0.47, 0.48),
+development. Such leveraging of partial responses            (0.34, 0.38), and (0.47, 0.43) for the three condi-
+for codebook development has been used by San-               tions (i.e., Seen, Unseen, and All) , respectively.
+filippo et al. (2020). We used the 100 responses for         The PM authors mentioned that if the agreement
+codebook development and in the evaluation phase             is lower than κ =0.7, they discussed the result
+we sampled 20 samples from the two data pools for            and started a new coding round to re-code the data.
+labeling and IAA calculation, respectively.                  They indicated an average 1.5 rounds of re-coding.
+    Following the MS and PM workflow, we de-                 Similarly, our results indicate a need for such a
+veloped a codebook using our framework with a                mechanism. We leave this as future work.
+HC and the MC for each case. The HC and MC
+                                                             Developing the codebook using partial data is
+coded all the responses. We invited another coder
+                                                             a feasible approach. In the Unseen condition,
+(Coder 3) to code the responses using both code-
+                                                             the HC+MC agreement is high (κ = 0.82: almost
+books developed by the HC and MC. The detailed
+                                                             perfect agreement). Additionally, the cosine simi-
+information of the datasets is in Appendix C.
+                                                             larity between the codes extracted by MC and the
+                                                             gold codes provided by the authors of the dataset is
+4.3 Results and Discussion                                   0.8895, which indicates the codes effectively cap-
+The results are presented in Table 1: HC + MC                ture the semantic meaning of the gold codes. These
+indicate Cohen’s κ of HC and MC annotated data,              results imply that using partial data for codebook
+and Coder 3 + MC and Coder 3 + HC represent                  development is a viable way to address LLM input
+Cohen’s κ of Coder 3 and MC labeled data and                 size limitations for TA.
+Coder 3 and HC labeled data, respectively. We
+                                                             4.4   Error Analysis
+treat the result of the original studies as the gold
+standard for reference. Table 2 shows the result of          To investigate why the IAA dropped significantly
+cosine similarity, accuracy, and recall.                     in the results of Coder 3 with MC and HC, we pull
+                                                          9996
+                                 MS   PM                          missed the “Positive”.
+                   Ambiguity      5    9
+                   Granularity    8    7                          Distinction The other mismatched responses are
+                   Distinction    9   14
+                     Total       22   30
+                                                                  due to the coders assigning different codes for a
+                                                                  given response. This could be a result of their
+Table 3: The number of mismatched responses in each               varied familiarity with the responses and the code-
+category in the two different datasets.                           book, leading them to interpret the response or
+                                                                  code differently. For instance, Coder 3 stated that
+             MS (All)    PM (Seen)    PM (Uneen)   PM (All)       sometimes it is hard to find a code that fits the re-
+ MC+Coder3   0.54/0.56    0.47/0.72    0.34/0.50   0.47/0.62
+ HC+Coder3   0.62/0.72    0.48/0.69    0.38/0.54   0.43/0.62      sponse. As a result, Coder 3 can only identify the
+                                                                  most appropriate code for the response.
+Table 4: The number before “/” is the IAA calculated                 Overall, we identified the three main factors that
+by code, and the number after “/” represents the IAA              led the IAA drop significantly for Coder 3 with
+calculated by theme.                                              MC and HC. However, we argue that thematic anal-
+                                                                  ysis is inherently subjective and biased since the
+the sample that they coded differently and the code-              coders must align to the research questions when
+book. We found three major reasons: Ambiguity,                    making the codebooks (Braun and Clarke, 2006;
+Granularity, and Distinction that led the low IAA                 Vaismoradi et al., 2016). They generated the code-
+of Coder 3 with MC and HC. Table 3 is the analy-                  book based on their expertise in the topic of the
+sis of the samples that the three coders (MC, HC,                 responses and the research goal. Moreover, such
+Coder 3) coded differently.                                       subjective nature is not specific to our work. In-
+                                                                  stead, it is common for any thematic analysis. It is
+Ambiguity Ambiguity indicates that the coders                     arguable whether bias is a drawback for thematic
+coded the different codes that actually belong to                 analysis since the goal is to provide a way to un-
+the same theme. For instance, “Digital Notes” and                 derstand the collected free-text data. For instance,
+“Notes” are both under the theme “Written Records                 even though the codebooks in our study are biased,
+and Notes.” Given a free-text response, “Keep them                they have captured the semantic meaning of the
+in a notes tab on my phone”, the coders might code                data to the research questions, and the cosine simi-
+this response as “Digital Notes” or “Notes.” These                larity between our codebooks and the codebooks
+two codes belong to the same theme and are correct                from the dataset is high (0.8864 and 0.8895). The
+but would drop the IAA if one coder selects “Digi-                iterative nature of codebook generation leads the
+tal notes” and the other selects “Notes.” We found                codebook to be less biased. As we mentioned in
+that among 22 mismatched responses 5 of them                      the discussion section, a discrepancy discussion
+in MS dataset were due to the ambiguity of the                    process might be a solution to improve the IAA.
+codes. In PM dataset, 9 out of 30 are categorized
+as the reason. To further confirm if the ambiguity                5   Conclusion
+of the codes influences the IAA, we calculated the                We propose a framework for human–LLM collabo-
+IAA based on the theme. Table 4 represents the re-                ration (i.e., LLM-in-the-loop) for thematic analysis
+sult. The result suggests that all the IAA improved,              (TA). The result of two case studies suggests that
+which indicates that the ambiguity of the codes is                our proposed collaboration framework performs
+one factor leading to the low IAA.                                well for TA. The human coder and machine coder
+Granularity Granularity denotes the granularity                   exhibit almost perfect agreement (κ = 0.87 in Mu-
+of the coding work. We found that HC and MC                       sic Shuffle and κ = 0.81 in Password Manager),
+coded more finely than the Coder 3 in 8 out of 22                 where the agreement reported by the dataset au-
+and 7 out of 30 mismatched responses in MS and                    thors are κ = 0.66 for Music Shuffle and κ = 0.77
+PM, respectively. For instance, for the response,                 for Password Manager. We also address the LLM
+“Sleeping, calm I saved it because I liked the way                input size limitation by using partial data for code-
+it sounded, I thought it would be a good song to                  book development, with results that suggest this is
+fall asleep to. I enjoy listening to this song because            a feasible approach.
+it sounds sweet, like a cute sweet not cool sweet.”
+                                                                  Limitations
+Both HC and MC coded this response as “Positive”,
+“Relaxing”, and “sleep-inducing”, where Coder 3                   There are four main limitations in this work.
+                                                               9997
+Prompts While we designed specific prompts               users need to confirm with their IRB before they
+for each step that successfully elicited the desired     used the proposed method for thematic analysis.
+output to achieve our goals, it is important to note
+that we cannot claim these prompts to be the most        Acknowledgements
+optimal or correct ones. As mentioned by Wei et al.      We thank Katie Zhang and Zekun Cai for helping
+(2022), there is still rooms to explore the potential-   us with the thematic coding tasks. We thank Yi-
+ity of prompt to elicit better outputs from LLMs.        Li Hsu for fruitful discussions. Thanks as well to
+We believe that there might be better versions of        the anonymous reviewers for their helpful sugges-
+prompts that can achieve better outcomes.                tions. The works of Aiping Xiong were in part
+                                                         supported by NSF awards #1915801, #1931441
+Application The survey or interview data might
+                                                         and #2121097. This work is supported by the Na-
+not be able to be put into a third-party platform like
+                                                         tional Science and Technology Council of Taiwan
+OpenAI. Specifically, certain Institutional review
+                                                         under grants 111-2634-F-002-022- and 112-2222-
+boards (IRB) may have regulations that the data
+                                                         E-001-004-MY2.
+should be stored on the institution’s server. This is
+especially relevant for data that involves sensitive
+information, such as health-related studies. There-      References
+fore, the users have to check the IRB document
+                                                         Ebtesam Almazrouei, Hamza Alobeidli, Abdulaziz Al-
+or any regulations before they use our method for          shamsi, Alessandro Cappelli, Ruxandra Cojocaru,
+thematic analysis.                                         Merouane Debbah, Etienne Goffinet, Daniel Hes-
+                                                           low, Julien Launay, Quentin Malartic, Badreddine
+Model We only studied the cases on GPT-3.5,                Noune, Baptiste Pannier, and Guilherme Penedo.
+while many off-shelf LLMs are available 5 . There-         2023. Falcon-40B: an open large language model
+fore, we can not guarantee using other LLMs                with state-of-the-art performance.
+can achieve the comparable result. However, we           Virginia Braun and Victoria Clarke. 2006. Using the-
+have demonstrated the effectiveness of our pro-            matic analysis in psychology. Qualitative Research
+posed framework with GPT-3.5. Future work                  in Psychology, 3(2):77–101.
+could adopt this framework to other Open-sources         Virginia Braun and Victoria Clarke. 2012. Thematic
+LLMs, such as Falcon (Almazrouei et al., 2023)             analysis. American Psychological Association.
+and LLaMA (Touvron et al., 2023). However, the           Virginia Braun and Victoria Clarke. 2019. Reflecting
+computational resources and cost might be the po-          on reflexive thematic analysis. Qualitative Research
+tential limitations.                                       in Sport, Exercise and Health, 11(4):589–597.
+
+Data The dataset, Music Shuffle, was published           Tom Brown, Benjamin Mann, Nick Ryder, Melanie
+                                                           Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind
+in 2020, while the training data for GPT-3.5 extends       Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+until September 2021. Therefore, GPT might have            Askell, et al. 2020. Language models are few-shot
+encountered or been trained on a similar dataset           learners. Advances in Neural information Processing
+before. However, as most of the data are regulated         Systems, 33:1877–1901.
+by the IRB and the privacy concerns, it is challeng-     Cheng-Han Chiang and Hung-yi Lee. 2023. Can large
+ing to find a dataset containing the raw responses         language models be an alternative to human evalua-
+data and codebook for reuse. Therefore, we still de-       tions? arXiv preprint arXiv:2305.01937.
+cided to select this dataset for our study. The other    Aakanksha Chowdhery, Sharan Narang, Jacob Devlin,
+dataset, Password Manager, was published in 2022,          Maarten Bosma, Gaurav Mishra, Adam Roberts,
+which does not have the concern, and our proposed          Paul Barham, Hyung Won Chung, Charles Sutton,
+                                                           Sebastian Gehrmann, et al. 2022. Palm: Scaling
+method also performs well on this dataset.                 language modeling with pathways. arXiv preprint
+                                                           arXiv:2204.02311.
+Ethics Statement
+                                                         Jacob Cohen. 1960. A coefficient of agreement for
+The datasets we used in this work are all public for        nominal scales. Educational and psychological mea-
+reuse. All the data do not contain privacy-sensitive        surement, 20(1):37–46.
+information. Therefore, we used these two datasets       Jie Gao, Yuchen Guo, Gionnieve Lim, Tianqin Zhang,
+with OpenAI GPT3.5 model. However, the other                Zheng Zhang, Toby Jia-Jun Li, and Simon Tangi Per-
+                                                            rault. 2023. Collabcoder: A gpt-powered workflow
+   5
+       https://github.com/Hannibal046/Awesome-LLM           for collaborative qualitative analysis.
+
+                                                     9998
+Shivam Garg, Dimitris Tsipras, Percy S Liang, and Gre-      Peter Mayer, Collins W. Munyendo, Michelle L.
+  gory Valiant. 2022. What can transformers learn             Mazurek, and Adam J. Aviv. 2022. Why users
+  in-context? a case study of simple function classes.        (don’t) use password managers at a large educational
+  Advances in Neural Information Processing Systems,          institution. In 31st USENIX Security Symposium
+  35:30583–30598.                                             (USENIX Security 22), pages 1849–1866, Boston,
+                                                              MA. USENIX Association.
+Robert P Gauthier and James R Wallace. 2022. The
+  computational thematic analysis toolkit. Proceed-         Sewon Min, Xinxi Lyu, Ari Holtzman, Mikel Artetxe,
+  ings of the ACM on Human-Computer Interaction,              Mike Lewis, Hannaneh Hajishirzi, and Luke Zettle-
+  6(GROUP):1–15.                                              moyer. 2022. Rethinking the role of demonstrations:
+                                                              What makes in-context learning work? In EMNLP.
+Simret Araya Gebreegziabher, Zheng Zhang, Xiaohang          Oladapo Oyebode, Chinenye Ndulue, Ashfaq Adib, Di-
+  Tang, Yihao Meng, Elena L Glassman, and Toby Jia-           nesh Mulchandani, Banuchitra Suruliraj, Fidelia An-
+  Jun Li. 2023. Patat: Human-ai collaborative qualita-        ulika Orji, Christine T Chambers, Sandra Meier, and
+  tive coding with explainable interactive rule synthe-       Rita Orji. 2021. Health, psychosocial, and social
+  sis. In Proceedings of the 2023 CHI Conference on           issues emanating from the covid-19 pandemic based
+  Human Factors in Computing Systems, pages 1–19.             on social media comments: Text mining and thematic
+                                                              analysis approach. JMIR Med Inform, 9(4):e22734.
+Fabrizio Gilardi, Meysam Alizadeh, and Maël Kubli.
+  2023. Chatgpt outperforms crowd-workers for text-         Stefano De Paoli. 2023. Can large language mod-
+  annotation tasks.                                            els emulate an inductive thematic analysis of semi-
+                                                               structured interviews? an exploration and provoca-
+Timothy C Guetterman, Tammy Chang, Melissa De-                 tion on the limits of the approach and the model.
+  Jonckheere, Tanmay Basu, Elizabeth Scruggs, and
+  VG Vinod Vydiswaran. 2018. Augmenting qualita-            K Andrew R Richards and Michael A Hemphill. 2018.
+  tive text analysis with natural language processing:        A practical guide to collaborative qualitative data
+  methodological study. Journal of Medical Internet           analysis. Journal of Teaching in Physical education,
+  Research, 20(6):e231.                                       37(2):225–231.
+                                                            Tim Rietz, Peyman Toreini, and Alexander Maedche.
+Hamed Jelodar, Yongli Wang, Rita Orji, and Shucheng           2020. Cody: An interactive machine learning sys-
+  Huang. 2020. Deep sentiment classification and topic        tem for qualitative coding. In Adjunct Proceedings
+  discovery on novel coronavirus or covid-19 online           of the 33rd Annual ACM Symposium on User Inter-
+  discussions: Nlp using lstm recurrent neural network        face Software and Technology, UIST ’20 Adjunct,
+  approach. IEEE Journal of Biomedical and Health             page 90–92, New York, NY, USA. Association for
+  Informatics, 24(10):2733–2742.                              Computing Machinery.
+Jialun Aaron Jiang, Kandrea Wade, Casey Fiesler, and        Katie Rose M Sanfilippo, Neta Spiro, Miguel Molina-
+   Jed R Brubaker. 2021. Supporting serendipity: Op-          Solana, and Alexandra Lamont. 2020. Do the shuffle:
+   portunities and challenges for human-ai collaboration      Exploring reasons for music listening through shuf-
+   in qualitative analysis. Proceedings of the ACM on         fled play. PLoS One, 15(2):e0228457.
+   Human-Computer Interaction, 5(CSCW1):1–23.
+                                                            Teven Le Scao, Angela Fan, Christopher Akiki, El-
+Takeshi Kojima, Shixiang Shane Gu, Machel Reid, Yu-           lie Pavlick, Suzana Ilić, Daniel Hesslow, Roman
+  taka Matsuo, and Yusuke Iwasawa. 2022. Large lan-           Castagné, Alexandra Sasha Luccioni, François Yvon,
+  guage models are zero-shot reasoners. In ICML 2022          Matthias Gallé, et al. 2022. Bloom: A 176b-
+  Workshop on Knowledge Retrieval and Language                parameter open-access multilingual language model.
+  Models.                                                     arXiv preprint arXiv:2211.05100.
+                                                            Mirac Suzgun, Nathan Scales, Nathanael Schärli, Se-
+Klaus Krippendorff. 2011. Agreement and information           bastian Gehrmann, Yi Tay, Hyung Won Chung,
+  in the reliability of coding. Communication Methods         Aakanksha Chowdhery, Quoc V. Le, Ed H. Chi,
+  and Measures, 5(2):93–112.                                  Denny Zhou, and Jason Wei. 2022. Challenging
+                                                              big-bench tasks and whether chain-of-thought can
+William Leeson, Adam Resnick, Daniel Alexander, and           solve them.
+  John Rovers. 2019. Natural language processing
+  (nlp) in qualitative public health research: a proof of   Romal Thoppilan, Daniel De Freitas, Jamie Hall,
+  concept study. International Journal of Qualitative         Noam Shazeer, Apoorv Kulshreshtha, Heng-Tze
+  Methods, 18:1609406919887021.                               Cheng, Alicia Jin, Taylor Bos, Leslie Baker, Yu Du,
+                                                              YaGuang Li, Hongrae Lee, Huaixiu Steven Zheng,
+Percy Liang, Rishi Bommasani, Tony Lee, Dimitris              Amin Ghafouri, Marcelo Menegali, Yanping Huang,
+  Tsipras, Dilara Soylu, Michihiro Yasunaga, Yian             Maxim Krikun, Dmitry Lepikhin, James Qin, Dehao
+  Zhang, Deepak Narayanan, Yuhuai Wu, Ananya Ku-              Chen, Yuanzhong Xu, Zhifeng Chen, Adam Roberts,
+  mar, et al. 2022. Holistic evaluation of language           Maarten Bosma, Vincent Zhao, Yanqi Zhou, Chung-
+  models. arXiv preprint arXiv:2211.09110.                    Ching Chang, Igor Krivokon, Will Rusch, Marc
+
+                                                        9999
+    Pickett, Pranesh Srinivasan, Laichee Man, Kathleen    lect free-text responses (Wertz, 2011; Richards and
+    Meier-Hellstern, Meredith Ringel Morris, Tulsee       Hemphill, 2018), has been widely used to identify
+    Doshi, Renelito Delos Santos, Toju Duke, Johnny So-
+                                                          patterns of meanings and gain insight from partici-
+    raker, Ben Zevenbergen, Vinodkumar Prabhakaran,
+    Mark Diaz, Ben Hutchinson, Kristen Olson, Ale-        pants via analysis of qualitative data. One common
+    jandra Molina, Erin Hoffman-John, Josh Lee, Lora      method for analyzing qualitative data is thematic
+    Aroyo, Ravi Rajakumar, Alena Butryna, Matthew         analysis (Braun and Clarke, 2006, 2012, 2019). For
+    Lamm, Viktoriya Kuzmina, Joe Fenton, Aaron Co-        reliable coding, at least two human coders must
+    hen, Rachel Bernstein, Ray Kurzweil, Blaise Aguera-
+    Arcas, Claire Cui, Marian Croak, Ed Chi, and Quoc     1) become familiar with the data, 2) generate a
+    Le. 2022. Lamda: Language models for dialog appli-    codebook, and 3) iteratively code the data until an
+    cations.                                              acceptable inter-rater agreement level is reached.
+Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier     Thus TA is labor-intensive and time-consuming.
+  Martinet, Marie-Anne Lachaux, Timothée Lacroix,
+  Baptiste Rozière, Naman Goyal, Eric Hambro,             B   Model and Parameters
+  Faisal Azhar, et al. 2023. Llama: Open and effi-
+  cient foundation language models. arXiv preprint        We used OpenAI’s gpt-3.5-turbo-16k LLM as
+  arXiv:2302.13971.                                       GPT outperforms other LLMs on various NLP
+Mojtaba Vaismoradi, Jacqueline Jones, Hannele Tu-         tasks (Liang et al., 2022). Second, although
+ runen, and Sherrill Snelgrove. 2016. Theme devel-        GPT-4 is smarter than and superior to GPT-3.5,
+ opment in qualitative content analysis and thematic      and the input context size of GPT-4 (32,768 for
+ analysis.                                                gpt-4-32k) is longer than that for GPT-3.5 (16,384
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten          for gpt-3.5-turbo-16k), there are more con-
+   Bosma, brian ichter, Fei Xia, Ed H. Chi, Quoc V Le,    straints on GPT-4.6 For instance, the tokens per
+   and Denny Zhou. 2022. Chain of thought prompt-         minute (TPM) limit for GPT-4 is 40,000, whereas
+   ing elicits reasoning in large language models. In
+  Advances in Neural Information Processing Systems.      that for GPT-3.5 is 180,000 (gpt-3.5-turbo-16k).
+                                                          Also, as GPT-4 is still in beta, not everyone can ac-
+Frederick Joseph Wertz. 2011. Five ways of doing          cess it. Finally, GPT-3.5 remains a powerful LLM
+  qualitative analysis: Phenomenological psychology,
+  grounded theory, discourse analysis, narrative re-      compared to others, and it is cheaper.
+  search, and intuitive inquiry. Guilford Press.             We follow OpenAI’s default parameter settings
+                                                          except the temperature, which we set to 0 to ensure
+Zhibiao Wu and Martha Palmer. 1994. Verbs semantics
+  and lexical selection. In Proceedings of the 32nd       our study is reproducible. 0 indicates low output
+  Annual Meeting on Association for Computational         randomness: hence the model is less creative.
+  Linguistics, ACL ’94, page 133–138, USA. Associa-
+  tion for Computational Linguistics.                     C    Datasets
+Ziang Xiao, Xingdi Yuan, Q. Vera Liao, Rania Ab-          Music Shuffle (MS) This dataset facilitates re-
+  delghani, and Pierre-Yves Oudeyer. 2023. Support-
+  ing qualitative analysis with large language models:    search on salient aspects when people listen to mu-
+  Combining codebook with GPT-3 for deductive cod-        sic on their personal devices. The survey includes
+  ing. In 28th International Conference on Intelligent    four open-ended questions, and comprises 397 par-
+  User Interfaces. ACM.                                   ticipants. The authors combined all the responses
+Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak          of the four questions for TA.
+  Shafran, Karthik Narasimhan, and Yuan Cao. 2023.
+  ReAct: Synergizing reasoning and acting in language     Password Manager (PM) This is a record of
+  models. In International Conference on Learning         password manager usage and general password
+  Representations (ICLR).                                 habits at George Washington University (GWU).
+Caleb Ziems, William Held, Omar Shaikh, Jiaao Chen,       The survey includes eight open-ended questions,
+  Zhehao Zhang, and Diyi Yang. 2023. Can large lan-       comprising 277 participants from GWU’s faculty,
+  guage models transform computational social sci-        staff, and student body. In the original study, one
+  ence?
+                                                          coder coded all the responses and developed the
+                                                          codebook. Later, another coder coded 20% of the
+A     Qualitative Research and Thematic                   responses and calculated Cohen’s κ. Our selected
+      Analysis                                            survey questions has 280 responses (n = 280).
+Qualitative research, which uses techniques such as          6
+                                                               https://platform.openai.com/docs/guides/
+interviews and open-ended survey questions to col-        rate-limits/overview
+
+                                                     10000
+D   Prompts
+
+Prompt: Initial Codes Generation
+Task: {The goal of the study}
+
+Here are examples for how to generate the codes. For each
+example, you will see one response with the codes step by
+step.
+
+These responses are the answer of the question: {Survey
+Question}.
+
+Each generated code have the format: ’ quote ’ refers to
+/mentions ’ definition of the code ’. Therefore, we got a
+code: ’ Code ’.
+
+Exemplars: {4 to 8 exemplars}
+
+Prompt 1: The prompt for initial codes generation.
+
+
+Prompt: Code Grouping
+Here is the survey question: {Survey Question}
+
+{Initial Codes}
+
+Please organize the codes into themes in JSON format.
+Ensure that each code belongs to only one theme. Assign
+a name to each theme.
+
+If there are any duplicate codes, please merge them into a
+single entry.
+
+The expected output format should follow this structure:
+<Name of the theme>: <List of codes and their definition
+belonging to the theme>
+
+    Prompt 2: The prompt for grouping the codes.
+
+
+Prompt: Code Refinement
+Here is your version.
+{Themes proposed by the Machine Coder }
+Here is the revised version.
+{Revised Themes by the Human Coder }
+{Actions and Reasons by the Human Coder }
+
+What do you think?
+Please generate the revised themes.
+Please list the parts with which you agree and disagree and
+the reason in JSON.
+
+        Prompt 3: The prompt for discussion.
+
+
+
+
+                                                              10001
+

@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-j/expert-adjudication-v1.json",
+  "title": "Direction J locked expert adjudication",
+  "type": "object",
+  "required": [
+    "adjudication_version",
+    "item_id",
+    "panel_id",
+    "locked_individual_observation_ids",
+    "adjudicated_at_utc",
+    "operational_action",
+    "severity",
+    "serious_error_flags",
+    "error_locations",
+    "requested_expertise",
+    "rationale",
+    "locked_before_private_unblind"
+  ],
+  "properties": {
+    "adjudication_version": {
+      "const": "direction-j-expert-adjudication-v1"
+    },
+    "item_id": {
+      "type": "string",
+      "pattern": "^DJI_[a-f0-9]{16}$"
+    },
+    "panel_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "locked_individual_observation_ids": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "adjudicated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "operational_action": {
+      "enum": [
+        "accept",
+        "expert_review",
+        "plural_ambiguous"
+      ]
+    },
+    "severity": {
+      "enum": [
+        "none",
+        "minor",
+        "material",
+        "high_consequence"
+      ]
+    },
+    "serious_error_flags": {
+      "$ref": "https://warrantroute.local/schemas/direction-j/shared-rating-v1.json#/properties/serious_error_flags"
+    },
+    "error_locations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "flag",
+          "excerpt_ids",
+          "source_ids",
+          "output_location",
+          "explanation"
+        ],
+        "properties": {
+          "flag": {
+            "$ref": "https://warrantroute.local/schemas/direction-j/shared-rating-v1.json#/properties/serious_error_flags/items"
+          },
+          "excerpt_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "source_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "output_location": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "explanation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "requested_expertise": {
+      "enum": [
+        "qualitative_methods",
+        "domain",
+        "both",
+        "none"
+      ]
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "locked_before_private_unblind": {
+      "const": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operational_action": {
+            "const": "accept"
+          }
+        },
+        "required": [
+          "operational_action"
+        ]
+      },
+      "then": {
+        "properties": {
+          "severity": {
+            "enum": [
+              "none",
+              "minor"
+            ]
+          },
+          "requested_expertise": {
+            "const": "none"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operational_action": {
+            "const": "expert_review"
+          }
+        },
+        "required": [
+          "operational_action"
+        ]
+      },
+      "then": {
+        "properties": {
+          "severity": {
+            "enum": [
+              "material",
+              "high_consequence"
+            ]
+          },
+          "requested_expertise": {
+            "not": {
+              "const": "none"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operational_action": {
+            "const": "plural_ambiguous"
+          }
+        },
+        "required": [
+          "operational_action"
+        ]
+      },
+      "then": {
+        "properties": {
+          "requested_expertise": {
+            "not": {
+              "const": "none"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

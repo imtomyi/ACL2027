@@ -1,0 +1,663 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-j/paired-observation-v1.json",
+  "title": "Direction J paired evaluator observation",
+  "description": "One locked rating attempt for one blinded evaluator item by one registered human or LLM actor. Actor and execution metadata remain outside the shared rating object; terminal LLM failures remain observable without fabricating a rating.",
+  "type": "object",
+  "required": [
+    "observation_schema_version",
+    "observation_id",
+    "study_id",
+    "evaluation_role",
+    "item_id",
+    "packet_id",
+    "output_id",
+    "corpus_id",
+    "candidate_generation_run_id",
+    "candidate_generation_repetition",
+    "actor_id",
+    "actor_kind",
+    "rating_repetition",
+    "item_payload_sha256",
+    "interface_version",
+    "shared_rater_guide_version",
+    "shared_rater_guide_sha256",
+    "semantic_input_sha256",
+    "prompt_or_instrument_version",
+    "prompt_or_instrument_sha256",
+    "started_at_utc",
+    "completed_at_utc",
+    "review_seconds",
+    "observation_status",
+    "rating",
+    "blinding",
+    "execution"
+  ],
+  "properties": {
+    "observation_schema_version": {"const": "direction-j-paired-observation-v1"},
+    "observation_id": {"type": "string", "minLength": 1},
+    "study_id": {"type": "string", "minLength": 1},
+    "evaluation_role": {
+      "enum": ["synthetic_qualification", "development", "in_domain_audit", "cross_domain_confirmatory"]
+    },
+    "item_id": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"},
+    "packet_id": {"type": "string", "minLength": 1},
+    "output_id": {"type": "string", "minLength": 1},
+    "corpus_id": {"type": "string", "minLength": 1},
+    "candidate_generation_run_id": {"type": "string", "minLength": 1},
+    "candidate_generation_repetition": {"type": "integer", "minimum": 1},
+    "actor_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Foreign key into the separately frozen actor registry."
+    },
+    "actor_kind": {
+      "enum": ["human", "llm"],
+      "description": "Stored in the observation envelope, never in the actor-neutral rating."
+    },
+    "rating_repetition": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Independent evaluator repetition; distinct from candidate_generation_repetition."
+    },
+    "item_payload_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Hash of the exact canonical evaluator_item bytes. Paired records must match on this value."
+    },
+    "interface_version": {"const": "direction-j-shared-interface-v1"},
+    "shared_rater_guide_version": {"const": "direction-j-rater-guide-v1"},
+    "shared_rater_guide_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 of the complete shared_rater_guide_v1.md UTF-8 file bytes, with no extraction or newline normalization."
+    },
+    "semantic_input_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Hash of the actor-neutral semantic-input manifest binding the interface version, complete guide bytes, and canonical evaluator-item bytes."
+    },
+    "prompt_or_instrument_version": {"type": "string", "minLength": 1},
+    "prompt_or_instrument_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Hash of the exact complete prompt-source or human-instrument artifact bytes."
+    },
+    "started_at_utc": {"type": "string", "format": "date-time"},
+    "completed_at_utc": {"type": "string", "format": "date-time"},
+    "review_seconds": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Elapsed item-review time under the frozen timing rule, including allowed LLM retries."
+    },
+    "observation_status": {
+      "enum": ["valid", "invalid_output", "timeout", "provider_error", "content_filtered"],
+      "description": "Terminal state. Only valid observations contain a shared rating; failures are operational escalations and are never imputed."
+    },
+    "rating": {
+      "oneOf": [
+        {"$ref": "https://warrantroute.local/schemas/direction-j/shared-rating-v1.json"},
+        {"type": "null"}
+      ]
+    },
+    "blinding": {
+      "type": "object",
+      "required": [
+        "blind_id",
+        "candidate_identity_hidden",
+        "condition_hidden",
+        "other_ratings_hidden",
+        "unblinded_at_utc"
+      ],
+      "properties": {
+        "blind_id": {"type": "string", "minLength": 1},
+        "candidate_identity_hidden": {"const": true},
+        "condition_hidden": {"const": true},
+        "other_ratings_hidden": {"const": true},
+        "unblinded_at_utc": {"type": ["string", "null"], "format": "date-time"}
+      },
+      "additionalProperties": false
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "retry_count",
+        "attempts",
+        "token_usage_available",
+        "input_tokens",
+        "output_tokens",
+        "cached_input_tokens",
+        "reasoning_tokens_available",
+        "reasoning_tokens",
+        "cost_available",
+        "cost_amount",
+        "cost_currency",
+        "pricing_snapshot_id"
+      ],
+      "properties": {
+        "retry_count": {"type": "integer", "minimum": 0, "maximum": 1},
+        "attempts": {
+          "type": "array",
+          "maxItems": 2,
+          "prefixItems": [
+            {
+              "allOf": [{"$ref": "#/$defs/executionAttempt"}],
+              "properties": {
+                "attempt_index": {"const": 1},
+                "attempt_kind": {"const": "initial"}
+              }
+            },
+            {
+              "allOf": [{"$ref": "#/$defs/executionAttempt"}],
+              "properties": {
+                "attempt_index": {"const": 2},
+                "attempt_kind": {"const": "format_only_repair"}
+              }
+            }
+          ],
+          "items": false,
+          "description": "Per-call audit records. Raw artifacts remain in restricted storage and are referenced by opaque IDs and exact hashes. Human observations use an empty array."
+        },
+        "token_usage_available": {"type": "boolean"},
+        "input_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "output_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "cached_input_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "reasoning_tokens_available": {"type": "boolean"},
+        "reasoning_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "cost_available": {"type": "boolean"},
+        "cost_amount": {"type": ["number", "null"], "minimum": 0},
+        "cost_currency": {"type": ["string", "null"], "pattern": "^[A-Z]{3}$"},
+        "pricing_snapshot_id": {"type": ["string", "null"], "minLength": 1}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"token_usage_available": {"const": true}},
+            "required": ["token_usage_available"]
+          },
+          "then": {
+            "properties": {
+              "input_tokens": {"type": "integer"},
+              "output_tokens": {"type": "integer"}
+            }
+          },
+          "else": {
+            "properties": {
+              "input_tokens": {"type": "null"},
+              "output_tokens": {"type": "null"},
+              "cached_input_tokens": {"type": "null"},
+              "reasoning_tokens_available": {"const": false},
+              "reasoning_tokens": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"reasoning_tokens_available": {"const": true}},
+            "required": ["reasoning_tokens_available"]
+          },
+          "then": {
+            "properties": {
+              "token_usage_available": {"const": true},
+              "reasoning_tokens": {"type": "integer"}
+            }
+          },
+          "else": {"properties": {"reasoning_tokens": {"type": "null"}}}
+        },
+        {
+          "if": {
+            "properties": {"cost_available": {"const": true}},
+            "required": ["cost_available"]
+          },
+          "then": {
+            "properties": {
+              "cost_amount": {"type": "number"},
+              "cost_currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+              "pricing_snapshot_id": {"type": "string", "minLength": 1}
+            }
+          },
+          "else": {
+            "properties": {
+              "cost_amount": {"type": "null"},
+              "cost_currency": {"type": "null"},
+              "pricing_snapshot_id": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"retry_count": {"const": 1}},
+            "required": ["retry_count"]
+          },
+          "then": {"properties": {"attempts": {"minItems": 2, "maxItems": 2}}},
+          "else": {"properties": {"attempts": {"maxItems": 1}}}
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "executionAttempt": {
+      "type": "object",
+      "required": [
+        "attempt_index",
+        "attempt_kind",
+        "started_at_utc",
+        "completed_at_utc",
+        "attempt_status",
+        "raw_request_artifact_id",
+        "raw_request_sha256",
+        "raw_response_artifact_id",
+        "raw_response_sha256",
+        "provider_request_id",
+        "provider_response_id",
+        "provider_returned_model_id",
+        "provider_returned_model_version",
+        "provider_region",
+        "finish_reason",
+        "filter_status",
+        "schema_error_summary",
+        "token_usage_available",
+        "input_tokens",
+        "output_tokens",
+        "cached_input_tokens",
+        "reasoning_tokens_available",
+        "reasoning_tokens"
+      ],
+      "properties": {
+        "attempt_index": {"type": "integer", "minimum": 1, "maximum": 2},
+        "attempt_kind": {"enum": ["initial", "format_only_repair"]},
+        "started_at_utc": {"type": "string", "format": "date-time"},
+        "completed_at_utc": {"type": "string", "format": "date-time"},
+        "attempt_status": {
+          "enum": [
+            "schema_valid_output",
+            "invalid_json",
+            "invalid_schema",
+            "timeout",
+            "provider_error",
+            "content_filtered"
+          ]
+        },
+        "raw_request_artifact_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque identifier of the exact raw request retained in restricted run storage."
+        },
+        "raw_request_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "raw_response_artifact_id": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "description": "Opaque restricted-storage identifier, or null only when no response body was received."
+        },
+        "raw_response_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+        "provider_request_id": {"type": ["string", "null"], "minLength": 1},
+        "provider_response_id": {"type": ["string", "null"], "minLength": 1},
+        "provider_returned_model_id": {"type": ["string", "null"], "minLength": 1},
+        "provider_returned_model_version": {"type": ["string", "null"], "minLength": 1},
+        "provider_region": {"type": ["string", "null"], "minLength": 1},
+        "finish_reason": {"type": ["string", "null"], "minLength": 1},
+        "filter_status": {
+          "enum": ["not_reported", "not_filtered", "partially_filtered", "filtered"]
+        },
+        "schema_error_summary": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 2000,
+          "pattern": "\\S"
+        },
+        "token_usage_available": {"type": "boolean"},
+        "input_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "output_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "cached_input_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "reasoning_tokens_available": {"type": "boolean"},
+        "reasoning_tokens": {"type": ["integer", "null"], "minimum": 0}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"token_usage_available": {"const": true}},
+            "required": ["token_usage_available"]
+          },
+          "then": {
+            "properties": {
+              "input_tokens": {"type": "integer"},
+              "output_tokens": {"type": "integer"}
+            }
+          },
+          "else": {
+            "properties": {
+              "input_tokens": {"type": "null"},
+              "output_tokens": {"type": "null"},
+              "cached_input_tokens": {"type": "null"},
+              "reasoning_tokens_available": {"const": false},
+              "reasoning_tokens": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"reasoning_tokens_available": {"const": true}},
+            "required": ["reasoning_tokens_available"]
+          },
+          "then": {
+            "properties": {
+              "token_usage_available": {"const": true},
+              "reasoning_tokens": {"type": "integer"}
+            }
+          },
+          "else": {"properties": {"reasoning_tokens": {"type": "null"}}}
+        },
+        {
+          "if": {
+            "properties": {"raw_response_artifact_id": {"type": "string"}},
+            "required": ["raw_response_artifact_id"]
+          },
+          "then": {"properties": {"raw_response_sha256": {"type": "string"}}},
+          "else": {"properties": {"raw_response_sha256": {"type": "null"}}}
+        },
+        {
+          "if": {
+            "properties": {
+              "attempt_status": {
+                "enum": ["schema_valid_output", "invalid_json", "invalid_schema", "content_filtered"]
+              }
+            },
+            "required": ["attempt_status"]
+          },
+          "then": {
+            "properties": {
+              "raw_response_artifact_id": {"type": "string"},
+              "raw_response_sha256": {"type": "string"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"attempt_status": {"enum": ["invalid_json", "invalid_schema"]}},
+            "required": ["attempt_status"]
+          },
+          "then": {
+            "properties": {
+              "schema_error_summary": {"type": "string", "minLength": 1, "pattern": "\\S"}
+            }
+          },
+          "else": {"properties": {"schema_error_summary": {"type": "null"}}}
+        },
+        {
+          "if": {
+            "properties": {"attempt_status": {"const": "content_filtered"}},
+            "required": ["attempt_status"]
+          },
+          "then": {
+            "properties": {"filter_status": {"enum": ["partially_filtered", "filtered"]}}
+          },
+          "else": {
+            "properties": {"filter_status": {"enum": ["not_reported", "not_filtered"]}}
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"observation_status": {"const": "valid"}},
+        "required": ["observation_status"]
+      },
+      "then": {
+        "properties": {
+          "rating": {"$ref": "https://warrantroute.local/schemas/direction-j/shared-rating-v1.json"}
+        }
+      },
+      "else": {"properties": {"rating": {"type": "null"}}}
+    },
+    {
+      "if": {
+        "properties": {"actor_kind": {"const": "human"}},
+        "required": ["actor_kind"]
+      },
+      "then": {
+        "properties": {
+          "observation_status": {"const": "valid"},
+          "execution": {
+            "properties": {
+              "retry_count": {"const": 0},
+              "attempts": {"maxItems": 0}
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "execution": {"properties": {"attempts": {"minItems": 1}}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {"retry_count": {"const": 1}},
+            "required": ["retry_count"]
+          }
+        },
+        "required": ["execution"]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "attempts": {
+                "prefixItems": [
+                  {
+                    "properties": {
+                      "attempt_status": {"enum": ["invalid_json", "invalid_schema"]}
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"observation_status": {"const": "valid"}},
+        "required": ["observation_status"]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "allOf": [
+              {
+                "if": {
+                  "properties": {"retry_count": {"const": 1}},
+                  "required": ["retry_count"]
+                },
+                "then": {
+                  "properties": {
+                    "attempts": {
+                      "prefixItems": [
+                        {},
+                        {"properties": {"attempt_status": {"const": "schema_valid_output"}}}
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "attempts": {
+                      "prefixItems": [
+                        {"properties": {"attempt_status": {"const": "schema_valid_output"}}}
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"observation_status": {"const": "invalid_output"}},
+        "required": ["observation_status"]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "allOf": [
+              {
+                "if": {
+                  "properties": {"retry_count": {"const": 1}},
+                  "required": ["retry_count"]
+                },
+                "then": {
+                  "properties": {
+                    "attempts": {
+                      "prefixItems": [
+                        {},
+                        {"properties": {"attempt_status": {"enum": ["invalid_json", "invalid_schema"]}}}
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "attempts": {
+                      "prefixItems": [
+                        {"properties": {"attempt_status": {"enum": ["invalid_json", "invalid_schema"]}}}
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"observation_status": {"const": "timeout"}},
+        "required": ["observation_status"]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "allOf": [
+              {
+                "if": {
+                  "properties": {"retry_count": {"const": 1}},
+                  "required": ["retry_count"]
+                },
+                "then": {
+                  "properties": {
+                    "attempts": {
+                      "prefixItems": [
+                        {},
+                        {"properties": {"attempt_status": {"const": "timeout"}}}
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "attempts": {
+                      "prefixItems": [
+                        {"properties": {"attempt_status": {"const": "timeout"}}}
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"observation_status": {"const": "provider_error"}},
+        "required": ["observation_status"]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "allOf": [
+              {
+                "if": {
+                  "properties": {"retry_count": {"const": 1}},
+                  "required": ["retry_count"]
+                },
+                "then": {
+                  "properties": {
+                    "attempts": {
+                      "prefixItems": [
+                        {},
+                        {"properties": {"attempt_status": {"const": "provider_error"}}}
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "attempts": {
+                      "prefixItems": [
+                        {"properties": {"attempt_status": {"const": "provider_error"}}}
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"observation_status": {"const": "content_filtered"}},
+        "required": ["observation_status"]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "allOf": [
+              {
+                "if": {
+                  "properties": {"retry_count": {"const": 1}},
+                  "required": ["retry_count"]
+                },
+                "then": {
+                  "properties": {
+                    "attempts": {
+                      "prefixItems": [
+                        {},
+                        {"properties": {"attempt_status": {"const": "content_filtered"}}}
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "attempts": {
+                      "prefixItems": [
+                        {"properties": {"attempt_status": {"const": "content_filtered"}}}
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

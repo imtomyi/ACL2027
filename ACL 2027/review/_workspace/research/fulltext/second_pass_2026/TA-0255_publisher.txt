@@ -1,0 +1,1301 @@
+JMIR MENTAL HEALTH                                                                                                                           Cortal et al
+
+Original Paper
+
+Interpretable Topic Modeling of Spontaneous Speech in
+Depression Using Large Language Models: Multilingual Four-
+Cohort Study
+
+Gustave Cortal1, PhD; Sélim Benjamin Guessoum1,2, MD, PhD; Xuan-Nga Cao1, PhD; Santiago de Leon-Marti-
+nez3,4, PhD; Enrique Baca-García5,6,7,8,9,10,11, MD, PhD; Rachid Riad1, PhD
+1
+  Callyope, Paris, France
+2
+  Université Paris-Saclay, Centre de recherche en Epidémiologie et Santé des Populations, Villejuif, France
+3
+  Brno University of Technology, Brno, Czech Republic
+4
+  Kempelen Institute of Intelligent Technologies, Bratislava, Slovakia
+5
+  Department of Psychiatry, Hospital Universitario Fundación Jiménez Díaz, Madrid, Madrid, Spain
+6
+  Department of Psychiatry, University Hospital Rey Juan Carlos, Mostoles, Spain
+7
+  Department of Psychiatry, Hospital Universitario General de Villalba, Madrid, Madrid, Spain
+8
+  Department of Psychiatry, University Hospital Infanta Elena, Valdemoro, Spain
+9
+  Department of Psychology, Catholic University of the Maule, Talca, Maule Region, Chile
+10
+   Department of Psychiatry, Universidad Autónoma de Madrid, Madrid, Madrid, Spain
+11
+   Centro de Investigación Biomédica en Red de Salud Mental, Madrid, Madrid, Spain
+
+Corresponding Author:
+Rachid Riad, PhD
+Callyope
+Pépinière d'entreprises Paris Santé Cochin, 29 Rue du Faubourg Saint-Jacques
+Paris 75014
+France
+Phone: 33 0666522141
+Email: rachid@callyope.com
+
+
+Abstract
+Background: Depression is underdiagnosed worldwide, and clinicians rely on interpreting patients’ subjective speech.
+Qualitative analysis of patient language does not scale, and existing computational approaches describe topics with keyword
+lists that miss clinical nuance.
+Objective: We evaluated whether clustering spontaneous speech transcripts with large language models (LLMs) yields
+clusters whose membership is associated with validated clinical scales across multilingual cohorts, and whether LLMs
+can render those clusters human-readable through fine-grained natural-language descriptions. We further examined which
+interview questions yield clusters most strongly associated with clinical status, and how sociodemographic factors relate to
+cluster membership.
+Methods: We analyzed spontaneous speech transcripts from 4 independent cohorts: a French general population sample
+(1338 participants) and 3 clinical samples in Italian (n=116), Chinese (n=52), and Spanish (n=90). Responses to open-ended
+questions were transcribed, embedded with a multilingual language model, dimensionally reduced, and grouped by density-
+based clustering. An LLM then summarized each cluster into a natural-language description. Cluster membership was tested
+for association with validated clinical scales (Patient Health Questionnaire-9, Beck Depression Inventory, Generalized Anxiety
+Disorder 7-item scale, Athens Insomnia Scale, Multidimensional Fatigue Inventory, and Columbia Suicide Severity Rating
+Scale), clinician-assigned depression diagnoses, and sociodemographic factors (age, education, and sex).
+Results: Unsupervised clustering yielded clusters significantly associated with clinical scores in the French, Italian, and
+Chinese cohorts, with an exploratory association in the smaller Spanish cohort. In the French general population, Patient
+Health Questionnaire-9 depression scores differed across clusters (η²=0.19, 95% CI 0.17 to 0.24, P<.001), as did anxiety
+(Generalized Anxiety Disorder 7-item scale), insomnia (Athens Insomnia Scale), and fatigue (Multidimensional Fatigue
+Inventory) scores (η²=0.14 to 0.16, all P<.001). In the clinical cohorts, cluster membership was associated with clinician-diag-
+nosed depression in the Italian sample (Cramér V=0.74, 0.65 to 0.85, P<.001) and with major depressive disorder diagnosis
+
+https://mental.jmir.org/2026/1/e99185                                                                         JMIR Ment Health 2026 | vol. 13 | e99185 | p. 1
+                                                                                                                    (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                             Cortal et al
+
+in the Chinese sample (V=0.55, 0.36 to 0.78, P=.001). A suicide-risk association in the smaller Spanish sample (Columbia
+Suicide Severity Rating Scale) was unstable and is reported as exploratory (mean V=0.27). The feelings-and-sleep question
+yielded the strongest clinical associations, whereas questions about past or future events yielded small effect sizes (η²≤0.05).
+Age (η²=0.27, 0.24 to 0.32) and sex (Cramér V=0.22, 0.21 to 0.30) were each associated with cluster membership for the
+“describe your last 24 hours” question (both P<.001).
+Conclusions: Fine-grained LLM-based topic modeling automates the labor-intensive early stages of thematic analysis, in
+minutes of compute, and recovers core psychiatric constructs across languages. It produces human-readable cluster descrip-
+tions. Certain interview questions yield clusters more strongly associated with clinical status than others, and sociodemo-
+graphic factors shape topic content independently of clinical status, an often-overlooked confound. As the cohorts differ,
+cross-cohort observations are preliminary without generalizability. Screening, treatment-planning, and decision-support uses
+remain to be established prospectively.
+
+JMIR Ment Health 2026;13:e99185; doi: 10.2196/99185
+
+Keywords: depression; thematic analysis; speech analysis; large language models; topic modeling; natural language process-
+ing; mental health; computational psychiatry
+
+                                                                  clinical practice. It helps clinicians understand patients’
+Introduction                                                      narratives about themselves, their lives, and their illnesses,
+                                                                  and it forms the basis of psychotherapy. However, produc-
+Depressive disorders are among the major challenges in
+                                                                  ing reliable data on this topic is highly resource-intensive,
+psychiatry. These highly prevalent conditions are estimated
+                                                                  as shown in a prior study [14]. This study required exten-
+to affect 30% to 40% of individuals during their life, across
+                                                                  sive collaborative workshops and global expert panels to
+genders and regions worldwide [1]. Depression is a leading
+                                                                  identify how depression manifests through specific linguis-
+contributor to global disability and affects functioning and
+                                                                  tic themes such as altered temporal experience, embodied
+mortality. Depression remains underdiagnosed and undertrea-
+                                                                  distress, and existential emptiness. There is also a prognostic
+ted worldwide [2].
+                                                                  value when these themes are extracted: how patients narrate
+    Psychiatrists face distinct, complex assessment challenges    autobiographical memories predicts depression trajectory,
+in comparison to other medical specialties. Most medical          with overgeneral vs specific memory styles serving as
+fields rely on complementary investigations and paraclini-        age-dependent markers [15]. Natural language processing
+cal tests to assess the objective status of patients. Psychia-    has been used to analyze such narrative features automat-
+trists’ evaluation depends on interpreting patients’ subjective   ically, classifying emotions in personal narratives from
+experiences in their own words, then mapping these diverse        their underlying psychological components [16] and relating
+narratives onto standardized DSM (Diagnostic and Statistical      stylistic patterns to psychological states [17]. Yet, clinicians
+Manual of Mental Disorders) criteria [3]. This “transforma-       struggle to analyze and interpret the narratives of patients
+tion” task, from individual expressions of suffering to fixed     from minority groups, particularly when cultural differences
+sets of symptoms and diagnoses, yields variable and modest        shape expressions of distress [18]. While language analysis
+interrater reliability [4,5]. Moreover, current standardized      is routine in clinical psychiatry, producing reliable scientific
+tools in psychiatry consist of rating scales (self-reported and   data, generating fine-grained annotations, and conducting
+clinician-administered) that rely on pre-established constructs   such analyses on large populations remain challenging.
+[6,7]. Even when useful, they do not capture the full
+                                                                     Moreover, thematic analysis is particularly relevant in
+complexity of the lived experience of affective disorders [8].
+                                                                  psychiatry because it resonates with the clinical focus
+   This modest interrater reliability is not due to inade-        on how people construct meaning from their experien-
+quate clinical practice, but rather the inherent complex-         ces. As a qualitative method, thematic analysis identifies
+ity of psychiatric phenomena and the current limitations          recurrent patterns in textual data and offers a structured
+of validated assessment tools. In 2021, while cardiology          approach to interpreting narratives through iterative annota-
+has over 700 US Food and Drug Administration–approved             tion and inductive refinement of higher-order themes [19].
+devices and neurology over 300 devices to support clinical        It can reveal phenomenological nuances during psychiat-
+decision-making, psychiatry has fewer than 20 devices [9],        ric disorders: how individuals experience emotions, self,
+and no AI-powered devices have been adopted despite AI’s          embodiment, and social relatedness. The method has been
+integration across other specialties [10]. This technology gap    used across diverse populations and data sources. How-
+is particularly surprising given that patient language, the       ever, when conducted manually, it is labor-intensive, often
+primary data source in psychiatric consultations, is rarely       requiring trained coders or panels of expert clinicians to
+analyzed in a systematic way despite extensive evidence           produce clinically validated themes [14]. It is also sensitive to
+linking linguistic patterns to mood disorder symptomatology       clinician bias and typically constrained to small, monolingual
+[11-13].                                                          corpora, limiting its scalability and generalizability [19].
+   Language analysis and interpretation, or the qualitative         Computational approaches to thematic analysis (com-
+analysis of patients’ speech content, is a central part of        monly named topic modeling in natural language processing)
+
+https://mental.jmir.org/2026/1/e99185                                                           JMIR Ment Health 2026 | vol. 13 | e99185 | p. 2
+                                                                                                      (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                             Cortal et al
+
+represent documents in a shared vector space and dis-              factors. We then quantified which questions best separate
+cover structure via clustering or probabilistic topic models.      clinically relevant clusters, and we measured confounding by
+Canonical methods (eg, latent Dirichlet allocation) treat          age, education, and sex, an aspect often overlooked in topic
+documents as mixtures of latent topics [20]. Neural var-           modeling despite strong demographic effects on language use.
+iants such as BERTopic embed textual data with transformer-
+                                                                      Across these cohorts, cluster membership was associated
+based language models, reduce dimensionality, cluster, and
+                                                                   with validated clinical scales, robustly in 3 cohorts and as
+summarize each cluster with keywords [21]. More recently,
+                                                                   an exploratory finding in the smaller Spanish cohort, and the
+prompt-based frameworks delegate labeling to large language
+                                                                   language-model descriptions render the clusters readable.
+models (LLMs), yielding more specific, interpretable topic
+descriptions [22,23]. In mental health, topic modeling has
+been applied to peer-support forums [24], pandemic-era shifts      Methods
+in Reddit help-seeking [25], depression forums [26], and
+question-and-answer platforms [27]. Most relevant to our           Overview
+setting, it has been applied to free-response clinical speech,
+identifying depression-related topics in smartphone-collected      In this study, we automatically clustered mental health
+recordings transcribed by automatic speech recognition [28].       transcripts from 4 distinct cohorts. Then, we generated
+                                                                   descriptions of clusters to find fine-grained topics. Finally,
+    Computational approaches offer 3 gains: reproducible           we performed statistical analysis to find clinical differences
+annotation that limits researcher bias, substantial time savings   between the clusters. Our automatic pipeline used language
+over labor-intensive manual annotation, and the capacity to        models for both clustering transcripts and generating cluster
+analyze larger datasets. However, many automated analy-            descriptions.
+ses remain shallow, relying on surface-level lexical statis-
+tics (eg, keyword counts and part-of-speech frequencies) to        Study Design
+describe clusters [29], which can miss context, pragmatics
+                                                                   This is a secondary cross-sectional analysis of spontane-
+(eg, sarcasm), and cultural idioms. Prior studies have also
+                                                                   ous speech transcripts from 4 independent observational
+rarely addressed potential confounding factors. Language
+                                                                   cohorts: a large French general population sample (1809
+use may vary with demographics such as age and gender,
+                                                                   assessments from 1338 participants) and 3 clinical popu-
+independently of mental health status [30-32]. For exam-
+                                                                   lations collected in Italian (n=116), Chinese (n=52), and
+ple, adolescents with depression tend to discuss friends and
+                                                                   Spanish (n=90) languages. The data comprised transcrip-
+school, whereas adults with depression might focus more
+                                                                   tion of participants’ spontaneous speech productions in
+on work and financial stressors [33]. Most topic modeling
+                                                                   response to open-ended questions and validated self- or
+studies for mental health focus on a single language and data
+                                                                   clinician-administered psychiatric rating scales. In Table 1,
+source (eg, one social media or one country’s clinical sample)
+                                                                   we summarized statistics of demographics and clinical scores
+[29,34-36]. Findings from a single cohort may not translate to
+                                                                   of the 4 cohorts. Categorical variables were compared with
+other populations [37]. As a result, it remains unclear whether
+                                                                   the Pearson chi-square test, and continuous variables were
+the topics identified in one group (eg, English-speaking social
+                                                                   compared with the Kruskal-Wallis H test based on control
+media users) also appear in other cultural or linguistic groups.
+                                                                   and noncontrol groups.
+   Fine-grained descriptions of clusters (eg, examination-rela-
+                                                                       Throughout, the unit of analysis for clustering is the
+ted rumination and job-loss-related hopelessness) capture
+                                                                   individual transcript (1 participant may contribute several
+clinically relevant distinctions that broad, keyword-based
+                                                                   transcripts, 1 per interview question). In Table 1, the 3
+descriptions (eg, sleep, work, and family) collapse together.
+                                                                   clinical cohorts are summarized at the participant level
+We generated cluster descriptions using language models
+                                                                   (Italian n=116, Chinese n=52, and Spanish n=90), whereas
+as they provide natural-language, human-readable labels,
+                                                                   the French general population is summarized at the assess-
+overcoming the interpretability limits of keyword-based topic
+                                                                   ment level (1809 assessments from 1338 participants),
+models while retaining scalability for large corpora.
+                                                                   reflecting how each cohort was collected. The French
+   We developed a multilingual pipeline that (1) clusters          demographic and clinical counts in the table are therefore per
+spontaneous speech transcripts from 4 cohorts (general             assessment. The number of transcripts analyzed per cohort
+population and 3 clinical samples in French, Italian, Chinese,     and question, after removing duplicates and transcripts shorter
+and Spanish), (2) generates fine-grained natural-language          than 20 characters, is reported in Multimedia Appendix 1,
+descriptions for each cluster, and (3) tests cluster membership    which also reports the participant, recording, and transcript
+for association with clinical scores and sociodemographic          counts for each cohort.
+
+
+
+
+https://mental.jmir.org/2026/1/e99185                                                           JMIR Ment Health 2026 | vol. 13 | e99185 | p. 3
+                                                                                                      (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                                                Cortal et al
+
+Table 1. Demographics and clinical scores of the 4 cohorts. Significance indicators test whether each variable differs between clinical (depressed/
+suicidal) and control groups within each cohort: P<.001 indicates a significant difference. For clinical scores (PHQ-9a), P<.001 reflects the expected
+clinical difference between groups. In the Chinese cohort, a PHQ-9 score above 10 was part of the patient inclusion criteria, so this difference partly
+reflects that inclusion criterion. Depression diagnosis is a clinician-assigned clinical diagnosis (see Methods for the criteria used in each cohort). A
+variable that defines a cohort’s clinical grouping, the PHQ-9 in the French cohort, the depression diagnosis in the Italian and Chinese cohorts, and the
+C-SSRSb class in the Spanish cohort, is not tested against that grouping. Tests: Pearson chi-square (categorical) and Kruskal-Wallis H (continuous).
+                                          General population (n=1809 assessments) Androids (n=116)          MODMAc (n=52)               VOCESd (n=90)
+ Demographics
+    Language                              French                                       Italian              Chinese                     Spanish
+    Age                                   P<.001                                       n.s.e                n.s.                        P<.001
+       Mean (SD)                          37.8 (18.2)                                  37.4 (12.0)          31.3 (9.2)                  38.6 (14.9)
+       Range                              18‐91                                        19‐71                18‐52                       21‐76
+    Sex, n (%)                            n.s.                                         n.s.                 n.s.                        n.s.
+       Female                             1187 (66.2)                                  84 (72.4)            16 (31)                     39 (43)
+       Male                               595 (33.2)                                   32 (27.6)            36 (69)                     48 (53)
+       Other                              11 (0.6)                                     0 (0.0)              0 (0)                       3 (3)
+    Education, n (%)                      n.s.                                         n.s.                 n.s.                        N/Af
+       No diploma                         52 (2.9)                                     11 (9.5)             7 (13)                      N/A
+       Secondary                          291 (16.2)                                   37 (31.9)            8 (15)                      N/A
+       Higher short                       213 (11.9)                                   52 (44.8)            0 (0)                       N/A
+       Higher long                        1236 (69.0)                                  16 (13.8)            37 (71)                     N/A
+ Clinical evaluation
+    C-SSRS                                N/A                                          N/A                  N/A                         N/A
+       Suicidal risk, n (%)               N/A                                          N/A                  N/A                         60 (67)
+       No suicidal risk, n (%)            N/A                                          N/A                  N/A                         30 (33)
+    Depression diagnosis                  N/A                                          N/A                  N/A                         N/A
+       Depression, n (%)                  N/A                                          64 (55.2)            23 (44)                     N/A
+       No depression, n (%)               N/A                                          52 (44.8)            29 (56)                     N/A
+    PHQ-9                                 N/A                                          N/A                  P<.001                      P<.001
+       Mean (SD)                          5.2 (4.6)                                    N/A                  9.4 (8.5)                   10.5 (6.8)
+       Range                              0‐27                                         N/A                  0‐25                        0‐26
+       ≥10, n (%)                         290 (16.0)                                   N/A                  N/A                         N/A
+aPHQ-9: Patient Health Questionnaire-9.
+bC-SSRS: Columbia Suicide Severity Rating Scale.
+cMODMA: multi-modal open dataset for mental-disorder analysis.
+dVOCES: Spanish clinical cohort for suicide-risk research.
+en.s.: indicates P≥.05 (no significant difference between groups).
+fN/A: not applicable.
+
+
+
+Recruitment                                                                  event or situation you think might happen in the future (wk,
+                                                                             mo, or y),” and “describe how you are feeling at the moment
+French General Population Cohort                                             and how your sleep has been lately.”
+The French general population cohort contained 1809                             Self-administered questionnaires assessed participants’
+assessment visits from 1338 French-speaking participants                     mental health status, including depressive symptoms using the
+(1161 contributed a single visit and the remainder 2 to                      Patient Health Questionnaire-9 (PHQ-9) [38] and the Beck
+6 visits, with 1 participant assessed 16 times). The unit                    Depression Inventory (BDI) [39]; anxiety using the General-
+of analysis is the per-question transcript. As some par-                     ized Anxiety Disorder 7-item scale (GAD-7); insomnia using
+ticipants contributed repeated visits, a one-visit-per-partici-              the Athens Insomnia Scale (AIS) [40]; and fatigue using the
+pant sensitivity analysis (Multimedia Appendix 2) leaves                     Multidimensional Fatigue Inventory (MFI) [41]. Using the
+the associations between cluster membership and clinical                     PHQ-9 score, we obtained a control group (PHQ-9 ≤9) and
+scores essentially unchanged. They responded to open-ended                   a probable-depression group (PHQ-9 ≥10). PHQ-9 was at or
+questions, including the following: “describe your last 24                   above 10, the conventional threshold for probable depression,
+hours,” “describe a negative event that happened to you in the               in 290 of 1809 (16%; 221 of 1338, 16.5% participants at first
+past,” “describe a positive event that happened to you in the                visit) assessments.
+past,” “describe a negative event or situation you think might
+happen in the future (wk, mo, or y),” “describe a positive
+
+https://mental.jmir.org/2026/1/e99185                                                                              JMIR Ment Health 2026 | vol. 13 | e99185 | p. 4
+                                                                                                                         (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                                           Cortal et al
+
+   Participants completed a series of speech tasks and                      Chinese Clinical Population (MODMA) Cohort
+self-administered questionnaires through a mobile research
+app specifically designed for clinical studies.                             The multi-modal open dataset for mental-disorder analy-
+                                                                            sis (MODMA) cohort [43] included 52 Chinese-speaking
+Italian Clinical Population (Androids) Cohort                               participants, with 23 outpatients diagnosed with MDD (16
+                                                                            males and 7 females, aged 18‐52 years) and 29 healthy
+The Androids cohort was specifically designed for auto-                     controls (20 males and 9 females, aged 19‐52 years). MDD
+matic depression detection from speech [42], and includes                   diagnoses were confirmed by clinical psychiatrists at Lanzhou
+228 recordings from 116 native Italian speakers, collected                  University Second Hospital based on the Mini-International
+across 2 tasks (a spontaneous interview task and a read-                    Neuropsychiatric Interview [44] and DSM-IV (Diagnostic
+speech task). We analyzed the spontaneous interview task                    and Statistical Manual of Mental Disorders [Fourth Edition])
+only. After removing duplicates and transcripts shorter than                diagnostic criteria [45].
+20 characters, 110 transcripts entered the clustering analy-
+sis (Multimedia Appendix 1). Of the 116 participants, 64                        Speech samples consisted of responses to 18 interview
+participants were clinically diagnosed with depression by                   questions derived from DSM-IV and the Hamilton Depres-
+professional psychiatrists, providing a reliable characteriza-              sion Rating Scale [46]. Following the dataset design [43],
+tion of individuals with depression compared to self-reported               these questions are grouped by emotional valence into 6
+assessments. The interview task involved answering questions                positive, 6 neutral, and 6 negative questions. The analysis
+about everyday life (eg, “What did you do last weekend?”).                  reported here and shown in Figure 1 uses the neutral-valence
+                                                                            questions, everyday topics such as “describe one of your
+   Participants were native Italian speakers recruited across 5             friends, including age, job, character, and hobbies.” For each
+Mental Health Centers in Italy. Depression was diagnosed by                 participant, the answers to the questions within a valence
+psychiatrists according to DSM-5 (Diagnostic and Statisti-                  group were concatenated into a single transcript before
+cal Manual of Mental Disorders [Fifth Edition]) criteria,                   clustering. The positive-valence questions (such as “What is
+spanning major depressive disorder (MDD), bipolar disorder                  the best gift you have ever received, and how did you feel?”)
+in a depressive phase, and related depressive conditions [42].              and the negative-valence questions (such as “What makes you
+The Androids corpus provides this binary clinical diagnosis                 desperate?”) were analyzed separately (Multimedia Appendix
+(depressed vs control). Controls reported no prior mental                   3).
+health history and were selected to match the patient group
+on age, gender, and education.
+
+Figure 1. Proportion of participants with depression across automatically identified clusters in the MODMA cohort (n=52 transcripts, Chinese
+clinical population). Responses to the neutral-valence interview questions (each participant’s answers to that valence group concatenated; see
+Methods section). Depression status is a clinician-assigned MDD diagnosis (MINI/DSM-IV criteria). Effect size Cramér V=0.55 (95% CI 0.36 to
+0.78, P=.001). Cluster descriptions generated by Qwen3-14B summarizing 30 random transcripts per cluster. In cluster 1 (age 26±6 years, n=10),
+the individuals express a range of emotional states from mild anxiety and stress related to academic or work pressures to generally positive moods,
+emphasize the significance of maintaining healthy family relationships and having supportive friends or mentors, acknowledge personal traits such as
+being easily irritable, argumentative, or overly accommodating, and outline specific plans involving career development, returning to hometowns, or
+improving personal skills such as research capabilities or education. In cluster 4 (age 28±6 years, n=14), the individuals express how physical health
+issues and emotional struggles such as depression, anxiety, and loss of motivation significantly impact their daily lives, relationships, and work,
+while also highlighting the complex role of supportive friends and family, as well as persistent feelings of inadequacy and communication challenges
+within familial contexts. DSM-IV: Diagnostic and Statistical Manual of Mental Disorders (Fourth Edition); MDD: major depressive disorder; MINI:
+Mini-International Neuropsychiatric Interview; MODMA: multimodal open dataset for mental-disorder analysis.
+
+
+
+
+https://mental.jmir.org/2026/1/e99185                                                                         JMIR Ment Health 2026 | vol. 13 | e99185 | p. 5
+                                                                                                                    (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                                             Cortal et al
+
+Inclusion criteria included a PHQ-9 score above 10 and                        Severity Rating Scale (C-SSRS) [48,49]. Each participant’s
+no psychotropic drug treatment in the 2 weeks before                          summed C-SSRS severity score ranged from 0 to 21 in
+participation. Healthy controls were recruited through public                 this cohort (mean 9.2, SD 7.5). For analysis, participants
+advertisements, with exclusion criteria that ruled out personal               were dichotomized into a suicidal-risk group, defined as any
+or family histories of mental disorders.                                      positive C-SSRS finding (a score of 1 or more, indicating
+                                                                              suicidal ideation or behavior), and a no-risk group (a score
+Spanish Clinical Population (VOCES) Cohort                                    of 0). This binary risk class is the outcome tested in Figure
+The Spanish clinical cohort for suicide-risk research                         2. A total of 60 of the 90 (67%) participants were in the
+(VOCES) cohort [47] comprised 90 Spanish-speaking adults                      suicidal-risk group.
+who responded to open-ended questions such as: “Can you                          Inclusion criteria required participants to be at least 18
+recall some recent good news you had and how did that make                    years of age, fluent in Spanish, and capable of understanding
+you feel?” “Do you get a characteristic feeling when you’re                   and signing the informed-consent form. Psychiatric outpa-
+sad or down, and what do you normally do to cheer yourself                    tients were recruited consecutively during routine consulta-
+up?” and “Describe your average day.”                                         tions, and healthy volunteers were enrolled through snowball
+   Suicidal risk was assessed by professional psychiatrists                   sampling among mental-health staff and university students.
+using the validated Spanish version of the Columbia Suicide
+
+Figure 2. Proportion of participants with suicidal risk across automatically identified clusters in the VOCES cohort (n=58 transcripts, Spanish
+clinical population). Responses to “do you get a characteristic feeling when you’re sad or down, and what do you normally do to cheer yourself
+up?” Suicidal-risk class (any positive C-SSRS finding vs none), assessed by psychiatrists with the Spanish C-SSRS. Due to the small sample, this
+association is unstable across clustering seeds, so it is treated as exploratory and its effect size is the seed-averaged value (mean Cramér V=0.27;
+Multimedia Appendix 4). The figure shows the primary clustering, the single run on which the cluster descriptions and the plotted proportions are
+based, and for this run Cramér V=0.50 (95% CI 0.37 to 0.71, P=.006). Cluster descriptions generated by Qwen3-14B summarizing 30 random
+transcripts per cluster. In cluster 1 (age 32±13 years, n=13), the individuals express common strategies for coping with sadness or low mood,
+including mindfulness practices (meditation or breathing exercises), seeking social support (talking to friends or loved ones), engaging in physical
+activity or rest (sleep or exercise), and allowing emotions to pass naturally without forced suppression or avoidance. In cluster 5 (age 34±11 years,
+n=9), the individuals express common strategies for coping with low moods, including using media (eg, television, YouTube, and music), engaging
+in physical activities (eg, walking or cleaning), seeking social support (eg, talking to friends or family), and using distraction techniques (eg, gaming
+or napping) to avoid rumination, while some emphasize the importance of acceptance, structured routines, and medication in managing emotional
+distress. C-SSRS: Columbia Suicide Severity Rating Scale; VOCES: Spanish clinical cohort for suicide-risk research.
+
+
+
+
+Analysis                                                                      models (Figure 3). No machine translation was performed as
+                                                                              transcripts were analyzed in the original language. Hyperpara-
+Overview                                                                      meters for each step are available in Multimedia Appendix 5.
+We adopted a data-driven pipeline that clusters transcripts
+based on their semantic similarity using multilingual language
+
+
+
+
+https://mental.jmir.org/2026/1/e99185                                                                           JMIR Ment Health 2026 | vol. 13 | e99185 | p. 6
+                                                                                                                      (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                                             Cortal et al
+
+Figure 3. Computational pipeline for semantic clustering and description generation. Speech transcripts are converted to semantic vectors via
+multilingual embeddings, dimensionally reduced, and grouped into clusters using density-based methods. Each cluster undergoes: (1) statistical
+analysis linking cluster membership to clinical and demographic variables, and (2) automatic description generation where a large language model
+summarizes transcripts per cluster into human-readable natural language. This dual quantitative-qualitative output enables both statistical hypothesis
+testing and human-readable interpretation of discovered topics (Figures 1, 2, 4, and 5).
+
+
+
+
+Figure 4. Distribution of PHQ-9 depression scores across automatically identified clusters in the French general population cohort (n=1645
+transcripts in 26 clusters, after excluding HDBSCAN noise). Responses to the prompt “describe how you are feeling at the moment and how your
+sleep has been lately.” Box plots show median (center line), IQR (box), and 1.5× IQR whiskers. Effect size η²=0.19 (95% CI 0.17 to 0.24, P<.001)
+indicates a large difference between clusters per Cohen conventions. Sample sizes per cluster range from 34 to 92. Selected cluster descriptions
+(clusters 1, 10, 12, and 26) were generated by Qwen3-14B summarizing 30 random transcripts per cluster. In cluster 1 (age 39±19 years, n=92),
+the individuals express consistent satisfaction with their current well-being, emphasizing good sleep quality, restful or pleasant nights, and a general
+sense of relaxation, even when noting variations in sleep duration or occasional fatigue. In cluster 10 (age 69±15 years, n=34), the individuals
+express frequent nighttime urinary interruptions disrupting sleep, often attributed to age-related conditions such as prostate issues or overactive
+bladder, alongside mixed reports of physical well-being, mental resilience, and lifestyle factors such as retirement or exercise influencing their
+overall health and sleep patterns. In cluster 12 (age 24±9 years, n=67), the individuals express stress related to academic examinations, significant
+life decisions, and workloads, alongside sleep disturbances caused by lifestyle changes, increased responsibilities, or environmental adjustments,
+while some also highlight temporary relief from pressures through personal achievements or upcoming positive events. Cluster 26 (age 25±9 years,
+n=37), the individuals express sleep disturbances characterized by insomnia, frequent awakenings, and restless sleep, alongside pervasive anxiety,
+emotional instability, and self-esteem issues, which collectively contribute to persistent fatigue, impaired daily functioning, and a diminished sense of
+well-being. HDBSCAN: Hierarchical Density-Based Spatial Clustering of Applications With Noise; PHQ-9: Patient Health Questionnaire-9.
+
+
+
+
+https://mental.jmir.org/2026/1/e99185                                                                           JMIR Ment Health 2026 | vol. 13 | e99185 | p. 7
+                                                                                                                      (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                                             Cortal et al
+
+Figure 5. Proportion of participants with depression across automatically identified clusters in the Androids cohort (n=106 transcripts, Italian clinical
+population, after excluding HDBSCAN noise). Responses to questions about everyday life (eg, “What did you do last weekend?”). Depression status
+is a clinician-assigned DSM-5 diagnosis. Effect size Cramér V=0.74 (95% CI 0.65 to 0.85, P<.001). Cluster descriptions generated by Qwen3-14B
+summarizing 30 random transcripts per cluster. In cluster 1 (age 44±11 years, n=19), the individuals express a shared focus on family dynamics
+and intergenerational relationships, regional identity and emotional ties to Naples, and the pursuit of personal passions such as music, research, and
+education, while reflecting on the complexities of balancing domestic responsibilities with professional or creative endeavors. In cluster 5 (age 50±11
+years, n=30), the individuals express persistent struggles with depression, anxiety, and panic attacks, often exacerbated by significant life events
+such as family responsibilities, health-related stress from routine medical check-ups, and a pervasive sense of stagnation and purposelessness amid
+repetitive daily routines, while some also grapple with disrupted academic or career goals and complex family dynamics. DSM-5: Diagnostic and
+Statistical Manual of Mental Disorders (Fifth Edition); HDBSCAN: Hierarchical Density-Based Spatial Clustering of Applications With Noise.
+
+
+
+
+Audio Transcription                                                           reduced the search space from 4096 to 5 dimensions. The
+                                                                              number of components is not a sensitive design choice: the
+We transcribed all speech recordings with Whisper large-v3-                   clinical associations are essentially unchanged when it is
+turbo, a state-of-the-art neural model for automatic speech                   varied from 2 to 10. The choice of reduction method does
+recognition [50]. We removed duplicates and small transcripts                 matter. Replacing UMAP with a linear (principal compo-
+(less than 20 characters).                                                    nent analysis) or alternative nonlinear (t-distributed stochastic
+Text Embedding                                                                neighbor embedding) reduction recovers weaker associations,
+                                                                              because neither preserves the local neighborhood density
+To obtain multilingual semantic representations, each                         that density-based clustering relies on (Multimedia Appendix
+transcript was mapped to a 4096-dimensional vector (also                      4). A neighborhood-preserving nonlinear reduction such as
+called an embedding) using Qwen3-Embedding-8B, a                              UMAP is therefore an important part of the method, whereas
+language model for text embedding [51]. We selected this                      its exact dimensionality is not.
+model because, as of June 2025, it ranked first on the
+multilingual track of the Massive Text Embedding Bench-                       Clustering
+mark [52], covering all 4 languages of our cohorts, and
+because it is released under a permissive open-weight                         Clustering consisted of finding groups of patients with
+(Apache-2.0) license, which allowed us to run the model                       semantically similar transcripts. These transcripts may
+ourselves, a requirement for processing sensitive clinical                    contain common topics that are clinically relevant. We
+speech without transmitting data to any third-party or                        extracted clusters using HDBSCAN (Hierarchical Density-
+commercial service. The model turned every transcript into a                  Based Spatial Clustering of Applications With Noise) [54],
+point in a vector space: transcripts dealing with similar issues              an algorithm that (1) requires no a priori specification of the
+have similar vectors; hence, the clustering step can identify                 number of clusters, (2) adapts to variable-density clusters, and
+clusters that share the same topics.                                          (3) labels ambiguous points as noise.
+
+Dimension Reduction                                                           Cluster Description
+Dimension reduction transforms high-dimensional embed-                        We automatically labeled each cluster by randomly sam-
+dings into a lower-dimensional representation that approx-                    pling 30 transcripts and asking a language model to
+imately preserves their geometric structure, thereby                          summarize them, focusing on what is common between
+simplifying clustering and visualization. We projected the                    the transcripts. This sample size was chosen because (1)
+embeddings to a 5D space using UMAP (Uniform Mani-                            descriptions generated from 30 transcripts are reproducible
+fold Approximation and Projection) [53]. Reducing embed-                      across resampling, repeated generation, and prompt wording
+dings with UMAP before density-based clustering is standard                   (Multimedia Appendix 6), and (2) it approaches the max-
+practice in modern topic modeling and is the default pipeline                 imum input that fits within the model’s context window
+in BERTopic [21]. This step facilitates clustering, as we                     (40,960 tokens for Qwen3-14B). As clustered transcripts are
+https://mental.jmir.org/2026/1/e99185                                                                           JMIR Ment Health 2026 | vol. 13 | e99185 | p. 8
+                                                                                                                      (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                            Cortal et al
+
+semantically similar by construction, 30 samples typically         were corrected together as one family. Across the question-
+capture the cluster’s core themes without redundancy.              by-clinical-score grid in Multimedia Appendix 3, the omnibus
+The model received only the transcripts, so the generated          P values were corrected jointly across all cells within a
+descriptions are produced independently of any clinical score      cohort. These omnibus tests and effect sizes are exploratory
+or demographic variable. As with the embedding model, we           rather than prespecified: this study was designed to iden-
+required an open-weight model under a permissive license,          tify which questions and clinical constructs yield clusters
+so that sensitive clinical speech was never sent to a third-       associated with clinical status, not to test a small set of
+party or commercial service. We used Qwen3-14B [55], an            hypotheses fixed in advance.
+instruction-tuned 14-billion-parameter model from a leading
+                                                                      We report effect sizes from the primary clustering,
+open-weight family, with strong multilingual coverage and a
+                                                                   the single pipeline run on which all figures and cluster
+context window large enough to take the 30-transcript input
+                                                                   descriptions are based. Where reclustering is unstable, as
+in a single pass. We automatically obtained textual descrip-
+                                                                   for the Spanish suicide-risk association, we instead report
+tions of clusters that contain several topics. This generative
+                                                                   the seed-averaged value and label the finding exploratory.
+approach yields fine-grained topic descriptions automatically
+                                                                   Multimedia Appendix 4 shows these associations are robust
+and at scale, going beyond keyword-based descriptions,
+                                                                   to the clustering seed and reports a bootstrap 95% CI
+which stay coarse, and manual coding, which does not scale.
+                                                                   for every effect size stated in this paper. These CIs are
+The prompt is provided in Multimedia Appendix 5.
+                                                                   conditional on the reported clustering: they quantify the
+Qualitative Description                                            sampling uncertainty of an effect size for a fixed parti-
+                                                                   tion and do not capture the additional uncertainty from
+A board-certified psychiatrist (one of the coauthors) read         rerunning the clustering or from choosing which interview
+the generated cluster descriptions as a coherence check, a         questions to report. Uncertainty from reclustering is char-
+qualitative reading rather than a clinical validation.             acterized separately by the seed-stability analysis (Multime-
+                                                                   dia Appendix 4), and the choice of questions and scores
+Statistical Analysis                                               is exploratory rather than prespecified. The CIs are there-
+Each transcript is associated with a clinical score or diagno-     fore widest, and read most cautiously, in the small clinical
+sis, such as a PHQ-9 score or a clinician-assigned depres-         cohorts. Throughout the Results section, a parenthetical range
+sion diagnosis. Each cluster is therefore associated with          accompanying an effect size is its 95% CI (for example,
+a distribution of clinical scores. We performed statistical        η²=0.19, 0.17 to 0.24).
+tests to determine whether there are statistical differences
+between the clusters based on their clinical scores. Transcripts   Ethical Considerations
+that HDBSCAN labeled as noise were excluded from these             Overview
+cluster-level tests.
+                                                                   All 4 cohorts used in this work had previously obtained
+   For continuous scores such as PHQ-9, we performed               informed consent from participants and ethical approval for
+a Kruskal-Wallis H test to determine whether the clus-             speech data collection and secondary analysis.
+ters follow the same distribution or not. If we rejected
+the null hypothesis, we performed a pairwise Dunn test             Data Governance
+(with Benjamini-Hochberg corrections) to find significant
+differences between clusters. We reported effect sizes using       All computational processing used open-weight mod-
+eta-squared (η²=(H−k+1)/(n−k), where H is the Kruskal-             els (Whisper large-v3-turbo, Qwen3-Embedding-8B, and
+Wallis statistic, k the number of clusters, and n the num-         Qwen3-14B) that the authors ran themselves on controlled
+ber of transcripts), interpreted following Cohen conventions:      computing infrastructure. No transcripts, audio recordings, or
+0.01=small, 0.06=medium, and 0.14=large [56]. We also              derived data were transmitted to any third-party or external
+report adjusted P values.                                          commercial API service at any stage of the pipeline. Data
+                                                                   were stored without directly identifying information.
+   For categorical outcomes such as a clinician-assigned
+depression diagnosis, we tested whether the distribution of        French General Population Cohort
+the outcome differed across clusters using a chi-square test
+of independence. If the omnibus test was significant, we           All participants provided informed consent in accordance
+performed pairwise chi-square tests with Benjamini-Hoch-           with the Declaration of Helsinki, Good Clinical Practice
+berg corrections. We report effect sizes using Cramér V and        guidelines, and local regulations. This study received
+adjusted P values. For the small clinical cohorts, where sparse    approval from the French National Institutional Review
+expected cell counts can violate the chi-square large-sample       Board (identifier 23.00748.OOO2L7#I). Data was securely
+assumption, we also report the expected counts and confirm         stored without identifying information, and participants
+each principal association with an assumption-free Monte-          received a gift card for their time.
+Carlo permutation chi-square (Multimedia Appendix 7).
+                                                                   Italian Clinical Population (Androids) Cohort
+   We applied 2 Benjamini-Hochberg false-discovery-rate
+                                                                   All participants volunteered and provided written informed
+corrections. Within each significant omnibus test, the
+                                                                   consent in accordance with Italian and European Union
+pairwise comparisons (pairwise Dunn or pairwise chi-square)
+                                                                   data-protection law. The protocol was approved by the Ethics
+https://mental.jmir.org/2026/1/e99185                                                          JMIR Ment Health 2026 | vol. 13 | e99185 | p. 9
+                                                                                                     (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                             Cortal et al
+
+Committee of the Department of Psychology, Università degli        showed the lowest depression scores (PHQ-9 2.6±2.2), with
+Studi della Campania “Luigi Vanvitelli” (protocol 09/2016).        descriptions emphasizing consistent satisfaction with current
+                                                                   well-being, good sleep quality, and general relaxation.
+Chinese Clinical Population (MODMA) Cohort                            Intermediate-scoring clusters showed age-specific thematic
+All recordings were collected under ethical guidelines             content: cluster 10 (PHQ-9 5.8±4.3, age 69±15 years,
+approved by the Ethics Committee of the Second Affiliated          n=34) contained descriptions of frequent nighttime urinary
+Hospital of Lanzhou University. Participants provided written      interruptions attributed to age-related conditions, while
+informed consent and received approximately US $16 as              cluster 12 (PHQ-9 6.2±4.1, age 24±9 years, n=67) described
+compensation.                                                      stress related to academic examinations and significant life
+                                                                   decisions.
+Spanish Clinical Population (VOCES) Cohort                            We also report clusters with the highest and lowest clinical
+All procedures were approved by the Ethics Commit-                 scores along with their generated descriptions for the clinical
+tee of the University Hospital Fundación Jiménez Díaz              populations: Androids (Figure 5), MODMA (Figure 1), and
+(PIC128-21_FJD) and complied with the Declaration of               VOCES (Figure 2).
+Helsinki. Participants provided written informed consent, and
+this study involved no costs or monetary compensation.
+                                                                   Some Questions Are Better Suited to
+                                                                   Find Clinical Differences
+                                                                   We calculated effect sizes across questions and clinical
+Results                                                            scores (eg, sociodemographics such as age and education) for
+                                                                   each cohort, with a short observation under each heatmap
+Overview                                                           (Multimedia Appendix 3). We found that some questions
+We present results at 3 complementary levels: (1) quanti-          are better suited to finding significant differences between
+tative identification of clusters with statistically significant   clusters.
+differences in clinical scores and demographics, (2) auto-             For example, for the French general population, the
+matically generated natural-language descriptions of cluster       question “Describe how you are feeling at the moment
+content (presented alongside quantitative results), and (3) a      and how your sleep has been lately” is the one with the
+qualitative reading of the descriptions by a board-certified       highest effect sizes (eta-squared, η²) across clinical scores
+psychiatrist among the coauthors (qualitative description of       such as AIS (0.15, 0.13 to 0.20), BDI (0.16, 0.14 to 0.21),
+clusters).                                                         GAD-7 (0.16, 0.14 to 0.21), MFI (0.14, 0.12 to 0.19), and
+                                                                   PHQ-9 (0.19, 0.17 to 0.24; Multimedia Appendix 3). Every
+Some Clusters Are Associated With High                             one of these associations was significant at P<.001 and
+and Low Clinical Scores                                            remained so after the Benjamini-Hochberg false-discovery-
+Each transcript is associated with clinical scores. Each           rate control across the effect-size grid (Multimedia Appendix
+cluster of transcripts is thus a distribution of scores that can   3), consistent across clinical scores. The method captures how
+be compared to other distributions. Across all 4 cohorts,          participants describe their sleep and mood, not just whether
+unsupervised clustering of transcript embeddings yielded           they report problems. For instance, clusters distinguished
+between 4 and 26 distinct semantic clusters per cohort-ques-       age-related nocturia from anxiety-driven insomnia, distinc-
+tion combination.                                                  tions impossible with binary screening questions. We showed
+                                                                   the distribution of the PHQ-9 score for this question (Figure
+   Cluster membership was significantly associated with            4).
+clinical outcomes in the French, Italian, and Chinese cohorts,
+separating clusters with high and low clinical scores (Figures         In contrast, questions about past or future events yielded
+1, 4, and 5). In the smaller Spanish cohort, the associa-          small eta-squared effect sizes. For example, topics extracted
+tion was unstable across clustering seeds and is reported as       from “describe a negative event that happened to you in the
+exploratory, by its seed-averaged effect size (mean Cramér         past” showed: AIS (η²=0.01, 0.01 to 0.04), BDI (η²=0.01,
+V=0.27; Figure 2).                                                 0.01 to 0.05), GAD-7 (η²=0.02, 0.02 to 0.06), MFI (η²=0.01,
+                                                                   0.01 to 0.05), and PHQ-9 (η²=0.03, 0.02 to 0.06). Similarly,
+   For the French general population cohort based on               questions about positive or negative future events did not
+answers to “Describe how you are feeling at the moment             produce clinically significant clusters. This question-selection
+and how your sleep has been lately,” among 26 identified           pattern is robust to the clustering seed: across 10 random
+clusters (n=1645 nonnoise transcripts), PHQ-9 scores differed      seeds, only the feelings-and-sleep question retains a substan-
+significantly across clusters (η²=0.19, 0.17 to 0.24, P<.001).     tial PHQ-9 association (mean η²=0.20), while the past- and
+Cluster 26 (n=37, age 25±9 years) exhibited the highest            future-event questions remain at or below η²=0.05 (Multime-
+depression scores (PHQ-9 13.4±5.4) with LLM-generated              dia Appendix 4).
+descriptions highlighting sleep disturbances characterized by
+insomnia, frequent awakenings, and restless sleep, along-
+side pervasive anxiety, emotional instability, and self-esteem
+issues. In contrast, cluster 1 (n=92, age 39±19 years)
+
+https://mental.jmir.org/2026/1/e99185                                                          JMIR Ment Health 2026 | vol. 13 | e99185 | p. 10
+                                                                                                     (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                            Cortal et al
+
+Age, Education, and Sex Are                                       ing time to leisure pursuits, including watching television,
+Systematically Associated With Topic                              movies, or using electronic devices for entertainment.
+Content Independently of Clinical Status                             In both examples above, the cluster descriptions contain
+                                                                  age-related topics.
+Beyond clinical scores, sociodemographic factors were also
+significantly associated with cluster membership.                 Qualitative Description of Clusters
+    This analysis was possible only in the French general         The cluster descriptions are an interpretability layer,
+population, the only cohort large enough to stratify par-         generated from the transcripts alone using a clinically
+ticipants across all subgroups and diagnoses. We exam-            agnostic prompt that never sees clinical scores or diagnoses.
+ined whether sociodemographic factors (age, education, and        A board-certified psychiatrist (one of the coauthors) reviewed
+sex) confound the association between cluster membership          them and found them coherent with the clinical scores:
+and clinical scores. Cluster 26 (highest PHQ-9; Figure 4)         across cohorts, clusters with higher scores carried descrip-
+consisted predominantly of young adults (age 25±9 years),         tions of negative emotional states, functional impairment, and
+so we tested directly whether this cluster reflects depression-   disrupted relationships, while lower-risk clusters emphasized
+specific language or age-typical stressors within a population    positive coping strategies and supportive relationships. On
+with depression.                                                  the same clusters, the language-model descriptions state the
+                                                                  clinical character of a cluster that keyword labels leave
+   To disentangle these effects directly, we fitted, for each
+                                                                  implicitly (Multimedia Appendix 8). We separately examined
+clinical score, ordinary least-squares models of the score
+                                                                  whether the descriptions are grounded in the transcripts they
+on cluster membership, on demographics (age, sex, and
+                                                                  summarize, rather than asserting unsupported content. Of the
+education), and on both, with SEs clustered by participant
+                                                                  40 cluster descriptions, 39 were faithful to their transcripts,
+to account for repeated visits (Multimedia Appendix 2).
+                                                                  the single exception imposing an organizing structure its
+Cluster membership remained strongly associated with every
+                                                                  cluster does not have (Multimedia Appendix 9).
+score after adjustment and explained more variance than
+demographics: for PHQ-9 it accounted for 23.2% of the                For example, in the Italian population (Figure 5), in the
+variance against 5.3% for demographics, and its partial η²        cluster with the highest proportion of depressive participants
+changed little after adjustment (0.232 unadjusted to 0.220        (cluster 5), the individuals expressed persistent struggles with
+adjusted, 0.188 to 0.279; joint test of cluster membership        psychiatric symptoms, exacerbated by significant life events,
+F=12.9, P<.001). The same pattern held for all other scores       a sense of stagnation and purposelessness, and difficulties in
+and in a one-visit-per-participant sensitivity analysis. The      professional and family functioning, whereas in the cluster
+demographic contribution is therefore genuine but partial,        with the lowest number of depressive participants (cluster
+not one that accounts for the association between cluster         1), they highlighted the importance of family relationships,
+membership and clinical scores entirely.                          cultural affiliations, and personal interests.
+   We also found that all questions led to significant
+differences between clusters for sociodemographics such as        Discussion
+age, education, and sex (Multimedia Appendix 3). There are
+some exceptions: “describe a negative event that happened         Principal Results
+to you in the past” did not have a significant difference for
+education, and “describe a positive event that happened to        We presented a data-driven approach that discovers human-
+you in the past” did not have a significant difference for sex.   readable topic descriptions across general and clinical
+                                                                  populations using language models. To our knowledge, this
+   The question “describe your last 24 hours” had the highest     is the first study that automatically produces interpretable
+effect size for age (η²=0.27, 0.24 to 0.32) and sex (Cramér       descriptions of clusters of spontaneous speech in different
+V=0.22, 0.21 to 0.30). The following description correspon-       populations. We make 2 distinct claims. First, resting only on
+ded to the cluster with the lowest mean age, mostly compris-      cluster membership (fixed by the embeddings and cluster-
+ing young participants (age 22±5 years, n=37):                    ing of the transcripts), score-agnostic clusters of spontane-
+   The individuals express involvement in professional            ous speech are associated with clinical scores and separate
+or academic internships, collaboration with colleagues or         validated scales in the French, Italian, and Chinese cohorts,
+mentors, and routine-based daily activities such as work tasks,   with an exploratory association in the smaller Spanish cohort.
+social interactions, and personal responsibilities.               Second, the language-model descriptions add interpretability,
+                                                                  rendering those clusters in human-readable language more
+   The following description corresponded to the cluster with     directly than keyword lists. Every statistical result belongs to
+the highest mean age, mostly comprising middle-aged and           the first claim and stands on its own, independent of how the
+senior participants (age 55±15 years, n=56):                      clusters are described.
+   The individuals express common topics such as engaging            Three findings stand out. First, unsupervised clustering
+in routine household tasks such as cooking, cleaning, and         of transcript embeddings yields clusters that significantly
+laundry, participating in family-centered activities such as      associate with clinical scores in the French, Italian, and
+shared meals and playing games with children, and allocat-        Chinese cohorts. Second, certain interview questions, for
+                                                                  example “describe how you are feeling at the moment
+https://mental.jmir.org/2026/1/e99185                                                         JMIR Ment Health 2026 | vol. 13 | e99185 | p. 11
+                                                                                                    (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                              Cortal et al
+
+and how your sleep has been lately,” are more effective            Sample Sizes and Representativeness
+at yielding clusters associated with clinical status. Third,
+sociodemographic factors (age, education, and sex) system-         The clinical cohorts are modest in size (n=52‐116). We
+atically associate with cluster membership independently of        therefore tested cluster stability directly: a stability analysis
+clinical status, revealing that topic modeling captures both       across random seeds and minimum cluster sizes, covering
+mental health phenomena and normative life circumstances,          every interview question in all 4 cohorts, together with
+a distinction rarely examined in computational psychiatry.         internal cluster-validity indices for each cohort’s principal
+Beyond these, the pipeline automates the labor-intensive early     clustering, is reported in Multimedia Appendix 4. The French
+stages of thematic analysis and surfaces, in a data-driven         general population cohort, while larger (n=1809), over-rep-
+multilingual way, risk and protective topics consistent with       resents highly educated participants. Larger-scale investiga-
+those that resource-intensive expert consensus previously          tions with more balanced recruitment are needed to establish
+established by hand.                                               population-level generalizability.
+
+   This third finding is central to interpreting the results. As   Confound Analysis
+age, sex, and education are themselves associated with cluster
+membership, a cluster associated with clinical status may be       We performed the covariate-adjusted confound analysis
+so in part through demographically patterned content. The          only on the French general population cohort, as the
+clearest example is cluster 26 in the French cohort (highest       clinical cohorts lacked sufficient sample sizes for it. In the
+PHQ-9), which is composed predominantly of young adults            French cohort, the association between cluster membership
+(age 25±9 years). Its “depression-associated” content may          and clinical scores survived adjustment for age, sex, and
+partly reflect age-typical stressors occurring in a depressed      education (Results section and Multimedia Appendix 2).
+subgroup rather than depression-specific language per se.          Whether the same holds in the clinical samples remains
+We therefore treat the demographic-confound analysis as            open, because their size did not support the adjustment there.
+a core result: a covariate-adjusted analysis (Results section      Extending covariate-adjusted or age-matched designs to the
+and Multimedia Appendix 2) shows the association between           clinical cohorts is the next step. Future work should also
+cluster membership and clinical scores survives adjustment         incorporate demographic covariates directly into clustering.
+for age, sex, and education, and we return to its limits in the
+Limitations section.                                               Heterogeneity of Clinical Measures
+Content Not Captured by the Clinical                               Our cohorts used different clinical instruments: PHQ-9
+                                                                   (self-reported depression severity), a clinician-assigned
+Scales                                                             depression diagnosis, and the C-SSRS (suicide risk). These
+Not every question or cluster was strongly associated with         measure related but distinct constructs, limiting direct
+the clinical scales, and these weaker results are themselves       cross-cohort comparisons. This heterogeneity reflects the
+informative. The questions about past or future events yielded     reality of working with independently collected clinical
+stable clusters (Multimedia Appendix 4) whose descriptions         datasets, and it bounds the cross-cohort comparisons to the
+summarize life circumstances, yet their associations with the      exploratory level.
+symptom scores were small (η² at or below 0.05; Multime-
+dia Appendix 3). Sociodemographic factors likewise shaped          Transcription and Model Biases
+topic content independently of clinical status. In both cases,     Although we used state-of-the-art speech-to-text models,
+the pipeline recovered coherent content from speech that           transcript noise remains a potential source of bias. Mental
+the symptom scales do not measure. We read this not as             disorders can alter speech production (eg, reduced energy
+a shortcoming of the pipeline but as a reminder that a             and dysfluencies) [58], which may increase automatic speech
+clinical scale quantifies a predefined set of symptoms and         recognition error rates that propagate to embeddings and
+does not capture the full complexity of the lived experi-          clusters. We could not measure word or character error rates
+ence of depression. Standard depression scales share little        on our recordings, because no human reference transcripts
+of their symptom content with one another [57]. What               were collected for any of the 4 cohorts. Published evaluations
+patients consider recovery extends beyond symptom relief           of the Whisper family report strong recognition accuracy
+[8]. First-person accounts of the lived experience of depres-      for French, Italian, and Spanish and a higher error rate
+sion describe dimensions that no symptom scale measures            for Mandarin Chinese [50]. A further concern is differen-
+[14]. As the descriptions render this content in human-reada-      tial error. If transcription quality varies with clinical status,
+ble language rather than reducing it to a score, the approach      transcription error could itself contribute to the associations
+reports content that a purely score-based analysis would leave     between cluster membership and the clinical scales. We
+out.                                                               have no human reference transcripts to test this directly,
+Limitations                                                        and because recognition is weakest for Chinese, the Chinese
+                                                                   cohort warrants the most caution here. Creating reference
+Overview                                                           transcripts for a small subset would permit direct error-rate
+                                                                   measurement and is a worthwhile direction for future work.
+We set out the boundaries of this study and how they shape its
+                                                                   Additionally, the language models used to embed transcripts
+interpretation.
+                                                                   and generate cluster descriptions may encode cultural or
+
+https://mental.jmir.org/2026/1/e99185                                                           JMIR Ment Health 2026 | vol. 13 | e99185 | p. 12
+                                                                                                      (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                              Cortal et al
+
+demographic biases [59]. LLMs also differ systematically            Risk and Protective Topics for Depression
+in the values they prioritize in the text they generate [60].
+As all cluster descriptions in this study were generated by         We compared our generated topic descriptions with known
+a single model, Qwen3-14B, they may reflect that model’s            risk and protective topics for depression studied in psychiatry
+value priorities rather than entirely neutral summaries of the      research. A psychiatrist and a researcher in natural language
+transcripts.                                                        processing reviewed the generated descriptions to relate them
+                                                                    to risk and protective topics established in the literature.
+Clinical Validation of Cluster Descriptions
+                                                                        Several clusters recapitulate established risk topics.
+The cluster descriptions are an interpretability layer, and this    Clusters with sleep disturbance or fatigue align with meta-
+study makes no claim about their clinical accuracy, complete-       analyses showing a bidirectional link between insomnia
+ness, or relevance. Establishing that would require independ-       and depressive morbidity [61]. Stressor-laden clusters (stress
+ent, blinded evaluation by multiple clinicians with formal          due to unemployment or financial difficulties) track estab-
+interrater reliability (Cohen κ or the intraclass correlation       lished longitudinal associations between adverse psychoso-
+coefficient), a distinct line of work. A board-certified            cial work environments or job loss and increased depression
+psychiatrist read the descriptions as a coherence check. As all     risk [62]. Student-specific clusters may contain topics such
+statistical associations are computed from cluster member-          as examination pressure that show associations between
+ship rather than from the descriptions, the findings do not         academic stressors and depressive symptoms [63].
+depend on such clinical evaluation. The clusters that the
+                                                                       Other clusters map onto protective topics. Clusters
+pipeline recovers separate validated clinical scales in the
+                                                                    emphasizing arts participation and creative activity corre-
+French, Italian, and Chinese cohorts, and they are formed
+                                                                    spond to the WHO scoping review concluding that arts
+from the transcripts alone, without the clinical scores. The
+                                                                    engagement contributes to prevention and symptom reduc-
+grounding of the descriptions in their transcripts (faithful-
+                                                                    tion in mental health [64]. Gardening and nature exposure
+ness), a comparison of each summary against its source
+                                                                    clusters show consistency with evidence of small-to-mod-
+text rather than a clinical judgment, is reported in Multi-
+                                                                    erate improvements in depressive symptoms from horticul-
+media Appendix 9, where 39 of 40 descriptions assert no
+                                                                    tural and green-space activities [65]. Mentions of holidays
+content that their transcripts do not support and their stability
+                                                                    or travel appear predominantly in low-severity clusters and
+across transcript sampling, repeated generation, and prompt
+                                                                    are congruent with longitudinal work showing short-lived
+wording in Multimedia Appendix 6, where they prove highly
+                                                                    but reliable gains in mood and well-being during vacations
+reproducible.
+                                                                    [66]. Finally, physical activity topics align with prospective
+Comparison With Prior Work                                          meta-analyses, indicating that even subguideline levels of
+                                                                    activity are associated with lower incident depression [67].
+Exploratory Cross-Cohort Observations
+                                                                       Taken together, the fine-grained topics generated by the
+Across all 4 cohorts, clusters with higher depression               language model are consistent with core psychiatric con-
+or suicide risk scores consistently contained descriptions          structs established in the literature, a qualitative correspond-
+of negative emotional states, functional impairment, and            ence rather than a statistical one. We found risk topics (eg,
+disrupted relationships, while lower-risk clusters empha-           related to sleep disruption, workload, and financial stressors)
+sized positive coping strategies, supportive relationships,         and protective topics (eg, related to arts, nature, holidays
+and engagement in meaningful activities. We report this             as short-term relief, and physical activity) in a multilingual,
+recurrence as a preliminary cross-cohort observation, not           data-driven fashion that yields human-readable descriptions
+as evidence of cross-cultural generalizability, because the 4       while scaling beyond manual thematic analysis.
+datasets differ in language, population, clinical instruments,
+and interview questions; whether these markers generalize           Comparison With Keyword-Based Topic
+across linguistic and cultural contexts is a hypothesis for         Modeling
+future studies with parallel data-collection protocols.
+                                                                    Prior work on topic modeling in depression has relied on
+    The descriptions also surfaced content specific to              keyword-based approaches that surface topics as word lists.
+individual cohorts. In the Italian cohort, participants             For instance, the study by Zhang et al [28] applied BER-
+expressed strong regional identity and affiliation with Naples.     Topic to free-response speech in the RADAR-MDD dataset
+In the Chinese cohort, family communication challenges and          and identified 29 topics represented by keywords such as
+feelings of inadequacy featured prominently in higher-risk          "daughter," "son," "parents," "hospital," "operation," "pain,"
+clusters. These cases show the pipeline captures cohort-spe-        "sleep," "tired," and "rest." While such keywords indicate
+cific themes a generic analysis might miss. Whether such            broad thematic areas, they lack the semantic context and
+content reflects broader cultural patterns or the cohorts’          narrative coherence that clinicians use when interpreting
+particular recruitment and interview design cannot be               patient discourse. That study is the closest precedent to our
+determined from these nonparallel datasets, and would require       work. It analyzes a single English-language dataset, repre-
+dedicated cross-cultural studies with parallel protocols [18].      sents each topic as a keyword list, and relates the topics to
+                                                                    Patient Health Questionnaire-8 depression scores. Our study
+                                                                    builds on this line of work and broadens it to 4 cohorts in 4
+
+https://mental.jmir.org/2026/1/e99185                                                           JMIR Ment Health 2026 | vol. 13 | e99185 | p. 13
+                                                                                                      (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                              Cortal et al
+
+languages, including a large general-population sample and 3        assess at scale. Where the expert-consensus approach to
+clinical cohorts, and to several clinical constructs (depression,   identifying clinically validated themes required collaborative
+anxiety, insomnia, fatigue, and suicide risk).                      workshops and international expert panels [14], our pipe-
+                                                                    line recovered comparable thematic structure automatically,
+    Our approach produces qualitatively different outputs and
+                                                                    across 4 languages and thousands of transcripts, without
+requires no manual post hoc categorization: the language
+                                                                    trained coders. It performs the labor-intensive early stages
+model directly produces interpretable summaries, whereas
+                                                                    of thematic analysis—familiarization with the material, initial
+keyword-based approaches typically require researchers to
+                                                                    coding, and theme generation—in a single automated pass,
+manually group and label topics. To make this concrete on
+                                                                    while validation and clinical interpretation remain with the
+our own data, we labeled the same clusters in 2 ways, with
+                                                                    clinician. On our own data, the gain in speed and cost is
+keyword labels from a standard keyword-based topic model
+                                                                    concrete. On a single NVIDIA A100 GPU, the pipeline
+(BERTopic, which ranks the words most distinctive to each
+                                                                    clustered and labeled a French interview question in minutes
+cluster after removing common stopwords in each language)
+                                                                    of compute, at a cloud-equivalent cost under US $1. The
+and with our language-model descriptions. We hold the
+                                                                    familiarization, initial coding, and theme-generation stages it
+clustering fixed, so every statistical association is unchanged
+                                                                    automates would take an estimated 90 to 170 analyst-hours
+and only what a reader can take from the label differs. The
+                                                                    by hand, and roughly double that under the independent
+descriptions state the clinical character in a single readable
+                                                                    double-coding that reliable analysis requires [71]. Across
+sentence and disambiguate context a bare keyword cannot,
+                                                                    all 4 cohorts, the estimated manual effort runs to several
+whereas keyword lists mix the theme with idiosyncratic or
+                                                                    hundred analyst-hours (Multimedia Appendix 10). This is
+generic words that carry no clinical content. For example,
+                                                                    an illustrative comparison of scale rather than a claim of
+the most depressed cluster in the Chinese cohort carries the
+                                                                    equivalence. The pipeline is an automated topic-modeling
+keyword label "feeling," especially, "think," "before," "now,"
+                                                                    procedure of embedding, clustering, and language-model
+"nothing," "seem," "do not want," "life," which conveys
+                                                                    description, and it accelerates these early stages, not the
+little clinical content, whereas its language-model description
+                                                                    interpretive coding and clinical judgment that a full manual
+names physical health issues and emotional struggles such
+                                                                    thematic analysis brings. This pattern matches the broader
+as "depression," "anxiety," and "loss of motivation." In the
+                                                                    literature: generative-AI thematic analysis reproduced most
+Spanish sadness-and-coping cohort, the description reports
+                                                                    human-derived themes while reducing analyst time by about
+self-inflicted physical pain as a maladaptive coping strategy
+                                                                    97% [72], with substantial reliability reported for automa-
+that the cluster’s keywords ("sad," "bad," "to feel," "sensa-
+                                                                    ted content coding [73]. Blinded comparisons find LLMs
+tion," "going out," "music," "week," "news," and "Madrid")
+                                                                    comparable to human analysts when applying predefined
+do not surface. This contrast is not specific to our pipe-
+                                                                    codes, with low hallucination rates [74] and language-
+line. Evaluations of topic models report that keyword-coher-
+                                                                    model theme summaries reaching substantial agreement
+ence metrics capture surface word statistics rather than the
+                                                                    with human-derived themes [75]. Our approach identified
+semantic quality a human reader needs, whereas language-
+                                                                    clinically relevant content from speech records across diverse
+model readings of topics align with human judgment [68,69].
+                                                                    cohorts. The language model generated meaningful synthe-
+The full side-by-side examples for every cohort, with the
+                                                                    ses using clinically agnostic prompts, without pre-established
+descriptions reproduced verbatim, are provided in Multimedia
+                                                                    theory or domain-specific information.
+Appendix 8.
+                                                                       However, automated methods complement rather than
+Bridging Qualitative Research and                                   replace clinical judgment. Expert clinical judgment remains
+Clinical Practice                                                   essential for contextualizing algorithmically discovered
+Our introduction highlighted that manual thematic analysis,         patterns and for distinguishing clinically actionable insights
+while clinically valuable, is too resource-intensive for routine    from statistical artifacts.
+care [14]. The cost is concrete. Full thematic analysis of a        Potential Clinical Applications
+single qualitative interview study can require more than 100
+hours of researcher time [70], and reliable manual coding           This study establishes the methodological foundations. The
+further depends on trained coders and repeated double-cod-          clinical applications below are future possibilities. Our
+ing to reach acceptable agreement [71]. The present study           analyses show that cluster membership is associated with
+shows that language models can generate cluster descrip-            validated clinical scales in the French, Italian, and Chi-
+tions consistent with core psychiatric constructs identified        nese cohorts, but they do not establish screening validity,
+in labor-intensive qualitative research. For instance, our          diagnostic accuracy, treatment-planning utility, or readi-
+clusters containing sleep disturbance, emotional dysregula-         ness for clinical decision support. Each of the directions
+tion, and impaired functioning align with the phenomenolog-         below would require dedicated prospective validation. First,
+ical dimensions of depression (altered temporal experience,         cluster-based analysis could in principle support screening
+embodied distress, and existential emptiness) identified            and risk stratification: individuals whose speech patterns
+through expert consensus [14].                                      place them in high-severity clusters might be flagged
+                                                                    for priority clinical review. Second, the fine-grained topic
+   This convergence indicates that automated methods can            descriptions could inform personalized treatment planning: a
+help bridge the gap between what qualitative analysis reveals       patient whose cluster emphasizes academic stress and sleep
+as clinically important and what clinicians can feasibly            disturbance may benefit from different interventions than
+https://mental.jmir.org/2026/1/e99185                                                           JMIR Ment Health 2026 | vol. 13 | e99185 | p. 14
+                                                                                                      (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                            Cortal et al
+
+one whose cluster highlights social isolation and hopeless-       as a description a clinician can read directly. In the French,
+ness. Third, tracking cluster membership or distance-to-clus-     Italian, and Chinese cohorts, score-agnostic clusters were
+ter-centroid over time could enable treatment monitoring,         significantly associated with clinical scores, with moderate
+providing objective measures of thematic shifts during            to large effects (for example, PHQ-9 η²=0.19, and Cramér
+therapy.                                                          V=0.74 for clinician-diagnosed depression). The association
+                                                                  in the smaller Spanish cohort was exploratory. The descrip-
+   Critically, such applications require interpretability.
+                                                                  tions that label the clusters stayed grounded in the transcripts
+Clinicians need to understand why a patient was assigned
+                                                                  and were reproducible.
+to a particular cluster to trust and act on algorithmic
+recommendations. Our approach addresses this need by                 Two findings carry practical weight. Question choice
+generating human-readable descriptions rather than opaque         matters: a single question about current feelings and sleep
+embeddings or keyword lists. This interpretability is essential   separated clusters by symptom severity, whereas questions
+for developing safe and trustworthy clinical decision support     about past or future events did not. Sociodemographic
+systems based on speech or language analysis. Future              factors shaped topic content independently of clinical status,
+work should evaluate whether cluster descriptions improve         a confound rarely examined in computational psychiatry,
+clinician decision-making in controlled settings.                 although the association between cluster membership and
+                                                                  clinical scores survived adjustment for age, sex, and
+Conclusions                                                       education.
+Systematic analysis of spontaneous speech at scale has been          As the 4 datasets are independent and were not collected
+impractical, and existing automated methods describe topics       in parallel, the cross-cohort patterns are preliminary rather
+with keyword lists that miss clinical nuance. The pipeline        than evidence of cross-cultural generalizability. Screening,
+we introduce automates the labor-intensive early stages of        treatment-planning, and decision-support uses remain to be
+thematic analysis (familiarization, initial coding, and theme     established through dedicated prospective study. By making
+generation) on spontaneous speech in 4 languages, in minutes      patient narrative analyzable at scale in readable language, the
+of single-GPU compute per interview question, at a cost           approach can augment, not replace, the clinician’s judgment.
+under US $1. It uses a language model to render each cluster
+
+Acknowledgments
+The authors thank the participants of the 4 cohorts for contributing their time and speech data, and the clinical teams at the
+collaborating institutions for their support in recruitment and data collection. The authors also acknowledge the EuroHPC
+Joint Undertaking for awarding this project access to the EuroHPC supercomputer LEONARDO, hosted by CINECA (Italy)
+and the LEONARDO consortium, through a EuroHPC Development Access call (project EHPC-DEV-2026D02-260). This
+work was also performed using high-performance computing resources from GENCI-IDRIS (AD010315777R1). During the
+preparation of this work, the authors used several computational methods as part of the research methodology described in
+the Methods section, and not in the writing of this paper. Whisper large-v3-turbo transcribed the speech recordings. Qwen3-
+Embedding-8B encoded each transcript as a numerical vector. UMAP (Uniform Manifold Approximation and Projection)
+reduced the dimensionality of those vectors, and HDBSCAN (Hierarchical Density-Based Spatial Clustering of Applications
+With Noise) grouped them into clusters. UMAP and HDBSCAN are classical algorithms, not language models. Qwen3-14B, a
+generative large language model, produced the natural-language cluster descriptions and is the only one of these methods that
+generates new text. No generative AI or AI-assisted technologies were used to write this paper. The cluster descriptions that
+Qwen3-14B produced are reported as a research result and are reproduced verbatim in Multimedia Appendices 8 and 9. The
+authors reviewed all model-generated content and take full responsibility for the content of this published paper.
+Funding
+This project has received funding from the European Innovation Council under the European Union’s Horizon Europe research
+and innovation programme (101295925). The funder had no involvement in the study design, data collection, analysis,
+interpretation, or the writing of this paper.
+Data Availability
+Due to the sensitive nature of clinical speech data containing personal health information, raw data cannot be shared publicly.
+All methods, model specifications, hyperparameters, and prompts are fully described in the Methods section and appendices to
+enable reproducibility. Researchers seeking collaboration or data access for replication purposes may contact the corresponding
+author.
+Authors’ Contributions
+Conceptualization: GC, XNC, RR
+Data curation: GC, SdL-M
+Formal analysis: GC, SBG
+Investigation: GC, SBG, SdL-M, EB-G
+Methodology: GC, XNC, EB-G, RR
+https://mental.jmir.org/2026/1/e99185                                                         JMIR Ment Health 2026 | vol. 13 | e99185 | p. 15
+                                                                                                    (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                           Cortal et al
+
+Project administration: XNC, RR
+Resources: XNC, SdL-M, EB-G, RR
+Software: GC
+Supervision: XNC, EB-G, RR
+Validation: SBG
+Visualization: GC
+Writing – original draft: GC
+Writing – review & editing: GC, SBG, XNC, SdL-M, EB-G, RR
+Conflicts of Interest
+Callyope developed the mobile data-collection platform used to record the French general-population cohort. RR and XNC
+(founders) and GC (research scientist) hold equity in Callyope. SBG served as a psychiatrist consultant for the company.
+The remaining authors, SdL-M and EB-G, declare no competing interests. The Italian, Chinese, and Spanish cohorts are
+independently collected, publicly documented datasets in which Callyope had no role.
+Multimedia Appendix 1
+Descriptive statistics and sample sizes for the 4 cohorts.
+[PDF File (Adobe File), 82 KB-Multimedia Appendix 1]
+
+Multimedia Appendix 2
+Covariate-adjusted confound analysis for the French general population cohort.
+[PDF File (Adobe File), 960 KB-Multimedia Appendix 2]
+
+Multimedia Appendix 3
+Effect sizes across interview questions and clinical scores for the 4 cohorts.
+[PDF File (Adobe File), 1077 KB-Multimedia Appendix 3]
+
+Multimedia Appendix 4
+Clustering stability and sensitivity across random seeds and minimum cluster size, internal cluster-validity indices, and
+bootstrap CIs for the reported effect sizes.
+[PDF File (Adobe File), 218 KB-Multimedia Appendix 4]
+
+Multimedia Appendix 5
+Pipeline hyperparameters and the cluster-description prompt.
+[PDF File (Adobe File), 102 KB-Multimedia Appendix 5]
+
+Multimedia Appendix 6
+Stability of the language-model cluster descriptions across transcript sampling, generation seeds, and prompt wording.
+[PDF File (Adobe File), 166 KB-Multimedia Appendix 6]
+
+Multimedia Appendix 7
+Small-cohort Monte-Carlo permutation tests with expected cell counts.
+[PDF File (Adobe File), 120 KB-Multimedia Appendix 7]
+
+Multimedia Appendix 8
+Keyword labels vs language-model descriptions for the same clusters.
+[PDF File (Adobe File), 168 KB-Multimedia Appendix 8]
+
+Multimedia Appendix 9
+Faithfulness of the cluster descriptions to their transcripts.
+[PDF File (Adobe File), 100 KB-Multimedia Appendix 9]
+
+Multimedia Appendix 10
+Computational cost and comparison with manual thematic analysis.
+[PDF File (Adobe File), 118 KB-Multimedia Appendix 10]
+References
+1.   Bromet E, Andrade LH, Hwang I, et al. Cross-national epidemiology of DSM-IV major depressive episode. BMC Med.
+     Jul 26, 2011;9(1):90. [doi: 10.1186/1741-7015-9-90] [Medline: 21791035]
+
+https://mental.jmir.org/2026/1/e99185                                                        JMIR Ment Health 2026 | vol. 13 | e99185 | p. 16
+                                                                                                   (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                            Cortal et al
+
+2.      Herrman H, Patel V, Kieling C, et al. Time for united action on depression: a Lancet-World Psychiatric Association
+        Commission. Lancet. Mar 5, 2022;399(10328):957-1022. [doi: 10.1016/S0140-6736(21)02141-3] [Medline: 35180424]
+3.      Regier DA, Kuhl EA, Kupfer DJ. The DSM-5: classification and criteria changes. World Psychiatry. Jun
+        2013;12(2):92-98. [doi: 10.1002/wps.20050] [Medline: 23737408]
+4.      Aboraya A, Rankin E, France C, El-Missiry A, John C. The reliability of psychiatric diagnosis revisited: the clinician’s
+        guide to improve the reliability of psychiatric diagnosis. Psychiatry (Edgmont). Jan 2006;3(1):41-50. [Medline:
+        21103149]
+5.      Aboraya A, Nasrallah HA, Elswick DE, et al. Measurement-based care in psychiatry-past, present, and future. Innov Clin
+        Neurosci. Nov 1, 2018;15(11-12):13-26. [Medline: 30834167]
+6.      Armstrong N, Byrom N. An anthropological critique of psychiatric rating scales. BJPsych advances. Mar
+        2025;31(2):73-81. [doi: 10.1192/bja.2024.60]
+7.      Stanghellini G, Ballerini M. Qualitative analysis. Its use in psychopathological research. Acta Psychiatr Scand. Mar
+        2008;117(3):161-163. [doi: 10.1111/j.1600-0447.2007.01139.x] [Medline: 18271797]
+8.      Chevance A, Ravaud P, Tomlinson A, et al. Identifying outcomes for depression that matter to patients, informal
+        caregivers, and health-care professionals: qualitative content analysis of a large international online survey. Lancet
+        Psychiatry. Aug 2020;7(8):692-702. [doi: 10.1016/S2215-0366(20)30191-7] [Medline: 32711710]
+9.      Manufacturer and user facility device experience (MAUDE) database. US Food and Drug Administration. URL: https://
+        www.accessdata.fda.gov/scripts/cdrh/cfdocs/cfMAUDE/search.cfm [Accessed 2026-07-31]
+10.     Muralidharan V, Adewale BA, Huang CJ, et al. A scoping review of reporting gaps in FDA-approved AI medical
+        devices. NPJ Digit Med. Oct 3, 2024;7(1):273. [doi: 10.1038/s41746-024-01270-x] [Medline: 39362934]
+11.     Cummins N, Scherer S, Krajewski J, Schnieder S, Epps J, Quatieri TF. A review of depression and suicide risk
+        assessment using speech analysis. Speech Commun. Jul 2015;71:10-49. [doi: 10.1016/j.specom.2015.03.004]
+12.     Ehlen F, Montag C, Leopold K, Heinz A. Linguistic findings in persons with schizophrenia-a review of the current
+        literature. Front Psychol. Nov 2023;14:1287706. [doi: 10.3389/fpsyg.2023.1287706] [Medline: 38078276]
+13.     Trifu RN, Nemeș B, Herta DC, Bodea-Hategan C, Talaș DA, Coman H. Linguistic markers for major depressive
+        disorder: a cross-sectional study using an automated procedure. Front Psychol. Mar 2024;15:1355734. [doi: 10.3389/
+        fpsyg.2024.1355734] [Medline: 38510303]
+14.     Fusar-Poli P, Estradé A, Stanghellini G, et al. The lived experience of depression: a bottom-up review co-written by
+        experts by experience and academics. World Psychiatry. Oct 2023;22(3):352-365. [doi: 10.1002/wps.21111] [Medline:
+        37713566]
+15.     Hallford DJ, Rusanov D, Yeow JJE, Barry TJ. Overgeneral and specific autobiographical memory predict the course of
+        depression: an updated meta-analysis. Psychol Med. Apr 2021;51(6):909-926. [doi: 10.1017/S0033291721001343]
+        [Medline: 33875023]
+16.     Cortal G, Finkel A, Paroubek P, Ye L. Emotion recognition based on psychological components in guided narratives for
+        emotion regulation. Presented at: Proceedings of the 7th Joint SIGHUM Workshop on Computational Linguistics for
+        Cultural Heritage, Social Sciences, Humanities and Literature; May 5-7, 2023:72-81; Dubrovnik, Croatia. [doi: 10.
+        18653/v1/2023.latechclfl-1.8]
+17.     Cortal G, Finkel A. Formalizing style in personal narratives. Presented at: Proceedings of the 2025 Conference on
+        Empirical Methods in Natural Language Processing; Nov 4-9, 2025:7311-7326; Suzhou, China. [doi: 10.18653/v1/2025.
+        emnlp-main.371]
+18.     Lehti A, Hammarström A, Mattsson B. Recognition of depression in people of different cultures: a qualitative study.
+        BMC Fam Pract. Jul 27, 2009;10(1):53. [doi: 10.1186/1471-2296-10-53] [Medline: 19635159]
+19.     Braun V, Clarke V. Using thematic analysis in psychology. Qual Res Psychol. Jan 2006;3(2):77-101. [doi: 10.1191/
+        1478088706qp063oa]
+20.     Blei DM, Ng AY, Jordan MI. Latent Dirichlet allocation. J Mach Learn Res. 2003;3(Jan):993-1022. URL: https://jmlr.
+        csail.mit.edu/papers/v3/blei03a.html [Accessed 2026-07-31]
+21.     Grootendorst M. BERTopic: neural topic modeling with a class-based TF-IDF procedure. arXiv. Preprint posted online
+        on Mar 11, 2022. [doi: 10.48550/arXiv.2203.05794]
+22.     Pham CM, Hoyle A, Sun S, Resnik P, Iyyer M. TopicGPT: a prompt-based topic modeling framework. In: H G, S B,
+        editors. Presented at: Proceedings of the 2024 Conference of the North American Chapter of the Association for
+        Computational Linguistics; Jun 16-21, 2024:2956-2984; Mexico City, Mexico. [doi: 10.18653/v1/2024.naacl-long.164]
+23.     Mu Y, Dong C, Bontcheva K, Song X. Large language models offer an alternative to the traditional approach of topic
+        modelling. Presented at: Joint International Conference on Computational Linguistics, Language Resources and
+        Evaluation; May 20-25, 2024:10160-10171; Turin, Italy. [doi: 10.63317/2x489fw7wi5m]
+
+
+https://mental.jmir.org/2026/1/e99185                                                         JMIR Ment Health 2026 | vol. 13 | e99185 | p. 17
+                                                                                                    (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                             Cortal et al
+
+24.     Carron-Arthur B, Reynolds J, Bennett K, Bennett A, Griffiths KM. What’s all the talk about? Topic modelling in a
+        mental health internet support group. BMC Psychiatry. Oct 28, 2016;16(1):367. [doi: 10.1186/s12888-016-1073-5]
+        [Medline: 27793131]
+25.     Leung YT, Khalvati F. Exploring COVID-19-related stressors: topic modeling study. J Med Internet Res. Jul 13,
+        2022;24(7):e37142. [doi: 10.2196/37142] [Medline: 35731966]
+26.     Boettcher N. Studies of depression and anxiety using Reddit as a data source: scoping review. JMIR Ment Health. Nov
+        25, 2021;8(11):e29487. [doi: 10.2196/29487] [Medline: 34842560]
+27.     Liu Y, Shan Y, Sun S, et al. Topic modeling and content analysis of people’s anxiety-related concerns raised on a
+        computer-mediated health platform. Sci Rep. Nov 11, 2024;14(1):27520. [doi: 10.1038/s41598-024-79164-x]
+28.     Zhang Y, Folarin AA, Dineley J, et al. Identifying depression-related topics in smartphone-collected free-response
+        speech recordings using an automatic speech recognition system and a deep learning topic model. J Affect Disord. Jun
+        2024;355:40-49. [doi: 10.1016/j.jad.2024.03.106]
+29.     Timakum T, Xie Q, Lee S. Identifying mental health discussion topic in social media community: subreddit of bipolar
+        disorder analysis. Front Res Metrics Anal. 2023;8:1243407. [doi: 10.3389/frma.2023.1243407] [Medline: 38025958]
+30.     Johannsen A, Hovy D, Søgaard A. Cross-lingual syntactic variation over age and gender. Presented at: Proceedings of
+        the Nineteenth Conference on Computational Natural Language Learning; Jul 30-31, 2015:103-112; Beijing, China. [doi:
+        10.18653/v1/K15-1011]
+31.     Preoţiuc-Pietro D, Eichstaedt J, Park G, et al. The role of personality, age, and gender in tweeting about mental illness.
+        Presented at: Proceedings of the 2nd Workshop on Computational Linguistics and Clinical Psychology; Jun 5,
+        2015:21-30; Denver, Colorado. [doi: 10.3115/v1/W15-1203]
+32.     Rai S, Stade EC, Giorgi S, et al. Key language markers of depression on social media depend on race. Proc Natl Acad
+        Sci U S A. Apr 2, 2024;121(14):e2319837121. [doi: 10.1073/pnas.2319837121] [Medline: 38530887]
+33.     Rosario C, The Nueva School, San Mateo, USA. Age-specific linguistic features of depression via social media.
+        Presented at: The 8th Student Research Workshop associated with the International Conference RANLP 2023; Sep 4-6,
+        2023; Shoumen, Bulgaria. [doi: 10.26615/issn.2603-2821.2023_004]
+34.     Moßburger L, Wende F, Brinkmann K, Schmidt T, et al. Exploring online depression forums via text mining: a
+        comparison of reddit and a curated online forum. In: AZ K, I F, editors. Presented at: Proceedings of the Fifth Social
+        Media Mining for Health Applications Workshop & Shared Task; Dec 12, 2020:70-81; URL: https://aclanthology.org/
+        2020.smm4h-1.11/ [Accessed 2026-07-29]
+35.     Low DM, Rumker L, Talkar T, Torous J, Cecchi G, Ghosh SS. Natural language processing reveals vulnerable mental
+        health support groups and heightened health anxiety on Reddit during COVID-19: observational study. J Med Internet
+        Res. Oct 12, 2020;22(10):e22635. [doi: 10.2196/22635] [Medline: 32936777]
+36.     Raihan N, Puspo SSC, Farabi S, Bucur AM, Ranasinghe T, Zampieri M. MentalHelp: a multi-task dataset for mental
+        health in social media. Presented at: Joint International Conference on Computational Linguistics, Language Resources
+        and Evaluation; May 20-25, 2024:11196-11203; Turin, Italy. [doi: 10.63317/372jegsog7nt]
+37.     Harrigian K, Aguirre C, Dredze M. Do models of mental health based on social media data generalize? Presented at:
+        Findings of the Association for Computational Linguistics; Nov 16-20, 2020:3774-3788; [doi: 10.18653/v1/2020.
+        findings-emnlp.337]
+38.     Levis B, Benedetti A, Thombs BD, DEPRESsion Screening Data (DEPRESSD) Collaboration. Accuracy of Patient
+        Health Questionnaire-9 (PHQ-9) for screening to detect major depression: individual participant data meta-analysis.
+        BMJ. Apr 9, 2019;365(365):l1476. [doi: 10.1136/bmj.l1476] [Medline: 30967483]
+39.     Beck AT, Ward CH, Mendelson M, Mock J, Erbaugh J. An inventory for measuring depression. Arch Gen Psychiatry.
+        Jun 1961;4(6):561-571. [doi: 10.1001/archpsyc.1961.01710120031004] [Medline: 13688369]
+40.     Okajima I, Miyamoto T, Ubara A, et al. Evaluation of severity levels of the Athens Insomnia Scale based on the criterion
+        of Insomnia Severity Index. Int J Environ Res Public Health. Nov 26, 2020;17(23):8789. [doi: 10.3390/ijerph17238789]
+        [Medline: 33256097]
+41.     Smets EM, Garssen B, Bonke B, De Haes JC. The Multidimensional Fatigue Inventory (MFI) psychometric qualities of
+        an instrument to assess fatigue. J Psychosom Res. Apr 1995;39(3):315-325. [doi: 10.1016/0022-3999(94)00125-o]
+        [Medline: 7636775]
+42.     Tao F, Esposito A, Vinciarelli A. The Androids Corpus: a new publicly available benchmark for speech based depression
+        detection. Presented at: INTERSPEECH 2023; Aug 20-24, 2026:4149-4153; Dublin, Ireland. [doi: 10.21437/Interspeech.
+        2023-894]
+43.     Cai H, Yuan Z, Gao Y, et al. A multi-modal open dataset for mental-disorder analysis. Sci Data. Apr 19, 2022;9(1):178.
+        [doi: 10.1038/s41597-022-01211-x] [Medline: 35440583]
+
+
+
+https://mental.jmir.org/2026/1/e99185                                                          JMIR Ment Health 2026 | vol. 13 | e99185 | p. 18
+                                                                                                     (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                            Cortal et al
+
+44.     Lecrubier Y, Sheehan D, Weiller E, et al. The MINI International Neuropsychiatric Interview (MINI). a short diagnostic
+        structured interview: reliability and validity according to the CIDI. Eur Psychiatr. 1997;12(5):224-231. [doi: 10.1016/
+        S0924-9338(97)83296-8]
+45.     Diagnostic and Statistical Manual of Mental Disorders: DSM-5. 5th ed ed. American Psychiatric Association; 2013. [doi:
+        10.1176/appi.books.9780890425596]
+46.     Hamilton M. A rating scale for depression. J Neurol Neurosurg Psychiatry. Feb 1960;23(1):56-62. [doi: 10.1136/jnnp.23.
+        1.56] [Medline: 14399272]
+47.     de Leon-Martinez S, Ruiz M, Parra-Vargas E, et al. Virtual reality and speech analysis for the assessment of impulsivity
+        and decision-making: protocol for a comparison with neuropsychological tasks and self-administered questionnaires.
+        BMJ Open. Jul 13, 2022;12(7):e058486. [doi: 10.1136/bmjopen-2021-058486] [Medline: 35831051]
+48.     Posner K, Brown GK, Stanley B, et al. The Columbia-Suicide Severity Rating Scale: initial validity and internal
+        consistency findings from three multisite studies with adolescents and adults. Am J Psychiatry. Dec
+        2011;168(12):1266-1277. [doi: 10.1176/appi.ajp.2011.10111704] [Medline: 22193671]
+49.     Al-Halabí S, Sáiz PA, Burón P, et al. Validation of a Spanish version of the Columbia-Suicide Severity Rating Scale (C-
+        SSRS). Rev Psiquiatr Salud Ment. 2016;9(3):134-142. [doi: 10.1016/j.rpsm.2016.02.002] [Medline: 27158026]
+50.     Radford A, Kim JW, Xu T, Brockman G, McLeavey C, Sutskever I. Robust speech recognition via large-scale weak
+        supervision. arXiv. Preprint posted online on Dec 6, 2022. [doi: 10.48550/arXiv.2212.04356]
+51.     Zhang Y, Li M, Long D, et al. Qwen3 embedding: advancing text embedding and reranking through foundation models.
+        arXiv. Preprint posted online on Jun 11, 2025. [doi: 10.48550/arXiv.2506.05176]
+52.     Muennighoff N, Tazi N, Magne L, Reimers N. MTEB: massive text embedding benchmark. Presented at: Proceedings of
+        the 17th Conference of the European Chapter of the Association for Computational Linguistics; May 2-6, 2023;
+        Dubrovnik, Croatia. [doi: 10.18653/v1/2023.eacl-main.148]
+53.     McInnes L, Healy J, Melville J. UMAP: Uniform Manifold Approximation and Projection for dimension reduction.
+        arXiv. Preprint posted online on Sep 18, 2020. [doi: 10.48550/arXiv.1802.03426]
+54.     McInnes L, Healy J, Astels S. hdbscan: hierarchical density based clustering. JOSS. 2017;2(11):205. [doi: 10.21105/joss.
+        00205]
+55.     Yang A, Li A, Yang B, et al. Qwen3 technical report. arXiv. Preprint posted online on May 14, 2025. [doi: 10.48550/
+        arXiv.2505.09388]
+56.     Cohen J. Statistical Power Analysis for the Behavioral Sciences. 2nd ed ed. Lawrence Erlbaum Associates; 1988. URL:
+        https://utstat.toronto.edu/~brunner/oldclass/378f16/readings/CohenPower.pdf [Accessed 2026-07-29]
+57.     Fried EI. The 52 symptoms of major depression: lack of content overlap among seven common depression scales. J
+        Affect Disord. Jan 15, 2017;208:191-197. [doi: 10.1016/j.jad.2016.10.019] [Medline: 27792962]
+58.     Menne F, Dörr F, Schräder J, et al. The voice of depression: speech features as biomarkers for major depressive disorder.
+        BMC Psychiatry. Nov 12, 2024;24(1):794. [doi: 10.1186/s12888-024-06253-6] [Medline: 39533239]
+59.     Hanna JJ, Wakene AD, Johnson AO, Lehmann CU, Medford RJ. Assessing racial and ethnic bias in text generation by
+        large language models for health care-related tasks: cross-sectional study. J Med Internet Res. Mar 13,
+        2025;27(1):e57257. [doi: 10.2196/57257] [Medline: 40080818]
+60.     Lau GR, Low WY, Koh SM, Nah FFH, Hartanto A. Evaluating AI alignment in LLMs: output analysis of value
+        priorities across 75 models with human benchmarking. arXiv. Preprint posted online on May 16, 2026. [doi: 10.48550/
+        arXiv.2506.12617]
+61.     Yasugaki S, Okamura H, Kaneko A, Hayashi Y. Bidirectional relationship between sleep and depression. Neurosci Res.
+        Feb 2025;211:57-64. [doi: 10.1016/j.neures.2023.04.006] [Medline: 37116584]
+62.     Arena AF, Mobbs S, Sanatkar S, et al. Mental health and unemployment: a systematic review and meta-analysis of
+        interventions to improve depression and anxiety outcomes. J Affect Disord. Aug 15, 2023;335:450-472. [doi: 10.1016/j.
+        jad.2023.05.027] [Medline: 37201898]
+63.     Pérez-Jorge D, Boutaba-Alehyan M, González-Contreras AI, Pérez-Pérez I. Examining the effects of academic stress on
+        student well-being in higher education. Humanit Soc Sci Commun. 2025;12(1):449. [doi: 10.1057/s41599-025-04698-y]
+64.     Fancourt D, Finn S. What is the evidence on the role of the arts in improving health and well-being? a scoping review.
+        WHO Regional Office for Europe; 2019. URL: http://www.ncbi.nlm.nih.gov/books/NBK553773/ [Accessed
+        2026-07-29]
+65.     Soga M, Gaston KJ, Yamaura Y. Gardening is beneficial for health: a meta-analysis. Prev Med Rep. Mar 2017;5:92-99.
+        [doi: 10.1016/j.pmedr.2016.11.007] [Medline: 27981022]
+66.     de Bloom J, Geurts SAE, Kompier MAJ. Vacation (after-) effects on employee health and well-being, and the role of
+        vacation activities, experiences and sleep. J Happiness Stud. Apr 2013;14(2):613-633. [doi: 10.1007/s10902-012-9345-3]
+
+
+https://mental.jmir.org/2026/1/e99185                                                         JMIR Ment Health 2026 | vol. 13 | e99185 | p. 19
+                                                                                                    (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                              Cortal et al
+
+67.     Pearce M, Garcia L, Abbas A, et al. Association between physical activity and risk of depression: a systematic review
+        and meta-analysis. JAMA Psychiatry. Jun 1, 2022;79(6):550-559. [doi: 10.1001/jamapsychiatry.2022.0609] [Medline:
+        35416941]
+68.     Yang X, Zhao H, Phung D, Buntine W, Du L. LLM reading tea leaves: automatically evaluating topic models with large
+        language models. Trans Assoc Comput Linguist. Apr 17, 2025;13:357-375. [doi: 10.1162/tacl_a_00744]
+69.     Tan Z, D’Souza J. Toward purpose-oriented topic model evaluation enabled by large language models. Int J Digit Libr.
+        Dec 2025;26(4):23. [doi: 10.1007/s00799-025-00429-5]
+70.     Taylor B, Henshall C, Kenyon S, Litchfield I, Greenfield S. Can rapid approaches to qualitative analysis deliver timely,
+        valid findings to clinical leaders? A mixed methods study comparing rapid and thematic analysis. BMJ Open. Oct 8,
+        2018;8(10):e019993. [doi: 10.1136/bmjopen-2017-019993] [Medline: 30297341]
+71.     O’Connor C, Joffe H. Intercoder reliability in qualitative research: debates and practical guidelines. Int J Qual Methods.
+        Jan 1, 2020;19:1609406919899220. [doi: 10.1177/1609406919899220]
+72.     Prescott MR, Yeager S, Ham L, et al. Comparing the efficacy and efficiency of human and generative AI: qualitative
+        thematic analyses. JMIR AI. Aug 2, 2024;3:e54482. [doi: 10.2196/54482] [Medline: 39094113]
+73.     Bijker R, Merkouris SS, Dowling NA, Rodda SN. ChatGPT for automated qualitative research: content analysis. J Med
+        Internet Res. Jul 25, 2024;26:e59050. [doi: 10.2196/59050] [Medline: 39052327]
+74.     Hill C, Dahil A, Simpson G, et al. Large language models for thematic analysis in healthcare research: a blinded mixed-
+        methods comparison with human analysts. PLOS Digit Health. Apr 2026;5(4):e0001189. [doi: 10.1371/journal.pdig.
+        0001189] [Medline: 41931471]
+75.     Castellanos A, Jiang H, Gomes P, Vander Meer D, Castillo A. Large language models for thematic summarization in
+        qualitative health care research: comparative analysis of model and human performance. JMIR AI. Apr 4,
+        2025;4:e64447. [doi: 10.2196/64447] [Medline: 40611510]
+
+Abbreviations
+     AIS: Athens Insomnia Scale
+     BDI: Beck Depression Inventory
+     C-SSRS: Columbia Suicide Severity Rating Scale
+     DSM: Diagnostic and Statistical Manual of Mental Disorders
+     DSM-5: Diagnostic and Statistical Manual of Mental Disorders (Fifth Edition)
+     DSM-IV: Diagnostic and Statistical Manual of Mental Disorders (Fourth Edition)
+     GAD-7: Generalized Anxiety Disorder 7-item scale
+     HDBSCAN: Hierarchical Density-Based Spatial Clustering of Applications With Noise
+     LLM: large language model
+     MDD: major depressive disorder
+     MFI: Multidimensional Fatigue Inventory
+     MODMA: multi-modal open dataset for mental-disorder analysis
+     PHQ-9: Patient Health Questionnaire-9
+     UMAP: Uniform Manifold Approximation and Projection
+     VOCES: Spanish clinical cohort for suicide-risk research
+
+
+
+          Edited by John Torous; peer-reviewed by Avinash Gopinath, Gabriel Rongyang Lau, Soumyajit Podder; submitted
+          23.Apr.2026; final revised version received 20.Jul.2026; accepted 21.Jul.2026; published 17.Aug.2026
+
+          Please cite as:
+          Cortal G, Guessoum SB, Cao XN, de Leon-Martinez S, Baca-García E, Riad R
+          Interpretable Topic Modeling of Spontaneous Speech in Depression Using Large Language Models: Multilingual Four-
+          Cohort Study
+          JMIR Ment Health 2026;13:e99185
+          URL: https://mental.jmir.org/2026/1/e99185
+          doi: 10.2196/99185
+
+
+© Gustave Cortal, Sélim Benjamin Guessoum, Xuan-Nga Cao, Santiago de Leon-Martinez, Enrique Baca-García, Rachid Riad.
+Originally published in JMIR Mental Health (https://mental.jmir.org), 17.Aug.2026. This is an open-access article distributed
+under the terms of the Creative Commons Attribution License (https://creativecommons.org/licenses/by/4.0/), which permits
+unrestricted use, distribution, and reproduction in any medium, provided the original work, first published in JMIR Mental
+
+
+https://mental.jmir.org/2026/1/e99185                                                           JMIR Ment Health 2026 | vol. 13 | e99185 | p. 20
+                                                                                                      (page number not for citation purposes)
+JMIR MENTAL HEALTH                                                                                                             Cortal et al
+
+
+
+Health, is properly cited. The complete bibliographic information, a link to the original publication on https://mental.jmir.org/,
+as well as this copyright and license information must be included.
+
+
+
+
+https://mental.jmir.org/2026/1/e99185                                                          JMIR Ment Health 2026 | vol. 13 | e99185 | p. 21
+                                                                                                     (page number not for citation purposes)
+

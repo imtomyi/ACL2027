@@ -1,0 +1,1131 @@
+                     HICode: Hierarchical Inductive Coding with LLMs
+
+
+                            Mian Zhong* and Pristina Wang* and Anjalie Field
+                                        Johns Hopkins University
+                                            mzhong8@jh.edu
+
+
+
+
+                           Abstract                             and re-code the data. This type of data analysis is
+                                                                frequently used by qualitative researchers, mostly
+        Despite numerous applications for fine-grained
+                                                                commonly for analyzing interview data (Hsieh and
+        corpus analysis, researchers continue to rely
+        on manual labeling, which does not scale, or            Shannon, 2005; Thomas, 2006), and while it fa-
+        statistical tools like topic modeling, which are        cilitates deep analysis, it does not scale to larger
+        difficult to control. We propose that LLMs have         datasets. For example, Birhane et al. (2022) use
+        the potential to scale the nuanced analyses that        this approach to analyze values encoded in ma-
+        researchers typically conduct manually to large         chine learning research, but scalability forces them
+        text corpora. To this effect, inspired by qualita-      to limit their analysis 100 highly-cited papers.
+        tive research methods, we develop HICode1 , a
+                                                                   Alternatively, researchers use combinations of
+        two-part pipeline that first inductively generates
+        labels directly from analysis data and then hi-         exploratory text analysis methods, such as lexicon
+        erarchically clusters them to surface emergent          scores, off-the-shelf sentiment models, and most
+        themes. We validate this approach across three          commonly topic models. As an example, Antoniak
+        diverse datasets by measuring alignment with            et al. (2019) take this approach in analyzing online
+        human-constructed themes and demonstrating              birth stories. Despite massive shifts in NLP model
+        its robustness through automated and human              capabilities, including increasing performance on
+        evaluations. Finally, we conduct a case study           complex tasks like math reasoning (Yang et al.,
+        of litigation documents related to the ongoing
+                                                                2024) and code generation (Peng et al., 2023), inno-
+        opioid crisis in the U.S., revealing aggressive
+        marketing strategies employed by pharmaceu-             vation in corpus analysis has been limited. Latent
+        tical companies and demonstrating HICode’s              Dirichlet Allocation (LDA) (Blei et al., 2003) topic
+        potential for facilitating nuanced analyses in          models remain a go-to approach, with evidence that
+        large-scale data.                                       they outperform neural alternatives (Hoyle et al.,
+                                                                2021, 2022). What innovation has occurred has
+1       Introduction                                            retained existing paradigms like topic modeling
+There are numerous applications for targeted anal-              and sought to show incremental improvements in
+ysis of large text corpora, such as conducting nu-              metrics like topic coherence (Pham et al., 2024).
+anced literature reviews (Blodgett et al., 2020; Field          As a consequence, these approaches also retain
+et al., 2021; Yates et al., 2023; Bowman et al., 2023;          the fundamental limitations of these paradigms, in-
+Johnston et al., 2025), deeply analyzing trends in              cluding lack of controllability, which makes them
+social media data (Lauber et al., 2021) or investi-             unsuited to targeting particular research questions
+gating industry archives like regulatory filings (Eijk          or analysis dimensions.
+et al., 2023; Enache et al., 2025; Wood et al., 2024).             Rather than retaining topic modeling paradigms,
+Researchers and practitioners typically use one of              this work revisits the original goals behind corpus
+two methods. In the first, they downsample the                  analysis: discovering patterns from large corpora.
+data to a small enough subset to review manually                We draw inspiration from qualitative methodology
+and conduct thematic analysis or inductive coding,              in the humanities and social sciences to shift the ap-
+in which they manually read through the data, la-               proach. More specifically, we propose that LLMs
+bel relevant content, and iteratively group labels              offer an avenue for scaling the targeted nuanced
+    * Equal Contribution
+                                                                qualitative research methods to larger data sets, i.e.,
+    1
+    Code is available at https://github.com/mianzg/             conducting inductive coding at scale.
+HICode                                                             To accomplish this, we develop HICode: an
+                                                             31060
+         Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing, pages 31060–31078
+                              November 4-9, 2025 ©2025 Association for Computational Linguistics
+LLM-based pipeline with two primary modules,             3   Methodology
+one that generates data labels and one that hierarchi-
+cally clusters labels. We validate this approach by      We intentionally construct a pipeline, HICode, that
+evaluating its ability to recover human-constructed      is suited to scalable automated analysis rather than
+data labels across three diverse data sets. We fur-      mimicking the incremental and iterative way that
+ther conduct performance and ablation studies, con-      humans typically annotate data, which we discuss
+trasting our hierarchical approach to a more human-      for comparison in §5.1. HICode consists of two
+like incremental one, and demonstrating that results     primary modules that run sequentially: one that
+remain consistent across a range of LLMs.                generates labels for each data point and one that
+                                                         merges and clusters the labels across data points.
+   Finally, we demonstrate the usefulness of our
+                                                         Prior to the modules, if the input is long-text like a
+method in a case study analyzing an archive of liti-
+                                                         litigation document, the documents are parsed into
+gation documents (3K documents parsed into 160K
+                                                         text segments (e.g., paragraph-level) for better fine-
+segments) related to the ongoing opioid epidemic,
+                                                         grained label generation. We first introduce these
+uncovering aggressive marketing strategies used by
+                                                         modules and then discuss the motivation behind
+pharmaceutical companies (Caleb Alexander et al.,
+                                                         this approach.
+2022; Eisenkraft Klein et al., 2024). Overall, by
+facilitating analyses that are both nuanced and in-      Label Generation The goal of the label genera-
+volve large-scale data, HICode—or follow-up meth-        tion module is to produce clear and concise labels
+ods targeting the same goals—has the potential to        for each text input that are relevant to a research
+enable a broad array of previously infeasible stud-      question or analysis dimension that a user cares.
+ies, advancing computational social science, digital     To accomplish this, we craft an LLM prompt with
+humanities, and other fields involving analyses of       two user-provided components: (1) a short descrip-
+large-scale text corpora.                                tion of background information, for example, in
+                                                         analyzing what are the encoded values in machine
+2   Background: What is inductive coding?                learning research?, the definition of “encoded val-
+                                                         ues” needs to be specified; (2) the goal of the in-
+In inductive coding, data labels are derived directly    ductive coding task. These parts of the prompt are
+from data. These labels are further grouped or           expected to change across datasets, and are neces-
+analyzed as meaningful themes to answer an ex-           sary to allow a researcher to direct the model to
+ploratory research question like, what tactics and in-   focus on a particular research question, as opposed
+centives have opioid manufacturers used to increase      to producing generic topics. Then, regardless of
+sales? (Eisenkraft Klein et al., 2024). The process      the dataset, the next part of the prompt directs the
+is commonly applied in qualitative data analysis,        model to identify relevance and generate label(s)
+such as to derive findings from interview studies        that are observational, concise, and clear. Multi-
+(Thomas, 2006). Inductive data coding contrasts          ple labels are allowed for a given segment. The
+deductive coding, in which data labels are drawn         outputted labels are the fine-grained initial codes
+from a pre-existing theory or codebook rather than       towards conducting the analysis.
+derived directly from the data. Deductive coding is
+more common in NLP and has been previously in-           Hierarchical Clustering Once initial labels are
+vestigated as an application for LLMs (Xiao et al.,      generated, the clustering module hierarchically
+2023; Ziems et al., 2024). Inductive coding also         groups them and distills abstract, insightful and
+contrasts with topic modeling. While both meth-          meaningful themes. We implement this clustering
+ods seek to derive patterns directly from raw data,      through repeated rounds of LLM prompting, which
+topic modeling is typically unsupervised, rather         our initial experiments found to be more reliable
+than targeted towards a particular research question     than traditional clustering methods.
+or analysis dimensions. For example, the topic of           Specifically, we randomly divide the generated
+a paper is very different from its encoded values        labels into batches of size 100. We then prompt
+(Birhane et al., 2022). Lastly, inductive coding dif-    an LLM with the goal of the inductive coding task
+fers from summarization in its focus on particular       defined in the generation module, a batch of gen-
+parts of documents that may be unimportant for           erated labels, and a fixed instruction to synthesize
+general summaries and its construction of themes         similar labels into themes. Once all initial batches
+across documents.                                        have been processed, the outputted themes become
+                                                    31061
+                                                                                                  E X A M P L E TA S K : W H AT T Y P E S O F S A L E S S T R AT E G I E S W E R E U S E D T O D R I V E O P I O I D S A L E S ?
+
+    PRE-PROCESSING                                                                                                                                         L A B E L G E N E R AT I O N                                                                                                                            HIERARCHICAL CLUSTERING
+                                                                                                                                                                                                                                                   Generation Prompt                                                                              Clustering Prompt
+                                                                                                                                                                       [Task Background]
+
+                                         Archive                                                                                                                        [Goal of the Inductive Coding Task]
+                                                                                                                                                                        Instruction and format on label generation
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                  DECILE-BASED SALES
+                                                                                                                                                                                                                                                                                                                TARGETED SALES                                                      INCENTIVIZING WITH
+
+
+
+                                                                                                                                                                                                                                                                                                                                 REGIONAL SALES                                                          IRRELEVANT   IRRELEVANT
+                                                                                                                                                                Segments                                                                                                                                                                Finer-grained Clusters
+                                                                                                                                                                                                                                                                                                                                                          ......
+
+
+
+                                                                                                                                                                                                                                                                                                                VOLUME GROWTH
+                                                                                                                                                                                                                                                                                                                                                                         .......
+
+
+                                                                                                                                                                                                                                                                                                                                                                                    MONETARY REWARDS
+        FINAL THEMES                                                                                                                                                                                                                                                                 Irrelevant
+                                                                                                                                                             SUBJECT: SALES NUMBERS FOR THE WEEK OF 2/ 10/ 12
+                                                                                                                                                             FROM: "DUMONT, KIRK E" <KIRK.DUMONT@COVIDIEN.COM>
+                                                                                                                                                             DATE: FRI, 24 FEB 2012 16:37:27 - 0600
+
+
+
+
+          Documents
+                                                                                                                                                             HELLO EVERYONE - WE HAVE 6 WEEKS TO EXCEED OUR GOALS IN QUARTER 2 - BELIEVE
+
+
+
+
+                                                                                                                                                                                           Targeted Sales Volume Growth
+                                                                                                                                                             AND YOU WILL ACHIEVE!!! JULIE , MIKE & CJ - GOOD WEEK FOR BOTH PRODUCTS - WE
+                                                                                                                                                             NEED TO STEP IT UP - CHANGE OUR APPROACHES , STRATEGIES AND TACTICS . WE NEED
+                                                                                                                                                             TO HAVE GREAT WEEKS FOR BOTH PRODUCTS IN QUARTER 2 - 70 EXALGO / 30
+                                                                                                                                                             PENNSAID AT TACK EACH WEEK WILL EARN YOU BIG BONUS DOLLARS .
+
+                                                                                                                                                             VEGAS CONTEST IS HERE - I WOULD LIKE TO SEE SEVERAL TEAM MEMBERS WIN THE
+                                                                                                                                                             TRIP!!!!
+
+    SUBJECT: SALES NUMBERS FOR THE WEEK OF 2/ 10/ 12                                                                                                         PLAN FOR SUCCESS
+    FROM: "DUMONT, KIRK E" <KIRK.DUMONT@COVIDIEN.COM>
+
+
+
+
+                                                                                                                                                                                   Decile-Based Sales Performance
+    DATE: FRI, 24 FEB 2012 16:37:27 - 0600
+    T O : "A H E R N , PAT R I C K J " < PAT R I C K . A H E R N @ COVI D I E N .CO M > ,                                                                    YOU DON' T HAVE TO BE GREAT TO GET STARTED BUT YOU HAVE TO GET STARTED TO BE
+        "CUNNINGHAM, JULIE L" <JULIE.CUNNINGHAM@COVIDIEN.COM>,
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                 Coarser-grained Clusters
+                                                                                                                                                             G R E AT ! ! ! ! 5 WE E KS T O M A K E A N I M PA C T I N T H E F I E L D. N E W B O N U S P E R I O D - M A K E
+        "DEITRICK, CHARLES J" <CHARLES .DEITRICK@COVIDIEN.COM>,
+        "DICICCO, ALIZABETH" <ALIZABETH.DICICCO@COVIDIEN.COM>,                                                                                               EACH CALL A PRODUCTIVE ONE!!!
+        "EDDY, MICHAEL" <MICHAEL .EDDY@COVIDIEN.COM>,
+        "KLEIN, WARREN R" <WARREN.KLEIN@COVIDIEN.COM>,
+        "PSAROS , HARRY G" <HARRY.PSAROS@COVIDIEN.COM>,
+        "SCHALL , MARK V" <MARK.SCHALL@COVIDIEN.COM>,
+        " W E B B , J EI F
+                         S SYI C
+                               OAU" W
+                                    < JEERSES ITCOA .AW  SEK BTBH@E CEOXVPIEDRI E
+                                                                                TSN .TCO
+                                                                                       OS ME> L E C T T H E # 1 K E Y T O S U C C E S S , M O S T
+    C C : " M C G O WW  AN O,UGL ADVSI N
+                                       A YJ. ." . C
+                                                  <LGEAA
+                                                       V IRN
+                                                           LY. MDCEGFOI N
+                                                                        WEADN G @OCA OLVSI .D IBEENC.A
+                                                                                                     CUOSME> W I T H O U T G O A L S Y O U R D R E A M S
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                    SALES
+                       H A V E N O C H A N C E O F B E C O M I N G A R E A L I T Y . D O Y O U H A V E C L E A R LY D E F I N E D
+                       GOALS FOR THIS FISCAL YEAR TO ACHIEVE YOUR SALES QUOTAS FOR EXALGO AND
+                       PENNSAID?
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                   . . . . . . . IRRELEVANT
+                                                                                                                                                             ........................ ]SIGNATURE]
+                       THERE ARE 7WEEKS LEFT OF SALES NUMBERS IN THIS BONUS PERIOD SO MAKE
+                       S U R E E A C H D AY I S A P R O D U C T I VE O N E I D E N T I F YI N G PAT I E N TS A N D G E T T I N G
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                 TECHNIQUES
+                       COMMITMENT!!!.
+                       " M A N Y S U C C E E D B U T O N LY T H O S E W I T H P A S S I O N E X C E L "
+
+                       KIRK
+
+
+
+
+                                                                                                                                                                                                                                                            Incentivizing with
+                                                                                                                                                             THERE ARE 7WEEKS LEFT OF SALES NUMBERS IN THIS BONUS PERIOD SO MAKE SURE
+                                                                                                                                                             E A C H D AY I S A P R O D U C T I VE O N E I D E N T I F YI N G PAT I E N TS A N D G E T T I N G CO M M I T M E N T ! ! ! .
+        VEGAS CONTEST IS HERE                    - I WOULD LIKE TO SEE SEVERAL TEAM MEMBERS WIN
+        THE TRIP!!!!                                                                                                                                         " M A N Y S U C C E E D B U T O N LY T H O S E W I T H P A S S I O N E X C E L "
+        PLAN FOR SUCCESS
+
+
+
+
+                                                                                                                                                                                                                                                            Monetary Rewards
+        YOU DON' T HAVE TO BE GREAT TO GET STARTED BUT YOU HAVE TO GET STARTED TO
+        B E G R E AT ! ! ! ! 5 WE E KS T O M A K E A N I M PA C T I N T H E F I E L D. N E W B O N U S P E R I O D -
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                       Final Themes
+        MAKE EACH CALL A PRODUCTIVE ONE!!!
+
+
+
+
+                             Segments
+
+
+Figure 1: HICode pipeline overview. Given text segments, the pipeline runs (1) Label Generation module to identify
+relevant segments and generate label(s) corresponding to a provided goal of inductive coding, and (2) Hierarchical
+Clustering module to derive insightful themes from the generated labels.
+
+
+inputs for the next iteration of clustering. We re-                                                                                                                                                                                                                                               accepted to involve human interpretation (Braun
+peat this process until reaching a pre-determined                                                                                                                                                                                                                                                 and Clarke, 2006; Ridder, 2014), we design met-
+maximum number of iterations or convergence to a                                                                                                                                                                                                                                                  rics that measure closeness to human labels with a
+threshold of number of themes, as specified by the                                                                                                                                                                                                                                                range of tolerance to facilitate model comparisons,
+user.                                                                                                                                                                                                                                                                                             rather than expecting exact matching.
+                                                                                                                                                                                                                                                                                                     An ideal set of predicted inductive themes
+Pipeline Motivation HICode has the benefit that                                                                                                                                                                                                                                                   would be both comprehensive (include all the same
+label generation for each text segment and each                                                                                                                                                                                                                                                   themes that people found) and minimal (not con-
+batch of clustering is entirely independent, which                                                                                                                                                                                                                                                tain many extra themes). Furthermore, generated
+allows running modules in parallel to efficiently                                                                                                                                                                                                                                                 themes should be true to the underlying text seg-
+process large datasets. Additionally, because these                                                                                                                                                                                                                                               ments: given that a predicted theme matches a
+two modules are entirely distinct, this pipeline fa-                                                                                                                                                                                                                                              human one, the data labeled with that theme should
+cilitates future follow-up work on distilling smaller                                                                                                                                                                                                                                             be the same. To this end, we calculate theme-level
+specialized models for each module, rather than                                                                                                                                                                                                                                                   and segment-level metrics which are modified pre-
+requiring all-purpose LLMs. Finally, producing                                                                                                                                                                                                                                                    cision and recall scores.
+fine-grained codes that are later clustered gives
+more control to the user: a user may start with ini-                                                                                                                                                                                                                                              Notation We denote the set of gold themes an-
+tial high-level themes and then walk back to earlier                                                                                                                                                                                                                                              notated by humans as G, the set of final clustering
+iterations of clustering in order to identify detailed                                                                                                                                                                                                                                            themes as T , and the set of all text segments to be
+labels for themes of interest. We demonstrated this                                                                                                                                                                                                                                               labeled as S.
+process in our case study (§7).                                                                                                                                                                                                                                                                   4.1   Theme-level Precision and Recall
+4                       Evaluation Metrics                                                                                                                                                                                                                                                        We use off-the-shelf embedding models to com-
+                                                                                                                                                                                                                                                                                                  pute embedding representations for each g ∈ G
+As our primary task involves inductively construct-                                                                                                                                                                                                                                               and t ∈ T . We then compute cosine similarity of
+ing a labeling scheme, rather than assigning la-                                                                                                                                                                                                                                                  embeddings for every pair (g, t). If their similar-
+bels under a known scheme, there are no clear                                                                                                                                                                                                                                                     ity is above a given threshold k, we consider the
+pre-existing evaluation metrics. Instead we design                                                                                                                                                                                                                                                pair matched. There can be multiple model themes
+novel automated metrics to compare themes pro-                                                                                                                                                                                                                                                    matched to one gold theme and vice versa, which
+duced by HICode with human-annotated data. As                                                                                                                                                                                                                                                     allows for differing levels of granularity in annota-
+qualitative data analyses can vary widely and are                                                                                                                                                                                                                                                 tions. Denoting the gold themes that get matched as
+                                                                                                                                                                                                                                                                                            31062
+Gmatch ⊆ G and similarly Tmatch ⊆ T , we define           after processing all of the data and incrementally
+the theme-level precision as |Tmatch
+                               |T |
+                                     |
+                                       and recall as      updating the labeling scheme during data process-
+|Gmatch |                                                 ing has also been explored in book-length summa-
+          . We report all metrics at different values
+  |G|                                                     rization (Chang et al., 2024). One iteration of the
+of k, thus allowing flexibility in determining how
+                                                          incremental pipeline first generates labels for a ran-
+similar the generated themes and gold themes are
+                                                          dom sample of unseen data, second, merges these
+expected to be.
+                                                          labels into higher-level themes, and third, drops
+4.2 Segment-level Precision and Recall                    themes that have been assigned to a low number
+For a set of matched themes, segment-level metrics        of segments for several rounds. The full incremen-
+are a weighted average of the per-theme metrics.          tal pipeline is repeated for several iterations where
+                                                          later iterations skip generating new labels, just con-
+Precision For each model theme t in Tmatch , let          ducting merging and dropping. The incremental
+the set of segments labeled as this theme be St . The     approach fully stops when all labels have numbers
+precision is the proportion of these segments that        of segments that are above the threshold.
+are also labeled as equivalent gold theme, denoted
+                             |S matched |                 TopicGPT TopicGPT (Pham et al., 2024) is an
+as Stmatched , i.e., P rect = t |St | . The overall
+                                                          LLM-prompting based pipeline for topic modeling.
+segment-level precision is the summation of the
+                                                          It uses a uniformly sampled subset of the dataset
+weighted precisions. For wt = P|S|S   t|
+                                            ,
+                                    t    t|               to generate topics, where the generation is done
+                            X                             incrementally by prompting the model to assign an
+         P recisionseg =         wt · P rect
+                                                          existing label or produce a new one for each text
+Recall Similarly, for each gold theme g in                input. The pipeline requires providing an initial
+Gmatch , the set of the overlapping text segments         seed topic and its description. In our experiments,
+that are both labeled as g and its equivalent model       we use a real example theme for each dataset as the
+theme is denoted as Sgmatched ⊆ Sg , where Sg is          seed. TopicGPT then assigns the generated topics
+all segments labeled as g. We have the overall            to the entire dataset with an assignment labeling
+segment-level recall as follows,                          step, also accomplished through LLM-prompting.
+                        X
+          Recallseg =       wg · Recallg ,                LLooM LLooM (Lam et al., 2024) is an LLM-
+                                                          prompting framework designed for “concept in-
+                   |Sgmatched |           |Sg |           duction”. LLooM conducts multiple data passes
+where Recallg =                 and wg = P |S      .
+                       |Sg |               g    g|        to distill, cluster, synthesize and assign generated
+5   Experiments                                           concepts in an interactive workbench. While the
+                                                          end-goals of LLooM are more similar to our end-
+5.1 Comparison Models                                     goals than TopicGPT, the system was not evaluated
+We compare our proposed hierarchical approach             on inductively coded data, and its design better fa-
+with an alternative incremental approach and two          cilitates smaller-scale interactive exploration than
+existing baselines, TopicGPT (Pham et al., 2024)          targeted corpus analysis.
+and LLooM (Lam et al., 2024).
+                                                          Pipeline Implementation For fair comparison,
+Incremental Label Generation In conventional              we use gpt-4o-mini in all modules of all pipelines,
+content analysis, researchers often take an incre-        except where otherwise specified for ablation ex-
+mental approach to data coding. They draft a pre-         periments (§6.4) for which both proprietary and
+liminary set of labels based on a sample of the           open-sourced LLMs with different model sizes are
+data. Then they annotate the remaining data start-        compared. The example topics for TopicGPT, seed
+ing with these initial labels, adding new labels          words for LLooM, and the prompts HICode and
+when they find data that does not fit into an ex-         incremental approaches can be found in App. A
+isting one, and recoding data as needed (Hsieh and        and App. B.
+Shannon, 2005). Thus, we design an incremental
+LLM-pipeline that mimics this process for com-            5.2   Datasets
+parison, which conducts generation, merging, and          We evaluate models for their ability to re-create
+dropping of labels to develop final themes. The dis-      three human-labeled datasets. We select these
+tinction between hierarchically merging data labels       datasets to cover a range of disciplines, types of
+                                                       31063
+text data, and the size of the inductively coded label        and inductive coding approach. While values origi-
+set as summarized in Tab. 1.                                  nally determined deductively may be difficult for
+                                                              our models to capture, given the fine-grained an-
+                                       multi-    avg seg
+   data   # themes   # doc    # seg
+                                      labeled?    length
+                                                              notations and semi-inductive approach, we expect
+                                                              many of them to be recoverable. This dataset con-
+ Frame         15    11903   112585      Yes     164.21
+ Astro          9      369      369       No     100.95
+                                                              tains the largest number of themes of any of the
+ Values        82      100     2157      Yes     172.83       datasets we use, thus facilitating more robust eval-
+ OIDA         N/A     3861   163173      N/A     306.51       uation. We directly use selected snippets as input
+                                                              segments.
+Table 1: Summary statistics for evaluation data sets and
+the unannotated OIDA data used in our case study. Unit        6     Results
+of average length is # characters.
+                                                              6.1    Overall Performance
+Media Frames Corpus (Frame) The Media                         We compare the performance of HICode with Top-
+Frames Corpus is a dataset of news articles an-               icGPT, LLooM, and the incremental approach in
+notated for policy frames, such as “Economic” or              Tab. 2 on theme-level precision and recall scores.2
+“Morality” (Card et al., 2015). There are two pri-                Over the Values dataset, which has the largest
+mary limitations to conducting evaluations with               number of themes, HICode achieves the best pre-
+this dataset. First, coding scheme was not derived            cision and recall. The precision under the most
+entirely inductively (Boydstun et al., 2014), and             lenient matching threshold (k = 0.4) is quite
+second, as the dataset has existed since 2015, there          high (0.96), indicating that nearly all themes iden-
+is a risk that LLMs may have been exposed to it               tified by the method were similar to the human-
+in pre-training data. Despite these limitations, we           labeled themes, though the lower precision at
+choose this corpus because the annotation scheme              stricter thresholds indicates they did not always
+was designed to cross-cut policy issues, meaning              match exactly. Over Astro, the incremental and
+the framing labels are intentionally distinct from            HICode methods both far out-perform TopicGPT
+topics. This corpus has also been widely used in              and LLooM. While the incremental method has
+NLP literature, whereas our other data sets have              higher recall (0.67@k = 0.4), the hierarchical
+not previously been used for evaluations. We parse            method has comparable recall (0.51) with much
+each document into paragraphs as the input seg-               better precision (0.53 vs. 0.19). TopicGPT does
+ments for our experiments.                                    perform well on Frame likely because framing
+                                                              annotations in this dataset are emphasis frames
+Astro Queries (Astro) We use a dataset of                     (Chong and Druckman, 2007) that are very topic-
+queries sent to an LLM-powered bot designed to                like and a gold frame is provided to TopicGPT.
+aid astronomers in interacting with astronomy liter-          Nevertheless, the HICode pipeline maintains com-
+ature (Hyk et al., 2025). This data was inductively           parable or better recall. In contrast, on Astro which
+coded to determine the types of queries users sent            has a harder goal of inductive coding to focus on
+to the model, such as “Knowledge seeking: Spe-                the “query types” rather than “query content”, Top-
+cific factual” or “Stress Testing”, where the goal            icGPT’s performance degrades much and our hi-
+was to analyze evaluation strategies that users em-           erarchical and incremental pipelines have the best
+ployed in testing the bot. Unlike other datasets, this        results. Furthermore, as the clustering is done hi-
+data was entirely inductively coded. Furthermore,             erarchically, we have the flexibility to control the
+the data was not publicly released by the knowl-              granularity of themes. Therefore, we likely could
+edge cut-off date of any of the models we evaluate.           improve recall by choosing finer-grained clustering
+We directly use the original queries as the input             results.
+segments.
+ML Values (Values) We use the dataset of 100                  6.2    Human evaluation of Astro
+machine learning research papers annotated for en-            As seen in Tab. 2, while the automated metrics are
+coded values from Birhane et al. (2022). The data             useful for facilitating comparisons of models, the
+consists of manually selected snippets from articles             2
+                                                                   TopicGPT metrics are slightly inflated because the model
+annotated with values like “Efficiency”, “Perfor-             output contains a gold theme from setting the seed to guide
+mance”, and “Privacy” using a hybrid deductive                topic generation
+
+                                                           31064
+                                           k=0.4                       k=0.45                              k=0.5
+        data    pipeline       Precision           Recall      Precision          Recall       Precision           Recall
+       Values   TopicGPT      0.88 (±0.07)    0.52 (±0.12)   0.71 (±0.15)      0.31 (±0.07)   0.58 (±0.15)    0.24 (±0.06)
+                LLooM         0.62 (±0.21)    0.34 (±0.13)   0.54 (±0.23)      0.21 (±0.09)   0.33 (±0.15)    0.15 (±0.07)
+                Incremental   0.92 (±0.10)    0.27 (±0.12)   0.71 (±0.18)      0.18 (±0.07)   0.56 (±0.21)    0.11 (±0.05)
+                HICode        0.96 (±0.05)    0.57 (±0.04)   0.83 (±0.07)      0.40 (±0.04)   0.62 (±0.12)    0.27 (±0.04)
+       Astro    TopicGPT      0.04 (±0.02)    0.49 (±0.12)   0.04 (±0.02)      0.47 (±0.06)   0.03 (±0.01)    0.33 (±0.00)
+                LLooM         0.17 (±0.26)    0.24 (±0.31)   0.07 (±0.14)      0.13 (±0.23)   0.03 (±0.07)    0.07 (±0.19)
+                Incremental   0.19 (±0.05)    0.67 (±0.10)   0.10 (±0.03)      0.53 (±0.15)   0.07 (±0.04)    0.40 (±0.21)
+                HICode        0.53 (±0.17)    0.51 (±0.08)   0.22 (±0.24)      0.33 (±0.29)   0.08 (±0.14)    0.18 (±0.30)
+       Frame    TopicGPT      0.82 (±0.13)    0.76 (±0.09)   0.71 (±0.06)      0.64 (±0.15)   0.49 (±0.08)    0.51 (±0.13)
+                LLooM         0.49 (±0.19)    0.48 (±0.33)   0.37 (±0.10)      0.40 (±0.30)   0.31 (±0.12)    0.29 (±0.21)
+                Incremental   0.78 (±0.08)    0.68 (±0.07)   0.69 (±0.10)      0.56 (±0.05)   0.50 (±0.16)    0.43 (±0.14)
+                HICode        0.68 (±0.10)    0.81 (±0.22)   0.54 (±0.13)      0.67 (±0.25)   0.41 (±0.10)    0.49 (±0.19)
+
+
+
+Table 2: Theme-level Precision and recall scores on TopicGPT (without removing the seed topic), LLooM,
+Incremental and HICode using gpt-4o-mini. The results are the average out of 5 runs for each pipeline, and
+the similarity threshold k is set to 0.4, 0.45, 0.5 to select matched pairs of the gold and model output themes.
+Parentheses () indicate the confidence interval range by using the t-distribution.
+
+
+exact values vary depending on the choice of k, and                 As automated metrics are limited in their repre-
+thus are limited in their absolute reflection of per-            sentation of results, we further conduct a human
+formance. Hence, we more qualitatively evaluate                  evaluation by recruiting two of the original anno-
+predictions and conduct a human evaluation study                 tators of Astro to manually compare the generated
+over Astro for HICode and TopicGPT. We focus on                  themes with the human themes. We provide out-
+this dataset because Tab. 2 suggests it was the most             puts from three runs each of TopicGPT and HICode
+difficult with the lowest automated metrics for all              and ask annotators to score each pair of gold and
+models. It is also the only dataset that was entirely            generated themes with 0.5 if the gold theme is par-
+inductively coded with least risk of leakage into                tially recovered by the model (e.g., gold theme is
+LLM pre-training data.                                           a superset of the model theme or vice versa) and
+                                                                 1 if the gold theme exactly matches the generated
+   In Fig. 2 we show a heatmap that uses the au-                 theme. The resulting agreement rate calculated
+tomatically inferred similarity scores to visualize              using Krippendorff’s alpha is 0.31. We use the an-
+how themes generated by HICode compare to gold                   notations by averaging them and define a matched
+themes. The predicted themes generally do reflect                theme if the averaged score ≥ 0.5.
+the type of query posed by the user (e.g., “general                 As shown in Tab. 3, using human judgments,
+scientific inquiries”), thus matching the target anal-           HICode achieves both high precision at 0.72 and re-
+ysis dimension, in contrast to themes predicted by               call at 0.74, vastly outperforming TopicGPT, which
+TopicGPT reported in App. C, which focus on the                  has an even worse recall than under the automated
+content of the query (e.g., “exoplanet research”).               evaluation (0.49 → 0.33).
+The generated themes do have different granularity
+levels than the gold themes. For example, the gener-                                           TopicGPT            HICode
+ated “information retrieval requests” partially maps                       Similarity         Prec   Recall    Prec    Recall
+to all of the “knowledge seeking” gold themes, and                         Cosine (k = 0.4)   0.04    0.49     0.53         0.51
+similarly, the gold scheme subdivides “bibliometric                        Human              0.18    0.33     0.72         0.74
+search” into two themes, which both map to one
+                                                                 Table 3: Theme-level precision and recall for Astro.
+generated theme: “literature and citation requests”.
+                                                                 “Cosine” row is the automated metric from Tab. 2 and
+Fig. 2 also suggests that automated metrics may                  “Human” row is where matching of pipeline output
+under-count matches. For example, “general sci-                  themes to gold themes was manually conducted by two
+entific inquiries” partially recovers the gold theme             original annotators of the dataset.
+“knowledge seeking: broad description” but the
+similarity score is only 0.29, which would count as                 This human evaluation offers strong evidence
+unmatched for all the k values we report in Tab. 2.              that HICode gives themes that capture similar infor-
+                                                             31065
+                                                       stress testing           0.22 0.20 -0.02 0.17 0.12 0.23 0.22 0.07 0.08 0.13 0.19 0.24 0.15
+                 deep knowledge (including opinion or speculation)              0.25 0.40 0.20 0.27 0.17 0.35 0.25 0.22 0.23 0.33 0.33 0.31 0.18                      0.5
+              knowledge seeking: broad description/common sense                 0.39 0.29 0.17 0.36 0.48 0.37 0.24 0.31 0.28 0.41 0.37 0.38 0.30                      0.4
+                               knowledge seeking: specific factual              0.42 0.34 0.21 0.37 0.52 0.43 0.32 0.39 0.38 0.59 0.38 0.43 0.29
+
+Gold Themes
+                       bibliometric search: specific paper or author            0.20 0.24 -0.05 0.20 0.37 0.33 0.12 0.53 0.43 0.04 0.13 0.13 0.15                     0.3
+                                     knowledge seeking: procedure               0.39 0.26 0.12 0.36 0.50 0.41 0.24 0.33 0.28 0.36 0.33 0.45 0.24                      0.2
+                                                     bot capabilities           0.22 0.13 0.22 0.18 0.32 0.19 0.16 0.21 0.11 0.19 0.20 0.19 0.15
+                                                                                                                                                                      0.1
+                                                    unresolved topic            0.14 0.18 0.20 0.13 0.17 0.22 0.16 0.21 0.17 0.13 0.12 0.19 0.08
+                                          bibliometric search: topic            0.21 0.26 0.02 0.23 0.44 0.40 0.13 0.60 0.32 0.06 0.15 0.23 0.17                      0.0
+                                                                            r i e s iries vant iries ests iries iries ests iries iries iries iries iries
+                                                                        qui         qu irrele l inqu l requ h inqu n inqu n requ c inqu l inqu l inqu y inqu n inqu
+                                                              c i fic in ntific in              tica eva arc              tio    tio     cifi    tua era log itio
+                                                            e
+                                                          sp al scie
+                                                              r                         d a naly ion retri rese correla and cita thor-spe and fac gen ethodo compos
+                                                                                      n        at                 d                      s             m
+                                                         gene                       a
+                                                                                tive inform
+                                                                                                                                u
+                                                                                                             al an ature nd a ation                 and t and
+                                                                        para                             caus liter orical a clarific          data uremen
+                                                                   com                                             hi s t                          s
+                                                                                                                                               mea
+                                                                                                                              HICode Themes
+
+Figure 2: Heatmap comparing themes identified by the HICode (horizontal) with the gold human-labeled themes
+(vertical) for Astro. Each box contains the automatically estimated similarity score between the predicted and gold
+theme, with darker colors signifying higher similarity. The generated themes overall do target similar concepts as
+the original themes, but granularity differs.
+
+
+mation as human annotations, and the metrics in                                                   provide some visibility into whether each pipeline
+Tab. 2 are a conservative estimate of performance.                                                labels the data correctly. HICode has higher seg-
+                                                                                                  ment recalls than other methods.3 HICode also has
+6.3 Segment-level metrics                                                                         the highest precision on Astro.
+We report segment-level metrics for Astro and Val-
+ues in Tab. 4. We do not include Frame since this                                                 6.4      Model Ablation Study
+data was not originally annotated on paragraph-                                                  We further conduct an analysis on the impact of dif-
+level segments but through free selection of span                                                ferent LLM models used in the generation and clus-
+by the annotators. TopicGPT, LLooM and the in-                                                   tering modules for HICode. TopicGPT and LLooM
+cremental approach all involve a second pass over                                                are both entirely based on API-based models which
+the data to assign the final generated themes back                                               are not suitable for private data and may not be cost-
+to the text segments. While this re-assignment pass                                              effective with larger data scale. Moreover, Pham
+is not strictly necessary for HICode, we conduct it                                              et al. (2024) find that open-sourced LLMs generate
+anyway for fair comparison.                                                                      labels poorly. We conduct ablations on the Values
+                                                    k=0.4               k=0.5
+                                                                                                 data, which has the largest number of themes, us-
+                                                                                                 ing popular open-sourced (e.g., Llama and Mixtral)
+                  data      pipeline           Prec     Recall      Prec   Recall
+                                                                                                 and API-based LLMs.
+                 Astro      TopicGPT           0.47        0.14     0.43     0.19
+                            LLooM              0.55        0.96     0.50     0.90                   We report full results in App. D. Surprisingly,
+                            Incremental        0.50        0.14     0.56     0.07                when we fix gpt-4o-mini as the clustering model,
+                            HICode             0.57        0.76     0.57     0.30                the choice of generation model has little im-
+                Values      TopicGPT           0.38        0.46     0.34     0.56                pact on performance, as all models achieve pre-
+                            LLooM              0.18        0.15     0.13     0.16
+                            Incremental        0.24        0.32     0.28     0.36                cision ≥ 0.53 and recall ≥ 0.22 as shown in
+                            HICode             0.34        0.61     0.25     0.64                Tab. 5. When we compare using llama-3.1-8B
+                                                                                                 and gpt-4o-mini for label generation with varying
+                                                                                                 clustering models, gpt-4o-mini (precision range:
+Table 4: Segment-level precision and recall scores aver-
+                                                                                                 0.54 − 0.64; recall: 0.26 − 0.40) slightly outper-
+aged over 5 runs of each approach. underlined metrics
+indicate some runs produced no matched themes and                                                forms llama-3.1-8B (precision: 0.47 − 0.58; re-
+could not be included: LLooM from 3 out of 5 runs (k =                                           call: 0.21 − 0.33), which can be found in Tab. 6
+0.4) and 1 out of 5 runs (k = 0.5); HICode from 2 out                                            and Tab. 7. This result suggests that a strong la-
+of 5 runs (k = 0.5).                                                                             bel generation model may be able to compensate
+                                                                                                      3
+   As segment-level metrics are only computed for                                                      with the exception of one 0.96 recall from LLooM; how-
+                                                                                                  ever, this row only contains results from one run, as the other
+sets of matched themes, which vary across each                                                    4 runs returned an empty set of matched themes, making seg-
+model, metrics are not directly comparable but do                                                 ment metrics incomputable
+
+                                                                                          31066
+for a weaker clustering model. Nonetheless, we          bels associated with three interesting final themes:
+do not observe major performance variation under        “Communication and Engagement”, “Crisis Man-
+different model combinations.                           agement and Responses”, and “Community and
+                                                        Social Responsibility”.
+7   Case study: Identifying Sales Strategies               First, the labels within “Communication and
+    in Opioids Industry Documents Archive               Engagement” suggest a diverse range of sales
+                                                        communication techniques for different customer
+We conduct a case study to demonstrate how              groups (e.g., “identifying patient type using play-
+HICode has the potential to facilitate deep analysis    book”) or medical conditions (e.g., “focusing on
+of large corpora using the UCSF-JHU Opioid In-          cancer pain”). These results further support rel-
+dustry Documents Archive (OIDA) (Caleb Alexan-          evant public health studies. For instance, while
+der et al., 2022). OIDA is a growing repository con-    Eisenkraft Klein et al. (2024) identify hypertar-
+taining millions of internal corporate documents        geting high-decile prescribers, our analysis addi-
+related to opioid litigation. The overdose epidemic     tionally identifies efforts for “educating outlier
+in the U.S. has spanned over 20 years and resulted      prescribers” which labels the following segment:
+in more than one million deaths, with high in-          “With all the issues with opioid prescribing and po-
+volvement of prescription opioids (Caleb Alexan-        tential abuse, you have to understand what your
+der et al., 2022). Analysis of OIDA has the poten-      own organization is doing [...] You should bench-
+tial to uncover vital information about ways phar-      mark practices and then try to educate prescribers
+maceutical companies have contributed to this cri-      who may be outliers.”4
+sis, such as using marketing strategies that target
+key opinion leaders (Gac et al., 2024) or women            Aside from micro-level engagement, higher-
+and children (Yakubi et al., 2022). However, the re-    level crisis awareness and prevention is also in-
+lease of data as difficult-to-read unstructured PDFs    tegral to sales strategies. Investigating documents
+with OCR converted plain texts (see App. E) has         labeled with the theme “Crisis Management and Re-
+restricted these prior investigations to manual in-     sponse” reveals strategizing around “anticipating
+vestigation of a tiny percentage (e.g., 200 to 600      lost revenue” from industry competitors, “identify-
+documents) of the archive.                              ing lost prescriber opportunity” for regional sales
+                                                        monitoring, and “anticipating opposition to expan-
+   We draw inspiration from Eisenkraft Klein et al.
+                                                        sion” due to potential electoral consequences with
+(2024), who study what types of sales strategies
+                                                        details in App. E.
+or techniques were used to drive Opioid sales?.
+They initially searched the archive for “sales con-        Meanwhile, the theme “Community and Social
+test”, but found the returned documents too broad       Responsibility” also suggests possible evidence
+and numerous and instead focused on a narrower          that companies were aware of the public harm of
+subset for manual analysis. We use HICode to con-       their product. In reviewing texts labeled under la-
+duct the scaled analysis that was infeasible man-       bels like “breaking prescription cycle” and “public
+ually. Specifically, we search for “sales contest”      frustration with prices”, we find corporate daily
+in Mallinckrodt email collection, retrieving 3,861      newsletters circulating. These internal newslet-
+emails OCRs which we parse into 163,173 seg-            ters offer evidence that employees were informed
+ments. The pipeline uses llama-3.1-8B in gen-           about news coverage of growing crisis, including
+eration and gpt-4o-mini for clustering. In gen-         content related to prescription drug safety, govern-
+eration stage, HICode labels 40% of the data as         ment affairs, and pharmaceutical corporations and
+irrelevant (65,642 segments with examples in Ap-        their products. In particular, the label of “targeting
+pendix Fig. 4). The clustering ran for five itera-      young adult misusers” designates circulated news
+tions to reach 17 final themes from 70K generated       about the vulnerability of and impact to this popu-
+labels (Fig. 8). Among the final themes, “sales         lation. While the intention behind circulation this
+strategies and techniques” dominantly contains the      news is unclear from the documents we reviewed,
+most generated labels (≈ 14K) followed by “reg-         at a minimum, they do suggest awareness and mon-
+ulatory and compliance” (≈ 6K). As the cluster-         itoring of the crisis.
+ing module is hierarchical, we can further break
+down the themes and trace back to finer-grained            4
+                                                            https://www.industrydocuments.ucsf.edu/
+labels. In Fig. 3, we highlight such fine-grained la-   opioids/docs/#id=zskd0237
+
+                                                   31067
+      Communication and Engagement            Community and Social Responsibility    Crisis Management and Response
+      pain relief with addiction prevention         patient education focus               anticipating lost revenue
+         educating outlier prescribers             breaking prescription cycle               invalidating patents
+            focusing on cancer pain                 investor pressure tactics             emphasizing side effects
+         using authority to build trust           activism for cannabis access                  exalgo focus
+           providing a demo or trial              target young adult misusers             hostile takeover attempt
+       patient prescription history review     advocating for access to treatments     combating pharmacy shopping
+        promoting established medical              politicizing the opioid crisis    comparing opioid to h.i.v. epidemic
+                procedures
+         identifying patient type using            engaging with healthcare               identifying lost prescriber
+                    playbook                            professionals                            opportunity
+       using patient education materials          public frustration with prices        threatening to stop subsidies
+       providing product sales objectives         opioid withdrawal treatment        anticipating opposition to expansion
+
+
+        Figure 3: Three themes with randomly selecting cluster labels generated by HICode over OIDA.
+
+
+8   Related Work                                                    evaluation, and their released code was developed
+                                                                    to be interactive, requiring us to make modifica-
+To date, most LLM-driven data annotating tasks                      tions for more scaled analyses.
+in NLP have focused on deductive data coding,
+classifying text based on a pre-existing annotation                 9     Conclusions
+scheme (Xiao et al., 2023; Ziems et al., 2024).
+                                                                    We proposed HICode, an LLM-based pipeline for
+Work that takes a more inductive approach with
+                                                                    conducting deep nuanced analysis over large-scale
+the goal of open-ended corpus analysis has focused
+                                                                    data. Our evaluations and case study suggest that
+on topic modeling. Initial topic models that lever-
+                                                                    this method has high potential for enabling pre-
+age pre-trained language models, such as BERT-
+                                                                    viously infeasible analyses, with opportunities to
+Topic (Grootendorst, 2022) and Contextualized
+                                                                    assist in-depth exploratory corpus analysis.
+Topic Models (Bianchi et al., 2021), extract pre-
+trained embeddings to cluster or incorporate as fea-
+                                                                    Limitations
+tures. More recently, TopicGPT (Pham et al., 2024)
+consists of a LLM-prompting pipeline for topic                      The primary limitation of our work is the diffi-
+modeling that demonstrates strong performance as                    culty of estimating reliable evaluation metrics in
+compared to previous models, which is why we use                    this setting. As qualitative data analyses can vary
+this model for comparison.                                          widely and are accepted to involve human inter-
+   A separate line of work has focused on develop-                  pretation (Braun and Clarke, 2006; Ridder, 2014),
+ing automated tools to assist researchers in qualita-               exact replication of human labels is not expected,
+tive coding, such as CollabCoder (Gao et al., 2024)                 which makes evaluations difficult. We take steps to
+and Scholarstic (Hong et al., 2022) and other sys-                  mitigate this limitation, including reporting metrics
+tems leveraging LLM suggestions (Dai et al., 2023;                  over 5 separate runs for each model and using a
+Parfenova et al., 2025; Pacheco et al., 2023). This                 range of metrics with varying levels of tolerance.
+work has often been conducted by HCI researchers                    Nevertheless, future work is needed to further im-
+with extensive interface design to facilitate human                 prove the reliability of evaluation metrics.
+involvement in the coding process. Most evalua-                        We also conduct evaluations over a specific set of
+tions are conducted over interview datasets, which                  datasets and models. We specifically chose datasets
+are necessarily small as they are limited by the                    with wide variability in size and domain and we
+number of interviews a research team can conduct.                   conduct model ablations studies, but we neverthe-
+These systems aim to aid qualitative researchers in                 less cannot conclusively determine how results will
+analyzing data by hand, rather than scaling anal-                   generalize to new settings. Relatedly, our method
+yses to conduct corpus analyses. LLooM (Lam                         also relies on LLM-prompting and requires a user
+et al., 2024), which focuses on “concept induc-                     to provide background context on their research
+tion” is an intermediary between this line of work                  question or analysis dimension. While we did not
+and our work. While Lam et al. (2024) do conduct                    do any prompt optimization and only tried one
+comparisons against topic models on non-interview                   prompt for each dataset— suggesting that careful
+datasets, they substantially downsample data for                    prompt crafting may not be needed for the pipeline
+                                                              31068
+to work— results may vary by the user’s choice of           Virginia Braun and Victoria Clarke. 2006. Using the-
+prompt.                                                       matic analysis in psychology. Qualitative research
+                                                              in psychology, 3(2):77–101. Cited on pages 3 and 9.
+Acknowledgments                                             G. Caleb Alexander, Lisa A. Mix, Sayeed Choudhury,
+                                                              Rachel Taketa, Cecília Tomori, Maryam Mooghali,
+We gratefully thank Caleb Alexander, Ioana Ciucă,            Anni Fan, Sarah Mars, Dan Ciccarone, Mark Patton,
+Jie Gao, Kevin Hawkins, Alina Hyk, Louis Hyman,               Dorie E. Apollonio, Laura Schmidt, Michael A. Stein-
+Sandesh Rangreji, Brian Wingenroth, John Wu,                  man, Jeremy Greene, Kelly R. Knight, Pamela M.
+and Ziang Xiao for their helpful feedback on this             Ling, Anne K. Seymour, Stanton Glantz, and Kate
+                                                              Tasker. 2022. The opioid industry documents archive:
+work. This work was supported in part by a Johns              A living digital repository. American Journal of Pub-
+Hopkins Discovery Award.                                      lic Health, 112(8):1126–1129. Cited on pages 2
+                                                              and 8.
+
+References                                                  Dallas Card, Amber E. Boydstun, Justin H. Gross, Philip
+                                                              Resnik, and Noah A. Smith. 2015. The media frames
+Maria Antoniak, David Mimno, and Karen Levy. 2019.            corpus: Annotations of frames across issues. In Pro-
+ Narrative paths and negotiation of power in birth sto-       ceedings of the 53rd Annual Meeting of the Asso-
+ ries. Proceedings of the ACM on Human-Computer               ciation for Computational Linguistics and the 7th
+ Interaction, 3(CSCW):1–27. Cited on page 1.                  International Joint Conference on Natural Language
+                                                              Processing (Volume 2: Short Papers), page 438–444,
+Federico Bianchi, Silvia Terragni, and Dirk Hovy. 2021.       Beijing, China. Association for Computational Lin-
+  Pre-training is a hot topic: Contextualized document        guistics. Cited on page 5.
+  embeddings improve topic coherence. In Proceed-
+  ings of the 59th Annual Meeting of the Association for    Yapei Chang, Kyle Lo, Tanya Goyal, and Mohit Iyyer.
+  Computational Linguistics and the 11th International        2024. Booookscore: A systematic exploration of
+  Joint Conference on Natural Language Processing             book-length summarization in the era of LLMs. In
+  (Volume 2: Short Papers), pages 759–766, Online.            The Twelfth International Conference on Learning
+  Association for Computational Linguistics. Cited on         Representations. Cited on page 4.
+  page 9.
+                                                            Dennis Chong and James N Druckman. 2007. Framing
+Abeba Birhane, Pratyusha Kalluri, Dallas Card, William        theory. Annu. Rev. Polit. Sci., 10(1):103–126. Cited
+  Agnew, Ravit Dotan, and Michelle Bao. 2022. The             on page 5.
+  values encoded in machine learning research. In
+                                                            Shih-Chieh Dai, Aiping Xiong, and Lun-Wei Ku. 2023.
+  2022 ACM Conference on Fairness, Accountability,
+                                                              LLM-in-the-loop: Leveraging large language model
+  and Transparency, page 173–184, Seoul Republic of
+                                                              for thematic analysis. In Findings of the Association
+  Korea. ACM. Cited on pages 1, 2, and 5.
+                                                              for Computational Linguistics: EMNLP 2023, pages
+David M. Blei, Andrew Y. Ng, and Michael I. Jordan.           9993–10001, Singapore. Association for Computa-
+  2003. Latent dirichlet allocation. Journal of Machine       tional Linguistics. Cited on page 9.
+  Learning Research, 3(Jan):993–1022. Cited on page         Yvette van der Eijk, Ken Wah Teo, Grace Ping Ping
+  1.                                                          Tan, and Wee Meng Chua. 2023. Tobacco industry
+                                                              strategies for flavour capsule cigarettes: analysis of
+Su Lin Blodgett, Solon Barocas, Hal Daumé III, and            patents and internal industry documents. Tobacco
+  Hanna Wallach. 2020. Language (technology) is               Control, 32(e1):e53–e61. Cited on page 1.
+  power: A critical survey of “bias” in NLP. In Pro-
+  ceedings of the 58th Annual Meeting of the Asso-          Daniel Eisenkraft Klein, Ross MacKenzie, Ben
+  ciation for Computational Linguistics, pages 5454–          Hawkins, and Adam D. Koon. 2024. Inside “opera-
+  5476, Online. Association for Computational Lin-            tion change agent”: Mallinckrodt’s plan for capturing
+  guistics. Cited on page 1.                                  the opioid market. Journal of Health Politics, Policy
+                                                              and Law, 49(4):599–630. Cited on pages 2 and 8.
+Robert Bowman, Camille Nadal, Kellie Morrissey, Anja
+  Thieme, and Gavin Doherty. 2023. Using thematic           Luminita Enache, Paul A. Griffin, , and Rucsandra
+  analysis in healthcare hci at chi: A scoping review. In     Moldovan. 2025. Clarification or confusion: A tex-
+  Proceedings of the 2023 CHI Conference on Human             tual analysis of asc 842 lease transition disclosures.
+  Factors in Computing Systems, CHI ’23, New York,            European Accounting Review, 34(1):57–88. Cited on
+  NY, USA. Association for Computing Machinery.               page 1.
+  Cited on page 1.
+                                                            Anjalie Field, Su Lin Blodgett, Zeerak Waseem, and
+Amber E Boydstun, Dallas Card, Justin H Gross, Philip         Yulia Tsvetkov. 2021. A survey of race, racism, and
+  Resnik, and Noah A Smith. 2014. Tracking the de-            anti-racism in NLP. In Proceedings of the 59th An-
+ velopment of media frames within and across policy           nual Meeting of the Association for Computational
+  issues. In APSA 2014 annual meeting paper, pages            Linguistics and the 11th International Joint Confer-
+ 1–25. Cited on page 5.                                       ence on Natural Language Processing (Volume 1:
+                                                       31069
+  Long Papers), pages 1905–1925, Online. Association        Michelle S. Lam, Janice Teoh, James A. Landay, Jeffrey
+  for Computational Linguistics. Cited on page 1.             Heer, and Michael S. Bernstein. 2024. Concept in-
+                                                              duction: Analyzing unstructured text with high-level
+Brian Gac, Kgosi Tavares, Hanna Yakubi, Hannah Khan,          concepts using lloom. In Proceedings of the 2024
+  Dorie E. Apollonio, and Eric Crosbie. 2024. Pharma-         CHI Conference on Human Factors in Computing
+  ceutical industry use of key opinion leaders to market      Systems, CHI ’24, New York, NY, USA. Association
+  prescription opioids: A review of internal industry         for Computing Machinery. Cited on pages 4 and 9.
+  documents. Exploratory Research in Clinical and
+  Social Pharmacy, 16:100543. Cited on page 8.              Kathrin Lauber, Harry Rutter, and Anna B. Gilmore.
+Jie Gao, Yuchen Guo, Gionnieve Lim, Tianqin Zhang,            2021. Big food and the world health organization:
+   Zheng Zhang, Toby Jia-Jun Li, and Simon Tangi Per-         a qualitative study of industry attempts to influence
+   rault. 2024. Collabcoder: A lower-barrier, rigorous        global-level non-communicable disease policy. BMJ
+   workflow for inductive collaborative qualitative anal-     Global Health, 6(6). Cited on page 1.
+   ysis with large language models. In Proceedings          Maria Leonor Pacheco, Tunazzina Islam, Lyle Ungar,
+   of the 2024 CHI Conference on Human Factors in            Ming Yin, and Dan Goldwasser. 2023. Interactive
+   Computing Systems, CHI ’24, New York, NY, USA.            concept learning for uncovering latent themes in large
+   Association for Computing Machinery. Cited on             text collections. In Findings of the Association for
+   page 9.                                                   Computational Linguistics: ACL 2023, pages 5059–
+Maarten Grootendorst. 2022. Bertopic: Neural topic           5080, Toronto, Canada. Association for Computa-
+ modeling with a class-based tf-idf procedure. arXiv         tional Linguistics. Cited on page 9.
+ preprint arXiv:2203.05794. Cited on page 9.
+                                                            Angelina Parfenova, Andreas Marfurt, Jürgen Pfeffer,
+Matt-Heun Hong, Lauren A. Marsh, Jessica L. Feuston,          and Alexander Denzler. 2025. Text annotation via in-
+ Janet Ruppert, Jed R. Brubaker, and Danielle Albers          ductive coding: Comparing human experts to LLMs
+ Szafir. 2022. Scholastic: Graphical human-ai collab-         in qualitative data analysis. In Findings of the Asso-
+ oration for inductive and interpretive text analysis. In     ciation for Computational Linguistics: NAACL 2025,
+ Proceedings of the 35th Annual ACM Symposium on              pages 6456–6469, Albuquerque, New Mexico. Asso-
+ User Interface Software and Technology, UIST ’22,            ciation for Computational Linguistics. Cited on page
+ New York, NY, USA. Association for Computing                 9.
+ Machinery. Cited on page 9.
+                                                            Sida Peng, Eirini Kalliamvakou, Peter Cihon, and Mert
+Alexander Hoyle, Pranav Goel, Andrew Hian-Cheong,              Demirer. 2023. The impact of ai on developer pro-
+  Denis Peskov, Jordan Boyd-Graber, and Philip                 ductivity: Evidence from github copilot. Preprint,
+  Resnik. 2021. Is automated topic model evaluation            arXiv:2302.06590. Cited on page 1.
+  broken? the incoherence of coherence. Advances
+  in neural information processing systems, 34:2018–        Chau Minh Pham, Alexander Hoyle, Simeng Sun, Philip
+  2033. Cited on page 1.                                      Resnik, and Mohit Iyyer. 2024. TopicGPT: A prompt-
+                                                              based topic modeling framework. In Proceedings of
+Alexander Miserlis Hoyle, Rupak Sarkar, Pranav Goel,          the 2024 Conference of the North American Chap-
+  and Philip Resnik. 2022. Are neural topic models            ter of the Association for Computational Linguistics:
+  broken? In Findings of the Association for Computa-         Human Language Technologies (Volume 1: Long
+  tional Linguistics: EMNLP 2022, pages 5321–5344,            Papers), pages 2956–2984, Mexico City, Mexico. As-
+  Abu Dhabi, United Arab Emirates. Association for            sociation for Computational Linguistics. Cited on
+  Computational Linguistics. Cited on page 1.                 pages 1, 4, 7, and 9.
+Hsiu-Fang Hsieh and Sarah E. Shannon. 2005. Three
+  approaches to qualitative content analysis. Quali-        Hans-Gerd Ridder. 2014. Qualitative data analysis. a
+  tative Health Research, 15(9):1277–1288. PMID:              methods sourcebook 3 rd edition. Cited on pages 3
+  16204405. Cited on pages 1 and 4.                           and 9.
+
+Alina Hyk, Kiera McCormick, Mian Zhong, Ioana               David R. Thomas. 2006. A general inductive approach
+  Ciucă, Sanjib Sharma, John F Wu, J. E. G. Peek,            for analyzing qualitative evaluation data. Ameri-
+  Kartheik G. Iyer, Ziang Xiao, and Anjalie Field.            can Journal of Evaluation, 27(2):237–246. Cited
+  2025. From queries to criteria: Understanding how           on pages 1 and 2.
+  astronomers evaluate LLMs. In Second Conference
+  on Language Modeling. Cited on page 5.                    Benjamin Wood, Chrissa Karouzakis, Katherine Sievert,
+                                                              Sven Gallasch, and Gary Sacks. 2024. Protecting
+Sasha Johnston, Polly Waite, Jasmine Laing, Layla             whose welfare? a document analysis of competition
+  Rashid, Abbie Wilkins, Chloe Hooper, Elizabeth              regulatory decisions in four jurisdictions across three
+  Hindhaugh, and Jennifer Wild. 2025. Why do emer-            harmful consumer product industries. Globalization
+  gency medical service employees (not) seek organiza-        and Health, 20(1):70. Cited on page 1.
+  tional help for mental health support?: A systematic
+  review. International Journal of Environmental Re-        Ziang Xiao, Xingdi Yuan, Q. Vera Liao, Rania Ab-
+  search and Public Health, 22(44):629. Cited on page         delghani, and Pierre-Yves Oudeyer. 2023. Support-
+  1.                                                          ing qualitative analysis with large language models:
+                                                       31070
+    Combining codebook with gpt-3 for deductive cod-      - If there are multiple labels, each label
+    ing. In Companion Proceedings of the 28th Inter-      is a new line.
+    national Conference on Intelligent User Interfaces,
+                                                          - If the input is irrelevant, use \"LABEL:
+    IUI ’23 Companion, page 75–78, New York, NY,
+    USA. Association for Computing Machinery. Cited       [Irrelevant]\".
+    on pages 2 and 9.                                     - The label MUST NOT exceed 5 words.
+Hanna Yakubi, Brian Gac, and Dorie E. Apollonio. 2022.
+  Industry strategies to market opioids to children and   A.2    Hierarchical Clustering
+  women in the usa: a content analysis of internal in-
+  dustry documents from 1999 to 2017 released in state    Synthesize the entire list of labels
+  of oklahoma v. purdue pharma, l.p. et al. Cited on      by clustering similar labels that are
+  page 8.
+                                                          inductively labeled. The clustering is to
+An Yang, Beichen Zhang, Binyuan Hui, Bofei Gao,           finalize MEANINGFUL and INSIGHTFUL THEMES
+  Bowen Yu, Chengpeng Li, Dayiheng Liu, Jian-             for {Goal of inductive coding}. Output in
+  hong Tu, Jingren Zhou, Junyang Lin, Keming Lu,          json format where the key is the cluster,
+  Mingfeng Xue, Runji Lin, Tianyu Liu, Xingzhang
+  Ren, and Zhenru Zhang. 2024. Qwen2.5-math tech-
+                                                          and the value is the list of input labels
+  nical report: Toward mathematical expert model via      in that cluster. For each cluster, the
+  self-improvement. arXiv preprint arXiv:2409.12122.      value should only take labels from the
+  Cited on page 1.                                        user input. ONLY output the JSON object,
+Victoria Antin Yates, James M. Vardaman, and James J.     and do not add any other text.
+  Chrisman. 2023. Social network research in the
+  family business literature: a review and integration.
+  Small Business Economics, 60(4):1323–1345. Cited        B     Experiment set-up
+  on page 1.
+                                                          For our experiments, AI-assisted tools are used for
+Caleb Ziems, William Held, Omar Shaikh, Jiaao Chen,       coding and plotting.
+  Zhehao Zhang, and Diyi Yang. 2024. Can large lan-
+  guage models transform computational social sci-
+                                                          B.1    TopicGPT Example Topics
+  ence? Computational Linguistics, 50(1):237–291.
+  Cited on pages 2 and 9.                                 Media Frame Corpurs [1] Political: considera-
+                                                          tions related to politics and politicians, including
+A     Model Prompts                                       lobbying, elections, and attempts to sway voters.
+In this section, we provide the prompting templates       Astro Queries [1] Knowledge seeking for spe-
+used in our HICode pipelines, where is a variable         cific facts: Questions about very specific pieces of
+that changes the content depending on the dataset         information, such as characteristics, facts parame-
+and inductive coding task.                                ters of specific objects, phenomena, or processes.
+A.1 Label Generation                                      ML Values [1] Performance: A research value
+{Background Information}                                  that show a specific, quantitative, improvement
+                                                          over past work, according to some metric on a
+{Goal of Inductive Coding}                                new or established dataset.
+Instruction:
+                                                          B.2    LLooM
+- Label the input only when it is HIGHLY
+RELEVANT and USEFUL for {Goal of Inductive                As Astro is the most difficult dataset to label, to
+Coding}.                                                  not make LLooM disadvantageous, we use “query
+- Then, define the phrase of the                          type” as the seed word for its label generation.
+label. The label description should be
+observational, concise and clear.                         B.3    Incremental approach
+- ONLY output the label and DO NOT output                 We set the number of text segments to run the gen-
+any explanation.                                          eration module in the first iteration to be 32 and 48
+                                                          for the rest of the iterations. The number of itera-
+Format:                                                   tions that we run all three modules was set to 10
+- Define the label using the format                       and after that, only merging and dropping modules
+\"LABEL: [The phrase of the label]\".                     will be run until all themes have more than one
+                                                     31071
+segment. When there are gold labels, another con-        {{
+dition needs to be satisfied besides the 10 iterations   "clusters": [
+condition, for the approach to stop running all three        {{
+modules. The condition is that the approach needs           "high_level_code": "Cyber Harassment",
+to process at least 3 segments for each label before                 "original_codes":    ["Online
+it starts to only run merging and dropping module.       Harassment", "Cyberbullying"],
+                                                                "justification": "Both refer to
+B.3.1 Generation module
+                                                         aggressive online behavior; Cyberbullying
+We use the same template to HICode prompt for            is a subset but can be generalized."
+fair comparison in the generation module.                    }}
+B.3.2 Merging module                                     ]
+                                                         }}
+We use the following template of the system
+prompts for the merging module and pass the exist-
+                                                         When no clustering is needed, answer N/A
+ing codebook as user prompts.
+                                                         and provide your answer following this
+"Synthesize the entire list of labels                    output format below:
+by clustering similar labels that are                    Ans: N/A"
+inductively labeled.
+                                                         B.4   Dropping module
+The clustering is to finalize MEANINGFUL
+and INSIGHTFUL THEMES for {Goal of                       This module drops labels and their associated seg-
+Inductive Coding}                                        ments. The dropped segments will not get sampled
+You will be provided with an existing                    for generation again. The intuition is to drop la-
+codebook. Now you need to cluster the                    bels that are not merged or are not being generated
+codes into clusters and provide one higher               again. In our experiments, we drop labels that are
+level code for each cluster of codes.                    attached to only one segment if these labels do not
+                                                         attach to than one segment after 2 iterations.
+Guidelines for Clustering:
+                                                         B.5   Reassignment
+- Analyze existing codes and their
+corresponding   segments   and   cluster                 The template for user prompting of the reassign-
+the   existing   codes   into   clusters                 ment module is as follows.
+with corresponding higher level codes                    "{Goal of inductive coding}
+representing the whole cluster.                          Analyze the following segment to identify
+                                                         the best label from the codebook that
+The existing codebook will be provided as                should be assigned to this segment.
+input following this example below:
+1. <code1>                                               Segment will be given like below:
+                                                         Segment:<segment text>
+-> <segment labeled with code1>
+                                                         The existing codebook will be provided
+2. <code2>                                               following this example below:
+                                                         Codebook: 1. <code>, 2. <code>, ... , n.
+-> <segment labeled with code2>                          <code>
+
+...                                                      Provide your answers following               this
+                                                         output format example below:
+n. <codeN>                                               Ans: Cyber Harassment
+
+-> <segment labeled with codeN>                          Now given the existing codebook and
+                                                         the segment below, provide your answer
+Provide your answers following                  this     following the format given above.
+output format example below:                             Codebook: <codebook>
+Ans:                                                     Segment: <text_segment>"
+                                                    31072
+C    TopicGPT: Qualitative Analysis                         cluster model             #clusters        Precion         Recall
+In Fig. 5 we provide a heatmap comparing the                kmeans                              50          0.64          0.34
+themes for Astro predicted by TopicGPT with the             gpt-4o-mini                         22          0.68          0.26
+human-labeled themes, analogous to Fig. 2.                  gpt-4o                              59          0.55          0.40
+                                                            claude                              21          0.66          0.26
+D    Supplemental Materials for Model                       mixtral-large                       53          0.54          0.41
+     Ablation Study
+                                                        Table 7: Clustering using kmeans, llama-3.1-8B
+Here we provide more details about the model            gpt-4o-mini, gpt-4o, claude, mixtral-large with
+ablation study in §6.4. Tab. 5 compares differ-         generation results from gpt-4o-mini onValues data.
+ent models used for “Label Generation”. Tab. 6
+and Tab. 7 compares different models used for           Phillipsburg, New Jersey (Red School Lane)
+                                                        Nordion and Mallinckrodt for years distributed the entire U.S. supply of
+“Hierarchical clustering” where the former used         molybdenum and more than 60 percent of the global supply. The
+                                                        molybdenum is later processed further to strip out technetium-99m,
+llama-3.1-8B in the generation stage and the lat-       the isotope used in diagnostic devices.
+
+ter used gpt-4o-mini.                                   State Outlook: The Republican Party controls both legislative chambers
+                                                        and the Governor's Office. The Legislature is composed of a 33 member
+                                                        Senate and a 99 member House. The Senate is divided between 19
+                                                        Republicans and 14 Democrats, while the House is divided between 63
+
+    gen model              Precision      Recall        Republicans and 36 Democrats. The Legislature operates in a biennium
+                                                        and will not formally adjourn until January of 2019.
+
+
+    llama-3.2-3b                 0.66        0.23       After he swallowed a handful of percocets in 2014, his wife demanded a
+                                                        change
+                                                        Novartis, slammed by Korean scandal, tweaks its ethics, compliance
+    llama-3.1-8B                 0.54        0.22       policies, Fierce Pharma - 15 May 2017 [Read online]
+
+    gpt-4o-mini                  0.68        0.26       Figure 4: Examples of segments labeled as irrelevant
+    claude                       0.63        0.30       segments.
+    mixtral-large                0.53        0.26
+                                                           Finally, as mentioned in §7, we provide the pairs
+Table 5: Clustering using gpt-4o-mini with generation   of labeled text segments here for “anticipating lost
+results from different LLMs on Values data.
+                                                        revenue”, “identifying lost prescriber opportunity”,
+                                                        and “anticipating opposition to expansion”.
+
+    cluster model          Precision      Recall        Anticipating lost revenue
+                                                        [Text Segment]
+    kmeans                       0.50        0.30       Pfizer's investors are waiting the
+    llama-3.1-8B                 0.47        0.50       approval of new drugs to replace lost
+    gpt-4o-mini                  0.54        0.22       revenue and profit from the company's
+                                                        Lipitor (atorvastatin calcium), which
+    gpt-4o                       0.55        0.33
+                                                        will soon lose its patent protection.
+    claude                       0.58        0.27       Pfizer saw \$10.7 billion in revenue from
+    mixtral-large                0.58        0.21       the drug last year, and analysts expect
+                                                        the company will have to replace about
+Table 6: Clutering using kmeans, llama-3.1-8B           \$9.5 billion. Seeking Alpha published
+gpt-4o-mini, gpt-4o, claude, mixtral-large with         a look at the company's pipeline for
+generation results from llama-3.1-8B on Values data.
+                                                        candidates to potentially replace lost
+                                                        Lipitor revenue, focusing on new drugs
+                                                        that have the most financial potential.
+E Supplemental Materials for Case Study
+                                                        The drugs discussed are apixaban, an
+We provide some examples that are labeled as “ir-       anticoagulation medication developed in
+relevant” in the label generation stage in Fig. 4.      partnership with Bristol-Myers Squibb;
+   Moreover, Fig. 6 and Fig. 7 show the examples        tofacitinib for treating immunological
+of the PDF and its OCR file (with reduced new-line      diseases including rheumatoid arthritis,
+characters for better visual display). Fig. 8 shows     inflammatory bowel disease and psoriasis;
+the distribution of themes from the OIDA sales          bapineuzumab for Alzheimer's disease;
+contest data.                                           tanezumab    for   chronic    pain;   and
+                                                    31073
+crizotinib    for    non-small    cell    lung   district contest, getting each one of
+cancer.                                          those prescribers to write again in Q4
+                                                 will be critical. So far, only 13 of
+[Label]                                          those prescribers have prescribed XXR in
+- Patent protection loss strategy                the first 2 reporting weeks of Q4. That
+- Pipeline development strategy                  means we have 33 others customers that
+- New drug replacement strategy                  have previously prescribed that we need
+- Revenue replacement strategy                   to make sure prescribe again this quarter
+- Investor expectation management                [Label]
+- Anticipating lost revenue                      - Winning District Contest Focus
+                                                 - Reactivating Prescribers Key Strategy
+Identifying lost prescriber opportunity          - Identifying Lost Prescribers
+[Text Segment]
+a. Reason. Pete's top Exalgo prescriber
+                                                 Anticipating opposition to expansion
+stopped    writing    completely.    This
+physician     accounted     for     35-40        [Text Segment]
+prescription per month or around 120             Or if a Democratic president is elected
+a quarter. Pete has added several new            and Republicans maintain control of
+prescribers but as you can see from              Congress, Obamacare may remain the law of
+the last couple of quarters he has not           the land, but continue to limp along in
+finished above 85-90\% quota attainment          heavily red states where antipathy runs so
+and his quota's have consistently                deep that state lawmakers continue to shun
+increased the most in the district.              the expansion. The fact that states' costs
+[Label]                                          will slowly rise over the next few years
+- Identifying Lost Prescriber Opportunity        could further erode support. Electoral
+- Focusing on New Prescribers                    losses by pro-expansion lawmakers, which
+- Quota Attainment Pressure                      include a handful of Republicans, could
+                                                 have the same effect.
+[Text Segment]
+It's frustrating to see 75\% of                  [Label]
+the District's scripts coming from 3             - Anticipating opposition to expansion
+territories. We had some territories             - Potential electoral consequences
+with major losses this week which helps          - State lawmakers shun expansion
+to explain our less than desirable               - Rising costs erode support
+results. Please take the time to review
+your data to find the physician's that
+have dropped off within your respective
+territories. We all know Exalgo offers
+significant advantages over other long
+acting opioids, we need to get our fair
+share of the scripts that are being
+written
+[Label]
+- Territory Performance Review
+- Identifying Lost Physician Accounts
+- Highlighting Product Advantage
+- Script Share Focus
+
+[Text Segment]
+According to IMS we have had 46 different
+prescribers of XXR in the last 13
+weeks. As we focus in on winning this
+                                             31074
+        Figure 5: Heatmap comparing themes predicted by TopicGPT (horizontal) with human-labeled themes (vertical) for
+
+
+
+
+                                                                                                                                                                                bot capabilities            0.25 0.01 0.10 0.07 0.04 0.05 0.01 0.18 0.06 0.11 0.14 0.13 0.15 0.12 0.04 0.06 0.00 0.06 0.01 0.20 -0.04 0.13 0.01 -0.01 0.06 0.12 0.19 0.11 0.14 0.06 0.13 0.05 0.05 0.07                                                                               0.8
+                                                                                                                                                                knowledge seeking: procedure                0.72 0.07 0.21 0.14 0.04 0.16 0.11 0.20 0.11 0.15 0.19 0.14 0.12 0.00 0.05 0.08 0.03 0.06 0.13 0.15 0.01 0.13 0.09 0.01 0.08 0.19 0.16 0.15 0.25 0.09 0.18 0.04 0.04 0.05
+                                                                                                                                                          knowledge seeking: specific factual               0.87 0.08 0.24 0.13 0.08 0.16 0.08 0.21 0.13 0.15 0.19 0.15 0.13 0.01 0.04 0.10 -0.02 0.08 0.13 0.16 0.02 0.12 0.09 0.02 0.05 0.17 0.22 0.18 0.22 0.11 0.15 0.02 -0.00 0.04                                                                               0.6
+                                                                                                                                                                               unresolved topic             0.20 0.09 0.15 0.09 0.09 0.15 0.09 0.19 0.13 0.08 0.05 0.16 0.14 0.08 0.06 0.10 0.01 0.11 0.04 0.06 0.06 0.16 -0.07 0.06 0.08 0.13 0.17 0.07 0.19 0.14 0.20 0.10 0.14 0.02
+                                                                                                                                                  bibliometric search: specific paper or author             0.31 0.08 0.14 0.19 0.13 0.16 0.09 0.22 0.10 0.22 0.19 0.15 0.11 0.04 -0.02 0.10 0.02 0.04 0.08 0.13 0.07 0.07 0.03 -0.03 0.10 0.18 0.13 0.09 0.20 0.05 0.15 -0.01 0.01 0.09                                                                              0.4
+                                                                                                                           Gold Themes                               bibliometric search: topic             0.36 0.11 0.13 0.17 0.12 0.19 0.09 0.24 0.12 0.17 0.18 0.17 0.09 0.09 -0.03 0.08 0.02 0.04 0.08 0.10 0.06 0.12 0.00 0.03 0.12 0.19 0.18 0.06 0.23 0.09 0.16 0.07 0.08 0.08
+                                                                                                                                         knowledge seeking: broad description/common sense                  0.69 0.04 0.17 0.09 0.01 0.15 0.08 0.16 0.07 0.11 0.17 0.15 0.08 0.01 0.02 0.08 0.01 0.04 0.11 0.20 0.04 0.10 0.09 -0.01 0.02 0.17 0.17 0.14 0.16 0.03 0.07 -0.01 -0.03 0.04                                                                              0.2
+                                                                                                                                            deep knowledge (including opinion or speculation)               0.48 0.07 0.21 0.09 0.09 0.17 0.09 0.30 0.19 0.16 0.19 0.38 0.20 0.15 -0.02 -0.01 0.05 0.19 0.12 0.24 -0.01 0.09 0.05 -0.05 0.10 0.23 0.25 0.27 0.28 0.08 0.23 0.16 0.04 0.08
+31075                                                                                                                                                                                                                                                                                                                                                                                                                                                                 0.0
+                                                                                                                                                                                  stress testing            0.13 0.07 0.06 0.11 0.07 0.01 -0.02 0.11 0.05 0.05 0.05 0.10 0.05 -0.09 0.01 0.05 -0.12 -0.01 0.03 0.09 -0.04 0.11 0.06 0.10 0.03 0.06 0.16 0.03 0.10 0.06 0.09 -0.06 0.11 0.10
+                                                                                                                                                                                                       f a c ts earch nomy earch earch fields earch earch earch earch earch earch earch rgers disks ation ation nants nomy earch copy nomy nomy llicity earch earch earch nomy earch earch earch ation earch earch
+                                                                                                                                                                                           s p e cific ere resin astro ere res arf res rch sub ion resaxy res net restion res ity restter res sar reslaxy mecretion accelercombinva remin astroagn resspectroisn astroin astro e metation resium res arf resin astrotary resgen res ole res xy formtion resurst res
+                                                                                                                                                                                                     h                                                                                                                                                                                      d                      e                                      b
+                                                                                                                                                                                        or         p           e     ph dw ea iss gal xopla opula proxim rk ma qua ga                                     ac ic ray nic re perno copy                     d     s   s       as a                  dw g                    ro k h la nc
+                                                                                                                                                                                    ng f mos ienc mos own l res r em                                   e ar p llar          da                                       o su tros                      l fiel oject ode as ph form r me t sub rnin plantral hyd blac and ga ass fu ma-ray
+                                                                                                                                                                            e s eekilanet aittizen sctellar at br nomica nebula                        s t e ll ste                                      cosmdielectr      s p e c        i n t egraware prerving m g starterstella ho hine lea              n e u           a t i o n tial m gam
+                                                                                                                                                                        ledg exop         c          s             astro                                                                                                                        soft obs                     in          mac                               iz ini
+                                                                                                                                                                   know                                                                                                                                                                                                                                              reion
+                                                                                                                                                                                                                                                                                                                                   TopicGPT Themes
+        Astro. Each box contains the estimated similarity score between the predicted and gold theme, with darker colors
+
+
+
+
+        signifying higher similarity.
+Source: https://www.industrydocuments.ucsf.edu/docs/glyh0235
+
+Figure 6: PDF example taken from OIDA file with id glyh0235
+
+
+
+
+                           31076
+Figure 7: OCR example taken from OIDA file with id glyh0235
+
+
+
+
+                          31077
+                                                                          Distribution of labels
+               sales strategies and techniques
+                              data and analytics
+                     training and development
+                                  miscellaneous
+                      marketing and promotion
+                        financial considerations
+         market engagement and competition
+                            challenges and risks
+Labels              regulatory and compliance
+                  innovation and development
+             communication and engagement
+             crisis management and response
+             sales environment and dynamics
+            strategic planning and forecasting
+           community and social responsibility
+                    operational considerations
+         corporate influence and management
+
+                                                     2000       4000       6000        8000           10000   12000   14000
+                                              0
+
+                                                                         Number of generated labels
+
+                               Figure 8: Distribution of final 17 themes on the OIDA sales contest data.
+
+
+
+
+                                                                31078
+

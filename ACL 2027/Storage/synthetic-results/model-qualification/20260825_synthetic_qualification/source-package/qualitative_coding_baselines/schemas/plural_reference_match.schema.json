@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "plural_reference_match.schema.json",
+  "title": "Blinded many-to-many plural-reference match",
+  "type": "object",
+  "required": [
+    "match_version",
+    "matcher_id",
+    "reference_pool_id",
+    "corpus_id",
+    "evaluation_role",
+    "output_id",
+    "output_level",
+    "reference_concept_id",
+    "match_status",
+    "generated_concept_ids",
+    "matched_at_utc",
+    "rationale"
+  ],
+  "properties": {
+    "match_version": {
+      "const": "qc-plural-match-v1"
+    },
+    "matcher_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reference_pool_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "corpus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluation_role": {
+      "enum": [
+        "development",
+        "in_domain_audit",
+        "cross_domain_confirmatory"
+      ]
+    },
+    "output_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "output_level": {
+      "enum": ["code", "theme"]
+    },
+    "reference_concept_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "match_status": {
+      "enum": ["recovered", "unmatched", "cannot_judge"]
+    },
+    "generated_concept_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "matched_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"match_status": {"const": "recovered"}}
+      },
+      "then": {
+        "properties": {"generated_concept_ids": {"minItems": 1}}
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "match_status": {"enum": ["unmatched", "cannot_judge"]}
+        }
+      },
+      "then": {
+        "properties": {"generated_concept_ids": {"maxItems": 0}}
+      }
+    }
+  ],
+  "additionalProperties": false
+}

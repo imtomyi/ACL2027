@@ -1,0 +1,366 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-revision-freeze-v1.json",
+  "title": "Direction H frozen revision experiment manifest",
+  "description": "Immutable configuration that makes feedback payload the only planned difference between paired revision arms.",
+  "type": "object",
+  "required": [
+    "freeze_version",
+    "freeze_id",
+    "study_id",
+    "freeze_scope",
+    "status",
+    "frozen_at_utc",
+    "data_governance",
+    "revision_model",
+    "analytic_contract",
+    "revision_prompt",
+    "feedback_formatter",
+    "input_schema",
+    "output_schema",
+    "integrity_validator",
+    "revision_output_recorder",
+    "repair_panel_packager",
+    "decoding_configuration",
+    "tool_policy",
+    "arm_policy",
+    "retry_policy",
+    "repeat_policy",
+    "blinding",
+    "change_control"
+  ],
+  "properties": {
+    "freeze_version": {"const": "direction-h-revision-freeze-v1"},
+    "freeze_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "study_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "freeze_scope": {"enum": ["synthetic_pilot", "confirmatory_extension"]},
+    "status": {"enum": ["draft", "frozen", "superseded"]},
+    "frozen_at_utc": {"type": "string", "format": "date-time"},
+    "data_governance": {"$ref": "#/$defs/dataGovernance"},
+    "revision_model": {"$ref": "#/$defs/model"},
+    "analytic_contract": {"$ref": "#/$defs/versionedArtifact"},
+    "revision_prompt": {
+      "allOf": [
+        {"$ref": "#/$defs/versionedArtifact"},
+        {"properties": {"version": {"const": "direction-h-revision-prompt-v1"}}}
+      ]
+    },
+    "feedback_formatter": {"$ref": "#/$defs/feedbackFormatter"},
+    "input_schema": {
+      "allOf": [
+        {"$ref": "#/$defs/versionedArtifact"},
+        {"properties": {"version": {"const": "direction-h-revision-case-v1"}}}
+      ]
+    },
+    "output_schema": {
+      "allOf": [
+        {"$ref": "#/$defs/versionedArtifact"},
+        {"properties": {"version": {"const": "direction-h-revision-output-v1"}}}
+      ]
+    },
+    "integrity_validator": {
+      "allOf": [
+        {"$ref": "#/$defs/versionedArtifact"},
+        {"properties": {"version": {"const": "qc-integrity-validator-v1"}}}
+      ]
+    },
+    "revision_output_recorder": {
+      "allOf": [
+        {"$ref": "#/$defs/versionedArtifact"},
+        {"properties": {"version": {"const": "direction-h-revision-output-recorder-v1"}}}
+      ]
+    },
+    "repair_panel_packager": {
+      "allOf": [
+        {"$ref": "#/$defs/versionedArtifact"},
+        {"properties": {"version": {"const": "direction-h-repair-panel-packager-v1"}}}
+      ]
+    },
+    "decoding_configuration": {"$ref": "#/$defs/decoding"},
+    "tool_policy": {
+      "type": "object",
+      "required": ["tools_allowed", "web_allowed", "external_retrieval_allowed"],
+      "properties": {
+        "tools_allowed": {"const": false},
+        "web_allowed": {"const": false},
+        "external_retrieval_allowed": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "arm_policy": {"$ref": "#/$defs/armPolicy"},
+    "retry_policy": {"$ref": "#/$defs/retryPolicy"},
+    "repeat_policy": {"$ref": "#/$defs/repeatPolicy"},
+    "blinding": {"$ref": "#/$defs/blinding"},
+    "change_control": {
+      "type": "object",
+      "required": ["changes_require_new_freeze_id", "retain_superseded_manifest"],
+      "properties": {
+        "changes_require_new_freeze_id": {"const": true},
+        "retain_superseded_manifest": {"const": true},
+        "supersedes_freeze_id": {"type": ["string", "null"], "minLength": 1, "maxLength": 160}
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"freeze_scope": {"const": "synthetic_pilot"}},
+        "required": ["freeze_scope"]
+      },
+      "then": {
+        "properties": {
+          "data_governance": {
+            "properties": {"data_scope": {"const": "synthetic_only"}}
+          },
+          "arm_policy": {
+            "properties": {
+              "arms": {
+                "prefixItems": [
+                  {"const": "no_feedback"},
+                  {"const": "charlie_feedback"}
+                ],
+                "items": false,
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "arm_policy": {
+            "properties": {
+              "arms": {
+                "contains": {"const": "independent_human_feedback"},
+                "minContains": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "versionedArtifact": {
+      "type": "object",
+      "required": ["version", "path", "sha256"],
+      "properties": {
+        "version": {"type": "string", "minLength": 1, "maxLength": 200},
+        "path": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "dataGovernance": {
+      "type": "object",
+      "required": [
+        "data_scope",
+        "contains_protected_text",
+        "institutional_gate",
+        "platform_or_source_gate",
+        "model_processing_gate",
+        "rater_exposure_gate",
+        "approval_manifest_path",
+        "approval_manifest_sha256"
+      ],
+      "properties": {
+        "data_scope": {"enum": ["synthetic_only", "approved_real_text"]},
+        "contains_protected_text": {"type": "boolean"},
+        "institutional_gate": {"$ref": "#/$defs/gateStatus"},
+        "platform_or_source_gate": {"$ref": "#/$defs/gateStatus"},
+        "model_processing_gate": {"$ref": "#/$defs/gateStatus"},
+        "rater_exposure_gate": {"$ref": "#/$defs/gateStatus"},
+        "approval_manifest_path": {"type": ["string", "null"], "minLength": 1, "maxLength": 1000},
+        "approval_manifest_sha256": {
+          "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"data_scope": {"const": "synthetic_only"}},
+            "required": ["data_scope"]
+          },
+          "then": {
+            "properties": {
+              "contains_protected_text": {"const": false},
+              "institutional_gate": {"const": "not_applicable_synthetic"},
+              "platform_or_source_gate": {"const": "not_applicable_synthetic"},
+              "model_processing_gate": {"const": "not_applicable_synthetic"},
+              "rater_exposure_gate": {"const": "not_applicable_synthetic"},
+              "approval_manifest_path": {"type": "null"},
+              "approval_manifest_sha256": {"type": "null"}
+            }
+          },
+          "else": {
+            "properties": {
+              "institutional_gate": {"const": "approved"},
+              "platform_or_source_gate": {"const": "approved"},
+              "model_processing_gate": {"const": "approved"},
+              "rater_exposure_gate": {"const": "approved"},
+              "approval_manifest_path": {"type": "string", "minLength": 1},
+              "approval_manifest_sha256": {"$ref": "#/$defs/sha256"}
+            },
+            "required": ["approval_manifest_path", "approval_manifest_sha256"]
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "gateStatus": {
+      "enum": ["approved", "blocked", "not_applicable_synthetic"]
+    },
+    "model": {
+      "type": "object",
+      "required": ["provider", "model_id", "snapshot_id", "runtime_surface"],
+      "properties": {
+        "provider": {"type": "string", "minLength": 1, "maxLength": 300},
+        "model_id": {"type": "string", "minLength": 1, "maxLength": 300},
+        "snapshot_id": {"type": "string", "minLength": 1, "maxLength": 300},
+        "runtime_surface": {"type": "string", "minLength": 1, "maxLength": 500}
+      },
+      "additionalProperties": false
+    },
+    "feedbackFormatter": {
+      "type": "object",
+      "required": ["version", "path", "sha256", "fields_in_order"],
+      "properties": {
+        "version": {"const": "direction-h-feedback-formatter-v1"},
+        "path": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "fields_in_order": {
+          "type": "array",
+          "prefixItems": [
+            {"const": "feedback_summary"},
+            {"const": "findings"},
+            {"const": "preserve"},
+            {"const": "uncertainties"}
+          ],
+          "items": false,
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "additionalProperties": false
+    },
+    "decoding": {
+      "type": "object",
+      "required": [
+        "temperature",
+        "top_p",
+        "seed",
+        "reasoning_effort",
+        "max_output_tokens",
+        "additional_parameters"
+      ],
+      "properties": {
+        "temperature": {"type": ["number", "null"], "minimum": 0, "maximum": 2},
+        "top_p": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "seed": {"type": ["integer", "null"]},
+        "reasoning_effort": {"type": ["string", "null"], "maxLength": 100},
+        "max_output_tokens": {"type": "integer", "minimum": 1},
+        "additional_parameters": {
+          "type": "object",
+          "additionalProperties": {"type": ["string", "number", "integer", "boolean", "null"]}
+        }
+      },
+      "additionalProperties": false
+    },
+    "armPolicy": {
+      "type": "object",
+      "required": [
+        "arms",
+        "paired_within_item",
+        "no_feedback_is_active_self_revision",
+        "intention_to_treat",
+        "same_configuration_across_arms",
+        "fresh_context_per_case"
+      ],
+      "properties": {
+        "arms": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "no_feedback",
+              "charlie_feedback",
+              "independent_human_feedback"
+            ]
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "contains": {"const": "no_feedback"},
+          "minContains": 1,
+          "uniqueItems": true
+        },
+        "paired_within_item": {"const": true},
+        "no_feedback_is_active_self_revision": {"const": true},
+        "intention_to_treat": {"const": true},
+        "same_configuration_across_arms": {"const": true},
+        "fresh_context_per_case": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "retryPolicy": {
+      "type": "object",
+      "required": [
+        "maximum_attempts",
+        "allowed_retry_reasons",
+        "substantive_repair_allowed",
+        "retain_all_attempts"
+      ],
+      "properties": {
+        "maximum_attempts": {"type": "integer", "minimum": 1},
+        "allowed_retry_reasons": {
+          "type": "array",
+          "items": {
+            "enum": ["transport_failure", "empty_response", "invalid_json", "schema_invalid"]
+          },
+          "uniqueItems": true
+        },
+        "substantive_repair_allowed": {"const": false},
+        "retain_all_attempts": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "repeatPolicy": {
+      "type": "object",
+      "required": [
+        "repeats_per_arm",
+        "pair_by_repeat_index",
+        "retain_all_repeats",
+        "best_repeat_selection"
+      ],
+      "properties": {
+        "repeats_per_arm": {"type": "integer", "minimum": 1},
+        "pair_by_repeat_index": {"const": true},
+        "retain_all_repeats": {"const": true},
+        "best_repeat_selection": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "blinding": {
+      "type": "object",
+      "required": [
+        "revision_model_receives_target_truth",
+        "revision_model_receives_arm_label",
+        "revision_model_receives_rater_identity",
+        "repair_panel_receives_feedback_arm",
+        "repair_panel_receives_feedback_author",
+        "repair_panel_receives_model_identity"
+      ],
+      "properties": {
+        "revision_model_receives_target_truth": {"const": false},
+        "revision_model_receives_arm_label": {"const": false},
+        "revision_model_receives_rater_identity": {"const": false},
+        "repair_panel_receives_feedback_arm": {"const": false},
+        "repair_panel_receives_feedback_author": {"const": false},
+        "repair_panel_receives_model_identity": {"const": false}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

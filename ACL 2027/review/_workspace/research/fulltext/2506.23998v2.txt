@@ -1,0 +1,919 @@
+                                            Auto-TA: Towards Scalable Automated Thematic Analysis (TA) via
+                                            Multi-Agent Large Language Models with Reinforcement Learning
+                                                       Seungjun Yi1* , Joakim Nguyen2 , Huimin Xu2 , Terence Lim3 ,
+                                                                  Andrew Well4 , Mia Markey1 , Ying Ding2,5
+                                                   1
+                                                     Department of Biomedical Engineering, University of Texas at Austin
+                                                            2
+                                                               School of Information, University of Texas at Austin
+                                                         3
+                                                           College of Natural Sciences, University of Texas at Austin
+                                                                     4
+                                                                       Vanderbilt University Medical Center
+                                                              5
+                                                                Dell Medical School, University of Texas at Austin
+                                            Corresponding Email: charlie.yi@utexas.edu, ying.ding@ischool.utexas.edu
+                                                          Abstract                         through standardized processes, are essential for
+                                                                                                monitoring health status but often fail to capture the
+                                            Congenital heart disease (CHD) presents com-
+
+
+
+
+arXiv:2506.23998v2 [cs.CL] 8 Aug 2025
+                                                                                                complexity of patient and caregiver needs (Valderas
+                                            plex, lifelong challenges often underrepre-
+                                                                                                et al., 2008). Unstructured data, such as inter-
+                                            sented in traditional clinical metrics. While
+                                            unstructured narratives offer rich insights into
+                                                                                                views and open-text survey responses, offer richer
+                                            patient and caregiver experiences, manual the-      insights into emotional, social, and logistical expe-
+                                            matic analysis (TA) remains labor-intensive         riences (Greenhalgh et al., 2019). However, these
+                                            and unscalable. We propose a fully auto-            narratives remain underutilized due to the substan-
+                                            mated large language model (LLM) pipeline           tial time, cost, and expertise required for manual
+                                            that performs end-to-end TA on clinical nar-        thematic analysis (TA) (Mery et al., 2023). Tra-
+                                            ratives which eliminates the need for manual        ditional TA is foundational to qualitative research
+                                            coding or full transcript review. Our system
+                                                                                                but remains labor-intensive, time-consuming, and
+                                            employs a novel multi-agent framework, where
+                                            specialized LLM agents assume roles to en-          prone to inconsistency (Braun and Clarke, 2006;
+                                            hance theme quality and alignment with hu-          Nowell et al., 2017). Coding1 just 10–15 inter-
+                                            man analysis. To further improve thematic rel-      views can take 40–60 hours, often requiring expert
+                                            evance, we optionally integrate reinforcement       reviewers and therefore, limiting scalability in clin-
+                                            learning from human feedback (RLHF). This           ical settings (Watkins, 2017; Namey et al., 2008).
+                                            supports scalable, patient-centered analysis of        These limitations have driven recent efforts to
+                                            large qualitative datasets and allows LLMs to
+                                                                                                automate TA using machine learning and large lan-
+                                            be fine-tuned for specific clinical contexts.
+                                                                                                guage models (LLMs). Hybrid frameworks now
+                                        1   Introduction                                        combine human judgment with automated compo-
+                                                                                                nents, enabling faster analysis while retaining inter-
+                                        Congenital heart disease (CHD) affects approxi-         pretability (Dai et al., 2023; Xu et al., 2025). How-
+                                        mately 1% of live births, with around 40,000 cases      ever, most still rely on human-in-the-loop work-
+                                        annually in the U.S., and over 12 million people        flows that require full transcript review limiting
+                                        living with CHD worldwide (Centers for Disease          scalability. This raises a fundamental question:
+                                        Control and Prevention, 2022; Liu et al., 2019).        what’s the point of introducing LLMs if humans
+                                        The lifelong journey of individuals and families        still need to go through the entire transcript?
+                                        affected by complex CHD brings emotional, lo-              To address these limitations, we propose
+                                        gistical, and structural challenges that are often      Auto-TA (Figure 1), a fully automated LLM
+                                        overlooked in traditional clinical metrics. Recent      pipeline that performs end-to-end thematic anal-
+                                        qualitative studies highlight the importance of map-    ysis on unstructured clinical narratives without re-
+                                        ping lived experiences and identifying outcomes         quiring manual coding or full transcript review,
+                                        that patients and caregivers themselves consider        with the ultimate goal of identifying meaningful
+                                        meaningful, particularly those related to capability,   outcomes1 and gaps in care1 . Unlike prior hybrid
+                                        comfort, and calm (Mery et al., 2023).                  approaches that rely on human-in-the-loop work-
+                                           Despite growing recognition of the importance        flows, our pipeline is designed to autonomously
+                                        of lived experience, post-discharge care still relies   generate codes1 , extract themes1 , and evaluate
+                                        heavily on two primary forms of data: structured        alignment. To further enhance theme generation
+                                        patient-reported outcomes (PROs) and unstructured       quality, we incorporate a multi-agent system where
+                                        narratives. Structured PROs, typically gathered         specialized LLM agents collaborate to improve
+alignment with human-generated themes. Each            agent framework, boosting HIT rate and reducing
+agent takes on a distinct role—such as coder (gen-     analysis time by 99%. Domain-specific pipelines
+eration agent), reviewer (feedback agent) — fa-        validate efficiency gains but highlight ongoing chal-
+cilitating iterative evaluation and refinement that    lenges in bias and privacy (Qiao et al., 2025).
+captures diverse perspectives and overcomes chal-         Thematic-LM performed multi-agent TA on Red-
+lenges related to semantic nuance. As an extension,    dit threads related to climate change, highlighting
+we explore the integration of optional human feed-     opportunities for automation while raising open
+back to refine theme generation. By leveraging rein-   questions around semantic evaluation (Qiao et al.,
+forcement learning from human feedback (RLHF),         2025).
+we aim to improve thematic relevance, consistency,
+                                                       Multi-Agent LLMs Multi-agent large language
+and alignment with real-world needs in clinical con-
+                                                       model (LLM) systems were first formalized by
+texts, while preserving scalability. Drawing on ex-
+                                                       CAMEL, which introduced two role-playing GPT-
+pert ratings or predefined metrics such as coherence
+                                                       3.5 agents that interact to decompose and solve
+and distinctiveness, RLHF enables our system to it-
+                                                       tasks (Li et al., 2023). Such systems consist of two
+eratively optimize outputs beyond static prompting.
+                                                       or more LLM-powered agents that communicate to
+This approach supports patient-centered research
+                                                       collaborate or compete on a given problem. Build-
+and informs clinical decision-making by identify-
+                                                       ing production pipelines has been simplified by Au-
+ing meaningful outcomes1 and gaps in care1 within
+                                                       toGen, a lightweight framework for spawning role-
+large-scale unstructured qualitative data.
+                                                       conditioned agents that converse and invoke exter-
+   In summary, our contribution is as following:
+                                                       nal APIs (Wu et al., 2023). Systematic benchmarks
+    • Automated Thematic Analysis: Proposed            such as AgentBench and MultiAgentBench confirm
+      Auto-TA (Figure 1), an end-to-end LLM            that coordinated or competitive teams consistently
+      pipeline that performs TA on unstructured        outperform single-model baselines across web nav-
+      clinical narratives without requiring manual     igation, coding, negotiation, and other tasks (Liu
+      coding or transcript review.                     et al., 2023; Zhu et al., 2025). In evaluation settings,
+                                                       ChatEval shows that a debating panel of agents
+    • Multi-Agent Theme Refinement: Introduced         yields markedly more reliable text judgments than
+      a multi-agent LLM system with specialized        a solitary judge (Chan et al., 2024), while COP-
+      roles to improve theme quality and alignment     PER augments collaboration with counterfactual
+      with human analysis.                             self-reflection fine-tuned by PPO to tackle credit-
+                                                       assignment issues (Bo et al., 2024). Overall, these
+    • Scalable RLHF Integration: Optionally incor-     results highlight role specialization, debate, and re-
+      porates reinforcement learning from human        flection as key inductive biases for scaling LLM ca-
+      feedback (RLHF) to improve thematic rele-        pabilities, while domain-specific applications (e.g.,
+      vance and alignment with patient-centered out-   qualitative health analytics) and group-level reward
+      comes, while preserving scalability.             modeling remain open research challenges.
+
+2    Related Work                                      Reinforcement Learning (RL) is a computa-
+                                                       tional framework in which an agent learns, by trial
+Automated Thematic Analysis (TA) with LLMs             and error, to choose actions that maximize long-run
+Efforts to automate TA with LLMs have progressed       cumulative reward in an environment (Sutton and
+from hybrid, human-in-the-loop methods to au-          Barto, 1998). Within the LLM domain, the three-
+tonomous multi-agent systems. LLM-in-the-loop          stage RL-from-human-feedback (RLHF) recipe of
+approach (Dai et al., 2023) accelerated coding by      supervised fine-tuning, reward-model training, and
+60%, while single-agent models replicated high-        policy optimization with Proximal Policy Opti-
+level themes but lacked nuance (Paoli, 2024). Bias     mization (PPO) has become the standard since In-
+and hallucination risks remain a concern, especially   structGPT demonstrated large gains in helpfulness
+in health and policy contexts (Lee et al., 2024;       and compliance (Ouyang et al., 2022; Schulman
+Khan et al., 2024). LLM-TA (Raza et al., 2025) im-     et al., 2017). Follow-up work such as Helpful and
+proved lexical alignment with expert CHD themes        Harmless (Bai et al., 2022) scales the pipeline and
+but required manual transcript review. TAMA (Xu        explores reward–KL trade-offs, while RLHF for
+et al., 2025) introduced a coder–reviewer–refiner      specific text tasks, such as summary generation
+Figure 1: The Auto-TA Framework. An end-to-end multi-agent LLM pipeline for thematic analysis of unstructured
+clinical narratives. Coder agents with diverse identities generate preliminary codes from interview transcripts,
+which are processed into themes by downstream agents. A feedback agent evaluates outputs and provides iterative
+refinement. Optional integration of reinforcement learning from human feedback (RLHF) allows the system to
+optimize thematic relevance and alignment with patient-centered outcomes. The implementation of RLHF is
+currently in progress.
+
+
+(Stiennon et al., 2020), confirms that preference-                     each given the full interview transcript as in-
+based rewards outperform maximum-likelihood                            put. If the transcript exceeds the model’s
+fine-tuning. Recent variants introduce hierarchical                    input batch limit, it is divided into contigu-
+or self-refinement rewards, but consensus is still                     ous chunks x ∈ R≤1500 , and each agent pro-
+emerging around stable optimization and domain-                        cesses the same chunk independently. Each
+specific signal design, leaving room for customized                    agent then emits a set of initial codes Cr =
+reward modeling in qualitative health analytics.                       {cr,1 , . . . , cr,nr }, where r ∈ R denotes the
+                                                                       role-specific identity of the agent and nr is the
+Definitions and Abbreviations Table 1 defines                          number of codes produced by role r. Exam-
+key terms and medical abbreviations used through-                      ple role prompts are provided in Appendix F,
+out the paper.                                                         where all identities follow a similar structure.
+3       Method                                                      b) Theme-Generation Agents. The codes from
+                                                                       all roles are merged and passed to a secondary
+3.1       The Auto-TA Framework
+                                                                       set of agents that cluster semantically sim-
+Figure   1    presents  an    overview   of                            ilar codes and generate preliminary themes
+the Auto-TA framework.             It com-                                         (0)       (0)
+                                                                       Θ(0) = {θ1 , . . . , θm }. Each theme is con-
+prises three interacting group of agents:                              cise, often within 60 words. Some agents
+ Generation Agents ,       Feedback Agents ,                           operate without identity conditioning, while
+and Reinforcement Learning , which operate in                          others may retain role-specific perspectives to
+coordination to perform automated TA. The full                         support diverse theme formulation. In subse-
+process is summarized below:                                           quent steps, feedback from the feedback agent
+                                                                       is used to iteratively refine and improve the
+ Generation Agents We instantiate two cate-
+                                                                       generated themes.
+gories of generation agents:
+                                                                     Together these agents reduce a transcript to a
+    a) Coder Agents with Identities. A pool of                    concise thematic representation without human re-
+       k=4 role-conditioned GPT-4o1 agents2 are                   view, completing Steps 1–3 of reflexive TA (Braun
+    1
+        All prompts use temperature = 0 for determinism.          per Cardiac Expert guidance to simulate prior TA. Future work
+    2
+        Physician, Surgeon, Researcher, Layperson were assigned   should consider alternative identities.
+Term                   Definition                                Reinforcement Learning When expert raters
+                                                                are available, Auto-TA can optionally switch to a
+Code                   A discrete analytical unit that captures
+                       a key pattern within the data, generated RLHF loop:
+                       directly from the dataset and retaining
+                       its interpretive significance without being      a) Human raters assign binary rewards (r ∈ 0, 1)
+                       reducible to smaller meaningful compo-              to each theme set, where 1 indicates meet-
+                       nents. Coding refers to the process of              ing quality standards and 0 indicates other-
+                       generating these codes from the original
+                       text. A coder is an individual who per-             wise. While we use Coverage, Actionability,
+                       forms coding by identifying and labeling            Distinctiveness, and Relevance as evaluation
+                       meaningful segments of data. Examples               criteria adopted from Xu et al. (2025), users
+                       are in Appendix G.2.
+Themes                 Inductively derived patterns or topics of
+                                                                           may define their own criteria based on specific
+                       meaning that emerged from participants’             needs.
+                       narratives about their lived experiences,
+                       identified through iterative coding and          b) A reward model Rϕ is updated via MSE loss
+                       consensus across multiple coders. These             on the rated batches.
+                       themes were then categorized into mean-
+                       ingful outcomes and gaps in care, with           c) The policy parameters θ of the Theme-
+                       outcomes further grouped using the capa-            Generation agent are optimized with Proximal
+                       bility, comfort, and calm framework.                Policy Optimisation (PPO):
+Meaningful Out-        Patient- and family-prioritized goals that
+                                                                             θ ← θ + α∇θ Eπθ Rϕ (Θ(t) ) − βKL πθ ∥ πSFT
+                                                                                                                       
+comes                  reflect capability (doing the things in life
+                       you want to), comfort (experience of phys-
+                       ical/emotional pain/distress), and calm               Here, πθ denotes the current policy of the
+                       (experiencing health care with the least             theme-generation agent, and Rϕ (Θ(t) ) is the
+                       impact on daily life).
+                                                                            reward assigned by a model evaluating the
+Gaps in Care           Gaps in care refer to unmet needs or break-
+                       downs in healthcare delivery that hinder
+                                                                            quality of the generated theme set Θ(t) . The
+                       patients and families from receiving con-            KL divergence term KL(πθ ∥ πSFT ) measures
+                       sistent, compassionate, and coordinated              deviation from the base supervised model
+                       support across the care journey.
+                                                                            πSFT , which acts as a regularizer to prevent the
+Table 1: Key Definitions and Abbreviations used in
+                                                                            policy from drifting too far. The coefficient β
+this paper, consistent with Mery et al. (2023). Additional                  controls the strength of this regularization, bal-
+abbreviations are listed in Appendix B.                                     ancing reward maximization and policy align-
+                                                                            ment. The update step uses a learning rate α
+                                                                            to scale the gradient ∇θ , which indicates the
+and Clarke, 2006).                                                          direction to adjust parameters θ to increase
+                                                                            the expected objective. The expectation Eπθ
+ Feedback Agents The feedback agent F acts
+                                                                            is taken over actions sampled from the current
+as an autonomous critic. Given Θ(t) at refinement                           policy, reflecting average performance under
+round t, it produces:                                                       the agent’s behavior.
+    • Evaluation Scores: Obtain s(t) = ⟨C, D, T ⟩
+      on the trustworthiness dimensions defined in                       The feedback agent is retained as a critic dur-
+      Section 4.                                                      ing training; its scores are concatenated to the re-
+    • Edit Themes: Suggests specific edits to                         ward model input, enabling reward shaping without
+      themes, such as A DD (adding), S PLIT (split-                   additional human cost. If no human feedback is
+      ting), C OMBINE (combining), or D ELETE                         supplied, Auto-TA degrades to the heuristic loop
+      (deleting), each targeted to a particular theme.                above.
+                                                                         In summary, the architecture automates TA in
+   If RL is disabled, the proposals are applied
+                                                                      under 10 minutes per 10k-word transcript. The
+heuristically: themes with C < 0.7 trigger ADD;
+                                                                      optional RLHF path enables the system to adapt
+DL < 0.20 triggers COMBINE, etc. The resulting
+                                                                      to researcher preferences over time without requir-
+Θ(t+1) is re-scored until ∥s(t+1) − s(t) ∥1 < 0.05
+                                                                      ing full transcript re-reads. The resulting themes
+or a maximum of three iterations3 .
+                                                                      are categorized into outcomes and care gaps, with
+    3
+      The specific thresholds and number of iterations are sub-       outcomes further organized using the capability,
+ject to change. In practice, these values are tuned based on
+empirical validation and expert feedback to meet the goals of
+                                                                      comfort, and calm framework (Mery et al., 2023).
+inductive TA. For example, in the AAOCA dataset, cardiac
+experts provide feedback to ensure that the thresholds and            parameters align with clinically meaningful interpretations.
+      End-to-End Workflow of Auto-TA                    4     Evaluation
+
+      Step 1: Transcript Processing Each                4.1    Evaluation Criteria
+              transcript is fed to k=4 role-
+              conditioned coder agents. If the          We adopt the four criteria of credibility, confirma-
+              transcript exceeds the input limit,       bility, dependability, and transferability from the
+              it is divided into chunks and             trustworthiness framework in qualitative research
+              broadcast to all agents.                  introduced by Lincoln and Guba (1985) and later
+      Step 2: Code Aggregation and Theme                applied to TA by Nowell et al. (2017) and Korstjens
+              Generation Codes from all roles           and Moser (2018). These criteria were also recently
+              are merged and clustered by theme-        employed in TA using LLMs (Qiao et al., 2025).
+              generation agents to produce pre-
+              liminary themes Θ(0) .                    Credibility and Confirmability (C) We evalu-
+                                                        ate credibility and confirmability jointly by assess-
+      Step 3: Feedback Evaluation A feedback
+                                                        ing the degree to which the generated themes are
+              agent critiques the initial themes
+                                                        grounded in the original data. Specifically, we re-
+              and produces quality scores s(0) .
+                                                        trieve the associated segments using Quote IDs and
+      Step 4: Theme Refinement Themes are               task an evaluator agent with determining whether
+              iteratively improved via heuristic        each theme is consistent with its supporting quotes.
+              edits or PPO updates, producing           This consistency check identifies cases where the
+              Θ(1) .                                    theme reflects the quoted content accurately versus
+                                                        instances of hallucination or bias. Let Q denote
+      Step 5: Repeat Steps 3–4 until conver-            the set of all coded quotes, and Qref ⊆ Q be the
+              gence or a maximum of tmax = 5            subset of quotes that are used to generate at least
+              iterations.                               one theme. We define C as:
+      Step 6: Output Final theme set Θ⋆ =
+              Θ(tconv ) and its associated audit
+                                                                              |Qref |
+              trail.                                                     C=           × 100
+                                                                               |Q|
+
+
+3.2     Dataset                                            A higher value of C indicates stronger alignment
+                                                        between themes and the underlying data, reflect-
+This study analyzes a targeted subset of transcripts    ing both accurate representation (credibility) and
+from a broader qualitative project on the lifelong      traceable justification (confirmability) in the anal-
+experiences of individuals and families affected by     ysis. C can be enhanced through prolonged en-
+single-ventricle congenital heart disease (SV-CHD)      gagement, triangulation (e.g., multiple coders or
+(Mery et al., 2023). We use de-identified transcripts   data sources), and member checking, thereby maxi-
+from nine moderated focus groups involving 42 par-      mizing the overlap between participant intent and
+ents of children diagnosed with Anomalous Aor-          the researcher’s interpretations (Lincoln and Guba,
+tic Origin of a Coronary Artery (AAOCA). Each           1985; Nowell et al., 2017; Korstjens and Moser,
+90-minute session captures narrative-driven discus-     2018).
+sions on diagnosis, care pathways, emotional bur-
+dens, and decision-making. The transcripts average      Dependability (D) Dependability reflects the
+10,987 words (SD: 1,537; median: 11,457).               stability of theme generation across independent
+   We also incorporate human-generated themes           runs. We compute lexical overlap using bidirec-
+from Mery et al. (2023) as references to compute        tional ROUGE scores (Lin, 2004). Specifically,
+traditional metrics against LLM-generated themes.       R1 and R2 represent the ROUGE-1 (unigram) and
+For consistent referencing, each quote was manu-        ROUGE-2 (bigram) overlap scores, respectively.
+ally assigned Quote IDs, a unique identifier. Fur-      Given two sets of themes A and B generated from
+ther corpus details are in Appendix A.1.                independent runs, we define:
+                                                           one subset of the corpus generalize well to oth-
+                                                           ers, suggesting good conceptual transfer across the
+           |unigrams(A) ∩ unigrams(B)|
+   RA→B
+    1   =                                            (1)   dataset.
+                   |unigrams(A)|
+           |bigrams(A) ∩ bigrams(B)|                       4.2   Other Metrics
+   RA→B
+    2    =                                           (2)
+                  |bigrams(A)|                             To evaluate the alignment between LLM-generated
+           1                                               and human-generated themes, we explore alterna-
+              R1A→B + RB→A
+                              
+      R1 =                1                          (3)
+           2                                               tive metrics beyond those used in prior work (Raza
+           1
+              R2A→B + RB→A                                 et al., 2025; Xu et al., 2025). Jaccard Similarity
+                              
+      R2 =                2                          (4)
+           2                                               (J) and HIT Rate (R), commonly used in earlier
+           1
+       D = (R1 + R2 )                                (5)   studies, rely on surface-level word overlap and bi-
+           2                                               nary thresholding, which makes them less effective
+   We evaluate D across 10 independent genera-             at capturing paraphrastic variation and deeper se-
+tions per transcript and report results aggregated         mantic relationships. This motivates the use of
+across all 9 transcripts. Higher values of D indicate      more comprehensive and semantically informed
+stronger inter-run consistency. To further support         measures of thematic alignment.
+dependability, we maintain a methodological log
+                                                           Cosine Similarity (Cbi ) To quantify semantic
+and employing coding strategies (Korstjens and
+                                                           alignment at the individual theme level, we cal-
+Moser, 2018).
+                                                           culate the cosine similarity between each pair
+Transferability (T ) Transferability concerns the          (ti , ℓj ) using embeddings from a sentence-level
+extent to which themes Θ, generated from a dataset         transformer model (all-mpnet-base-v2). Bidi-
+D, can be meaningfully applied to a new but con-           rectional Cosine similarity(Cbi ) is defined as
+textually similar corpus D′ . In qualitative research,                                  vti · vℓj
+high T is traditionally supported through thick de-                    C(ti , ℓj ) =                ,
+                                                                                       ∥vti ∥∥vℓj ∥
+scription—that is, detailed accounts of participants,
+settings, and analytical choices that enable readers
+                                                           where vti and vℓj are the embedding vectors of
+to assess contextual relevance (Lincoln and Guba,
+                                                           ti and ℓj , respectively. To summarize alignment,
+1985; Nowell et al., 2017).
+                                                           we first report the unidirectional mean maximum
+   In our framework, we use transferability by di-
+                                                           similarity from human to LLM themes:
+viding the dataset into a training set and a validation
+set. Specifically, we use 7 transcripts to generate                           1X
+                                                                                 n
+Θtrain and 2 transcripts to generate Θval , then com-             CT →L =        max cosine(ti , ℓj ),
+                                                                              n   j
+pute bidirectional ROUGE to assess overlap:                                     i=1
+
+                                                           which reflects how well each human theme is cap-
+             1  Θtrain →Θval                             tured by its closest LLM-generated counterpart.
+      R′ 1 =     R1             + R1Θval →Θtrain     (6)
+             2                                                To account for potential asymmetry, we also
+             1 
+                    train →Θval
+                                                 
+                                                           compute the reverse direction, measuring how well
+      R′ 2 =     RΘ
+                  2             + R2Θval →Θtrain     (7)
+             2                                             each LLM theme aligns with the closest human
+             1                                             theme:
+                R′ 1 + R′ 2
+                             
+       T =                                           (8)
+             2
+                                                                                 m
+                                                                              1 X
+   To robustly estimate transferability, we compute              CL→T =          max cosine(ℓj , ti ).
+                                                                              m    i
+T across all 92 = 36 possible 7-train / 2-validation                            j=1
+transcript splits. For each split, we perform in-
+dependent thematic analysis on both subsets and            The bidirectional cosine alignment score is then
+evaluate bidirectional ROUGE overlap between the           defined as the average of both directions:
+resulting theme sets. We report the mean and stan-                            1
+dard deviation of T across these 36 combinations                      Cbi =     (CT →L + CL→T ) ,
+                                                                              2
+to capture overall generalizability and variation
+across different training-validation configurations.       providing a balanced measure of mutual semantic
+A higher T indicates that themes generated from            alignment between theme sets.
+Levenshtein Distance (DL ) We compute the av-             interpretive nature of qualitative research, where
+erage maximum normalized Levenshtein similarity           multiple valid versions of TA can coexist.
+between each human theme and LLM theme. Full                 Our preliminary results showed no significant
+formulation is provided in Appendix C.                    changes using the four criteria from previous stud-
+                                                          ies, including distinctiveness and actionability (Fig-
+BLEU Score (B) We use BLEU (Papineni et al.,              ure 5). This may be due to the use of a coarse
+2002) to measure n-gram overlap (up to 4-grams            5-point integer scoring system within a form-filling
+with brevity penalty) between human and LLM               paradigm using LLM evaluators, which may lack
+themes, and report the maximum score per human            the resolution to capture micro-scale improvements.
+theme and averaging over all.                             To address this, we propose adopting a scalar scor-
+                                                          ing system (e.g., continuous values between 1.00
+5   Results                                               and 5.00) to better reflect incremental changes in
+Impact of Agent Identities Our results suggest            theme quality during iterative refinement.
+that assigning domain-specific identities to agents
+lead to substantial improvements in credibility           6   Limitations
+(C), with the Cardiac Surgeon and Qualitative Re-         A key limitation of our approach lies in the as-
+searcher identities achieving the highest scores          sumption that alignment with human-generated
+(Table 2). All identity-augmented agents outper-          themes is a sufficient indicator of thematic qual-
+formed the baseline in C, with gains ranging from         ity. In practice, there may be multiple valid sets
++11.54 to +16.28. Dependability (D) is largely un-        of right themes for the same transcript, depend-
+affected or slightly reduced, likely due to variability   ing on the perspective and interpretive lens of the
+from non-uniform agent behavior. Transferability          analyst. As such, high alignment with a human-
+(T ) improves with identity augmentation, with the        coded reference set does not necessarily imply bet-
+Medical Doctor and Psychologist agents showing            ter or more meaningful TA. This observation aligns
+the highest gains (+0.026, +0.027), suggesting            with findings from prior work. For instance, a
+expert-informed themes generalize better. T shows         cardiac expert cited in Mery et al. (2023) noted
+minimal change across all 36 combinations with            that approximately two-thirds of themes tend to
+low standard deviation, indicating consistent perfor-     be straightforward and expected, regardless of the
+mance and supporting the robustness of Auto-TA.           analyst’s background. However, the remaining one-
+                                                          third are more variable and dependent on individual
+Theme Alignment with Human Ground Truth
+                                                          expertise and interpretation. Beyond this concep-
+We evaluated the alignment between LLM-
+                                                          tual limitation, several practical constraints remain.
+generated and human-generated themes using Cbi ,
+                                                          The framework has not yet been tested across dif-
+DL , and B (Table 3). Higher alignment for the
+                                                          ferent domains, leaving its ability to generalize to
+Cardiac Surgeon agent likely reflects the presence
+                                                          other clinical or non-clinical settings uncertain. In
+of a cardiac expert in the human analyst group.
+                                                          its current form, the architecture does not support
+Alignment appears influenced by annotator exper-
+                                                          interaction among agents, which limits opportuni-
+tise; different expert compositions (e.g., more qual-
+                                                          ties for collaborative reasoning or negotiated theme
+itative researchers) could shift alignment patterns.
+                                                          development. Evaluation is also limited to a single
+Even when surface-level overlap is low, identity-
+                                                          comparison with human-coded themes, offering
+augmented agents often capture subtle or over-
+                                                          little insight into the stability of outputs across mul-
+looked aspects of the data not fully represented
+                                                          tiple runs. Moreover, the system shows notable
+in the human-generated themes. This suggests
+                                                          sensitivity to prompt wording, where minor vari-
+that identity conditioning can expand the thematic
+                                                          ations can lead to substantially different thematic
+space in meaningful and complementary ways.
+                                                          results and may raise concerns about reproducibil-
+   This observation also points to the limita-
+                                                          ity in real-world applications.
+tions of traditional evaluation metrics that rely
+on surface-level comparison between human and             7   Conclusion and Future Work
+LLM-generated themes. As shown in Table 4, low
+scores on metrics such as B do not necessarily            We presented Auto-TA, a fully automated, multi-
+imply incorrect themes. Rather, they underscore           agent LLM framework for end-to-end thematic
+the need for evaluation criteria better suited to the     analysis of unstructured clinical narratives. Role-
+        Agent Identity                            C         ∆C              D            ∆D           T             ∆T
+        N O I DENTITIES (BASELINE )        82.13 ± 18.96     –        0.400 ± 0.017        –     0.308 ± 0.018       –
+        C ARDIAC S URGEON                   98.41 ± 4.76   +16.28     0.395 ± 0.019     -0.005   0.318 ± 0.027     +0.010
+        Q UALITATIVE R ESEARCHER            97.56 ± 3.34   +15.43     0.397 ± 0.014     -0.003   0.324 ± 0.023     +0.016
+        M EDICAL D OCTOR                    96.83 ± 8.98   +14.70     0.389 ± 0.025     -0.011   0.334 ± 0.007     +0.026
+        P SYCHOLOGIST                       93.67 ± 2.35   +11.54     0.359 ± 0.018     -0.041   0.325 ± 0.015     +0.027
+
+Table 2: Performance of Identity-Augmented Agents Evaluation results across core metrics: credibility (C),
+dependability (D), and transferability (T ). Values denote the mean and standard deviation computed over nine
+transcripts. Bolded values indicate the best performance, and underlined values denote the second-best. ∆ columns
+indicate improvements over the baseline. Higher values are better for C, D, and T . Definitions for each evaluation
+metric are in Section 4.
+
+      Agent Identity                     Cosine (Cbi )     ∆C       Levenshtein (DL )    ∆DL        BLEU (B)          ∆B
+      N O I DENTITIES (BASELINE )       0.132 ± 0.027      –         0.301 ± 0.027        –        0.019 ± 0.008      –
+      C ARDIAC S URGEON                 0.115 ± 0.053    −0.017      0.259 ± 0.089      −0.042     0.020 ± 0.009    +0.001
+      Q UALITATIVE R ESEARCHER          0.107 ± 0.046    −0.025      0.252 ± 0.082      −0.049     0.014 ± 0.007    −0.005
+      M EDICAL D OCTOR                  0.112 ± 0.018    −0.020      0.287 ± 0.025      −0.014     0.018 ± 0.006    −0.001
+      P SYCHOLOGIST                     0.121 ± 0.029    −0.011      0.282 ± 0.021      −0.019     0.020 ± 0.006    +0.001
+
+Table 3: Semantic and Lexical Alignment Metrics. Mean ± standard deviation scores across three metrics used to
+evaluate alignment between LLM-generated and human-generated themes: bidirectional Cosine Similarity (Cbi ),
+Levenshtein Distance (DL ), and BLEU Score (B). ∆ columns represent absolute changes from the baseline (No
+Identities). Higher values indicate better alignment, except for DL , where lower values indicate better alignment.
+
+  #     Human Theme                                                    Closest LLM Themes (iteration=5)
+  1     Clarity of potential risks and outcomes                        Desiring Comprehensive Data on Long-Term Outcomes
+                                                                       Seeking Clarity and Understanding about My Child’s
+                                                                       Condition
+  2     Freedom from hypervigilance related to the condition           Feeling Overwhelmed by Emotional Uncertainty
+                                                                       Living with Constant Anxiety about Child’s Health
+  3     The diagnosis given in a compassionate and empathic way        Experiencing Relief from Diagnosis and Support
+                                                                       Feeling Overwhelmed by Medical Decisions
+  4     A sense of control over the future                             Balancing Relief and Anxiety about the Future
+                                                                       Seeking Reassurance and Clear Communication from
+                                                                       Medical Professionals
+  5     Being heard and taken seriously by clinicians                  Seeking Reassurance and Clear Communication from
+                                                                       Medical Professionals
+                                                                       Feeling Isolated During the Medical Journey
+  6     Individualized support for management decision-making          Advocating for Child’s Medical Needs
+                                                                       Navigating Surgical Decision Anxiety
+  7     Receiving support from others                                  Finding Strength in Family and Community Support
+                                                                       Finding Joy in Family Connections
+  8     Being appropriately informed                                   Seeking Reassurance and Clear Communication from
+                                                                       Medical Professionals
+                                                                       Desiring Clear Communication from Medical Professionals
+  9     Partnership with the care team                                 Seeking Reassurance and Clear Communication from
+                                                                       Medical Professionals
+                                                                       Advocating for Child’s Medical Needs
+ 10     Feeling that my child is safe                                  Coping with Health Crisis Trauma
+                                                                       Feeling Overwhelmed by Medical Decisions
+ 11     Not feeling responsible for the diagnosis and its timing       Struggling with Feelings of Guilt and Responsibility
+                                                                       Desiring Proactive Healthcare Measures to Prevent Crises
+ 12     Appropriately coping with stress, anxiety and depression       Feeling Overwhelmed by Emotional Uncertainty
+                                                                       Managing Ongoing Anxiety about My Child’s Health
+
+Table 4: Examples of semantic alignment between human and LLM-generated themes. Each human-generated
+theme is matched with the two LLM-generated themes exhibiting the highest cosine similarity scores, based on the
+similarity matrix heatmap (Figure 4b) after five refinement iterations incorporating feedback from the feedback agent.
+These LLM-generated themes are drawn from agents with diverse identities in the Auto-TA pipeline. Although
+traditional alignment scores are modest, the most similar LLM themes often reflect comparable underlying meanings,
+and in some cases, elaborate or extend the human-coded interpretations.
+conditioned agents enhanced alignment with
+human-coded themes, particularly when identities
+matched annotator expertise. Despite low tradi-
+tional metric scores, identity-augmented agents
+captured valid insights and expanded the thematic
+space. Auto-TA demonstrates potential for scal-
+able, expert-informed qualitative analysis, support-
+ing future extensions through domain adaptation,
+reinforcement learning, and agent collaboration.
+   Future work should explore evaluation methods
+that go beyond surface-level alignment, focusing on
+the distinctiveness, utility, and interpretive depth
+of LLM-generated themes in specific clinical or
+research contexts. Bridging machine efficiency
+and human interpretability will likely require iter-
+ative collaboration with domain experts. Incorpo-
+rating expert feedback into a reinforcement learn-
+ing framework could enable adaptive refinement
+based on human judgment. Expanding the frame-
+work to new domains will help assess its general-
+izability, while structured dialogue or negotiation
+among agents may better mirror human qualitative
+analysis. An identity generation agent that selects
+optimal personas based on dataset context could
+further improve relevance. Finally, examining re-
+producibility and sensitivity to prompt variation is
+essential for real-world reliability.
+References                                                     CAMEL: Communicative agents for ”mind” explo-
+                                                               ration of large language model society. In Thirty-
+Yuntao Bai, Andy Jones, Kamal Ndousse, Amanda                  seventh Conference on Neural Information Process-
+  Askell, Anna Chen, Nova DasSarma, Dawn Drain,                ing Systems.
+  Stanislav Fort, Deep Ganguli, Tom Henighan,
+  Nicholas Joseph, Saurav Kadavath, Jackson Kernion,         Chin-Yew Lin. 2004. ROUGE: A package for auto-
+  Tom Conerly, Sheer El-Showk, Nelson Elhage, Zac              matic evaluation of summaries. In Text summariza-
+  Hatfield-Dodds, Danny Hernandez, Tristan Hume,               tion branches out: Proceedings of the ACL-04 work-
+  and 12 others. 2022. Training a helpful and harmless         shop, pages 74–81. Barcelona, Spain.
+  assistant with reinforcement learning from human
+  feedback. arXiv preprint arXiv:2204.05862.                 Yvonna S. Lincoln and Egon G. Guba. 1985. Naturalis-
+                                                               tic Inquiry. Sage Publications.
+Xiaohe Bo, Zeyu Zhang, Quanyu Dai, Xueyang Feng,
+  Lei Wang, Rui Li, Xu Chen, and Ji-Rong Wen. 2024.          Xiao Liu, Hao Yu, Hanchen Zhang, Yifan Xu, Xuanyu
+  Reflective multi-agent collaboration based on large          Lei, Hanyu Lai, Yu Gu, Hangliang Ding, Kaiwen
+  language models. In Advances in Neural Information           Men, Kejuan Yang, Shudan Zhang, Xiang Deng, Ao-
+  Processing Systems.                                          han Zeng, Zhengxiao Du, Chenhui Zhang, Sheng
+                                                               Shen, Tianjun Zhang, Yu Su, Huan Sun, and 3 oth-
+Virginia Braun and Victoria Clarke. 2006. Using the-           ers. 2023. Agentbench: Evaluating llms as agents.
+  matic analysis in psychology. Qualitative Research           Preprint, arXiv:2308.03688.
+  in Psychology, 3(2):77–101.
+                                                             Yanyan Liu, Yunning Chen, Pan Yin, and 1 others. 2019.
+Centers for Disease Control and Prevention. 2022. Data         Global, regional, and national burden of congenital
+  and statistics on congenital heart defects. https://         heart disease, 1990–2017: a systematic analysis for
+  www.cdc.gov/heart-defects/data/index.html.                   the global burden of disease study 2017. The Lancet
+  Accessed: 2025-04-30.                                        Child & Adolescent Health, 3(12):918–927.
+
+Chi-Min Chan, Weize Chen, Yusheng Su, Yuchen Xi-             Carlos M Mery, Andrew Well, Kate Taylor, Kathleen
+  ang, Xuancheng Ren, and Heyan Huang. 2024. Chat-             Carberry, José Colucci, Christopher Ulack, Adam
+  eval: Towards better LLM-based evaluators through            Zeiner, Michelle Mizrahi, Eileen Stewart, Christine
+  multi-agent debate. In Proceedings of the 12th In-           Dillingham, Taylor Cook, Arotin Hartounian, Eliza-
+  ternational Conference on Learning Representations           beth McCullum, Jeremy T Affolter, Heather Van Di-
+  (ICLR).                                                      est, Alexandra Lamari-Fisher, Stacey Chang, Scott
+                                                               Wallace, Elizabeth Teisberg, and Charles D Fraser Jr.
+Shih-Chieh Dai, Aiping Xiong, and Lun-Wei Ku. 2023.            2023. Examining the real-life journey of individuals
+  Llm-in-the-loop: Leveraging large language model             and families affected by single-ventricle congenital
+  for thematic analysis. Preprint, arXiv:2310.15100.           heart disease. Journal of the American Heart Associ-
+                                                               ation, 12(4):e027556.
+Trisha Greenhalgh, Joe Wherton, Chrysanthi Papoutsi,
+   and 1 others. 2019. Beyond adoption: a new                Emily Namey, Greg Guest, Lucy Thairu, and Lauri John-
+   framework for theorizing and evaluating nonadop-            son. 2008. Data reduction techniques for large quali-
+   tion, abandonment, and challenges to the scale-up,          tative data sets. Handbook for Team-Based Qualita-
+   spread, and sustainability of health and care tech-         tive Research, pages 137–161.
+   nologies. Journal of Medical Internet Research,
+   21(11):e13170.                                            Lorelli S Nowell, Jill M Norris, Deborah E White,
+                                                               and Nancy J Moules. 2017. Thematic analy-
+Awais Hameed Khan, Hiruni Kegalle, Rhea D’Silva,               sis: Striving to meet the trustworthiness crite-
+  Ned Watt, Daniel Whelan-Shamy, Lida Ghahreman-               ria. International Journal of Qualitative Methods,
+  lou, and Liam Magee. 2024. Automating thematic               16(1):1609406917733847.
+  analysis: How LLMs analyse controversial topics.
+  arXiv preprint arXiv:2405.06919.                           Long Ouyang, Jeff Wu, Xu Jiang, Diogo Almeida, Car-
+                                                               roll L. Wainwright, Pamela Mishkin, Chong Zhang,
+Irene Korstjens and Albine Moser. 2018. Series: Practi-        Sandhini Agarwal, Katarina Slama, Alex Ray, John
+   cal guidance to qualitative research. part 4: Trustwor-     Schulman, Jacob Hilton, Fraser Kelton, Luke Miller,
+   thiness and publishing. European Journal of General         Maddie Simens, Amanda Askell, Peter Welinder,
+   Practice, 24(1):120–124.                                    Paul Christiano, Jan Leike, and Ryan Lowe. 2022.
+                                                               Training language models to follow instructions with
+V. Vien Lee, Stephanie C. C. van der Lubbe, Lay Hoon           human feedback. In Advances in Neural Information
+   Goh, and Jose Maria Valderas. 2024. Harnessing              Processing Systems, volume 35.
+   chatgpt for thematic analysis: Are we ready? Journal
+   of Medical Internet Research, 26:e54974.                  Stefano De Paoli. 2024. Performing an inductive the-
+                                                                matic analysis of semi-structured interviews with a
+Guohao Li, Hasan Abed Al Kader Hammoud, Hani                    large language model. Social Science Computer Re-
+  Itani, Dmitrii Khizbullin, and Bernard Ghanem. 2023.          view, 42(4):997–1019.
+Kishore Papineni, Salim Roukos, Todd Ward, and Wei-         Appendix
+  Jing Zhu. 2002. Bleu: a method for automatic evalu-
+  ation of machine translation. In Proceedings of the
+  40th annual meeting of the Association for Compu-
+  tational Linguistics, pages 311–318. Association for      A     Dataset Details
+  Computational Linguistics.
+Tingrui Qiao, Caroline Walker, Chris W Cunningham,
+  and Yun Sing Koh. 2025. Thematic-LM: a LLM-
+                                                            A.1      Original Corpus Composition and
+  based multi-agent system for large-scale thematic                  Participant Summary
+  analysis. In THE WEB CONFERENCE 2025.
+Muhammad Zain Raza, Jiawei Xu, Terence Lim, Lily            Between February and September 2020, transcripts
+ Boddy, Carlos M. Mery, Andrew Well, and Ying               were collected from 19 moderated focus groups
+ Ding. 2025. LLM-TA: An LLM-enhanced thematic               (Experience Groups, 90 minutes, 3–7 participants),
+ analysis pipeline for transcripts from parents of chil-
+ dren with congenital heart disease. arXiv preprint         35 semi-structured 1:1 interviews (60 minutes), and
+ arXiv:2502.01620.                                          4 co-design workshops aimed at validating emerg-
+                                                            ing journey maps. The full composition of the
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec
+  Radford, and Oleg Klimov. 2017. Proximal pol-
+                                                            parent corpus is shown in Table 5.
+  icy optimization algorithms. In arXiv preprint
+  arXiv:1707.06347.
+                                                                       Table 5: Parent corpus composition
+Nisan Stiennon, Long Ouyang, Jeff Wu, Daniel M.
+  Ziegler, Ryan Lowe, Chelsea Voss, Alec Radford,                               # Sessions Participants Approx. Words
+  Dario Amodei, and Paul Christiano. 2020. Learning
+  to summarize from human feedback. In Advances in           EG Sessions            19           134           ∼260 k
+  Neural Information Processing Systems, volume 33,          1:1 Interviews         35           56†           ∼210 k
+  pages 3008–3021.                                           Workshops               4            58           ∼50 k
+                                                             Total                  58           170           ∼520 k
+Richard S. Sutton and Andrew G. Barto. 1998. Rein-                    †
+  forcement Learning: An Introduction. MIT Press,                         35 family participants + 21 stakeholders
+  Cambridge, MA.
+Jose M Valderas, Anna Kotzeva, Mireia Espallargues,
+  and 1 others. 2008. Patient reported outcome mea-            Of the 96 survey respondents, most were parents
+  sures: a model-based classification system for re-        (n=52) or patients (n=29), with smaller numbers
+  search and clinical practice. Quality of Life Research,   of siblings (n=9), partners (n=4), and fetal case
+  17(9):1125–1135.
+                                                            participants (n=4). Females comprised the major-
+Daphne C Watkins. 2017. Qualitative research: The im-       ity across groups, especially among parents (77%)
+  portance of conducting research that doesn’t “count”.     and patients (55%). Most respondents identified
+  Health Promotion Practice, 18(5):601–602.                 as White (81% of parents, 78% of patients), with
+Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran                smaller proportions identifying as Hispanic/Latino
+  Wu, Beibin Li, Erkang Zhu, Li Jiang, Xiaoyun              or Black.
+  Zhang, Shaokun Zhang, Jiale Liu, Ahmed Hassan
+  Awadallah, Ryen W White, Doug Burger, and Chi
+  Wang. 2023. Autogen: Enabling next-gen llm ap-
+  plications via multi-agent conversation. Preprint,
+                                                            A.2      Quote Identification and Traceability
+  arXiv:2308.08155.
+Huimin Xu, Seungjun Yi, Terence Lim, Jiawei Xu, An-
+  drew Well, Carlos Mery, Aidong Zhang, Yuji Zhang,         Each statement in the transcripts is tagged with a
+  Heng Ji, Keshav Pingali, Yan Leng, and Ying Ding.         unique Quote ID to support reference and trace-
+  2025. Tama: A human-ai collaborative thematic anal-       ability during TA. The format [P#_S###] identi-
+  ysis framework using multi-agent llms for clinical        fies both the speaker and the sequence: P# denotes
+  interviews. Preprint, arXiv:2503.20666.
+                                                            the participant (e.g., P1 = Participant 1), and S###
+Kunlun Zhu, Hongyi Du, Zhaochen Hong, Xiaocheng             marks the specific utterance from that participant.
+  Yang, Shuyi Guo, Zhe Wang, Zhenhailong Wang,              This system facilitates coding accuracy and enables
+  Cheng Qian, Xiangru Tang, Heng Ji, and Jiaxuan
+  You. 2025. Multiagentbench: Evaluating the col-
+                                                            cross-referencing between annotations and original
+  laboration and competition of llm agents. Preprint,       context. A total of 85 participants contributed to
+  arXiv:2503.01935.                                         the subset analyzed in this study.
+A.3    Visualizing Transcript Embeddings via              Term              Definition
+       t-SNE
+                                                          Agent             An autonomous computational entity
+                                                                            (LLM) that interacts with other agents or
+                                                                            the environment to perform specific tasks.
+                                                          CHD               Congenital Heart Disease
+                                                          SV-CHD            Single-Ventricle Congenital Heart Disease
+                                                          AAOCA             A congenital heart condition where a
+                                                                            coronary artery arises from the aorta in an
+                                                                            atypical location.
+                                                          TA                Thematic analysis, a method for identi-
+                                                                            fying and reporting patterns, as proposed
+                                                                            by Braun and Clarke (2006).
+                                                          LLM               Large Language Model
+Figure 2: 3D t-SNE projection of sentence embeddings      RL                Reinforcement Learning
+from Interview 1, showing clusters by speaker identity.
+                                                          RLHF              Reinforcement Learning from Human Feed-
+                                                                            back
+                                                          PPO               Proximal Policy Optimization (Schulman
+                                                                            et al., 2017)
+                                                          IRB               Institutional Review Board
+
+                                                               Table 6: Glossary of key terms and abbreviations.
+
+
+                                                          The normalized form is given by:
+
+                                                                                         edit_distance(ti , ℓj )
+                                                               Levenshtein(ti , ℓj ) =                           ,
+                                                                                            max(|ti |, |ℓj |)
+
+                                                          where |ti | and |ℓj | denote the lengths of the re-
+                                                          spective strings. For interpretability, we convert
+                                                          distance into a similarity score:
+
+                                                                 simlev (ti , ℓj ) = 1 − Levenshtein(ti , ℓj ),
+Figure 3: 2D t-SNE projection of sentence embeddings
+with representative labels and speaker roles.             so that values closer to 1 indicate higher surface-
+                                                          level string similarity. We report the average maxi-
+                                                          mum similarity per human theme:
+A.4    Ethics Statement
+                                                                                 n
+The original study was approved by the UT                                    1X
+                                                                     DL =       max simlev (ti , ℓj ),
+Austin Institutional Review Board [Protocol                                  n   j
+                                                                                i=1
+#2019080031] and registered on C LINICALT RI -
+ALS . GOV [NCT04613934]. The dataset was gener-           which assesses how well each human theme is
+ated in the study by Mery et al. (2023).                  lexically approximated by its most similar LLM-
+                                                          generated theme.
+B     Additional Abbreviations
+                                                          D     Dependability (D) and Transferability
+Table 6 lists abbreviations that appear frequently in
+                                                                (T ) Score Details
+the paper for ease of reference.
+                                                          Table 7 presents detailed ROUGE-1 and ROUGE-2
+C     Evaluation Metrics Details                          scores used to assess theme dependability (D) and
+Levenshtein Distance (DL ) To capture lexical             transferability (T ) across agent identities.
+similarity between themes, we compute the nor-
+                                                          E     Supplementary Results on Theme
+malized Levenshtein distance between each pair
+                                                                Alignment
+(ti , ℓj ), defined as the minimum number of single-
+character edits (insertions, deletions, or substitu-      This section provides supplementary visualizations
+tions) required to transform one string into the other.   related to theme alignment with human ground
+    Agent Identity                    R1          ∆R1          R2          ∆R2          R′1         ∆R′1         R′2         ∆R′2
+    N O I DENTITIES (BASELINE )   0.564 ± 0.020     –      0.236 ± 0.018     –      0.437 ± 0.020     –      0.180 ± 0.018     –
+    C ARDIAC S URGEON             0.563 ± 0.022   −0.001   0.227 ± 0.021   −0.009   0.449 ± 0.028   +0.012   0.188 ± 0.026   +0.008
+    Q UALITATIVE R ESEARCHER      0.538 ± 0.020   −0.026   0.255 ± 0.016   +0.019   0.456 ± 0.030   +0.019   0.192 ± 0.022   +0.012
+    M EDICAL D OCTOR              0.546 ± 0.028   −0.018   0.232 ± 0.026   −0.004   0.464 ± 0.009   +0.027   0.204 ± 0.006   +0.024
+    P SYCHOLOGIST                 0.488 ± 0.026   −0.076   0.229 ± 0.018   −0.007   0.452 ± 0.020   +0.015   0.198 ± 0.016   +0.018
+
+
+Table 7: Lexical overlap scores used in evaluating dependability and transferability. R1 and R2 denote bidirectional
+ROUGE-1 and ROUGE-2 scores, respectively, computed across two independent theme generation runs from
+the same transcript (see Eq. 3–4); their average defines dependability D (Eq. 5). R′1 and R′2 denote analogous
+ROUGE scores computed between themes generated from different transcript subsets (train vs. validation) and
+define transferability T (Eq. 8). Higher values indicate stronger consistency or generalizability.
+
+
+truth. Figure 4 shows improved cosine similarity
+between LLM and human themes from iteration
+0 to 5. Figure 5 indicates that reviewer-assigned
+scores remained static, highlighting the need for
+more sensitive metrics. Table 8 shows semantically
+aligned theme pairs from the C ARDIAC S URGEON
+agent, highlighting shared or complementary mean-
+ings despite low similarity scores.
+
+F     Example Prompt with Identities
+
+     Prompt for Surgical Coder Identity
+     You are an experienced cardiac surgeon specializing
+     in Anomalous Aortic Origins of Coronary Artery
+     (AAOCA). Your role is to code patient narratives
+     from a surgical perspective.                                                    (a) Cosine Similarity at Iteration 0
+     Our end goal is to perform TA on the provided tran-
+     script (Braun and Clarke, 2006).
+     The steps that should be performed are as follows:
+
+        1. Familiarization
+           Read and re-read the data to become deeply
+           familiar with it.
+
+        2. Generating Initial Codes
+           Systematically code interesting features across
+           the dataset.
+
+        3. Searching for Themes
+           Group codes into potential themes, collating
+           relevant data.
+
+        4. Reviewing Themes
+           Check if themes work in relation to coded ex-
+           tracts and the full dataset.
+
+        5. Defining and Naming Themes                                                (b) Cosine Similarity at Iteration 5
+           Refine each theme and define its essence and
+           scope.                                                      Figure 4: Comparison of LLM-human theme similarity
+        6. Producing the Report                                        across iterations. Higher similarity scores in later itera-
+           Final analysis and write-up with evidence-rich              tions suggest better thematic alignment after feedback-
+           examples.                                                   driven refinement.
+     Your job is to perform ONLY Step 2.
+     You MUST provide the unique Quote IDs and de-
+     scriptions about the codes according to the context of            G Example Prompt and Generated Codes
+     the original text. The Quote IDs in the transcript are
+     marked as [P1_S002] for example.
+     Here is the Original transcript:                                  G.1     Example Prompt for Code Generation
+ #    Human Theme                                            Closest LLM Themes (Cardiac Surgeon, iteration=0)
+ 1    Clarity of potential risks and outcomes                Postoperative Outcomes and Recovery
+                                                             Concerns About Long-Term Outcomes and Data Scarcity
+  2 Freedom from hypervigilance related to the condition     majority of the mental health affect from PTSD
+                                                             Initial Underestimation of Condition Severity
+  3 The diagnosis given in a compassionate and empathic way Relief in Diagnosis; Initial Diagnosis and Confusion
+  4 A sense of control over the future                       Post-Surgery Clearance and Future Concerns
+  5 Being heard and taken seriously by clinicians            Privacy and Protection of Child’s Emotional Well-being
+  6 Individualized support for management decision-making    Decision for Surgery; Decision-Making and Surgical Con-
+                                                             siderations
+  7 Receiving support from others                            Role of Support Systems
+  8 Being appropriately informed                             Privacy and Protection of Child’s Emotional Well-being
+  9 Partnership with the care team                           the kids on his team."; Trust in Medical Team
+ 10 Feeling that my child is safe                            Navigating Parent-Child Communication
+ 11 Not feeling responsible for the diagnosis and its timing Diagnosis and Initial Reactions
+ 12 Appropriately coping with stress, anxiety and depression Depression; Anxiety
+
+Table 8: Examples of semantic alignment between human and LLM-generated themes. Each human-generated
+theme is paired with two closely aligned LLM-generated themes from the C ARDIAC S URGEON identity. Although
+traditional alignment scores between human- and LLM-generated themes are low, many theme pairs share similar
+underlying meanings, and some even build upon or encompass each other.
+
+
+                                                                5. Defining and Naming Themes: Refine each
+                                                                   theme and define its essence and scope.
+
+                                                                6. Producing the Report: Final analysis and write-
+                                                                   up with evidence-rich examples.
+
+                                                                Your task is to perform ONLY Step 2. You MUST
+                                                                include unique Quote IDs (e.g., [P1_S002]) with
+                                                                descriptions grounded in the transcript.
+
+
+                                                            G.2    Example of Generated Codes
+
+Figure 5: Theme quality scores (Coverage, Actionabil-       Note that Vanilla refers to agents with no desig-
+ity, Distinctiveness, and Relevance) across refinement
+                                                            nated identities.
+iterations. Flat trends suggest that integer-based eval-
+uation lacks granularity to detect micro-level improve-         Initial Codes from Surgeon Perspective
+ments.
+                                                                1. Understanding AAOCA Quote ID: [P1_S001]
+                                                                   Use of acronyms and terminology (AAOCA,
+     Prompt: Surgical Perspective on Coding                        ALCA) reflects familiarity with medical vocabu-
+     Patient Narratives                                            lary.
+
+     You are an experienced cardiac surgeon specializing        2. Variation in Medical Conditions Quote ID:
+     in Anomalous Aortic Origins of Coronary Artery                [P2_S001]
+     (AAOCA). Your role is to code patient narratives              Illustrates how the anomaly presents differently
+     from a surgical perspective.                                  depending on which coronary artery is affected.
+     Our end goal is to perform TA on the provided tran-
+     script (Braun and Clarke, 2006).                           3. Simplifying Medical Terminology Quote ID:
+     The steps that should be performed are as follows:            [P4_S001]
+                                                                   Parents often simplify terminology for ease of
+     1. Familiarization: Read and re-read the data to              communication with others.
+        become deeply familiar with it.
+                                                                4. Lack of Understanding Among Non-Medical
+     2. Generating Initial Codes: Systematically code              Individuals Quote ID: [P4_S003]
+        interesting features across the dataset.                   Indicates that detailed terminology is typically
+                                                                   only understood by healthcare professionals.
+     3. Searching for Themes: Group codes into poten-
+        tial themes, collating relevant data.                   5. Emotional Impact of Medical Complexity
+                                                                   Quote ID: [P5_S001]
+     4. Reviewing Themes: Check if themes work in                  Parents express emotional burden due to difficulty
+        relation to coded extracts and the full dataset.           explaining the condition.
+6. Privacy and Child’s Emotional Well-being
+   Quote ID: [P2_S003]
+   Parents shield children from information to avoid
+   psychological stress.
+
+                          ...
+
+
+Initial Codes from Vanilla Identity
+
+1. Use of Acronyms and Simplification Quote ID:
+   [P1_S001], [P2_S001], [P4_S001], [P5_S001],
+   [P3_S001]
+   Participants refer to the condition using acronyms
+   like “AAOCA” and simplified terms to enhance
+   comprehension.
+
+2. Emotional Impact and Coping Quote ID:
+   [P5_S008], [P2_S007], [P4_S007], [P1_S002]
+   Expressed emotions include devastation, stress,
+   and relief; a recurring theme across interviews.
+
+3. Lack of Information and Data Quote ID:
+   [P4_S010], [P5_S017], [P1_S013]
+   Participants highlight frustrations stemming from
+   the rarity of AAOCA and limited clinical data.
+
+4. Decision-Making Challenges Quote ID:
+   [P4_S008], [P2_S011], [P5_S021]
+   Ambiguity in choosing surgery vs. watchful
+   waiting due to mixed medical recommendations.
+
+5. Protective Parenting and Monitoring Quote ID:
+   [P2_S014], [P3_S012], [P5_S024]
+   Parents remain highly vigilant, often suppressing
+   their concerns to avoid alarming children.
+
+                          ...
+
+6. Sharing Experiences and Offering Help Quote
+              ID: [P5_S027], [P1_S021]
+    Participants value peer mentorship and express
+   willingness to support newly diagnosed families.
+
+7. Impact on Daily Life and Activities Quote ID:
+         [P3_S004], [P4_S012], [P5_S015]
+     The condition disrupts routines and limits
+    children’s participation in physical activities.
+

@@ -1,0 +1,856 @@
+TAMA: A Human-AI Collaborative Thematic Analysis Framework
+Using Multi-Agent LLMs for Clinical Interviews
+HUIMIN XU∗ , School of Information, University of Texas at Austin, USA
+SEUNGJUN YI∗ , Department of Biomedical Engineering, University of Texas at Austin, USA
+TERENCE LIM, College of Natural Sciences, University of Texas at Austin, USA and Graphen, Inc., USA
+JIAWEI XU, School of Information, University of Texas at Austin, USA
+ANDREW WELL, Department of Cardiac Surgery, Division of Pediatric Cardiac Surgery, Vanderbilt University
+School of Medicine, USA and Pediatric Heart Institute, Monroe Carell Jr. Children’s Hospital at Vanderbilt, USA
+CARLOS MERY, Department of Cardiac Surgery, Division of Pediatric Cardiac Surgery, Vanderbilt University
+School of Medicine, USA and Pediatric Heart Institute, Monroe Carell Jr. Children’s Hospital at Vanderbilt, USA
+AIDONG ZHANG, Department of Computer Science, University of Virginia, USA
+YUJI ZHANG, Department of Computer Science, University of Illinois at Urbana-Champaign, USA
+HENG JI, Department of Computer Science, University of Illinois at Urbana-Champaign, USA
+KESHAV PINGALI, Department of Computer Science, University of Texas at Austin, USA
+YAN LENG, McCombs School of Business, University of Texas at Austin, USA
+YING DING, School of Information, University of Texas at Austin, USA and Dell Medical School, University of
+Texas at Austin, USA
+Thematic analysis (TA) is a widely used qualitative approach for uncovering latent meanings in unstructured text data. TA
+provides valuable insights in healthcare but is resource-intensive. Large Language Models (LLMs) have been introduced to
+perform TA, yet their applications in high-stakes healthcare settings, particularly for qualitative clinical interview analysis,
+remain limited. Here, we propose TAMA: A Human-AI Collaborative Thematic Analysis framework using Multi-Agent LLMs
+for clinical interviews. We leverage the scalability and coherence of multi-agent systems through structured conversations
+between agents and coordinate the expertise of cardiac experts in TA. Using interview transcripts from parents of children
+with Anomalous Aortic Origin of a Coronary Artery (AAOCA), a rare congenital heart disease, we demonstrate that TAMA
+outperforms single-agent LLM TA approaches, achieving higher thematic hit rate, coverage, and distinctiveness. TAMA
+demonstrates strong potential for automated TA in clinical settings by leveraging multi-agent LLM systems with human-in-
+the-loop integration by enhancing quality while significantly reducing manual workload. The full implementation is publicly
+available at https://github.com/Charlie-Yi-SJ/TAMA.
+CCS Concepts: • Human-centered computing → Collaborative and social computing.
+Additional Key Words and Phrases: Thematic Analysis, Large Language Models, Multi-agent LLMs, Human-AI Collaboration,
+Heart Disease (AAOCA)
+∗ Both authors contributed equally to this research.
+
+
+Authors’ Contact Information: Ying Ding, School of Information, University of Texas at Austin, Austin, TX, USA and Dell Medical School,
+University of Texas at Austin, Austin, TX, USA; ying.ding@ischool.utexas.edu.
+
+Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that
+copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page.
+Copyrights for components of this work owned by others than the author(s) must be honored. Abstracting with credit is permitted. To copy
+otherwise, or republish, to post on servers or to redistribute to lists, requires prior specific permission and/or a fee. Request permissions from
+permissions@acm.org.
+© 2026 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM 2637-8051/2026/7-ART
+https://doi.org/10.1145/3828752
+
+
+                                                                                                              ACM Trans. Comput. Healthcare
+2   •    Xu et al.
+
+
+1       Introduction
+Thematic Analysis (TA), a qualitative approach used to systematically identify, analyze, and interpret patterns3
+within data, is widely applied across various fields. Employing inductive TA in healthcare can significantly
+improve patient care [22, 32] , medical practices [5, 7, 22] , and policy decisions [1] . Traditionally, TA involves
+the following processes: (1) Researchers immerse themselves in qualitative data (such as interview transcripts)
+by reading the material multiple times to become thoroughly familiar with its content, (2) generate initial
+codes (codebook) to identify significant features of the data, and (3) organize into broader themes that capture
+meaningful patterns within the dataset. To reduce the manual workload involved in this process, single-agent
+large language models (LLMs) have been shown to have potential for partially automating TA. However, this
+approach also encounters challenges in scalability [6], consistency [37], and coherence [18]. Moreover, TA in
+healthcare is inherently a resource-intensive endeavor, which inevitably requires expert analysis and ethical
+approvals [46] , which add complexity and prolong data collection.
+   To address these limitations, we present TAMA: A Human-AI Collaborative Thematic Analysis framework
+using Multi-Agent LLMs for clinical interviews (Figure 1) to enhance the scalability, consistency, and coherence
+of inductive TA in healthcare contexts. Using TAMA, we performed TA on de-identified transcripts from nine
+focus group sessions involving 42 parents of children with a rare congenital heart disease - Anomalous Aortic
+Origin of a Coronary Artery (AAOCA). We employed a combination of quantitative and qualitative metrics to
+evaluate the themes generated by our framework. Jaccard Similarity and hit rate assessed the overlap between
+LLM-generated and human-generated themes, while embedding-based semantic similarity measured cosine
+similarity scores.
+   Our results show that TAMA outperforms single-agent LLM TA methods, achieving higher thematic accuracy
+(hit rate) while maintaining distinctiveness across themes closer to human-generated themes. Our framework
+enhances scalability, efficiency, and reliability, by significantly reducing the manual workload required in tradi-
+tional TA workflows while preserving thematic depth and representativeness. Also, TAMA automates coding
+and thematic synthesis, completing the TA process in under 10 minutes, a 99% reduction compared to the 30
+hours required for manual analysis. By leveraging multi-agent LLMs, TAMA demonstrates strong potential
+for real-world automated TA with human-in-the-loop integration in clinical settings, enhancing quality while
+significantly reducing resource demands.
+
+2 Related Work
+2.1 LLM in Thematic Analysis (TA)
+Recent work suggests that LLMs can support deductive coding in qualitative research through consistent,
+systematic code identification [42] . Furthermore, in a human–AI collaboration approach, GPT-3.5 generated
+codes of quality comparable to those of human analysts [8] . Although LLMs have also shown the capabilities to
+conduct inductive TA at a level comparable to human annotators across various fields, including social media [33] ,
+literature [9] , and journalism [23] , these applications involve low-stakes contexts with minimal privacy concerns
+in data collection. The LLM applications of healthcare interview transcripts remain under-explored due to their
+high-stakes nature. Moreover, previous work [29, 35] has relied heavily on single-agent LLMs, which struggle
+with multitasking [40] , extended context [20] , and accuracy [34] in critical fields including medicine and law [11]
+.
+
+
+
+3A pattern refers to a repeated idea, experience, or issue that appears across multiple data points, while a theme is a broader, interpretive
+
+insight that captures the significance of those patterns.
+
+
+ACM Trans. Comput. Healthcare
+              TAMA: A Human-AI Collaborative Thematic Analysis Framework Using Multi-Agent LLMs for Clinical Interviews   •   3
+
+
+
+
+Fig. 1. The TAMA Framework is a human-in-the-loop, multi-agent system designed to generate, evaluate, and refine
+themes from clinical interview transcripts.
+
+
+
+2.2   Multi-Agent LLM Systems.
+To address the gap listed above, multi-agent LLM systems [16, 43, 45, 48, 53, 54] have been introduced as a
+promising solution. These systems utilize the strengths of multiple role-specialized LLM agents working in a
+group, much like a team of experts collaborating on a complex project. Specialization may be achieved through
+separate model instances or, as in TAMA, through distinct prompt-based roles within a shared underlying model.
+Each agent in the system contributes its unique expertise, communicates with other agents, and iteratively refines
+outputs to tackle challenging tasks that may be beyond the capabilities of a single LLM. Recent work highlights the
+potential of multi-agent LLM systems across various tasks, including long-context analysis [53] , conversational
+task-solving [2] , evaluation of LLM generated outputs [27, 50] and TA [33] . However, human-in-the-loop
+approaches, where humans act as agents within multi-agent LLM systems, have yet to be implemented. In the
+healthcare domain, the active involvement of clinicians in the deployment of LLM is essential [38, 39] . Clinicians
+serve as an agent in evaluating the outputs generated by LLMs, making informed decisions about whether to
+accept, refine, or dismiss these results. Recent work attempts to integrate human agents into multi-agent LLM
+systems, which is known as human-AI teaming [52] . Human involvement can enhance reliability by mitigating
+hallucinations through feedback [41] , ensure regulatory compliance, and significantly reduce manual workload
+for doctors when implemented as a real-time interactive diagnosis environment [12] .
+
+2.3   LLM Agents in Medical Transcript Analysis.
+Previous work has demonstrated that LLMs can summarize an entire corpus of medical interviews within
+minutes [29] , and a pipeline for integrating LLMs to rapidly perform TA has been introduced [35] . Recently,
+multi-agent LLM systems have been explored for analyzing clinical transcripts and dialogues. MDAgents [25] , a
+framework that dynamically assigns medical expert roles (such as diagnostician and reviewer) to a team of LLMs,
+outperforms single models on clinical reasoning benchmarks. Additionally, multi-agent simulations of clinical
+scenarios have demonstrated improvements in information completeness and reasoning [12] .
+
+                                                                                              ACM Trans. Comput. Healthcare
+4   •    Xu et al.
+
+
+3 Methods
+3.1 Definitions.
+         • Code is a discrete analytical unit that contains a key pattern within the data, generated directly from
+           the dataset, and retaining its interpretive significance without being reducible to smaller meaningful
+           components.
+         • An agent is an autonomous computational entity (Large Language Model) that interacts with other agents
+           or the environment to perform specific tasks.
+         • Single-agent LLM refers to one large language model working independently to process, analyze, or
+           generate text based on a given input, without interacting with other models or specialized agents. This
+           is an identical output produced solely by the Generation Agent before any downstream evaluation or
+           refinement. The full multi-agent framework incorporates three coordinated agents (Generation, Evaluation,
+           and Refinement) whose iterative interactions distinguish it from the single-agent setting.
+         • Multi-agent LLM Systems refer to more than one language model collaborating to enhance task
+           performance through interaction, coordination, or division, where agents communicate by exchanging
+           messages and feedback to refine outputs and optimize decision-making. TAMA does not implement a
+           multi-agent system in the contemporary technical sense. Modern multi-agent architectures increasingly
+           involve autonomous agents with independent memory states, co-evolving strategies, and concurrent
+           execution [16, 19, 45, 49], none of which TAMA employs. TAMA is better described as an iterative
+           prompting pipeline with three separate roles: three LLM agents, each defined by a distinct system prompt
+           and specialized role, operate sequentially, with each agent’s structured output serving as input to the
+           next. We retain the term “multi-agent” throughout because it reflects the coordinated division of analytic
+           labor across three functionally distinct agents, but TAMA is a strictly role-based sequential multi-agent
+           system, which is narrower than the autonomous multi-agent systems described in [19, 45, 49].
+
+3.2       Human AI Teaming Framework.
+The cardiac expert interacts with the three LLM agents at distinct points in the workflow (Figure 1):
+        (1) Generation Agent: The expert provides background information and sets goals for initial code and
+            theme generation. This is a one-time interaction at the start of the process.
+        (2) Evaluation Agent: The expert defines the evaluation criteria (Coverage, Actionability, Distinctness, and
+            Relevance) upfront. This setup is also one-time, ensuring that both the Evaluation and Refinement Agents
+            operate according to a consistent rubric.
+        (3) Refinement Agent: The expert interacts iteratively after each round of evaluation and refinement. After
+            reviewing the themes and feedback from the Evaluation Agent, the expert determines whether the themes
+            meet the required quality standards or whether additional refinement is necessary. Iteration continues
+            until the expert approves the themes.
+This approach combines predefined guidance in the first two agents with dynamic, iterative human oversight in
+the third agent, ensuring both standardization and flexibility throughout the human-in-the-loop workflow. The
+evaluation criteria (Coverage, Actionability, Distinctiveness, Relevance) are grounded in established qualitative
+methodology frameworks [3, 31] and were co-developed with qualitative coding experts. The expert’s primary role
+was applying these criteria with clinical judgment rather than deriving cardiac-specific rules. Cardiac knowledge
+shaped two specific decisions: (1) identifying the parent–child experience distinction as a Relevance challenge
+specific to AAOCA, which required tailored examples for the Evaluation Agent (Table 1); and (2) recognizing
+over-generated topics (e.g., concerns about insurance coverage) as off-topic for the AAOCA parent experience,
+which informed the decision to terminate refinement.
+
+ACM Trans. Comput. Healthcare
+              TAMA: A Human-AI Collaborative Thematic Analysis Framework Using Multi-Agent LLMs for Clinical Interviews   •   5
+
+
+3.3   Dataset.
+The de-identified transcript corpus was generated from nine focus group sessions with 42 parents of children
+diagnosed with Anomalous Aortic Origin of a Coronary Artery (AAOCA) [35]. The dataset was collected at
+The University of Texas at Austin: Texas Center for Pediatric and Congenital Heart Disease (UT Dell Medical
+School, UT Health Austin, and Dell Children’s Medical Center). A nonclinical facilitator moderated the sessions
+to encourage open dialogue, enabling parents to share previously unspoken needs and experiences related to
+their children’s condition. The transcripts had a mean word count of 10,987 words (SD = 1,537), with a median
+of 11,457 words. The ground-truth themes used to evaluate TAMA were not generated in this study. They were
+derived from a previously published peer-reviewed thematic analysis of these same transcripts [30], yielding
+twelve human-generated themes (Table 3). In this study, we used these nine de-identified transcripts as input to
+the TAMA framework.
+   That prior thematic analysis [30] was conducted using an inductive thematic analysis framework by (1)
+a pediatric cardiac surgeon with specialized expertise in congenital heart disease and extensive experience
+interpreting qualitative parent-reported narratives, and (2) two qualitative researchers trained in inductive
+thematic analysis who had prior experience analyzing CHD and AAOCA parent interview transcripts. Coders
+independently coded all transcripts and engaged in iterative consensus discussions to refine and finalize the
+thematic structure, a process requiring approximately 30 hours per person. Because these human-generated
+themes underwent both rigorous consensus procedures and external journal peer review, they provide a reliable
+and methodologically sound reference standard for evaluating the themes produced by the TAMA framework.
+
+3.4   The TAMA Framework.
+The overall workflow of the TAMA framework consists of six steps (Figure 1).
+   Step 1: Expert Provides Background Information and Sets Goals for the Generation Agent.
+   The expert provides background information and instructs the Generation Agent to generate initial codes and
+themes. The prompt given to the Generation Agent is as follows:
+   “You are provided with transcripts from interviews with parents of children suffering from Anomalous Aortic
+Origin of a Coronary Artery (AAOCA). The transcripts reflect the desires, concerns, and meaningful outcomes of
+parents living with or caring for children with AAOCA. Some children have recently undergone open-heart surgery.
+   The goals of this study is for the coding and theme generation: Your goal is to carefully look through the text and
+identify all codes discussed by the parents exhaustively. Identify all relevant codes in the text, provide a Name for
+each code in 8 to 15 words in sentence case. Write with concise, concrete details and avoid clichés, generalizations.
+Give a dense Description of the code in 80 words and direct Quotes from the participant for each code in around 120
+words. These quotes can consist of multiple excerpts from the text.
+   Your task at this stage is to group the initial codes into distinct themes based on the initial codes, descriptions,
+and quotes. Themes specifically focus on the perspectives of parents, describing their own thoughts, concerns, and
+responses related to their child’s condition. Provide a descriptive and specific name of 8 to 15 words for each theme
+based on the code’s names, quotes and descriptions. Provide a detailed description of 60 to 80 words for each theme.”
+   Step 2: Theme Generation Agent Segments Chunks, Generates Codes, and Identifies Themes.
+   The Theme Generation agent executes the goals and instructions defined by the expert in Step 1, applying the
+same expert-defined prompt to each transcript chunk independently. No separate prompt is introduced at this
+stage. To clarify the division of responsibilities: Step 1 is the expert’s one-time setup (defining what the agent
+should do), while Step 2 is the agent’s execution of those instructions across all transcript chunks. Because the
+transcripts are too long for an LLM to process as a single input, they are segmented into smaller chunks (≤ 1, 500
+words) while maintaining contextual coherence. Prior research [20] indicates that large language models often
+prioritize the beginning and end of very long inputs while losing coherence in the middle sections. Specifically, we
+
+                                                                                              ACM Trans. Comput. Healthcare
+6   •   Xu et al.
+
+
+did the chunking based on the text length and semantic segmentation. We used the RecursiveCharacterTextSplitter
+from the LangChain library to segment each interview transcript into smaller, coherent text chunks. The splitter
+recursively searched for natural breakpoints, such as paragraph separations (\n\n), line breaks (\n), or the label
+”Interviewer”, to preserve the conversational flow.
+   Each transcript (mean length = 10,987 words) was divided into segments of up to approximately 1,500 words,
+resulting in 75 total chunks across 9 interviews (about 8 per transcript). This approach balanced text length and
+semantic coherence, ensuring that GPT-4o could maintain attention and accuracy across the entire transcript
+rather than overemphasizing the beginning or end.
+   This hybrid chunking strategy follows best practices for long-context processing in large language models,
+which show “lost-in-the-middle” effects when handling very long inputs [20, 29, 35].
+   Secondly, the Generation Agent generates initial codes capturing significant concepts and ideas from the
+transcripts, along with descriptive labels and representative quotes as evidence. These codes are then grouped
+to facilitate subsequent theme generation. Third, the LLM synthesizes preliminary themes from grouped codes
+before refining them into comprehensive themes that capture key insights from the data.
+   Step 3: Expert Defines Evaluation Criteria for the Evaluation Agent.
+   Four evaluation criteria are used: Coverage, Actionability, Distinctness, and Relevance. Detailed descriptions
+for each criterion are provided in Table 1. The cardiac expert highlighted a potential challenge in distinguishing
+between the experiences of parents and those of children/patients, particularly in assessing Relevance. To address
+this issue, the expert provided the Evaluation Agent with examples to clarify the distinction. The examples are as
+below:
+   “Parent Outcomes refer to parents reporting feeling limited by their child’s diagnosis, whereas Patient/Child
+Outcomes pertain to parents perceiving that their child is limited by the diagnosis.
+   Parent Outcomes: Parents report they feel limited by their child’s diagnosis. Parents report they have PTSD from
+their child’s experience. Parents report being distressed by the uncertainty of treatment choices. Parents report needing
+more social connections.
+   Patient/Child Outcomes: Parents report they feel their child is limited by the child’s diagnosis. Parents report their
+child has PTSD from their child’s experience. Parents report their child is distressed by the uncertainty of treatment
+choices. Parents report their child needs more social connections.”
+   Provenance and grounding of evaluation criteria. The evaluation rubric (Coverage, Actionability, Distinctiveness,
+Relevance) was defined by the cardiac domain expert (A.W.) in consultation with three qualitative coding experts
+who conducted the original human thematic analysis. The rubric was designed to align with established thematic
+analysis guidance that themes should (i) represent patterned meaning across the dataset, (ii) remain anchored to
+the analytic focus, and (iii) be coherent and clearly delineated rather than overlapping or redundant [3, 4, 24, 31].
+   Step 4: Evaluation Agent Provides Feedback.
+   The Evaluation Agent assesses the themes based on the four defined criteria (Coverage, Actionability, Dis-
+tinctness, and Relevance) and provides feedback for improvement for each criterion. The generated evaluation
+examples are listed in Table 1.
+   Step 5: Refinement Agent Improves Themes Based on Feedback.
+   The Refinement Agent improves themes based on feedback from the Evaluation Agent by applying four
+refinement actions (add, split, combine, and delete) which correspond to the criteria of Coverage, Actionability,
+Distinctness, and Relevance, respectively. Details are outlined in Table 1.
+   Step 6: Expert Terminates the Refinement Process.
+   The refinement process iterates through Step 4 (Evaluation) and Step 5 (Refinement) until the expert determines
+that the themes meet the required quality standards. After each round of evaluation and refinement, the cardiac
+expert reviews the refined themes and decides whether to finalize them or continue the process. If the expert
+
+
+ACM Trans. Comput. Healthcare
+               TAMA: A Human-AI Collaborative Thematic Analysis Framework Using Multi-Agent LLMs for Clinical Interviews       •     7
+
+
+ Criteria              Description (by expert)              Evaluation Agent (examples) Refinement Agent
+ Coverage              The generated themes should          e.g., Include Long-term Concerns:     Add missing important themes
+                       comprehensively capture the          The original data discusses long-     identified in sub-themes but not
+                       key aspects of parents’ lived ex-    term health monitoring and            yet captured in the generated
+                       periences while caring for chil-     transition to adult care, which       themes.
+                       dren with AAOCA from the             could be more explicitly ad-
+                       transcripts [3, 24].                 dressed in the themes to re-
+                                                            flect parents’ ongoing concerns
+                                                            about their child’s future health
+                                                            outcomes.
+ Actionability         Each theme should encapsu-           e.g., Some themes, like ’Desiring Split themes that contain multi-
+                       late a single concept that pro-      comprehensive data and address- ple concepts into separate, more
+                       vides clear, specific, and mean-     ing frustration with lack of sta- focused themes.
+                       ingful insights. These insights      tistics,’ combine two concepts (de-
+                       should be actionable and useful      sire for data and frustration with
+                       for informing interventions, re-     lack of it), which could be split
+                       sources, or research [15, 31].       into separate themes for clarity.
+ Distinctiveness       Each theme should be clearly         e.g., The themes ’Desiring emo-       Combine repeated or overlap-
+                       distinct from one another, with      tional support and understand-        ping themes to eliminate redun-
+                       no overlaps or redundancies [3,      ing from healthcare providers’        dancies and ensure each theme
+                       4, 31].                              and ’Emphasizing the role of          is unique.
+                                                            medical professionals in emo-
+                                                            tional support’ have overlapping
+                                                            elements and could be merged or
+                                                            refined to better distinguish their
+                                                            focus.
+ Relevance             Each theme should clearly re-        e.g., The theme ’Managing the Delete irrelevant themes that
+                       flect the parents’ lived expe-       emotional impact of surgery on do not reflect the parents’ expe-
+                       riences, concerns, and needs,        the child’ should clearly distin- riences or concerns.
+                       without confusing or overlap-        guish between the child’s and the
+                       ping with themes related to          parent’s emotional experiences.
+                       the child/patient’s feelings, con-
+                       cerns, or experiences [3, 24].
+
+
+Table 1. Detailed Prompts, Examples, and Refinement Actions for Each Evaluation Criterion. This table outlines
+the four evaluation criteria, along with their descriptions, sample feedback generated by the Evaluation Agent, and the
+corresponding Refinement Agent prompts.
+
+
+
+
+approves the themes, the process is terminated. If the themes do not meet the quality standards, the expert
+instructs the system to return to Step 4 for further evaluation and refinement.
+   In Step 6, the cardiac expert uses the same four predefined evaluation criteria (Coverage, Actionability,
+Distinctness, and Relevance) that were established in Step 3 for the Evaluation Agent. The expert refers to the
+detailed descriptions in Table 1 to determine whether the refined themes meet the required quality standards.
+By applying the same criteria consistently, the expert ensures that the final themes are assessed according to a
+standardized rubric, minimizing subjectivity while maintaining human oversight in the refinement process.
+
+                                                                                                     ACM Trans. Comput. Healthcare
+8   •    Xu et al.
+
+
+3.5       Evaluation Metrics.
+To compute embedding-based cosine similarity, we use sentence encoder all-MiniLM-L6-v2 to generate embed-
+dings. Based on the pairwise cosine similarities, we then calculate Jaccard Similarity to quantify the degree of
+overlap between themes. In addition, we employ hit rate to measure the proportion of theme pairs that exceed a
+predefined similarity threshold. These metrics provide a comparative evaluation of our framework’s performance
+against human-generated themes.
+   Let the set of human-generated and LLM-generated themes be 𝑇 = {𝑡1 , 𝑡2 , … , 𝑡𝑛 } and 𝐿 = {𝑙1 , 𝑙2 , … , 𝑙𝑚 }, where 𝑛
+denotes the number of human-generated themes and 𝑚 denotes the number of LLM-generated themes (which
+may differ across experimental conditions). We calculate the similarity score 𝑠(𝑡𝑖 , 𝑙𝑗 ) for every possible pair (𝑡𝑖 , 𝑙𝑗 ) in
+𝑇 × 𝐿. The similarity matrix 𝑆𝜃 , which contains all the calculated similarity scores meeting a predefined threshold
+𝜃 (> 0.60), can be defined as:
+                                            𝑆𝜃 = {(𝑡𝑖 , 𝑙𝑗 ) ∈ 𝑇 × 𝐿 ∣ 𝑠(𝑡𝑖 , 𝑙𝑗 ) > 𝜃}
+The definitions of each metric are as follows:
+        (1) Jaccard Similarity
+            The Jaccard Similarity is defined as the ratio of theme pairs that meet the similarity threshold to the
+            total number of possible pairs. The total number of possible theme pairs is |𝑇 × 𝐿| = 𝑛 × 𝑚. Thus, Jaccard
+            similarity in our context becomes:
+                                                              |𝑇 ∩ 𝐿|   |𝑆𝜃 |   |𝑆 |
+                                     𝐽 𝑎𝑐𝑐𝑎𝑟𝑑 𝑆𝑖𝑚𝑖𝑙𝑎𝑟𝑖𝑡𝑦 =            =       = 𝜃
+                                                              |𝑇 ∪ 𝐿| |𝑇 × 𝐿| 𝑛 × 𝑚
+        (2) Hit Rate
+            The hit rate measures the proportion of human-generated themes that exceed a predefined similarity
+            threshold when mapped to LLM-generated themes. Let 𝑇𝑠 ⊆ 𝑇 denote the subset of human-generated
+            themes for which at least one LLM-generated theme exceeds the cosine similarity threshold 𝜃 = 0.60.
+                                                                      |𝑇𝑠 |
+                                                        ℎ𝑖𝑡 𝑟𝑎𝑡𝑒 =
+                                                                       𝑛
+            Hit rate measures row-wise coverage: each human theme counts as a hit if at least one LLM theme exceeds
+            the threshold, regardless of how many LLM themes match it. This means if multiple LLM themes match
+            the same human theme, they are not penalized. Jaccard Similarity as defined here measures the share of
+            all human–LLM theme pairs that exceed the threshold, not how distinct the LLM themes are from each
+            other. A lower Jaccard reflects fewer above-threshold pairs. When accompanied by a high hit rate, this
+            points to cases where each LLM theme maps to fewer human themes, reducing overlap.
+        (3) Mean Intra-Set Cosine Similarity (MICS)
+            To directly assess within-set thematic distinctiveness, we compute the mean pairwise cosine similarity
+            among all themes within a given theme set. Let 𝐿 = {𝑙1 , 𝑙2 , … , 𝑙𝑚 } denote a set of 𝑚 themes (either
+            human-generated or LLM-generated). The MICS is defined as:
+                                                          2
+                                            MICS =                ∑ 𝑠(𝑙 , 𝑙 )
+                                                       𝑚(𝑚 − 1) 1≤𝑖<𝑗≤𝑚 𝑖 𝑗
+
+           where 𝑠(𝑙𝑖 , 𝑙𝑗 ) is the cosine similarity between the embeddings of themes 𝑙𝑖 and 𝑙𝑗 . Lower MICS means
+           greater thematic distinctiveness within the set. Unlike Jaccard Similarity, which depends on the threshold
+           and measures how many human–LLM pairs exceed it, MICS is continuous and does not depend on any
+           threshold. It measures how similar the themes within a set are to each other.
+
+ACM Trans. Comput. Healthcare
+              TAMA: A Human-AI Collaborative Thematic Analysis Framework Using Multi-Agent LLMs for Clinical Interviews   •   9
+
+
+3.6   Statistical Analysis.
+To assess the reliability of our metrics, we performed bootstrap resampling (10,000 iterations) to compute 95%
+confidence intervals for Jaccard Similarity, hit rate, and MICS. We used permutation tests (10,000 permutations) to
+evaluate whether observed differences between methods were statistically significant. Effect sizes were measured
+using Cohen’s ℎ for proportions. Statistical significance is denoted by ∗ 𝑝 < 0.05 and ∗∗ 𝑝 < 0.01 in Table 2.
+
+3.7   Experimental Settings.
+For all of our methods, we use gpt-4o from OpenAI Inc. with temperature of 0 for reproducibility. To assess
+deployability with open-weight models, we additionally evaluate TAMA using Llama 3.1 8B [14] served locally
+via Ollama, using identical prompting and evaluation criteria.
+   We used all-MiniLM-L6-v2 embeddings to compute cosine similarity between human and LLM-generated
+themes. Because theme names are too short for reliable semantic comparison, embeddings were computed using
+the first sentence of each theme’s description rather than the theme name alone. We selected a threshold of
+𝜃 = 0.60, which falls within the commonly used 0.5–0.7 range for identifying substantial semantic overlap
+in SBERT-based similarity tasks. Prior work shows that similarities ≥ 0.6 typically indicate strong semantic
+alignment [13, 51]. This range is also consistent with established SBERT methodology [36, 47].
+
+3.8   Quantitative vs. qualitative assessment of criteria.
+Of the four expert-defined criteria, we quantitatively operationalize only Distinctiveness, because overlap between
+themes can be proxied via semantic similarity in embedding space. We compute embedding-based similarity and
+summarize overlap using similarity statistics (reported in Results, Table 2) to reflect the extent to which themes
+are non-overlapping. In contrast, Coverage, Actionability, and Relevance require contextual, domain-informed
+interpretation and are therefore assessed via structured expert review and agent feedback rather than numeric
+thresholds.
+
+4 Results and Discussion
+4.1 Improved Distinctiveness and Alignment of LLM-Generated Themes via Multi-Agent Refinement
+Human-generated themes served as a baseline to evaluate the distinctiveness and alignment of themes. Here, we
+use ”alignment” to refer to how closely the LLM-generated themes correspond to the human-generated themes, as
+measured by our cosine-similarity–based hit rate. LLM-generated themes before evaluation were produced using
+workflow steps 1–2, and LLM-generated themes after evaluation were generated following the full workflow steps
+1–6. We observed a lower percentage of high Jaccard similarity theme pairs (29%) in LLM-generated themes after
+evaluation, which is even lower than that of human-generated themes (33%), and significantly reduced from 42%
+before refinement. At the same time, the hit rate increased from 83% to 92% (Table 2). Bootstrap analysis (10,000
+resamples) yielded 95% confidence intervals for all methods (Table 2). TAMA’s Jaccard CI was [23%, 50%] and hit
+rate CI was [75%, 100%], compared to the single-agent baseline’s Jaccard of [29%, 69%] and hit rate of [58%, 100%].
+The human baseline’s Jaccard CI was [25%, 71%]. Permutation tests confirmed that the Jaccard reduction from 42%
+to 29% is statistically significant (𝑝 = 0.022, Cohen’s ℎ = 0.27). The hit rate improvement from 83% to 92% showed
+a small effect (Cohen’s ℎ = 0.26) but did not reach significance (𝑝 = 1.0) due to the discrete nature of the metric
+with only 12 human themes. The difference between TAMA’s Jaccard (29%) and the human baseline (33%) was not
+significant (𝑝 = 0.115), suggesting that TAMA achieves thematic distinctiveness comparable to expert-generated
+themes. The single-agent baseline achieved a numerically higher Jaccard (42%) than both TAMA (29%) and human
+themes (33%), but this difference was not significant versus the human baseline (𝑝 = 0.550), and the wide CI [29%,
+69%] reflects high variability. Its hit rate of 83% (10 of 12 human themes matched) was significantly below the
+
+                                                                                              ACM Trans. Comput. Healthcare
+10   •   Xu et al.
+
+
+                     Method                           Jaccard (95% CI)         hit rate (95% CI)      MICS (95% CI)
+                     Traditional Manual TA             0.33 [0.25, 0.71]      1.00 (Ground Truth)     0.53 [0.51, 0.67]
+                     LLM-TA [35]                               0.22†                    0.83†                –†
+                                                          n.s.                      **↓
+                     Single-Agent LLM, GPT-4o         0.42 [0.29, 0.69]        0.83 [0.58, 1.00]      0.57 [0.56, 0.66]
+                     Single-Agent LLM, Llama 3.1 8B   0.20n.s. [0.20, 0.68]    0.12**↓ [0.00, 0.00]   0.34 [0.32, 0.53]
+                     TAMA, GPT-4o                      0.29* [0.23, 0.50]        0.92 [0.75, 1.00]    0.55 [0.55, 0.64]
+                     TAMA, Llama 3.1 8B               0.68**↓ [0.52, 1.00]     0.08**↓ [0.00, 0.25]   0.35 [0.34, 0.55]
+
+Table 2. Performance Comparison Across Thematic Analysis Approaches. Single-Agent rows correspond to Steps 1–2
+(before multi-agent refinement); TAMA rows correspond to Steps 1–6 (after multi-agent refinement). Lower Jaccard means
+fewer theme pairs exceed the similarity threshold. Higher hit rate means more human themes are covered. Lower MICS
+indicates greater within-set thematic distinctiveness. 95% CIs via bootstrap (10,000 iterations). ∗ 𝑝 < 0.05; ∗∗ 𝑝 < 0.01 via
+permutation tests (TAMA vs. single-agent) or binomial tests (↓, vs. human ground truth). n.s. not significant vs. human baseline
+(𝑝 > 0.05). † Values from [35]; CIs not available.
+
+
+
+
+human ground truth of 100% (binomial 𝑝 < 0.01, Cohen’s ℎ = 0.84), meaning the single-agent approach produces
+themes with more overlap but poorer coverage. TAMA’s multi-agent refinement partially closes this gap.
+   As described in the Evaluation Metrics section, Jaccard measures the share of theme pairs exceeding the
+threshold, and hit rate measures how many human themes are covered. Lower Jaccard with higher hit rate points
+to cases where each LLM theme maps to fewer human themes, reducing overlap, which is what TAMA’s Combine
+and Delete refinement actions target. To measure how distinct the themes within a set are from each other, we
+also report the Mean Intra-Set Cosine Similarity (MICS) in Table 2. TAMA (GPT-4o) reduced MICS from 0.57
+(single-agent baseline) to 0.55, closer to the human baseline of 0.53. The average reduction is modest, but the
+maximum pairwise similarity within the set dropped from 0.87 to 0.75, meaning TAMA’s Combine and Delete
+actions are targeting the worst overlap among theme pairs. Therefore, the reduction in Jaccard similarity paired
+with an increased hit rate after evaluation is consistent with LLM-generated themes that are more specifically
+mapped to distinct human themes (reduced overlap between themes) and more closely aligned with the human-
+generated themes. This outcome demonstrates that the evaluation and refinement agents in TAMA executed
+thematic analysis in a novel way, while also ensuring comprehensive coverage of all themes without merely
+replicating themes generated by humans. In traditional TA, final themes should be distinct and non-overlapping.
+   Our results across all methods reveal an inherent trade-off between Jaccard similarity and hit rate. The Single-
+Agent LLM (Llama 3.1 8B) achieved the lowest Jaccard (20%) with a hit rate of only 12%, producing highly distinct
+yet largely off-target themes. Conversely, TAMA (Llama 3.1 8B) increased alignment (hit rate 8%) but at the
+cost of much more overlap (Jaccard 68%). With GPT-4o, the Single-Agent baseline achieved moderate alignment
+(hit rate 83%) with more overlap (Jaccard 42%), while TAMA improved both metrics simultaneously, lowering
+Jaccard to 29% while raising hit rate to 92%. The MICS results add context: Llama 3.1 8B configurations have
+lower MICS values (0.34–0.35) than GPT-4o (0.55–0.57), suggesting the 8B model produces more lexically diverse
+themes. But the very low hit rates confirm these themes are largely off-target, so the low MICS reflects thematic
+incoherence rather than genuine distinctiveness. MICS should therefore be interpreted jointly with hit rate,
+since within-set distinctiveness is only meaningful when themes also align with human-generated references.
+Taken together, reducing theme overlap while maintaining alignment requires both a capable base model and
+iterative multi-agent refinement. Future work should investigate this distinctiveness–alignment trade-off further,
+including whether alternative refinement strategies or threshold-adaptive approaches can better navigate this
+tension across model scales and clinical domains.
+
+ACM Trans. Comput. Healthcare
+             TAMA: A Human-AI Collaborative Thematic Analysis Framework Using Multi-Agent LLMs for Clinical Interviews   •   11
+
+
+4.2   The Role of Multi-Agent Coordination.
+We aimed to compare the LLM-generated themes before and after evaluation by incorporating multiple agents
+(the Evaluation Agent and the Refinement Agent). Table 3 shows the themes generated by human and LLM before
+and after evaluations. We incorporated feedback from an expert and five laypersons to review the themes. Their
+feedback indicated that LLM-generated themes after evaluation demonstrated improved Coverage, Distinctiveness,
+Actionability, and Relevance compared to those before evaluation. Examples for each criterion illustrate these
+improvements. Coverage: the post-evaluation set added ”Desiring comprehensive and statistical data on treatment
+outcomes” and a new Theme 13, ”Long-term concerns about child’s health” (Table 3), capturing a dimension absent
+from pre-evaluation themes. Actionability: the vague ”Seeking clarity and reassurance about my child’s health
+journey” was refined into the more focused ”Seeking reassurance through multiple medical opinions.” Distinctiveness:
+pre-evaluation themes 3, 8, and 9 had high pairwise overlap. Post-evaluation, these became more clearly delineated
+themes such as ”Managing emotional challenges with proactive strategies” and ”Living with constant vigilance and
+fear.” Relevance: the Evaluation Agent, guided by expert criteria, removed an over-generated topic (insurance
+concerns) as off-topic for the core AAOCA parent experience. However, a gap remains between human-generated
+and LLM-generated themes, with the latter tending to be longer and using more complex terminology. The
+feedback incorporated in this study was qualitative: the cardiac expert and five lay reviewers provided narrative
+assessments of thematic clarity, overlap, coverage of parent-centered experiences, and the clinical meaningfulness
+of each theme. These qualitative observations informed the refinement cycles and guided the expert’s final
+decision to accept or request additional iterations.
+
+4.3   The Role of Human Oversight.
+The Cardiac Expert played a crucial role in defining the evaluation criteria. Without human input, LLM-generated
+evaluations were overly broad, emphasizing Distinctiveness while failing to capture Coverage, Actionability, and
+Relevance. To address this, the Cardiac expert provided four specific definitions based on the experience of
+the three coding experts. This ensures that the evaluation criteria are precise and relevant, facilitating a more
+effective and focused refinement process.
+
+4.4   Hallucination Analysis and Mitigation Strategies.
+To address potential hallucination risks inherent in LLM-based thematic analysis, we conducted comprehensive
+ground truth validation of all generated themes against source transcripts. Using GPT-4o-mini, we extracted
+supporting quotes for each theme and calculated grounding scores (0-1 scale) to quantify transcript support.
+For each theme, the LLM was prompted to retrieve direct quotes from the source transcript that substantiate
+the theme. The grounding score reflects the proportion of theme content supported by at least one retrieved
+quote. Because our grounding scores are themselves LLM-generated (using GPT-4o-mini), they introduce a
+circularity concern: an LLM may not independently detect hallucinations that the model class systematically
+produces [21, 28]. These scores should therefore be treated as a complementary automated check, not a definitive
+guarantee of factual grounding. Human expert validation remains the primary safeguard (see Limitations). Our
+validation revealed that all 13 themes were well-grounded in the interview data, with zero hallucinations detected
+(hallucination rate: 0.0%), an average grounding score of 0.95/1.0, and each theme supported by an average of
+5 direct quotes from source transcripts. TAMA’s multi-agent architecture provides systematic hallucination
+mitigation through four mechanisms: (1) chunking strategy (≤1,500 words) that maintains LLM focus on specific
+content, (2) intermediate code extraction (<25 words) creating semantic anchors tied to source text, (3) iterative
+evaluation and refinement removing unsupported content through DELETE operations, and (4) expert-informed
+evaluation criteria checking for Relevance and Coverage, removing off-target or unsupported themes that do
+not reflect documented parent experiences. This mechanism operates at the thematic level: the expert assesses
+
+                                                                                              ACM Trans. Comput. Healthcare
+12       •   Xu et al.
+
+
+ No.          Human Generated Themes            LLM Generated Themes Before Eval- LLM Generated Themes After Eval-
+                                                uation                            uation
+     1        Clarity of potential risks and    Seeking clarity and reassurance about   Seeking reassurance through multiple
+              outcomes                          my child’s health journey               medical opinions
+     2        Freedom from hypervigilance       Balancing normalcy and protection in    Desiring comprehensive and statis-
+              related to the condition          my child’s life                         tical data on treatment outcomes
+     3        The diagnosis given in a com- Coping with emotional turmoil and un- Managing emotional challenges with
+              passionate and empathetic way certainty about my child’s future     proactive strategies
+     4        A sense of control over the fu- Desiring emotional support and under- Balancing normalcy and protection
+              ture                            standing from healthcare providers    in child’s life
+     5        Being heard and taken seriously   Experiencing relief and gratitude for   Living with constant vigilance and fear
+              by clinicians                     successful interventions
+     6        Individualized support for man- Living with constant vigilance and fear   Improving interactions with health-
+              agement decision-making         of health crises                          care providers
+     7        Receiving support from others     Struggling with guilt and self-blame re- Experiencing relief and gratitude
+                                                garding my child’s condition             for successful interventions
+     8        Being appropriately informed      Desiring positive messaging about       Struggling with guilt and self-blame
+                                                health outcomes
+     9        Partnership with the care team    Feeling overwhelmed by the demands      Feeling overwhelmed by caregiving de-
+                                                of caregiving                           mands
+     10       Feeling that my child is safe     Building a supportive community with    Building a supportive community with
+                                                other parents                           other parents
+     11       Not feeling responsible for the   Managing the emotional impact of        Advocating for awareness and under-
+              diagnosis and its timing          surgery on my child                     standing of heart conditions
+     12       Appropriately coping with         Advocating for awareness and under- Addressing frustration with the
+              stress, anxiety, and depression   standing of heart conditions        healthcare system
+     13                                                                                 Long-term concerns about child’s
+                                                                                        health
+
+
+Table 3. Comparison of Human-Generated Themes and LLM-Generated Themes Before and After Evaluation.
+Bolded text in the ”LLM Generated Themes After Evaluation” column highlights elements that were not captured by the
+human-generated themes and the LLM-generated themes before evaluation.
+
+
+
+
+whether a theme reflects the overall content of the transcripts, not whether individual quotes are accurately
+reproduced. Quote-level verification is handled separately by the LLM-based grounding analysis described above.
+Comparison with a single-prompt baseline approach showed both methods achieved 0% hallucination rates
+on our well-structured transcripts, though TAMA’s architectural safeguards provide additional protection for
+complex, ambiguous, or lower-quality data. Despite these strong results, we acknowledge important limitations:
+validation was performed on a single transcript, used LLM-based assessment potentially introducing errors, and
+may not generalize across all data types. We strongly recommend human expert validation as best practice before
+applying AI-generated themes in clinical practice or policy decisions.
+
+ACM Trans. Comput. Healthcare
+             TAMA: A Human-AI Collaborative Thematic Analysis Framework Using Multi-Agent LLMs for Clinical Interviews   •   13
+
+
+4.5   Limitations of Hallucination Analysis.
+The 0% hallucination rate reported above should be interpreted with care. First, our grounding validation relies
+on LLM-based assessment (GPT-4o-mini), which introduces circularity: LLMs may fail to detect the same classes
+of hallucinations they produce [21, 28]. Second, validation was conducted on a single well-structured transcript,
+and hallucination rates may differ with noisy, ambiguous, or multi-topic interview data. Third, our analysis
+focuses on intrinsic hallucinations (fabricated content not in the source) but does not systematically quantify
+extrinsic hallucinations (plausible but unsupported inferences) or false negatives (valid themes missed entirely).
+The reported metrics likely represent an optimistic estimate, and independent human expert review remains
+essential before clinical deployment.
+   Several representative de-hallucination mechanisms have been proposed in the literature. Retrieval-Augmented
+Generation (RAG) [26] grounds LLM outputs in retrieved source documents, reducing fabrication by anchoring
+generation to evidence. Chain-of-Verification (CoVe) [10] prompts the model to generate verification questions
+about its own output and then re-check answers against source material. Self-consistency and sampling-based
+methods such as SelfCheckGPT [28] detect hallucinations by measuring consistency across multiple stochastic
+outputs without requiring external knowledge. In multi-agent systems, cross-agent verification [17] leverages
+independent agents to critique and validate each other’s outputs, analogous to TAMA’s evaluation agent reviewing
+the generation agent’s themes. A comprehensive taxonomy of these and other approaches is provided by Tonmoy
+et al. [44] and Huang et al. [21]. Integrating these mechanisms, particularly RAG-based grounding and human-in-
+the-loop verification, into future iterations of TAMA is a priority for enhancing reliability in clinical applications.
+
+
+4.6   Limitations and Future Work.
+We acknowledge several areas for improvement. First, applying this framework to different contexts, such as other
+diseases, remains an open challenge. Second, better simulating manual TA where two coders ensure consistency
+in the coding book could enhance consistency in the initial coding process. Third, increasing architectural
+complexity could enable multiple agents to discuss and negotiate during the coding and theme-generation process.
+Fourth, incorporating reinforcement learning to integrate human feedback into the evaluation process could
+further refine results. Also, future work should evaluate TAMA by performing TA multiple times and comparing
+results, rather than solely against human-generated codes. High similarity with human-generated results does
+not guarantee high performance, as even human analysts produce varying outcomes across analyses. A related
+avenue is to run TAMA with different underlying LLMs and compare the resulting theme sets across model
+variants, analogous to using multiple human coders, to assess the stability and reproducibility of LLM-generated
+themes. Lastly, future work should explore different collaboration protocols among multiple agents to determine
+their effectiveness in multi-agent LLM systems, especially in Evaluation and Refinement Agents.
+   Also, our evaluation treats human-generated themes as ground truth, even though qualitative analysis does
+not yield a single objectively correct structure. A related limitation concerns evaluator independence. The cardiac
+expert who defined the evaluation criteria and decided when TAMA’s themes were acceptable also served as a
+coder in the same study [30], creating a risk of confirmation bias. The only independent assessment came from five
+lay reviewers with no involvement in the original study, but they lacked qualitative research expertise and cannot
+fully substitute for independent expert evaluation. Future studies should engage independent qualitative experts
+not involved in creating the original themes to evaluate LLM output quality. Moreover, the cardiac expert’s role
+in defining and applying evaluation criteria introduces domain-specific subjectivity. In addition, because our
+quantitative metrics depend on a predefined cosine similarity threshold (𝜃 = 0.60), different thresholds would
+alter the hit rate and Jaccard results. While our dataset centers on parent experiences in congenital cardiac care,
+the TAMA workflow has not yet been validated on transcripts from other cardiac conditions.
+
+
+                                                                                              ACM Trans. Comput. Healthcare
+14   •   Xu et al.
+
+
+   Our study used nine focus group transcripts (42 parents), a modest dataset reflecting the challenges of rare-
+disease pediatric cardiology. This sample is sufficient to demonstrate the feasibility of our human–AI multi-agent
+workflow but limits generalizability of the resulting themes. Importantly, our aim is not to generalize the content
+of AAOCA themes but to evaluate whether the framework (the coordinated generation, evaluation, and refinement
+of themes with human oversight) can perform high-quality inductive TA. Because the multi-agent architecture
+and evaluation criteria are condition-agnostic, we expect TAMA to apply to qualitative data in other diseases
+and clinical domains. Future work will apply TAMA to additional transcript collections to assess cross-context
+robustness.
+   Additionally, our current evaluation metrics (Jaccard Similarity and hit rate) treat all themes as equally
+important, which does not fully reflect clinical reality where misidentifying safety-critical or management-
+relevant themes carries greater consequences than missing less impactful ones. Future work should incorporate
+evaluation metrics that weight themes by their clinical relevance to better capture the real-world implications of
+errors. Developing such clinically grounded metrics will provide a more comprehensive assessment of TAMA’s
+utility in healthcare settings.
+   A further limitation concerns the stopping criterion. We initially used an automated scoring system based
+on the G-Eval method [27, 50], in which the Evaluation Agent rated themes on a 1–5 scale with a termination
+threshold of 4.5. In practice, scores plateaued around 4.0 without meaningful improvement, and continued
+refinement introduced over-broad themes (e.g., concerns about insurance coverage) that did not reflect core
+parent experiences. This points to a limitation of the LLM-as-judge approach for iterative qualitative tasks:
+numerical scores may not reliably discriminate between thematic quality levels, and automated termination
+criteria can lead to over-refinement. The cardiac expert was therefore brought in as the stopping-criterion
+decision-maker, though this reliance on human judgment limits scalability and reproducibility. Future work
+should investigate learned or adaptive stopping criteria that do not require expert availability at each refinement
+cycle.
+   Our hallucination analysis effectively detects false positives (unsupported themes), but systematic quantification
+of false negatives (themes present in the data but missed by TAMA entirely) requires expert annotation of
+comprehensive ground-truth theme sets and remains a direction for future evaluation. Several promising directions
+remain for strengthening the clinical relevance of our work. First, future work should incorporate structured expert
+interpretability evaluations of the LLM-generated themes and sub-themes against the source clinical narratives and
+assess whether the extracted thematic structures accurately capture clinically meaningful patterns that align with
+their professional judgment. This could be operationalized through blinded comparison studies, using standardized
+rubrics such as Likert-scale assessments of theme relevance, completeness, and fidelity to the underlying patient
+experience. Second, our work should be evaluated for its decision support value by embedding the extracted
+themes into downstream clinical workflows for discharge planning or quality improvement. We should measure
+whether access to these structured thematic outputs changes clinical decision-making, reduces information
+retrieval time, or surfaces previously unrecognized patient concerns. Third, clinical utility studies should assess
+whether the themes generated by our work correlate with or predict meaningful clinical outcomes, such as hospital
+readmission, treatment adherence, symptom burden trajectories, or patient satisfaction scores. These could prove
+that the thematic analysis is not merely descriptively accurate but also prognostically or diagnostically informative.
+Finally, integrating our framework into an electronic health record system to continuously analyze incoming
+clinical notes, patient feedback, or nursing assessments and surface emergent themes to clinical leadership in
+near-real-time. These future directions can enhance smooth communication between clinical institutions and
+patient populations to enable responsible adoption in practice.
+   We also note that our current implementation uses proprietary LLMs, which limits deployability in clinical
+settings due to privacy and regulatory constraints. To test open-weight model viability, we ran both the single-
+agent baseline and TAMA with Llama 3.1 8B served locally via Ollama (Table 2). The single-agent Llama baseline
+
+ACM Trans. Comput. Healthcare
+                TAMA: A Human-AI Collaborative Thematic Analysis Framework Using Multi-Agent LLMs for Clinical Interviews               •   15
+
+
+produced 5 themes with low overlap (Jaccard 20%) but very low alignment with human themes (hit rate 12%),
+meaning most generated themes were off-target. TAMA with Llama 3.1 8B increased alignment marginally (hit
+rate 8%) but at the cost of much more overlap (Jaccard 68%). The evaluation agent on the 8B model accepted
+poor themes on the first iteration (4.40/5.0). With smaller models, the evaluation and refinement agents cannot
+improve themes beyond what the base model produces. At the 8B scale, open-weight models are not sufficient
+for clinical-quality TA, and future work will evaluate TAMA with larger locally hosted, open-weights models
+(e.g., 70B+ parameter models) to enable HIPAA-compliant, on-premise deployment.
+
+5    Conclusion
+We present TAMA, a Human-AI Collaborative Thematic Analysis framework that leverages multi-agent LLMs
+and domain expertise to enhance the quality, scalability, and efficiency of thematic analysis in clinical interview
+data. By structuring agent roles and integrating iterative evaluation and refinement guided by cardiac experts,
+TAMA significantly improved the distinctiveness (lower Jaccard similarity) and alignment (higher hit rate) of
+LLM-generated themes. Our findings demonstrate that multi-agent LLMs, when combined with human-in-the-
+loop collaboration, can perform high-quality thematic analysis in a fraction of the time required by traditional
+manual methods. This highlights their potential for broader application in healthcare and other high-stakes
+qualitative research areas.
+
+References
+ [1] M.A. AL-Ruzzieh, Y.M. AL-Helih, A. Haroun, and O. Ayaad. 2024. Higher and Middle Management Perspectives on Patient-Centered
+     Care in an Oncology Setting: A Qualitative Study. Nursing Reports 14 (2024), 3378–3390. doi:10.3390/nursrep14040244
+ [2] Jonas Becker. 2024. Multi-Agent Large Language Models for Conversational Task-Solving. arXiv:2410.22932 [cs.CL] https://arxiv.org/
+     abs/2410.22932
+ [3] Victoria Braun and Virginia Clarke. 2006. Using thematic analysis in psychology. Qualitative Research in Psychology 3, 2 (2006), 77–101.
+ [4] Victoria Braun and Virginia Clarke. 2022. Thematic Analysis: A Practical Guide. SAGE Publications.
+ [5] V. Braun and V. Clarke. 2024. A critical review of the reporting of reflexive thematic analysis in Health Promotion International. Health
+     Promotion International 39, 3 (2024), daae049. doi:10.1093/heapro/daae049
+ [6] A. Castellanos, H. Jiang, P. Gomes, D. Vander Meer, and A. Castillo. 2025. Large Language Models for Thematic Summarization in
+     Qualitative Health Care Research: Comparative Analysis of Model and Human Performance. JMIR AI 4 (2025), e64447. doi:10.2196/64447
+ [7] L. C. Copel, S. C. Smeltzer, C. D. Byrne, et al. 2023. A thematic analysis of shared experiences of essential health and support personnel
+     in the COVID-19 pandemic. PLoS One 18, 3 (2023), e0282946. doi:10.1371/journal.pone.0282946
+ [8] Shih-Chieh Dai, Aiping Xiong, and Lun-Wei Ku. 2023. LLM-in-the-loop: Leveraging Large Language Model for Thematic Analysis. In
+     Findings of the Association for Computational Linguistics: EMNLP 2023, Houda Bouamor, Juan Pino, and Kalika Bali (Eds.). Association
+     for Computational Linguistics, Singapore, 9993–10001. doi:10.18653/v1/2023.findings-emnlp.669
+ [9] S. De Paoli. 2024. Further Explorations on the Use of Large Language Models for Thematic Analysis. Open-Ended Prompts, Better
+     Terminologies and Thematic Maps. Forum Qualitative Sozialforschung / Forum: Qualitative Social Research 25, 3 (2024). doi:10.17169/fqs-
+     25.3.4196
+[10] Shehzaad Dhuliawala, Mojtaba Komeili, Jing Xu, Roberta Raileanu, Xian Li, Asli Celikyilmaz, and Jason Weston. 2024. Chain-of-
+     verification reduces hallucination in large language models. arXiv preprint arXiv:2309.11495 (2024).
+[11] Jakub Drápal, Hannes Westermann, and Jaromir Savelka. 2023. Using Large Language Models to Support Thematic Analysis in Empirical
+     Legal Studies. Frontiers of Artificial Intelligence and Applications (2023). doi:10.2139/ssrn.4617116 Forthcoming.
+[12] Zhihao Fan, Jialong Tang, Wei Chen, Siyuan Wang, Zhongyu Wei, Jun Xi, Fei Huang, and Jingren Zhou. 2024. AI Hospital: Benchmarking
+     Large Language Models in a Multi-agent Medical Interaction Simulator. arXiv:2402.09742 [cs.CL] https://arxiv.org/abs/2402.09742
+[13] Andrea Galli, Matteo Colombini, and Francesco Meneghello. 2024. Performance of four pre-trained sentence transformer models in the
+     semantic query of a systematic review dataset on peri-implantitis. Information 15, 2 (2024), 68. doi:10.3390/info15020068
+[14] Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, et al. 2024. The Llama 3 herd of models. arXiv preprint
+     arXiv:2407.21783 (2024).
+[15] Greg Guest, Kathleen M. MacQueen, and Emily E. Namey. 2012. Applied Thematic Analysis. SAGE Publications.
+[16] Taicheng Guo, Xiuying Chen, Yaqi Wang, Ruidi Chang, Shichao Pei, Nitesh V. Chawla, Olaf Wiest, and Xiangliang Zhang. 2024. Large
+     Language Model based Multi-Agents: A Survey of Progress and Challenges. arXiv:2402.01680 [cs.CL] https://arxiv.org/abs/2402.01680
+
+
+                                                                                                            ACM Trans. Comput. Healthcare
+16   •   Xu et al.
+
+
+[17] Taicheng Guo, Xiuying Chen, Yaqi Wang, Ruidi Chang, Shichao Pei, Nitesh V. Chawla, Olaf Wiest, and Xiangliang Zhang. 2024. Large
+     language model based multi-agents: A survey of progress and challenges. arXiv preprint arXiv:2402.01680 (2024).
+[18] JaMor Hairston, Ritvik Ranjan, Sahithi Lakamana, Anthony Spadaro, Selen Bozkurt, Jeanmarie Perrone, and Abeed Sarker. 2025.
+     Automating Inductive Thematic Analyses of Health Content Using Large Language Models: A Proof-of-Concept Study Using Social
+     Media Data. JAMIA Open 8, 5 (2025), ooaf102. doi:10.1093/jamiaopen/ooaf102
+[19] Sirui Hong, Xiawu Zheng, Jonathan Chen, Yuheng Cheng, Ceyao Zhang, Zili Wang, Steven Ka Shing Yao, Wenhao Li, Zongze Lin, Chen
+     Guo, Hongzhang Liang, Jin Yang, and Chenglin Wu. 2024. MetaGPT: Meta Programming for a Multi-Agent Collaborative Framework.
+     In Proceedings of the International Conference on Learning Representations (ICLR). arXiv:2308.00352
+[20] Peyman Hosseini, Ignacio Castro, Iacopo Ghinassi, and Matthew Purver. 2024. Efficient Solutions For An Intriguing Failure of
+     LLMs: Long Context Window Does Not Mean LLMs Can Analyze Long Sequences Flawlessly. arXiv:2408.01866 [cs.CL] https:
+     //arxiv.org/abs/2408.01866
+[21] Lei Huang, Weijiang Yu, Weitao Ma, Weihong Zhong, Zhangyin Feng, Haotian Wang, Qianglong Chen, Weihua Peng, Xiaocheng Feng,
+     Bing Qin, and Ting Liu. 2025. A survey on hallucination in large language models: Principles, taxonomy, challenges, and open questions.
+     ACM Transactions on Information Systems 43, 2 (2025), 1–55.
+[22] T. Jowsey, C. Deng, and J. Weller. 2021. General-purpose thematic analysis: a useful qualitative method for anaesthesia research. BJA
+     Education 21, 12 (2021), 472–478. doi:10.1016/j.bjae.2021.07.006
+[23] Awais Hameed Khan, Hiruni Kegalle, Rhea D’Silva, Ned Watt, Daniel Whelan-Shamy, Lida Ghahremanlou, and Liam Magee. 2024.
+     Automating Thematic Analysis: How LLMs Analyse Controversial Topics. arXiv:2405.06919 [cs.CY] https://arxiv.org/abs/2405.06919
+[24] Michelle E. Kiger and Lara Varpio. 2020. Thematic analysis of qualitative data: AMEE Guide No. 131. Medical Teacher 42, 8 (2020),
+     846–854.
+[25] Yubin Kim, Chanwoo Park, Hyewon Jeong, Yik Siu Chan, Xuhai Xu, Daniel McDuff, Hyeonhoon Lee, Marzyeh Ghassemi, Cynthia
+     Breazeal, and Hae Won Park. 2024. MDAgents: An Adaptive Collaboration of LLMs for Medical Decision-Making. In The Thirty-eighth
+     Annual Conference on Neural Information Processing Systems. https://openreview.net/forum?id=EKdk4vxKO4
+[26] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich Küttler, Mike Lewis, Wen-tau
+     Yih, Tim Rocktäschel, Sebastian Riedel, and Douwe Kiela. 2020. Retrieval-augmented generation for knowledge-intensive NLP tasks.
+     Advances in Neural Information Processing Systems 33 (2020), 9459–9474.
+[27] Yang Liu, Dan Iter, Yichong Xu, Shuohang Wang, Ruochen Xu, and Chenguang Zhu. 2023. G-Eval: NLG Evaluation using Gpt-4 with
+     Better Human Alignment. In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing, Houda Bouamor,
+     Juan Pino, and Kalika Bali (Eds.). Association for Computational Linguistics, Singapore, 2511–2522. doi:10.18653/v1/2023.emnlp-main.153
+[28] Potsawee Manakul, Adian Liusie, and Mark J. F. Gales. 2023. SelfCheckGPT: Zero-resource black-box hallucination detection for
+     generative large language models. arXiv preprint arXiv:2303.08896 (2023).
+[29] Walter S Mathis, Sophia Zhao, Nicholas Pratt, Jeremy Weleff, and Stefano De Paoli. 2024. Inductive thematic analysis of healthcare
+     qualitative interviews using open-source large language models: How does it compare to traditional methods? Computer Methods and
+     Programs in Biomedicine 255 (2024), 108356.
+[30] C. M. Mery, A. Well, K. Taylor, et al. 2023. Examining the Real-Life Journey of Individuals and Families Affected by Single-Ventricle
+     Congenital Heart Disease. Journal of the American Heart Association 12, 5 (2023), e027556. doi:10.1161/JAHA.122.027556
+[31] Lorelli S. Nowell, Jill M. Norris, Deborah E. White, and Nancy J. Moules. 2017. Thematic analysis: Striving to meet the trustworthiness
+     criteria. International Journal of Qualitative Methods 16, 1 (2017), 1–13.
+[32] K. Osborn, J. Bradley, E. Knox, and P. Leighton. 2020. What matters to patients? A thematic analysis of patient information and support
+     needs. Eye (Lond) 34, 1 (2020), 103–115. doi:10.1038/s41433-019-0644-3
+[33] Tingrui Qiao, Caroline Walker, Chris W Cunningham, and Yun Sing Koh. 2025. Thematic-LM: a LLM-based Multi-agent System for
+     Large-scale Thematic Analysis. In THE WEB CONFERENCE 2025. https://openreview.net/forum?id=jiv0Gl6sto
+[34] T. P. Quinn, M. Senadeera, S. Jacobs, S. Coghlan, and V. Le. 2021. Trust and medical AI: the challenges we face and the expertise needed
+     to overcome them. Journal of the American Medical Informatics Association 28, 4 (2021), 890–894. doi:10.1093/jamia/ocaa268
+[35] Muhammad Zain Raza, Jiawei Xu, Terence Lim, Lily Boddy, Carlos M. Mery, Andrew Well, and Ying Ding. 2025. LLM-TA: An LLM-
+     Enhanced Thematic Analysis Pipeline for Transcripts from Parents of Children with Congenital Heart Disease. arXiv:2502.01620 [cs.CL]
+     https://arxiv.org/abs/2502.01620
+[36] Nils Reimers and Iryna Gurevych. 2019. Sentence-BERT: Sentence embeddings using Siamese BERT-networks. arXiv preprint
+     arXiv:1908.10084 (2019). https://arxiv.org/abs/1908.10084
+[37] Michele Settanni, Francesco Quilghini, Anna Toscano, and Davide Marengo. 2025. Assessing the Accuracy and Consistency of Large
+     Language Models in Triaging Social Media Posts for Psychological Distress. Psychiatry Research 351 (2025), 116583. doi:10.1016/j.
+     psychres.2025.116583
+[38] E. Sezgin. 2023. Artificial intelligence in healthcare: Complementing, not replacing, doctors and healthcare providers. Digital Health 9
+     (2023), 20552076231186520. doi:10.1177/20552076231186520 Published 2023 Jul 2.
+
+
+
+ACM Trans. Comput. Healthcare
+                TAMA: A Human-AI Collaborative Thematic Analysis Framework Using Multi-Agent LLMs for Clinical Interviews           •   17
+
+
+[39] Venkatesh Sivaraman, Leigh A. Bukowski, Joel Levin, Jeremy M. Kahn, and Adam Perer. 2023. Ignore, Trust, or Negotiate: Understanding
+     Clinician Acceptance of AI-Based Treatment Recommendations in Health Care. arXiv:2302.00096 [cs.HC] https://arxiv.org/abs/2302.
+     00096
+[40] Karthik Sreedhar and Lydia Chilton. 2024. Simulating Human Strategic Behavior: Comparing Single and Multi-agent LLMs.
+     arXiv:2402.08189 [cs.HC] https://arxiv.org/abs/2402.08189
+[41] Joshua Strong, Qianhui Men, and Alison Noble. 2025. Trustworthy and Practical AI for Healthcare: A Guided Deferral System with
+     Large Language Models. arXiv:2406.07212 [cs.CL] https://arxiv.org/abs/2406.07212
+[42] R. H. Tai, L. R. Bentley, X. Xia, J. M. Sitt, S. C. Fankhauser, A. M. Chicas-Mosier, and B. G. Monteith. 2024. An Examination of the
+     Use of Large Language Models to Aid Analysis of Textual Data. International Journal of Qualitative Methods 23 (2024). doi:10.1177/
+     16094069241231168 Original work published 2024.
+[43] Yashar Talebirad and Amirhossein Nadiri. 2023. Multi-Agent Collaboration: Harnessing the Power of Intelligent LLM Agents.
+     arXiv:2306.03314 [cs.AI] https://arxiv.org/abs/2306.03314
+[44] S. M. Towhidul Islam Tonmoy, S. M. Mahbubul Zaman, Vinija Jain, Anku Rani, Vipula Rawte, Aman Chadha, and Amitava Das. 2024. A
+     comprehensive survey of hallucination mitigation techniques in large language models. arXiv preprint arXiv:2401.01313 (2024).
+[45] Khanh-Tung Tran, Dung Dao, Minh-Duong Nguyen, Quoc-Viet Pham, Barry O’Sullivan, and Hoang D. Nguyen. 2025. Multi-Agent
+     Collaboration Mechanisms: A Survey of LLMs. arXiv:2501.06322 [cs.AI] https://arxiv.org/abs/2501.06322
+[46] D. Wade. 2007. Ethics of collecting and using healthcare data. BMJ 334, 7608 (2007), 1330–1331. doi:10.1136/bmj.39247.679329.80
+[47] W. Wang and Microsoft Research. 2021. all-MiniLM-L6-v2: A distilled sentence-transformer model for semantic similarity. https:
+     //huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+[48] Zhenhailong Wang, Shaoguang Mao, Wenshan Wu, Tao Ge, Furu Wei, and Heng Ji. 2024. Unleashing Cognitive Synergy in Large
+     Language Models: A Task-Solving Agent through Multi-Persona Self-Collaboration. In Proc. 2024 Annual Conference of the North
+     American Chapter of the Association for Computational Linguistics (NAACL2024).
+[49] Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Shaokun Zhang, Erkang Zhu, Beibin Li, Li Jiang, Xiaoyun Zhang, and Chi Wang.
+     2024. AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework. In Proceedings of the International
+     Conference on Learning Representations (ICLR). arXiv:2308.08155
+[50] Seungjun Yi, Jaeyoung Lim, and Juyong Yoon. 2024. ProtocoLLM: Automatic Evaluation Framework of LLMs on Domain-Specific
+     Scientific Protocol Formulation Tasks. arXiv:2410.04601 [cs.CL] https://arxiv.org/abs/2410.04601
+[51] Y. Yin and X. Zhang. 2024. A study of sentence similarity based on the all-MiniLM-L6-v2 model. In Advances in Computer, Communication
+     and Computational Sciences. 126–132. https://www.atlantis-press.com/article/126004096.pdf
+[52] Mingze Yuan, Peng Bao, Jiajia Yuan, Yunhao Shen, Zifan Chen, Yi Xie, Jie Zhao, Yang Chen, Li Zhang, Lin Shen, and Bin Dong. 2023.
+     Large Language Models Illuminate a Progressive Pathway to Artificial Healthcare Assistant: A Review. arXiv:2311.01918 [cs.CL]
+     https://arxiv.org/abs/2311.01918
+[53] Yusen Zhang, Ruoxi Sun, Yanfei Chen, Tomas Pfister, Rui Zhang, and Sercan Ö. Arik. 2024. Chain of Agents: Large Language Models
+     Collaborating on Long-Context Tasks. arXiv:2406.02818 [cs.CL] https://arxiv.org/abs/2406.02818
+[54] Kunlun Zhu, Hongyi Du, Zhaochen Hong, Xiaocheng Yang, Shuyi Guo, Zhe Wang, Zhenhailong Wang, Cheng Qian, Xiangru Tang,
+     Heng Ji, and Jiaxuan You. 2025. MultiAgentBench: Evaluating the Collaboration and Competition of LLM agents. In arxiv.
+
+
+
+
+                                                                                                        ACM Trans. Comput. Healthcare
+

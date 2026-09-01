@@ -1,0 +1,339 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-j/shared-rating-v1.json",
+  "title": "Direction J shared human-or-LLM rating",
+  "description": "Actor-neutral judgment payload. Human qualifications, model identity, timing, usage, and cost are deliberately stored outside this object.",
+  "type": "object",
+  "required": [
+    "rating_schema_version",
+    "evidential_credibility",
+    "voice_boundary_preservation",
+    "scope_calibration",
+    "cannot_judge",
+    "confidence",
+    "disposition",
+    "requested_expertise",
+    "serious_error_flags",
+    "rationale"
+  ],
+  "properties": {
+    "rating_schema_version": {
+      "const": "direction-j-shared-rating-v1"
+    },
+    "evidential_credibility": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "maximum": 5
+    },
+    "voice_boundary_preservation": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "maximum": 5
+    },
+    "scope_calibration": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "maximum": 5
+    },
+    "cannot_judge": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "enum": [
+          "evidential_credibility",
+          "voice_boundary_preservation",
+          "scope_calibration"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "confidence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Confidence in the submitted judgment, not a fourth quality score."
+    },
+    "disposition": {
+      "enum": [
+        "accept",
+        "revise",
+        "reject",
+        "escalate"
+      ]
+    },
+    "requested_expertise": {
+      "enum": [
+        "none",
+        "qualitative_methods",
+        "domain",
+        "both"
+      ]
+    },
+    "serious_error_flags": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "fabricated_or_altered_quote",
+          "wrong_attribution",
+          "unsupported_inference",
+          "hidden_source_concentration",
+          "lost_negative_case",
+          "contextual_flattening",
+          "unsupported_abstraction",
+          "sensitive_or_diagnostic_inference",
+          "inconsistent_codebook",
+          "other"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "\\S",
+      "description": "A concise, source-grounded justification. Hidden chain-of-thought is neither requested nor stored."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidential_credibility": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "evidential_credibility"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cannot_judge": {
+            "contains": {
+              "const": "evidential_credibility"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cannot_judge": {
+            "contains": {
+              "const": "evidential_credibility"
+            }
+          }
+        },
+        "required": [
+          "cannot_judge"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evidential_credibility": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "voice_boundary_preservation": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "voice_boundary_preservation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cannot_judge": {
+            "contains": {
+              "const": "voice_boundary_preservation"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cannot_judge": {
+            "contains": {
+              "const": "voice_boundary_preservation"
+            }
+          }
+        },
+        "required": [
+          "cannot_judge"
+        ]
+      },
+      "then": {
+        "properties": {
+          "voice_boundary_preservation": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "scope_calibration": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "scope_calibration"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cannot_judge": {
+            "contains": {
+              "const": "scope_calibration"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cannot_judge": {
+            "contains": {
+              "const": "scope_calibration"
+            }
+          }
+        },
+        "required": [
+          "cannot_judge"
+        ]
+      },
+      "then": {
+        "properties": {
+          "scope_calibration": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cannot_judge": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "cannot_judge"
+        ]
+      },
+      "then": {
+        "properties": {
+          "disposition": {
+            "const": "escalate"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "disposition": {
+            "const": "escalate"
+          }
+        },
+        "required": [
+          "disposition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "requested_expertise": {
+            "enum": [
+              "qualitative_methods",
+              "domain",
+              "both"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "requested_expertise": {
+            "const": "none"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "serious_error_flags": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "serious_error_flags"
+        ]
+      },
+      "then": {
+        "properties": {
+          "disposition": {
+            "enum": [
+              "revise",
+              "reject",
+              "escalate"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "disposition": {
+            "const": "accept"
+          }
+        },
+        "required": [
+          "disposition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evidential_credibility": {
+            "type": "integer",
+            "minimum": 4
+          },
+          "voice_boundary_preservation": {
+            "type": "integer",
+            "minimum": 4
+          },
+          "scope_calibration": {
+            "type": "integer",
+            "minimum": 4
+          },
+          "serious_error_flags": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

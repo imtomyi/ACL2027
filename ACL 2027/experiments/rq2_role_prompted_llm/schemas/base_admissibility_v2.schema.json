@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/rq2/base-admissibility-v2.json",
+  "title": "Source-echo-free compact base admissibility",
+  "$defs": {
+    "position": {"type": "integer", "enum": [1, 2, 3, 4, 5, 6]},
+    "readiness_single": {
+      "type": "object",
+      "required": ["status", "evidence_positions"],
+      "properties": {
+        "status": {"enum": ["ready", "not_ready", "unclear"]},
+        "evidence_positions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/position"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "ready"}}},
+          "then": {"properties": {"evidence_positions": {"minItems": 1}}},
+          "else": {"properties": {"evidence_positions": {"maxItems": 0}}}
+        }
+      ],
+      "additionalProperties": false
+    },
+    "readiness_multi": {
+      "type": "object",
+      "required": ["status", "evidence_positions"],
+      "properties": {
+        "status": {"enum": ["ready", "not_ready", "unclear"]},
+        "evidence_positions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/position"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "ready"}}},
+          "then": {"properties": {"evidence_positions": {"minItems": 2}}},
+          "else": {"properties": {"evidence_positions": {"maxItems": 0}}}
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "required": [
+    "admissibility_schema_version",
+    "base_status",
+    "checks",
+    "readiness",
+    "reason_codes"
+  ],
+  "properties": {
+    "admissibility_schema_version": {"const": "rq2-base-admissibility-v2"},
+    "base_status": {"enum": ["admissible", "materially_flawed", "unclear"]},
+    "checks": {
+      "type": "object",
+      "required": [
+        "all_material_claims_warranted",
+        "support_roles_accurate",
+        "independent_support_units_sufficient",
+        "counter_roles_genuine",
+        "boundary_links_consequential_and_preserved",
+        "claim_scope_packet_bounded",
+        "no_outside_facts",
+        "no_other_material_flaw"
+      ],
+      "properties": {
+        "all_material_claims_warranted": {"type": "boolean"},
+        "support_roles_accurate": {"type": "boolean"},
+        "independent_support_units_sufficient": {"type": "boolean"},
+        "counter_roles_genuine": {"type": "boolean"},
+        "boundary_links_consequential_and_preserved": {"type": "boolean"},
+        "claim_scope_packet_bounded": {"type": "boolean"},
+        "no_outside_facts": {"type": "boolean"},
+        "no_other_material_flaw": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "readiness": {
+      "type": "object",
+      "required": [
+        "non_support_anchor",
+        "multi_unit_support",
+        "consequential_counter",
+        "local_distinction",
+        "bounded_claim"
+      ],
+      "properties": {
+        "non_support_anchor": {"$ref": "#/$defs/readiness_single"},
+        "multi_unit_support": {"$ref": "#/$defs/readiness_multi"},
+        "consequential_counter": {"$ref": "#/$defs/readiness_single"},
+        "local_distinction": {"$ref": "#/$defs/readiness_single"},
+        "bounded_claim": {"$ref": "#/$defs/readiness_single"}
+      },
+      "additionalProperties": false
+    },
+    "reason_codes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "material_claim_not_warranted",
+          "support_role_mismatch",
+          "independent_support_units_insufficient",
+          "counterevidence_not_genuine",
+          "boundary_condition_not_consequential_or_preserved",
+          "claim_scope_not_packet_bounded",
+          "outside_fact_or_overreach",
+          "other_material_flaw",
+          "insufficient_displayed_information"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

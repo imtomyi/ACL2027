@@ -1,0 +1,886 @@
+                                         Scalable LLM-based Coding of Dialogue in Healthcare Simulation:
+                                              Balancing Coding Performance, Processing Time, and
+                                                             Environmental Impact
+                                                         Kiyoshige Garces                              Gloria Milena Fernandez-Nieto                                 Linxuan Zhao
+                                                        RMIT University                                         Monash University                  Adelaide University
+                                                       Monash University                                       Melbourne, Australia                Adelaide, Australia
+                                                      Melbourne, Australia                             gloriamilena.fernandeznieto@monash.edu linxuan.zhao@adelaide.edu.au
+                                               oscar.garcesaparicio@monash.edu
+
+
+
+
+arXiv:2604.23255v1 [cs.HC] 25 Apr 2026
+                                                     Sachini Samaraweera                                            Dragan Gašević                       Roberto Martinez-Maldonado
+                                                       Monash University                                         Monash University                               Monash University
+                                                      Melbourne, Australia                                      Melbourne, Australia                            Melbourne, Australia
+                                               sachini.samaraweera@monash.edu                               The University of Hong Kong                 roberto.martinezmaldonado@monash.edu
+                                                                                                               Hong Kong SAR, China
+                                                                                                            dragan.gasevic@monash.edu
+
+                                                                                                                 Vanessa Echeverria
+                                                                                                                 RMIT University
+                                                                                                               Melbourne, Australia
+                                                                                                                 ESPOL University
+                                                                                                                Guayaquil, Ecuador
+                                                                                                          vanessa.echeverria@rmit.edu.au
+                                         Abstract                                                                                Using a dataset of 11, 647 utterances coded across six team learn-
+                                         Extensive research shows that dialogue, the interactive process                         ing dialogue constructs (codes), we compared four prompt designs
+                                         through which participants articulate and negotiate their thinking,                     across varying batch sizes, evaluating coding performance, pro-
+                                         plays a central role in constructing shared understanding, coordi-                      cessing time, and energy consumption, as well as the trade-offs
+                                         nating action, and shaping learning outcomes in teams. Analysing                        between these metrics. Results indicate that increasing batch size
+                                         dialogue content has been central to advancing team learning the-                       improves speed and reduces energy use, but negatively impacts
+                                         ory and informing the design of computer-supported collaborative                        coding performance. Beyond demonstrating the feasibility of LLM-
+                                         learning (CSCL) environments, yet this progress has depended on                         based qualitative analysis, this study offers practical guidance for
+                                         labour-intensive qualitative coding. Large language models (LLMs)                       scaling dialogue analytics in contexts where timeliness, privacy,
+                                         offer new possibilities for automating dialogue analysis and for                        and sustainability are critical.
+                                         strengthening the dialogue layer within emerging multimodal learn-
+                                         ing analytics approaches, with recent studies demonstrating that                        CCS Concepts
+                                         they can approximate human coding through zero- and few-shot                            • Applied computing → Collaborative learning.
+                                         prompting. However, most prior work has focused on replicating
+                                         human coding accuracy for research purposes, rather than address-                       Keywords
+                                         ing a more educationally consequential question: how can we de-                         Qualitative Coding, Teamwork, Large Language Models, CSCL,
+                                         sign prompts that allow an LLM to label team dialogue accurately                        Face-to-face, Learning Analytics
+                                         and fast enough to be useful in real settings, such as in-person
+                                         healthcare simulations, where results must be returned quickly and                      ACM Reference Format:
+                                         computational cost and sustainability also matter? Thus, this paper                     Kiyoshige Garces, Gloria Milena Fernandez-Nieto, Linxuan Zhao, Sachini
+                                                                                                                                 Samaraweera, Dragan Gašević, Roberto Martinez-Maldonado, and Vanessa
+                                         investigates how prompt design and batching strategies can be
+                                                                                                                                 Echeverria. 2026. Scalable LLM-based Coding of Dialogue in Healthcare
+                                         optimised to balance coding accuracy, processing time, and envi-                        Simulation: Balancing Coding Performance, Processing Time, and Environ-
+                                         ronmental impact in team-based healthcare simulation debriefing.                        mental Impact. In Proceedings of the Thirteenth ACM Conference on Learning
+                                                                                                                                 @ Scale (L@S ’26), June 29–July 3, 2026, Seoul, Republic of Korea. ACM, New
+                                                                                                                                 York, NY, USA, 12 pages. https://doi.org/10.1145//3774398.3811613
+
+                                         This work is licensed under a Creative Commons Attribution 4.0 International License.
+                                         L@S ’26, Seoul, Republic of Korea.                                                      1    Introduction
+                                         © 2026 Copyright held by the owner/author(s).
+                                         ACM ISBN 979-8-4007-2293-6/2026/06                                                      Dialogue, the interactive process through which participants ar-
+                                         https://doi.org/10.1145//3774398.3811613                                                ticulate and negotiate their thinking, sits at the heart of effective
+L@S ’26, June 29–July 3, 2026, Seoul, Republic of Korea.   K. Garces, G. Fernandez-Nieto, L. Zhao, S. Samaraweera, D. Gasevic, R. Martinez-Maldonado, V. Echeverria.
+
+
+teamwork and small-group learning [18]. Across team science and                       Healthcare simulations are widely used in medical and nursing
+Computer-Supported Collaborative Learning (CSCL), decades of                      education, as well as in interdisciplinary hospital training, to nur-
+research show that team dialogue shapes shared understanding,                     ture communication and clinical skills in complex clinical scenarios
+coordination, and learning outcomes [23, 50]. Dialogue analysis has               such as patient deterioration, emergency response, and interpro-
+been critical for identifying key learning constructs such as explana-            fessional handovers [17, 49]. These simulations require teams to
+tion, questioning, and co-regulation [56], advancing theory and the               coordinate, share critical information, anticipate risks, and make
+design of CSCL environments. Yet, this progress has depended on                   rapid decisions—processes that are enacted and observable through
+qualitative coding of dialogue: a rigorous but time-consuming and                 dialogue [52]. Decades of research in healthcare teamwork show
+labour-intensive method [26] that limits scale and slows feedback                 that communication quality is directly associated with improved
+provision to learners or educators [69]. As collaborative learning is             patient safety and clinical outcomes [58]. The ability to identify and
+embedded in formal education [16, 65] and remains essential for                   foster effective teamwork behaviours, such as closed-loop commu-
+developing the collaboration skills required in the workforce [3, 46],            nication, information sharing, clarification, and mutual monitoring,
+the CSCL field faces a crucial challenge in efficiently analysing team            is therefore of both educational and clinical significance [71].
+dialogue at scale and meaningfully supporting learning.                               A central pedagogical component of healthcare simulations is
+    Large language models (LLMs) offer new possibilities for au-                  the debriefing phase, during which participants reflect on their
+tomating dialogue analysis [62]. Efforts in collaborative learning                teamwork and decision-making processes [1]. Automated dialogue
+are not new; earlier work leveraged machine learning and natural                  coding has the potential to render patterns of communication visi-
+language processing (NLP) techniques to classify and model dia-                   ble during or immediately after simulation, providing structured
+logue [9, 10, 60]. Recent research shows that LLMs can approximate                evidence to support reflection and targeted feedback [69]. However,
+human qualitative coding using zero- and few-shot prompting, sub-                 these contexts pose distinctive constraints. Simulations are often
+stantially lowering technical barriers to implementation [33]. How-               conducted in secure university facilities or hospital environments
+ever, most prior studies have focused mainly on replicating human                 where cloud-based services may be restricted due to connectivity
+coding accuracy under controlled conditions, often overlooking the                limitations, data governance policies, or ethical considerations re-
+practical constraints of real-world deployment [33, 61, 67].                      garding clinical scenarios [2, 51, 57]. Therefore, dialogue-coding
+    In educational settings that are not fully mediated by online                 tools must operate efficiently under constrained (often on-premises)
+platforms – such as physical classrooms [60], specialised learning                deployment and produce outputs within the tight temporal bound-
+spaces including laboratories [35, 37], and high-fidelity simula-                 aries of the debriefing workflow.
+tion rooms [36]– where communication is central to task perfor-                       While prior work has explored automated dialogue coding in
+mance and learning, automated dialogue analysis must do more                      simulation settings using NLP models such as BERT [61, 71], these
+than approximate human coders. It must operate in authentic, time-                approaches can be difficult to scale, adapt, and transfer across vary-
+sensitive environments where latency, privacy, computational effi-                ing clinical scenarios and institutional contexts. The emergence
+ciency, and resource use are critical constraints [2, 51, 57]. Robust             of LLMs offers greater flexibility, but raises new questions about
+and efficient dialogue analysis can also strengthen research on                   how to balance coding performance with computational efficiency
+communication processes in emerging areas such as multimodal                      and environmental impact in authentic deployment conditions.
+learning analytics, where verbal interaction is integrated with other             Addressing this gap, we systematically investigated how prompt
+data streams such as gesture, gaze, or physiological signals [14, 45].            design and batching strategies affect accuracy, processing time,
+Dialogue-driven analytics can provide timely feedback to support                  and energy consumption when coding 11, 647 utterances across six
+reflective practice [13]. Realising these benefits at scale, however,             team dialogue constructs. By explicitly examining these trade-offs,
+depends on privacy-preserving deployment, and accounts for the                    we move beyond feasibility toward actionable design guidance for
+computational and environmental impacts associated with large-                    deploying LLM-based dialogue analytics in high-stakes educational
+scale LLM inference [5, 8, 20]. Advances in smaller, locally deploy-              environments, where timely feedback, privacy, and computational
+able LLMs make this shift increasingly feasible [31]. However, they               and environmental impacts are critical.
+introduce critical design decisions: prompt design, the crafting of
+instructions that guide LLMs to produce accurate and relevant                     2 Background and Related Work
+outputs; batching strategies, which group multiple inputs for simul-
+taneous processing rather than handling them individually; and                    2.1 Automated Coding of Dialogue
+model configurations, referring to prompt design and batch settings,              To support qualitative coding at scale, automated analysis has be-
+all of which can substantially influence coding accuracy, processing              come increasingly important [61]. Early efforts relied on traditional
+time, and energy consumption. These factors create trade-offs that                NLP approaches, including supervised classifiers and rule-based
+must be purposely engineered rather than assumed [51].                            systems [9]. Although these methods demonstrated that dialogue
+    In this work, we examine how LLM prompting designs, includ-                   could be computationally classified, they required substantial la-
+ing batching strategies that aggregate multiple inference requests                belled training data and were tightly coupled to specific datasets
+into a single run, can be optimised to balance coding performance,                and coding schemes, limiting transferability across contexts and
+processing time, and environmental impact in high-stakes, time-                   theoretical constructs in CSCL.
+dependent contexts, such as team-based healthcare simulation.                        Pre-trained transformer models, such as BERT, advanced this
+                                                                                  work by reducing dependence on large, task-specific annotated
+                                                                                  datasets (e.g., [10, 69, 71]). Fine-tuning improved dialogue coding
+Scalable LLM-based Coding of Team Dialogue in Healthcare Simulation                             L@S ’26, June 29–July 3, 2026, Seoul, Republic of Korea.
+
+
+compared to earlier machine learning approaches. Yet, these mod-         feedback generation [4, 43], adaptive scaffolding [44, 68], and the
+els still require task-specific annotated data and often struggle        creation of instructional or assessment materials [24, 41]. In this
+with the nuance, ambiguity, and interpretive flexibility inherent        study, coding team dialogue is itself an inference task: the model is
+in qualitative coding–particularly when codes represent complex          repeatedly executed to classify utterances in near real-time. As these
+collaborative processes or context-dependent constructs [70, 71].        systems transition from controlled settings into authentic learning
+    LLMs extend these capabilities through large-scale pre-training      contexts, inference, rather than training, becomes the dominant
+and inference-based modelling. Using zero-shot or few-shot prompt-       and recurring source of computational demand.
+ing, they can perform qualitative coding with minimal additional             The distinction between model training and model inference
+labelled data, making them practical for contexts where annotated        matters. Although model training is energy-intensive, recent stud-
+corpora are scarce [19]. Recent studies illustrate this shift. Liu et    ies show that the energy consumption of LLM serving has now
+al., [33] showed that GPT-4 can approximate human coding across          surpassed that of training, contributing substantially to carbon
+prompting designs, though effectiveness varies by construct and          footprints measured in CO2e [7, 12]. Ding and Shi [12] further
+context. Wang et al., [60] found that LLaMA, while less precise          emphasised the limited understanding of trade-offs between per-
+than BERT, still produced pedagogically meaningful insights for          formance and carbon in LLM serving, noting that efficiency needs,
+teachers analysing dialogic practice. In large-scale MOOC settings,      hardware configurations, and energy use are tightly interdepen-
+Mehta et al., [39] demonstrated strong agreement between GPT-            dent. For dialogue analytics deployed at scale, where inference is
+assisted coding and human annotations when linking discussion            executed continuously across sessions and cohorts, processing time
+engagement to learning outcomes. Similarly, Li et al., [30] applied      and environmental impact are not peripheral concerns but key
+GPT-4 and DeepSeek to identify phases of social shared regulation        design constraints.
+in online discussions, achieving over 83% accuracy and illustrating          Moreover, constraints related to processing time and environ-
+how LLMs can operationalise theoretically rich CSCL constructs           mental impact during LLM inference are amplified in face-to-face
+at scale. These studies prove that LLMs can generate contextually        authentic educational environments, where local LLM deployment
+appropriate outputs for qualitative dialogue coding tasks [30, 33].      (e.g., [31]) is often necessary due to privacy, governance, or connec-
+    Despite these advances, evaluation of LLM outputs has focused        tivity limitations [34, 51]. Parameter-efficient approaches show that
+predominantly on agreement with human coders, positioning accu-          LLMs can be adapted for classroom dialogue analysis with reduced
+racy as the primary success indicator. Yet deployment in authentic       fine-tuning overhead [62], yet inference itself remains computation-
+educational settings requires broader performance considerations         ally demanding. In multimodal learning analytics scenarios, where
+[36]. First, processing time is critical [6, 27] as latency determines   dialogue analysis may operate alongside additional data streams
+whether coded outputs can support timely reflection or interven-         (e.g., indoor position or heart rate data), inefficient inference can
+tion. Second, coding performance must be examined in relation to         introduce latency that undermines timely feedback [51, 64], par-
+prompt and configuration choices, rather than treated as a static        ticularly during simulation debriefing, where reflection depends
+property of the model. Third, prompting designs—including zero-          on immediacy [1, 11]. Accordingly, analysing dialogue in authentic
+shot and few-shot approaches—shape computational load and envi-          educational environments requires more than acceptable accuracy;
+ronmental impact (CO2 e), raising sustainability considerations for      it demands deliberate optimisation of efficiency and environmental
+large-scale deployment [25]. Yet, despite acknowledged contextual        impact to enable feasible, ethical, and scalable deployment.
+variability in coding effectiveness [33], limited attention has been
+paid to how prompting configurations jointly affect processing time,     2.3     Contribution and Research Questions
+coding performance, and environmental impact.
+                                                                         Situated within CSCL and team learning research, this study ad-
+    These issues are particularly salient in healthcare education,
+                                                                         vances automated dialogue analysis by reframing performance
+where dialogue unfolds under time pressure and outputs may in-
+                                                                         beyond accuracy and examining how LLM-based coding can be de-
+form near real-time debriefing [11]. To our knowledge, only two
+                                                                         sign for authentic, high-stakes learning environments. Specifically,
+studies have applied LLM-based coding within authentic health-
+                                                                         we investigate how prompt design and batching strategies shape
+care simulation. Samaraweera et al. [51] examined prompting tech-
+                                                                         the trade-offs between processing time, coding performance, and
+niques for a hospital-based simulation operating under strict time
+                                                                         environmental impact in healthcare simulation, where timely feed-
+constraints, while Tscholl et al. [59] used AI-generated teamwork
+                                                                         back, local deployment, and sustainability are integral to supporting
+reports to support debriefing via thematic analysis. Though both
+                                                                         reflective practice and effective teamwork. By aligning technical
+demonstrated feasibility, neither systematically examined how prompt-
+                                                                         optimisation with pedagogical goals, this work contributes design-
+ing and batching configurations jointly influence processing time,
+                                                                         oriented insights for scaling dialogue analytics in face-to-face col-
+coding performance, and environmental impact.
+                                                                         laborative learning contexts. Motivated by these considerations, we
+                                                                         pose the following research questions:
+2.2     Energy and Efficiency Trade-offs in LLM                                • RQ1: How do prompt design and batching strategies affect
+        Inference                                                                processing time when using LLMs for team dialogue coding
+LLM inference refers to the serving phase in which a trained model               in healthcare simulation?
+generates outputs in response to input prompts. In educational                 • RQ2: How do prompt design and batching strategies affect
+contexts, inference enables scalable applications such as automated              coding performance (accuracy) when using LLMs for team
+encoding of communication among learners and educators [28, 39],                 dialogue coding in healthcare simulation?
+L@S ’26, June 29–July 3, 2026, Seoul, Republic of Korea.   K. Garces, G. Fernandez-Nieto, L. Zhao, S. Samaraweera, D. Gasevic, R. Martinez-Maldonado, V. Echeverria.
+
+
+      • RQ3: To what extent do prompt design and batching strate-                 Table 1: Coding used for team dialogue analysis, with defini-
+        gies influence the environmental impact of LLM inference                  tions and examples.
+        for team dialogue coding in healthcare simulation?
+   We pose a research question that integrates these dimensions:                    Coding Scheme             Definition and Example
+      • RQ4: Which prompt design and batching strategies enable a                   task allocation           A healthcare student self-assigns or assigns to
+        favourable trade-off between coding performance (accuracy),                                           another healthcare student one or more tasks.
+        processing time, and environmental impact for team dialogue                                           Example: "Can you start the IV line and prepare
+        coding in healthcare simulation?                                                                      the fluids?"
+                                                                                    handover                  When a healthcare student provides structural
+                                                                                                              communication of the medical situation to the
+3 Method                                                                                                      new team members.
+3.1 Learning Context and Learning Design                                                                      Example: "We have Jack here. He’s just been
+                                                                                                              complaining of six out of ten chest pain. "
+In nursing education, healthcare simulations are used to replicate
+                                                                                    sharing information       A healthcare student shares relevant clinical or
+emergency scenarios in hospital wards. Nursing learners practise                                              situational information with one or more other
+teamwork, coordination, and clinical communication within this                                                healthcare professionals.
+face-to-face high-fidelity setting. The simulation scenario involves                                          Example: "His oxygen saturation has dropped
+providing and prioritising care to four patients (i.e., manikins),                                            to 88%."
+recognising patient deterioration, calling for help, and managing                   escalation                A healthcare student communicates that the sit-
+the deterioration. As specified in the learning design, two learners,                                         uation exceeds their capacity and requests or
+role-playing as primary nurses, initially participated in the scenario.                                       suggests additional assistance, including initiat-
+Two additional learners, role-playing secondary nurses, entered                                               ing or proposing a formal call for help.
+                                                                                                              Example: "This is deteriorating quickly, we need
+after one primary nurse called for help. The simulation concluded
+                                                                                                              to call the resuscitation team."
+once the deterioration was managed and the situation stabilised.
+                                                                                    questioning               A healthcare student asks another team member
+   A structured debriefing session follows each scenario to guide                                             to obtain information.
+learners’ reflection on their teamwork and clinical decision-making.                                          Example: "Have the blood results come back
+While the debriefing phase highlights the pedagogical need for                                                yet?"
+timely, actionable dialogue analytics, the present study focuses                    acknowledging             A healthcare student signals receipt or recog-
+exclusively on team dialogue collected during the scenario itself.                                            nition of another professional’s statement, re-
+The analysis of debriefing conversations falls beyond the scope of                                            quest, or presence. This is a passive action and
+this paper. Thus, this learning setting reflects realistic constraints                                        does not necessarily indicate agreement or dis-
+related to time, resources, and staff availability, commonly encoun-                                          agreement, but demonstrates awareness or un-
+                                                                                                              derstanding.
+tered in simulation-based healthcare education. These operational
+                                                                                                              Example: "Okay," or "I hear you."
+conditions frame the design considerations examined in this study.
+
+3.2     Dataset
+With ethics approval from Monash University Human Research
+                                                                                  broken within each dialogue segment into multiple sentences us-
+Ethics Committee, all students provided consent for their data to
+                                                                                  ing punctuation marks, i.e., including full stops, commas, question
+be collected and analysed for this research. Students, aged 20 to 23,
+                                                                                  marks, and exclamation marks. For the dialogue analysis, we used
+were organised into teams of four members. The dataset is formed
+                                                                                  the coding scheme described in Table 1, which was derived from
+from audio transcripts of 35 teams: 15 in 2021 and 25 in 2022.
+                                                                                  team science and collaboration frameworks [40, 48]. These codes
+    Audio from each team member was recorded using Shure PGA31
+                                                                                  were further refined with healthcare educators [69]. The detailed
+headset microphones connected via BLX/SVX 4 wireless transmit-
+                                                                                  theoretical grounding of the coding scheme is provided in [70].
+ters to a TASCAM US-16x08 audio interface, with all channels
+                                                                                     The utterances were then coded at the sentence level, with each
+captured on a local server. Utterance timing for each student was
+                                                                                  sentence assigned to a single code, thus multiple codes can appear
+extracted using a Python script and a voice activity detection library
+1 . Transcriptions were automatically generated with the Whisper-                 within a single utterance. Two researchers independently coded 20%
+                                                                                  of utterances collected in 2021 (756 utterances from 3 simulation
+large model [47]. 811 utterances were manually transcribed (total
+                                                                                  sessions), using the definitions and examples provided in Table 1.
+duration = 5, 078.01 seconds) to assess the quality of the transcrip-
+                                                                                  Cohen’s Kappa was used as the metric to assess the inter-rater reli-
+tion. Based on these manual transcriptions, the word error rate
+                                                                                  ability [38]. A threshold of 0.61 was chosen to indicate a substantial
+(WER), a widely accepted metric for transcription quality [47, 54],
+                                                                                  agreement between the raters [29]. For each code, a Kappa greater
+of automatic transcriptions was 0.089. This result indicated the
+                                                                                  than 0.7 was reached. Then, one researcher coded the remaining
+transcription quality was sufficient [54].
+                                                                                  utterances in 2021 and 2022 datasets.
+    The resulting transcripts from the 35 teams were segmented into
+                                                                                     Using the 11, 647 coded utterances, we filtered out those that
+11, 647 utterances. The average number of utterances per simula-
+                                                                                  were not assigned any communication code because they were
+tion was 332.8 with a standard deviation of 93.9. Utterances were
+                                                                                  either outside the context of the simulation (e.g., prior to or after the
+1 webrtcVAD: https://github.com/wiseman/py-webrtcvad                              simulation) or contained no relevant information for the simulation
+Scalable LLM-based Coding of Team Dialogue in Healthcare Simulation                                        L@S ’26, June 29–July 3, 2026, Seoul, Republic of Korea.
+
+
+task. The final dataset comprised 4, 057 utterances, which were used           to 0, resulting in deterministic outputs; therefore, repeated sto-
+to address the research questions.                                             chastic sampling was not required. To verify deterministic consis-
+                                                                               tency across runs, each configuration was executed five times with
+3.3     Experimental Design                                                    batches of 20 utterances, yielding identical outputs in all cases. To
+For the experimental design, we created a set of prompt designs                further support reproducibility, a fixed random seed of 42 was used.
+and batching strategies2 .                                                        All evaluations were conducted on the same machine, a server
+                                                                               equipped with 128GB of 4, 400MHz ECC DDR5 RAM, an NVIDIA
+3.3.1 Prompt Design and Batching Strategies. We created four prompt            RTX A5500 GPU with 24GB of memory, and two Intel Xeon Gold
+designs following a few-shot classification approach (i.e., Liu et             5415+ processors (2.9GHz base frequency, 8 cores each, 22.5MB
+al. [33]). P.1: Prompt few-shot, consisted of a contextual descrip-            L3 cache, hyper-threading enabled; maximum turbo frequency
+tion specifying the model’s role, definitions of the six communi-              4.1GHz). We record the timestamps for each of the experimen-
+cation codes plus three annotated examples per code, and task                  tal configurations. Running all required approximately 54 hours
+instructions framing the problem as a multi-label classification task.         and 41 minutes of wall-clock time.
+Each code was represented as a one-hot vector (i.e., 1 indicating the
+presence of a label). The model’s output consisted of seven binary             3.5     Analysis
+values (0 or 1) and was ordered according to the predefined codes.
+    P.2: Prompt few-shot with rules, extended the first by in-                 To address RQ1–RQ3, we analysed 4, 057 utterances together with
+troducing explicit decision rules to support the coding of more                the researcher-coded ground truth to evaluate coding performance,
+complex dialogue codes [53, 63]. In addition to code definitions and           processing time, and environmental impact.
+examples, this prompt included a set of decision rules. For example:           3.5.1 RQ1 – Processing Time. We measured the total processing
+If an utterance contains a first-person commitment (e.g., "I will...", "Let    time required to code the complete set of 4, 057 utterances under
+me..."), then code it as task allocation ; if the utterance also reports       each configuration. Processing time was analysed by estimating
+patient status, additionally code it as sharing information.                   the time required to code the utterances from a single simulation
+    P.3: Prompt few-shot with rules and context, incorporated                  session. Specifically, the total elapsed time was divided by the num-
+preceding utterances as conversational context, given that mod-                ber of simulations in the dataset (𝑛 = 35). We analysed the total
+elling dialogue history has been shown to enhance robustness in                elapsed time across the 32 configurations (4 prompts × 8 batch sizes)
+conversational tasks [21]. Specifically, this design added a confidence-       and conducted Spearman’s rank correlation analyses to identify
+based rule (If uncertainty is below 95%, leave labels as 0) and modified       relationships among batch size, prompt design, and per-session
+the task instructions to require the model to consider the three pre-          processing time. Additionally, we visually inspected changes in
+ceding utterances when coding each target utterance.                           processing time across prompt designs and batch sizes to identify
+    P.4: Prompt few-shot with rules and structured metadata,                   configurations that support feasible timely deployments.
+extended P.2 by explicitly including contextual metadata, such as
+the initiator and receiver of each utterance (i.e., primary nurse 1,           3.5.2 RQ2 – Coding Performance. We evaluated coding perfor-
+secondary nurse 1), to provide additional conversational structure.            mance using standard metrics, including macro-averaged F1 score,
+    In addition to prompt design, the current study investigated how           precision, recall, and accuracy [e.g., 33]. Performance was computed
+batching strategies varied with the number of utterances processed             at the utterance level, resulting in a multi-label classification evalu-
+simultaneously. Batching strategies are often used to analyse com-             ation. F1 score was used as the primary performance metric due
+putational efficiency; for LLM inference, grouping multiple inputs             to its robustness to class imbalance in our dataset (see Appendix).
+into a single batch reduces repeated prompt parsing and token                  These metrics were used to analyse the relationship between batch
+efficiency and can lower total inference time, thereby increasing              size, prompt design, and performance, and to determine whether
+scalability [6, 27]. Batch sizes of 1, 10, 20, 30, 40, 50, 60, and 70 utter-   variations in batch size and prompt design affected F1 scores.
+ances were evaluated. These batch sizes were heuristically selected
+to systematically explore the effect of increasing the number of               3.5.3 RQ3 – Environmental Impact. We measured the total energy
+utterances processed per batch in increments of ten. In total, this            consumed while processing the full dataset for each configuration.
+resulted in 32 configurations (4 prompt designs × 8 batch sizes).              Energy measurements included CPU, GPU, and DRAM usage, which
+                                                                               were aggregated to obtain total system energy consumption. Energy
+3.4     LLM Implementation                                                     usage was recorded using the Zeus Python library [66] and reported
+                                                                               in joules5 . Rather than estimating environmental impact using
+A local deployment of an LLM was configured. All model inference
+                                                                               carbon dioxide equivalent (CO2 e) calculators, we report energy
+was conducted using the Ollama3 interface with the Deepseek-
+                                                                               consumption directly as a proxy for environmental impact. This
+R1[22] model, more specifically the distilled model with 14 Bil-
+                                                                               choice is motivated by the fact that carbon and water consumption
+lion parameters, deepseek-r1:14b 4 . Ollama was used to facilitate
+                                                                               calculators are derived from energy usage [15]. Furthermore, all
+model deployment and provide an application interface (API) for
+                                                                               experiments were conducted on local deployments without active
+accessing the DeepSeek model. The model temperature was set
+                                                                               water-based cooling.
+2 Prompt and batching details can be found in
+https://osf.io/gtx86/overview?view_only=ffdb65822459434e8f9344d8a263fb5a
+3 https://www.ollama.com                                                       5 A joule is an International System unit of energy, equal to applying a force of one
+4 https://ollama.com/library/deepseek-r1:14b                                   newton over one metre, or roughly the energy to lift a 100 apple by 1 metre.
+L@S ’26, June 29–July 3, 2026, Seoul, Republic of Korea.   K. Garces, G. Fernandez-Nieto, L. Zhao, S. Samaraweera, D. Gasevic, R. Martinez-Maldonado, V. Echeverria.
+
+
+3.5.4 RQ4 – Trade-offs. We conducted a trade-off analysis based on                recall) are reported in Table 3. These results indicate that higher
+Pareto optimality [42, 55]. Pareto analysis is a widely used approach             performance was generally achieved at lower batch sizes. As shown
+for evaluating trade-offs among conflicting objectives, where im-                 in Fig. 2, there was a strong negative association between batch size
+proving one objective may degrade others. It provides a systematic                and F1 score, with Spearman’s rank correlation of −0.882, indicat-
+method for identifying configurations that achieve optimal trade-                 ing that performance consistently declined as batch size increased,
+offs across multiple criteria.                                                    suggesting that higher batch sizes did not necessarily improve the
+   This analysis considered three objectives: (i) coding performance,             model’s accuracy.
+measured by the macro-averaged F1 score; (ii) total GPU energy                       Regarding prompt strategies, configurations with explicit deci-
+consumption; and (iii) total processing time. Before identifying                  sion rules consistently outperformed the Prompt few-shot baseline.
+Pareto-optimal configurations, we conducted a Spearman’s rank                     This finding suggests that structured decision rules enhanced the
+correlation analysis between GPU energy consumption and total                     model’s ability to differentiate dialogue codes, particularly at batch
+processing time to examine the relationship between these dimen-                  sizes below 40.
+sions. Pareto-optimal configurations were identified by maximising                   Given the multi-label nature of the task, we further report per-
+the F1 score while simultaneously minimising energy consumption                   label F1 scores in Tables 4 and 5. At the code level, batch size
+and processing time. The resulting Pareto-optimal set comprises                   continued to influence performance. Prompts that included decision
+non-dominated configurations, for which no alternative configura-                 rules generally outperformed the P.1: Prompt few-shot across most
+tion achieves better performance on one objective without degrad-                 dialogue codes. In particular, P4: Prompt few-shot with rules and
+ing at least one of the others. This set is commonly referred to as               structured metadata achieved the strongest performance in three of
+the Pareto front [42]. We filtered out configurations infeasible for
+our near real-time scenario. We further analysed per-label results
+within the Pareto front to identify configurations that provide a                 Table 2: Processing Time in seconds across prompt designs
+balanced trade-off across all three objectives.                                   and batch sizes. Highlighted values indicate the minimum
+                                                                                  value per prompt and metric, while values in bold denote the
+4 Results                                                                         overall maximum for each metric. P.1: Prompt few-shot, P.2:
+4.1 RQ1 – Processing Time                                                         Prompt few-shot with rules, P.3: Prompt few-shot with rules
+                                                                                  and context, P.4: Prompt few-shot with rules and structured
+The processing times (seconds) required to code a single simulation               metadata.
+session are presented in Table 2. The results for the entire set of
+utterances are provided in the Appendix. Table 2 and Fig. 1a shows
+a clear trend, as batch size increases, total processing time decreases                                                    Prompt
+                                                                                   Batch
+across all prompt designs. Notably, for P.1: Prompt few-shot, a batch                                    P.1              P.2               P.3               P.4
+size of 1 required approximately four times more processing time
+                                                                                       1             781.03          2,086.90         2,857.92          1,176.21
+than a batch size of 10. For P4: Prompt few-shot with rules and
+                                                                                      10             181.23            151.20           198.20            149.26
+structured metadata, this difference increased to approximately ten
+                                                                                      20             125.69            122.39           133.96            131.16
+times. Similarly, P.2: Prompt few-shot with rules and P3: Prompt few-
+                                                                                      30             117.20            114.72           128.14            125.38
+shot with rules and context required approximately fourteen times
+                                                                                      40             117.46            136.72           120.66            115.35
+more processing time at batch size 1 compared to batch size 10.
+                                                                                      50             118.66            113.49           121.89             95.01
+    As shown in Fig. 1b, processing time began to stabilise beyond a
+                                                                                      60             113.27            108.03           115.25             66.17
+batch size of 20 for most prompt designs, with the exception of P4.
+                                                                                      70             108.31            115.35           109.31             61.28
+At batch size 70, P4 achieved the lowest processing time, requiring
+approximately half the time (0.55×) compared to the other prompts.
+For the remaining prompts, increasing the batch size beyond 20
+                                                                                  Table 3: Coding performance across prompt designs. High-
+results in relatively small reductions, ranging from 3 to 8 seconds.
+                                                                                  lighted values indicate the maximum value per prompt for
+Spearman’s rank correlation between batch size and processing
+                                                                                  each metric, while bolded values denote the overall maxi-
+time was −0.895, indicating a strong negative association: larger
+                                                                                  mum for each metric.
+batch sizes were consistently linked to shorter processing times. In
+contrast, configurations with batch size 1 (i.e., no batching) were
+impractical for near real-time deployment, as they required more                                F1 Macro             Precision Macro           Recall Macro
+                                                                                  Batch
+than 13 minutes per session.                                                               P.1 P.2 P.3 P.4 P.1 P.2 P.3 P.4 P.1 P.2 P.3 P.4
+    Overall, these findings suggest that processing time was substan-
+                                                                                    1      0.61 0.60 0.61 0.63 0.63 0.67 0.67 0.68 0.61 0.59 0.61 0.63
+tially affected by batching strategies. In this context, no batching                10     0.56 0.60 0.61 0.60 0.64 0.68 0.68 0.68 0.52 0.59 0.62 0.57
+is impractical because the debriefing starts immediately after the                  20     0.51 0.60 0.61 0.59 0.61 0.68 0.67 0.66 0.45 0.58 0.60 0.55
+simulation ends. A batch size of 20-70 may be optimal at this point.                30     0.50 0.58 0.60 0.60 0.63 0.66 0.64 0.67 0.43 0.54 0.59 0.56
+                                                                                    40     0.50 0.49 0.60 0.56 0.63 0.65 0.65 0.65 0.42 0.42 0.58 0.50
+4.2     RQ2 – Coding Performance                                                    50     0.52 0.40 0.55 0.37 0.63 0.54 0.64 0.53 0.46 0.33 0.50 0.30
+                                                                                    60     0.45 0.34 0.46 0.30 0.58 0.59 0.65 0.45 0.39 0.25 0.37 0.24
+The results evaluating coding performance when considering prompt
+                                                                                    70     0.39 0.19 0.37 0.19 0.55 0.51 0.61 0.33 0.32 0.12 0.28 0.14
+design and batch size (macro-averaged F1 score, precision, and
+Scalable LLM-based Coding of Team Dialogue in Healthcare Simulation                                                                                         L@S ’26, June 29–July 3, 2026, Seoul, Republic of Korea.
+
+
+                                                                                                                                        200                         P.1: Prompt few-shot
+                                                      P.1: Prompt few-shot
+                                                      P.2: Prompt few-shot with decision rules                                                                      P.2: Prompt few-shot with decision rules
+                           2500                                                                                                         180                         P.3: Prompt few-shot with decision rules and
+                                                      P.3: Prompt few-shot with decision rules and                                                                  context
+                                                      context
+                                                      P.4: Prompt few-shot with decision rules and                                      160                         P.4: Prompt few-shot with decision rules and
+
+
+
+                                                                                                                  Processing Time (s)
+                           2000
+
+
+     Processing Time (s)
+                                                      structured metadata                                                                                           structured metadata
+                                                                                                                                        140
+                           1500
+                                                                                                                                        120
+                           1000
+                                                                                                                                        100
+                           500                                                                                                          80
+
+                             0                                                                                                          60
+                                   0        10      20       30       40      50       60       70                                              10          20       30         40        50           60          70
+                                                              Batch size                                                                                                     Batch size
+
+                                  (a) Processing Time against Batch sizes.                                        (b) Processing Time against Batch sizes for Batch ≥ 10
+
+                                                         Figure 1: Processing Time in Seconds across prompts designs and batch sizes.
+
+                                                                                                         Table 4: Per-label F1 scores across prompt designs and batch
+                           0.6                                                                           sizes.
+
+                           0.5                                                                                                acknowledging                                escalation                   handover
+                                                                                                          Batch
+
+       F1 (macro)
+                                                                                                                       P.1 P.2 P.3 P.4 P.1 P.2 P.3 P.4 P.1 P.2 P.3 P.4
+                           0.4
+                                                                                                            1          0.73 0.78 0.79 0.82 0.66 0.68 0.65 0.67 0.24 0.20 0.19 0.19
+                                                                                                            10         0.64 0.74 0.77 0.72 0.60 0.63 0.64 0.66 0.27 0.16 0.16 0.18
+                           0.3
+                                                                                                            20         0.58 0.72 0.75 0.71 0.48 0.70 0.65 0.63 0.23 0.15 0.17 0.19
+                                                                                                            30         0.58 0.70 0.73 0.70 0.50 0.55 0.64 0.67 0.24 0.22 0.18 0.26
+                           0.2                                                                              40         0.58 0.62 0.73 0.67 0.52 0.48 0.66 0.57 0.25 0.11 0.20 0.22
+                                  0         10      20       30       40       50       60       70         50         0.62 0.53 0.68 0.49 0.56 0.43 0.57 0.27 0.26 0.04 0.13 0.16
+                                                              Batch size                                    60         0.51 0.45 0.59 0.47 0.53 0.39 0.45 0.28 0.18 0.04 0.20 0.23
+                                      P.1: Prompt few-shot                                                  70         0.45 0.24 0.47 0.34 0.41 0.19 0.39 0.21 0.18 0.06 0.13 0.01
+                                      P.2: Prompt few-shot with decision rules
+                                      P.3: Prompt few-shot with decision rules and context
+                                      P.4: Prompt few-shot with decision rules and structured metadata   Table 5: Per-label F1 scores across prompt designs and batch
+                                                                                                         sizes.
+Figure 2: Macro-averaged F1 scores and batch sizes illustrat-
+ing coding performance.                                                                                                                  questioning                      sharing info.            task allocation
+                                                                                                          Batch
+                                                                                                                       P.1                    P.2    P.3     P.4    P.1     P.2    P.3    P.4    P.1        P.2    P.3    P.4
+                                                                                                             1         0.85                   0.80   0.81    0.84   0.55    0.53   0.56   0.59   0.63       0.58   0.67   0.66
+                                                                                                            10         0.76                   0.82   0.83    0.81   0.52    0.57   0.58   0.57   0.57       0.69   0.69   0.65
+the six codes—acknowledging, handover, and sharing information,                                             20         0.71                   0.80   0.82    0.79   0.51    0.57   0.58   0.56   0.54       0.66   0.69   0.64
+although it showed greater instability at larger batch sizes.                                               30         0.71                   0.80   0.80    0.78   0.51    0.57   0.58   0.56   0.48       0.62   0.66   0.61
+    Beyond peak performance values, as shown in Fig. 2, we observed                                         40         0.70                   0.73   0.79    0.76   0.48    0.50   0.55   0.54   0.48       0.49   0.65   0.58
+                                                                                                            50         0.73                   0.62   0.77    0.54   0.50    0.44   0.53   0.41   0.42       0.31   0.59   0.37
+that prompts incorporating explicit decision rules (P.2, P.3 and P.4)                                       60         0.65                   0.52   0.61    0.37   0.47    0.38   0.43   0.30   0.38       0.25   0.45   0.14
+demonstrate greater robustness to increasing batch sizes compared                                           70         0.55                   0.30   0.53    0.22   0.41    0.20   0.37   0.27   0.35       0.11   0.35   0.09
+to the baseline few-shot prompt. While performance declined across
+all configurations as batch size increased, rule-based prompts exhib-
+ited slower degradation, particularly for acknowledging and escala-                                      4.3      RQ3 – Environmental Impact
+tion codes. Furthermore, handover remained consistently the most                                         To address the environmental impact of prompt design and batching
+challenging label across all prompt designs and batch sizes, with                                        strategies, we analysed the effect of these configurations on energy
+substantially lower F1 scores compared to other codes, suggesting                                        consumption (Table 6). As expected, batch size strongly influenced
+difficulty in modelling this dialogue code. Notably, moderate batch                                      energy use, closely mirroring its relationship with processing time.
+sizes (10-20) often yielded better performance across multiple codes,                                    In general, larger batch sizes led to lower total energy consumption
+suggesting that such sizes may support contextual grouping before                                        due to reduced computational overhead per utterance.
+attention dilution affects classification accuracy [72].                                                    Across prompt designs, the Prompt few-shot with rules and con-
+    In sum, these findings suggest that coding performance, as mea-                                      text configuration exhibited the highest energy consumption at
+sured by F1 score, is strongly influenced by batching strategies,                                        batch size 1, consistent with its longer processing time. In contrast,
+with smaller batch sizes (𝑛 = 1-10) consistently supporting more                                         the Prompt few-shot with rules showed energy consumption com-
+accurate classification.                                                                                 parable to the Prompt few-shot baseline across most batch sizes.
+L@S ’26, June 29–July 3, 2026, Seoul, Republic of Korea.                                      K. Garces, G. Fernandez-Nieto, L. Zhao, S. Samaraweera, D. Gasevic, R. Martinez-Maldonado, V. Echeverria.
+
+
+
+                                                    P.1: Prompt few-shot                                                                                45                P.1: Prompt few-shot
+                                600                 P.2: Prompt few-shot with decision rules                                                                              P.2: Prompt few-shot with decision rules
+                                                    P.3: Prompt few-shot with decision rules and                                                        40                P.3: Prompt few-shot with decision rules and
+                                                    context                                                                                                               context
+                                500
+
+
+
+
+      Total System Energy (J)                                                                                                 Total System Energy (J)
+                                                    P.4: Prompt few-shot with decision rules and                                                                          P.4: Prompt few-shot with decision rules and
+                                                    structured metadata                                                                                 35                structured metadata
+                                400
+                                                                                                                                                        30
+                                300
+                                                                                                                                                        25
+                                200
+                                                                                                                                                        20
+                                100
+                                                                                                                                                        15
+                                 0
+                                      0    10      20      30       40      50       60       70                                                             10   20          30      40        50        60          70
+                                                            Batch size                                                                                                             Batch size
+
+                                 (a) Energy Consumption against Batch sizes.                                               (b) Energy Consumption against Batch sizes for Batch ≥ 10
+
+                                                    Figure 3: Energy Consumption in Joules across prompts designs and batch sizes.
+
+Table 6: GPU Energy consumption in Joules per simulation                                                            real-time healthcare debriefing contexts. Excluding this configu-
+across prompt designs and batch sizes                                                                               ration based on feasiblity grounds, we analysed the remaining 10
+                                                                                                                    configurations that form the Pareto front, as shown in Fig. 4 high-
+                                                                Prompt                                              lighted by black circles: P.1: Prompt few-shot with batch sizes 60 and
+ Batch
+                                                                                                                    70; two configurations using P.2: Prompt few-shot with rules with
+                                            P.1                P.2                  P.3                P.4
+                                                                                                                    batch sizes 20 and 30; three configurations using P3: Prompt few-shot
+    1                                     177.46           474.85                652.46             267.85          with rules and context with batch sizes 10, 20 and 30; finally, three
+    10                                     41.40            34.49                 45.30              34.07          configurations using P4: Prompt few-shot with rules and structured
+    20                                     28.71            27.97                 30.62              30.00
+                                                                                                                    metadata with batch sizes 50, 60, 70.
+    30                                     26.80            26.23                 29.31              28.67
+    40                                     26.87            31.28                 27.60              26.39
+                                                                                                                       The Pareto analysis revealed distinct deployment preferences.
+    50                                     27.14            25.95                 27.88              21.72          When prioritising computational efficiency, the most suitable con-
+    60                                     25.90            24.71                 26.37              15.12          figurations were P4: Prompt few-shot with rules and structured meta-
+    70                                     24.59            26.40                 25.00              14.01          data with batch sizes of 50, 60, and 70. When seeking a balanced
+                                                                                                                    trade-off between coding performance and processing time, batch
+                                                                                                                    sizes of 20 and 30 using rule-based prompts (P.2 and P.3) provide
+                                                                                                                    the most promising midpoint.
+These findings indicate that incorporating explicit decision rules
+                                                                                                                       Given the time-sensitive nature of healthcare simulation debrief-
+did not substantially increase energy costs when combined with
+                                                                                                                    ings, balanced configurations may be the most appropriate. Among
+appropriate batching strategies.
+                                                                                                                    the Pareto-optimal set, the per-label analysis (Table 7) showed
+   Comparing the results for Processing Time (Fig. 1) and Energy
+                                                                                                                    that P3: Prompt few-shot with rules and context with batch size 20
+Consumption (Fig. 3), both showed highly similar patterns. Results
+                                                                                                                    achieved the highest overall label-level performance while main-
+from Spearman’s rank correlation examining the relationship be-
+                                                                                                                    taining processing time. This configuration, therefore, represents
+tween energy consumption and processing time showed an almost
+                                                                                                                    the most favourable trade-off across performance, processing time,
+perfect positive correlation (Spearman’s rank correlation coefficient
+                                                                                                                    and environmental impact.
+of 0.99945), confirming that energy consumption scaled nearly pro-
+portionally with processing time.
+                                                                                                                     Table 7: Per-label F1 scores for Pareto-optimal across prompt
+4.4                      RQ4 - Trade-offs                                                                            versions.
+Given the near-perfect correlation between processing time and
+energy consumption (Spearman’s rank 0.99945), we reduced the                                                                                                                   P.2                              P.3
+optimisation problem to two objectives: coding performance and                                                        Code
+processing time. In this context, minimising processing time effec-                                                                                               Batch 20           Batch 30        Batch 20         Batch 30
+tively minimises energy consumption.                                                                                  acknowledging                                    0.72            0.70            0.75              0.73
+    The Pareto front is composed of 11 configurations. Among then,                                                    escalation                                       0.70            0.55            0.65              0.64
+P4: Prompt few-shot with rules and structured metadata with batch                                                     handover                                         0.15            0.22            0.17              0.18
+size 1, which achieves the highest F1 score. Therefore, if coding                                                     questioning                                      0.80            0.80            0.82              0.80
+                                                                                                                      sharing information                              0.57            0.57            0.58              0.58
+performance alone is prioritised, this configuration would be se-
+                                                                                                                      task allocation                                  0.66            0.62            0.69              0.66
+lected. Nevertheless, due to its substantially higher processing time
+(1, 176.21 seconds) and energy consumption (267.85 Joules), as re-
+ported in Sections 4.1 and 4.3, respectively, it is unsuitable for near
+Scalable LLM-based Coding of Team Dialogue in Healthcare Simulation                                                      L@S ’26, June 29–July 3, 2026, Seoul, Republic of Korea.
+
+
+                                         0.7
+                                                                                 Batch-20 Batch-20                         Batch-10
+                                         0.6
+                                                                     Batch-30
+                                         0.5
+                                                                     Batch-60
+                                         0.4                     Batch-50
+                                                                                Batch-70
+                            F1 (Macro)   0.3
+                                                 Batch-60
+
+                                               Batch-70                                         P.1: Prompt few-shot
+                                         0.2                                                    P.2: Prompt few-shot with decision rules
+                                                                                                P.3: Prompt few-shot with decision rules and
+                                                                                                 context
+                                         0.1                                                    P.4: Prompt few-shot with decision rules and
+                                                                                                structured metadata
+                                                                                                Pareto-optimal
+                                         0.0
+                                                 60         80       100          120        140       160         180         200
+                                                                                   Total Time (s)
+
+Figure 4: Pareto front. The highlighted points depict the Pareto front for the two dimensions to optimise: Processing Time and
+Macro-averaged F1 score.
+
+
+5 Discussion                                                                                 limited pedagogical value during debriefing given its overlap with
+                                                                                             adjacent codes [69]. These observations reinforce that coding per-
+5.1 Findings by Research Question
+                                                                                             formance is sensitive to construct interpretation [33], suggesting
+With respect to RQ1, which examined whether processing time                                  that refining coding schemes may improve both model performance
+is affected by prompt design and batching strategies when using                              and practical relevance—complementing evidence that prompting
+LLMs for near real-time dialogue coding in healthcare simulation,                            and batching strategies materially shape LLM coding behaviour
+our findings showed that both factors substantially influenced pro-                          [33, 51]. Our findings also align with broader claims that LLMs
+cessing time, and suggested a batch size range of 𝑛 = 20-70. In                              struggle with long-context reasoning, particularly when relevant
+particular, prompts incorporating additional context and ex-                                 information is not positioned near the beginning or end of the
+plicit decision rules, when combined with batching strategies,                               prompt, suggesting that long, batched prompts may dilute salient
+led to marked reductions in total processing time. Increasing the                            signals [32]. Taken together, these findings suggest that implement-
+number of utterances processed per batch resulted in considerable                            ing LLMs for team dialogue coding is plausible even in complex,
+time savings, a valuable when integrating dialogue analysis into                             constrained contexts such as healthcare simulation environments.
+time-sensitive learning activities, where timely feedback is critical                           Addressing RQ3, we found that energy consumption also de-
+for reflective learning, such as post-simulation debriefs [1, 11, 34].                       creased as batch size increased, a trend similar to that in RQ1. By
+Our results corroborate previous work on batch prompting [6, 27],                            empirically demonstrating a near-perfect correlation between pro-
+confirming that increasing batch size reduces processing time. Ex-                           cessing time and energy consumption, we provide evidence that
+tending this line of work, our results show that similar efficiency                          the batching strategy is a direct driver of environmental im-
+gains can be achieved when analysing team dialogue in complex,                               pact in LLM-based dialogue coding. This finding establishes
+high-stakes contexts such as healthcare simulations.                                         that processing time optimisation directly reduces energy demand
+   Addressing RQ2, we observed that increasing batch size had a                              and associated environmental impact [5, 12, 15]. Our results posi-
+noticeable impact on coding performance. Batching improved                                   tion batching not merely as a performance optimisation technique,
+efficiency, but performance (macro-averaged F1) generally                                    but as a practical sustainability lever in LLM coding pipelines [25].
+decreased as the number of utterances processed simulta-                                     In doing so, we contribute quantitative evidence that inference
+neously increased, mirroring results from Cheng et al., [6]. This                            energy should not be overlooked and that deployment-level opti-
+reveals an inherent trade-off between efficiency and accuracy in                             misation can meaningfully reduce the environmental foot print [7].
+near real-time dialogue coding contexts. Among the dialogue codes,                           Furthermore, this study extends the current literature by explicitly
+handover consistently performed worse than the other codes across                            quantifying how both prompt design and batching strategies influ-
+prompt designs and batch sizes. Results for handover detection are                           ence environmental impact. We provide empirical justification for
+consistent with prior BERT-based findings [70], likely reflecting                            using energy consumption as a proxy for environmental impact in
+the deeper conversational context required and conceptual overlap                            local deployment settings, where computational resources are di-
+with sharing information [70]. Thus, LLMs still struggle to resolve                          rectly tied to institutional infrastructure. To our knowledge, this is
+construct-level overlaps—mirroring inconsistencies among human                               the first study to document these relationships within collaborative
+annotators, and echoing educator reports that handover may hold
+L@S ’26, June 29–July 3, 2026, Seoul, Republic of Korea.   K. Garces, G. Fernandez-Nieto, L. Zhao, S. Samaraweera, D. Gasevic, R. Martinez-Maldonado, V. Echeverria.
+
+
+learning contexts, where local deployment is often necessary due                  coding should be engineered and evaluated by considering these
+to privacy and infrastructural constraints [2, 57].                               three metrics for learning-at-scale analytics. This methodological
+   Collaborative learning contexts, such as healthcare simulations,               lens guides configuration choices so they align with the learning
+are time-constrained and highly sensitive to coding performance,                  activity, deployment constraints, and environmental costs [2, 36,
+as debriefings often begin immediately after simulation sessions                  51, 57]. In doing so, it complements research aimed at supporting
+[34]. To address this tension, RQ4 examined which configurations                  learning at scale via LLM-driven coding and learner-facing support
+offered a favourable balance between performance, processing time,                [24, 28, 39, 41, 44] by providing a unified framework for analysing
+and environmental impact. Our results indicate that balanced con-                 and reporting deployment trade-offs.
+figurations, specifically those using prompts with explicit deci-                     From a practical standpoint, the findings offer guidance for de-
+sion rules, additional conversational context, and moderate                       ploying dialogue coding in face-to-face CSCL contexts [35, 37, 60]
+batch sizes (approximately 20 utterances), provide the most                       and healthcare simulation-based education [14, 36]. Our results indi-
+suitable midpoint. These configurations maintain strong coding per-               cate that LLM-based analytics can be integrated into time-sensitive
+formance while substantially reducing processing time and energy                  educational workflows (e.g., post-simulation debriefings), support-
+consumption, thereby meeting the practical demands of pedagogi-                   ing scalable use of dialogue data to inform reflective discussions
+cal instruction, such as debriefing. Our key contribution is to make              and learning. The average processing time was 118.38 seconds
+these trade-offs explicit and empirically quantifiable: prompt de-                (SD=25.12) per session for batch sizes 𝑛 > 1, indicating that the
+sign and batching decisions must balance accuracy, efficiency, and                coding can be generated within the timeframe of typical simulation
+sustainability, rather than optimising for performance alone.                     debriefing workflows. Researchers and developers of AI-supported
+   This study extends prior research on LLM-based automated cod-                  feedback may combine few-shot prompts with additional decision
+ing, such as Liu et al., [33], which primarily assessed prompt engi-              rules, and select batch sizes based on deployment priorities (e.g.,
+neering strategies in terms of coding performance (accuracy). Their               coding performance, processing time, and environmental impact).
+findings showed that few-shot prompting improved performance,                     If coding performance alone is priority, a batch size of 1 is prefer-
+consistent with our results, which also showed that combining                     able. If the focus is on processing time, larger batch sizes should be
+few-shot prompts with explicit decision rules led to accuracy im-                 selected. For a more balanced trade-off between accuracy and pro-
+provements. In contrast, our work incorporates processing time                    cessing time, batch sizes of 𝑛 = 20–30 are recommended. Together,
+and environmental impact as additional evaluation dimensions and                  they support scalable and context-sensitive integration into collab-
+proposes a framework to balance these trade-offs, particularly in                 orative learning practice and contribute to ongoing discussions in
+local deployment settings critical to collaborative learning contexts             CSCL and teamwork science [23, 50].
+where immediate analysis is required.
+   Our findings also extend prior feasibility studies of LLM use in               5.3     Limitations and Future Work
+in-situ simulation settings [51], which primarily compared prompt-
+                                                                                  This study evaluated four prompt designs combined with batching
+ing strategies based on inference performance. While Samaraweera
+                                                                                  strategies that process multiple utterances simultaneously. How-
+et al., [51] showed that few-shot prompting improved coding perfor-
+                                                                                  ever, alternative batching approaches were not explored. Future
+mance and that selectively adding contextual information benefited
+                                                                                  work could investigate distributing classification task across multi-
+certain codes accuracy, it also reported substantial increases in envi-
+                                                                                  ple specialised prompts, each identifying a specific dialogue code
+ronmental impact. We build on this work by evaluating prompting
+                                                                                  while processing single utterances. Such task decomposition strate-
+and batching under a unified trade-off framework that integrates
+                                                                                  gies may yield different trade-offs between performance, efficiency,
+performance, processing time, and environmental impact.
+                                                                                  and energy consumption. Additionally, the prompts relied on ex-
+   Related work on batch prompting has focused on grouping infer-
+                                                                                  tended few-shot examples and contextual information, resulting
+ence tasks to reduce prompt length. These works were not evaluated
+                                                                                  in long prompt structures. While effective, these prompts may not
+in terms of dialogue coding or classification tasks; moreover, they
+                                                                                  be optimally efficient. Future research should explore prompt opti-
+were beyond the scope of healthcare simulation scenarios, nor were
+                                                                                  misation techniques, such as structured formats, compressed rep-
+they systematically evaluated for multiple conflicting objectives
+                                                                                  resentations, or schema-based inputs, to reduce token length and
+such as accuracy, processing time, and environmental impact.
+                                                                                  improve both computational efficiency and environmental impact.
+
+5.2     Implications for Learning at Scale                                        5.4     Concluding Remarks
+This study presents methodological and practical implications for                 This study researched how prompt design and batching strategies
+deploying scalable LLM-based dialogue coding in authentic educa-                  affect coding performance, processing time, and environmental
+tional settings. Although contextualised in healthcare education,                 impact in healthcare simulation dialogue coding. Results show a
+our results apply to other collaborative learning contexts where                  clear trade-off between efficiency and performance, with rule-based
+dialogue is central for learning [3, 46].                                         prompts and moderate batch sizes offering the most favourable
+   From a methodological standpoint, this study frames scalable                   balance. These findings contribute practical guidance for deploying
+LLM-based dialogue coding in authentic educational settings as a                  LLMs in time-sensitive educational settings and highlight the need
+balance between processing time, performance, and environmental                   to optimise configurations for accuracy and sustainability. Future
+impact. Moving beyond prior work that has primarily reported                      work should explore alternative task decomposition strategies and
+coding accuracy [30, 33, 39, 60], we show that automated dialogue                 prompt optimisation techniques to further improve scalability.
+Scalable LLM-based Coding of Team Dialogue in Healthcare Simulation                                                              L@S ’26, June 29–July 3, 2026, Seoul, Republic of Korea.
+
+
+References                                                                                              and Knowledge Conference. p. 814–820. LAK ’24, ACM, New York, NY, USA
+ [1] Abulebda, K., Auerbach, M., Limaiem, F.: Debriefing techniques utilized in medical                 (2024). https://doi.org/10.1145/3636555.3636879
+     simulation. In: StatPearls. StatPearls Publishing, Treasure Island, FL (2025)                 [20] Gašević, D., Dawson, S., Siemens, G.: Let’s not forget: Learning analytics are
+ [2] Algarni, A.M., Thayananthan, V.: Digital health: The cybersecurity for                             about learning. TechTrends 59(1), 64–71 (2015). https://doi.org/10.1007/s11528-
+     ai-based healthcare communication. IEEE Access 13, 5858–5870 (2025).                               014-0822-x
+     https://doi.org/10.1109/ACCESS.2025.3526666                                                   [21] Gekhman, Z., Oved, N., Keller, O., Szpektor, I., Reichart, R.: On the robust-
+ [3] An, M., Teffera, L., Mehrvarz, M., Li, B., Bogart, C., Sakr, M., M. McLaren, B.: Lever-            ness of dialogue history representation in conversational question answer-
+     aging intelligent tutoring systems to enhance project-based learning in work-                      ing: A comprehensive study and a new prompt-based method. Transactions
+     force training at community colleges. In: Ferreira Mello, R., Rummel, N., Jivet, I.,               of the Association for Computational Linguistics 11, 351–366 (Apr 2023).
+     Pishtari, G., Ruipérez Valiente, J.A. (eds.) Technology Enhanced Learning for In-                  https://doi.org/10.1162/tacl_a_00549
+     clusive and Equitable Quality Education. pp. 57–62. Springer Nature Switzerland,              [22] Guo, D., Yang, D., Zhang, H., Song, J., et al.: DeepSeek-R1 incentivizes reasoning
+     Cham (2024)                                                                                        in LLMs through reinforcement learning. Nature 645(8081), 633–638 (Sep 2025).
+ [4] Barno, E., Albaladejo-González, M., Reich, J.: Scaling generated feedback for                      https://doi.org/10.1038/s41586-025-09422-z
+     novice teachers by sustaining teacher educators’ expertise: A design to train llms            [23] Hmelo-Silver, C.E., Jeong, H.: An overview of cscl methods. In: Cress, U., Rosé, C.,
+     with teacher educator endorsement of generated feedback. In: Proceedings of                        Wise, A.F., Oshima, J. (eds.) International Handbook of Computer-Supported Col-
+     the Eleventh ACM Conference on Learning @ Scale. p. 412–416. L@S ’24, ACM,                         laborative Learning, Computer-Supported Collaborative Learning Series, vol. 19.
+     New York, NY, USA (2024). https://doi.org/10.1145/3657604.3664677                                  Springer, Cham (2021). https://doi.org/10.1007/978-3-030-65291-3_4
+ [5] Berthelot, A., Caron, E., Jay, M., Lefèvre, L.: Understanding the environmen-                 [24] Hutt, S., Hieb, G.: Scaling up mastery learning with generative ai: Explor-
+     tal impact of generative ai services. Commun. ACM 68(7), 46–53 (Jun 2025).                         ing how generative ai can assist in the generation and evaluation of mas-
+     https://doi.org/10.1145/3725984                                                                    tery quiz questions. In: Proceedings of the Eleventh ACM Conference on
+ [6] Cheng, Z., Kasai, J., Yu, T.: Batch Prompting: Efficient Inference with                            Learning @ Scale. p. 310–314. L@S ’24, ACM, New York, NY, USA (2024).
+     Large Language Model APIs. In: Proceedings of the 2023 Conference                                  https://doi.org/10.1145/3657604.3664699
+     on Empirical Methods in Natural Language Processing: Industry Track.                          [25] Inie, N., Falk, J., Selvan, R.: How co2stly is chi? the carbon footprint of generative
+     pp. 792–810. Association for Computational Linguistics, Singapore (2023).                          ai in hci research and what we should do about it. In: Proc. of the CHI Conference
+     https://doi.org/10.18653/v1/2023.emnlp-industry.74                                                 on Human Factors in Computing Systems (CHI ’25). pp. 1–29. ACM, New York,
+ [7] Chien, A.A., Lin, L., Nguyen, H., Rao, V., Sharma, T., Wijayawardana, R.: Reducing                 NY, USA (2025)
+     the carbon impact of generative ai inference (today and in 2035). In: Proceedings             [26] Jeong, H., Hmelo-Silver, C.E., Yu, Y.: An examination of cscl methodological
+     of the 2nd Workshop on Sustainable Computer Systems. HotCarbon ’23, ACM,                           practices and the influence of theoretical frameworks 2005–2009. International
+     New York, NY, USA (2023). https://doi.org/10.1145/3604930.3605705                                  Journal of Computer-Supported Collaborative Learning 9(3), 305–334 (2014).
+ [8] Choi, S.P.M., Lam, S.S., Li, K.C., Wong, B.T.M.: Learning analytics at low cost: At-               https://doi.org/10.1007/s11412-014-9198-3
+     risk student prediction with clicker data and systematic proactive interventions.             [27] Ji, Z., Wang, X., Luo, Z., Xie, Z., Zhang, M.: Optimized Batch Prompting for
+     Educational Technology & Society 21(2), 273–290 (2018)                                             Cost-Effective LLMs. Proceedings of the VLDB Endowment 18(7), 2172–2184
+ [9] Crowston, K., Allen, E.E., Heckman, R.: Using natural language processing tech-                    (Mar 2025). https://doi.org/10.14778/3734839.3734853
+     nology for qualitative data analysis. International Journal of Social Research                [28] Jin, Y., Yu, J.: Optimizing mentor-student communication using llm-based auto-
+     Methodology 15(6), 523–543 (2012)                                                                  mated labeling information states. In: Proceedings of the Eleventh ACM Confer-
+[10] Devlin, J., Chang, M.W., Lee, K., Toutanova, K.: BERT: Pre-training of deep bidirec-               ence on Learning @ Scale. p. 284–288. L@S ’24, ACM, New York, NY, USA (2024).
+     tional transformers for language understanding. In: Burstein, J., Doran, C., Solorio,              https://doi.org/10.1145/3657604.3664691
+     T. (eds.) Proceedings of the 2019 Conference of the North American Chapter of                 [29] Landis, J.R., Koch, G.G.: The Measurement of Observer Agreement for Categorical
+     the Association for Computational Linguistics: Human Language Technologies,                        Data. Biometrics 33(1), 159 (Mar 1977). https://doi.org/10.2307/2529310
+     Volume 1 (Long and Short Papers). pp. 4171–4186. Association for Computational                [30] Li, M., Qin, W., Tang, Z., Fang, X., He, T., Cao, X.: Automating ssrl detec-
+     Linguistics, Minneapolis, Minnesota (Jun 2019). https://doi.org/10.18653/v1/N19-                   tion in asynchronous ocl via llms. In: 2025 7th International Conference on
+     1423                                                                                               Computer Science and Technologies in Education (CSTE). pp. 548–551 (2025).
+[11] Dieckmann, P., Molin Friis, S., Lippert, A., Østergaard, D.: The art and science of                https://doi.org/10.1109/CSTE64638.2025.11092245
+     debriefing in simulation: Ideal and practice. Medical Teacher 31(7), e287–e294                [31] Liao, J., Sun, F., Liu, Y., Hu, Y.: Deepseek in education: Exploring the transfor-
+     (Jan 2009). https://doi.org/10.1080/01421590902866218                                              mative potential of ai-driven educational intelligence. Future in Educational
+[12] Ding, Y., Shi, T.: Sustainable llm serving: Environmental implications, chal-                      Research n/a(n/a) (2025). https://doi.org/10.1002/fer3.70022
+     lenges, and opportunities : Invited paper. In: 2024 IEEE 15th International                   [32] Liu, N.F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F., Liang,
+     Green and Sustainable Computing Conference (IGSC). pp. 37–38 (2024).                               P.: Lost in the middle: How language models use long contexts. Transac-
+     https://doi.org/10.1109/IGSC64514.2024.00016                                                       tions of the Association for Computational Linguistics 12, 157–173 (02 2024).
+[13] Echeverria, V., Yan, L., Zhao, L., Abel, S., Alfredo, R., Dix, S., Jaggard, H., Wother-            https://doi.org/10.1162/tacl_a_00638
+     spoon, R., Osborne, A., Buckingham Shum, S., Gasevic, D., Martinez-Maldonado,                 [33] Liu, X., Zambrano, A.F., Baker, R.S., Barany, A., Ocumpaugh, J., Zhang,
+     R.: TeamSlides: A Multimodal Teamwork Analytics Dashboard for Teacher-guided                       J., Pankiewicz, M., Nasiar, N., Wei, Z.: Qualitative coding with gpt-4:
+     Reflection in a Physical Learning Space. In: Proceedings of the 14th Learning                      Where it works better. Journal of Learning Analytics 12(1), 169–185 (2025).
+     Analytics and Knowledge Conference. pp. 112–122. ACM, Kyoto Japan (Mar 2024).                      https://doi.org/10.18608/jla.2025.8575
+     https://doi.org/10.1145/3636555.3636857                                                       [34] Martinez-Maldonado, R., Echeverria, V., Fernandez-Nieto, G., Yan, L., Zhao, L.,
+[14] Echeverria, V., Zhao, L., Alfredo, R., Milesi, M.E., Jin, Y., Abel, S., Fan, J.X., Yan, L.,        Alfredo, R., Li, X., Dix, S., Jaggard, H., Wotherspoon, R., Osborne, A., Shum,
+     Dix, S., Wotherspoon, R., Li, X., Jaggard, H.A., Osborne, A., Buckingham Shum,                     S.B., Gašević, D.: Lessons learnt from a multimodal learning analytics de-
+     S., Gasevic, D., Martinez-Maldonado, R.: TeamVision: An AI-powered Learning                        ployment in-the-wild. ACM Trans. Comput.-Hum. Interact. 31(1) (Nov 2023).
+     Analytics System for Supporting Reflection in Team-based Healthcare Simulation.                    https://doi.org/10.1145/3622784
+     In: Proceedings of the 2025 CHI Conference on Human Factors in Computing                      [35] Martinez-Maldonado, R., Goodyear, P., Carvalho, L., Thompson, K., Hernandez-
+     Systems. pp. 1–22. ACM (2025). https://doi.org/10.1145/3706598.3713395                             Leo, D., Dimitriadis, Y., Prieto, L.P., Wardak, D.: Supporting collaborative design
+[15] Elsworth, C., Huang, K., Patterson, D., Schneider, I., Sedivy, R., Goodman, S.,                    activity in a multi-user digital design ecology. Computers in Human Behavior
+     Townsend, B., Ranganathan, P., Dean, J., Vahdat, A., Gomes, B., Manyika, J.:                       71, 327–342 (2017). https://doi.org/10.1016/j.chb.2017.01.055
+     Measuring the environmental impact of delivering AI at Google Scale (Aug 2025).               [36] Martinez-Maldonado, R., Power, T., Hayes, C., Abdiprano, A., Vo, T., Axisa, C.,
+     https://doi.org/10.48550/arXiv.2508.15734                                                          Buckingham Shum, S.: Analytics meet patient manikins: challenges in an authen-
+[16] Erdoğdu, F., Kara, M., Gökoğlu, S., Telci, S.: Trends and insights in cscl research                tic small-group healthcare simulation classroom. In: Proceedings of the Seventh
+     from the emergence to the present: A review through bibliometric and latent                        International Learning Analytics & Knowledge Conference. p. 90–94. LAK ’17,
+     dirichlet allocation analyses. Educational Technology & Society 28(4), 166–182                     ACM, New York, NY, USA (2017). https://doi.org/10.1145/3027385.3027401
+     (October 2025)                                                                                [37] Martinez-Maldonado, R., Schulte, J., Echeverria, V., Gopalan, Y., Shum, S.B.: Where
+[17] Fanning, R.M., Gaba, D.M.: The role of debriefing in simulation-based learning.                    is the teacher? digital analytics for classroom proxemics. Journal of Computer
+     Simulation in Healthcare: The Journal of the Society for Simulation in Healthcare                  Assisted Learning 36(5), 741–762 (2020). https://doi.org/10.1111/jcal.12444
+     2(2), 115–125 (2007). https://doi.org/10.1097/SIH.0b013e3180315539                            [38] McHugh, M.L.: Interrater reliability: The kappa statistic. Biochemia Medica 22(3),
+[18] Fransen, J., Weinberger, A., Kirschner, P.A.: Team effectiveness and                               276–282 (2012). https://doi.org/10.11613/BM.2012.031
+     team development in cscl. Educational Psychologist 48(1), 9–24 (2013).                        [39] Mehta, S., Srivastava, N., Liu, X., Vanacore, K., Baker, R.S.: Do mooc conver-
+     https://doi.org/10.1080/00461520.2012.747947                                                       sations matter? investigating the role of social presence and course-relevant
+[19] Garg, R., Han, J., Cheng, Y., Fang, Z., Swiecki, Z.: Automated discourse analysis via              discussion in career advancement. In: Proceedings of the Twelfth ACM Confer-
+     generative artificial intelligence. In: Proceedings of the 14th Learning Analytics                 ence on Learning @ Scale. p. 236–240. L@S ’25, ACM, New York, NY, USA (2025).
+                                                                                                        https://doi.org/10.1145/3698205.3733930
+L@S ’26, June 29–July 3, 2026, Seoul, Republic of Korea.                 K. Garces, G. Fernandez-Nieto, L. Zhao, S. Samaraweera, D. Gasevic, R. Martinez-Maldonado, V. Echeverria.
+
+
+[40] Miller, K., Riley, W., Davis, S.: Identifying key nursing and team behaviours to           [58] Sun, R., Marshall, D.C., Sykes, M.C., Maruthappu, M., Shalhoub, J.: The
+     achieve high reliability. Journal of Nursing Management 17(2), 247–255 (Mar                     impact of improving teamwork on patient outcomes in surgery: A sys-
+     2009). https://doi.org/10.1111/j.1365-2834.2009.00978.x                                         tematic review. International Journal of Surgery 53, 171–177 (2018).
+[41] Moore, S., Schmucker, R., Mitchell, T., Stamper, J.: Automated generation and                   https://doi.org/10.1016/j.ijsu.2018.03.044
+     tagging of knowledge components from multiple-choice questions. In: Proceed-               [59] Tscholl, D.W., Ebensperger, M., RahrischRahrisch, A., Wang, H., Heckel, H.,
+     ings of the Eleventh ACM Conference on Learning @ Scale. p. 122–133. L@S ’24,                   Thomasius, M., Kaserer, A., Grande, B., Seelandt, J.C., Kolbe, M.: Generative
+     ACM, New York, NY, USA (2024). https://doi.org/10.1145/3657604.3662030                          AI in simulation debriefings: An exploratory study using the Team-FIRST frame-
+[42] Ngatchou, P., Zarei, A., El-Sharkawi, A.: Pareto multi objective op-                            work and qualitative feedback from simulation experts and learners. Advances
+     timization. In: Proceedings of the 13th International Conference on,                            in Simulation (Jan 2026). https://doi.org/10.1186/s41077-026-00407-0
+     Intelligent Systems Application to Power Systems. pp. 84–91 (2005).                        [60] Wang, D., Chen, G.: Evaluating the use of bert and llama to anal-
+     https://doi.org/10.1109/ISAP.2005.1599245                                                       yse classroom dialogue for teachers’ learning of dialogic pedagogy.
+[43] Nguyen, H., Stott, N., Allan, V.: Comparing feedback from large language mod-                   British Journal of Educational Technology 56(6), 2671–2704 (2025).
+     els and instructors: Teaching computer science at scale. In: Proceedings of the                 https://doi.org/https://doi.org/10.1111/bjet.13604
+     Eleventh ACM Conference on Learning @ Scale. p. 335–339. L@S ’24, ACM, New                 [61] Wang, D., Tao, Y., Chen, G.: Artificial intelligence in classroom discourse: A sys-
+     York, NY, USA (2024). https://doi.org/10.1145/3657604.3664660                                   tematic review of the past decade. International Journal of Educational Research
+[44] Nie, A., Chandak, Y., Suzara, M., Malik, A., Woodrow, J., Peng, M., Sahami,                     123, 102275 (2024)
+     M., Brunskill, E., Piech, C.: The gpt surprise: Offering large language model              [62] Wang, D., Yang, C., Chen, G.: Using lora to fine-tune large language models
+     chat in a massive coding class reduced engagement but may increase adopters’                    for analyzing collaborative argumentation in classrooms. In: Proceedings of the
+     exam performances. In: Proceedings of the Twelfth ACM Conference on                             Twelfth ACM Conference on Learning @ Scale. p. 207–211. L@S ’25, ACM, New
+     Learning @ Scale. p. 376–380. L@S ’25, ACM, New York, NY, USA (2025).                           York, NY, USA (2025). https://doi.org/10.1145/3698205.3733924
+     https://doi.org/10.1145/3698205.3733960                                                    [63] White, J., Fu, Q., Hays, S., Sandborn, M., Olea, C., Gilbert, H., Elnashar, A., Spencer-
+[45] Ouhaichi, H., Spikol, D., Vogel, B.: Rethinking mmla: Design considerations                     Smith, J., Schmidt, D.C.: A prompt pattern catalog to enhance prompt engineering
+     for multimodal learning analytics systems. In: Proceedings of the Tenth ACM                     with chatgpt. In: Proceedings of the 30th Conference on Pattern Languages of
+     Conference on Learning @ Scale. p. 354–359. L@S ’23, ACM, New York, NY, USA                     Programs. PLoP ’23, The Hillside Group, USA (2023)
+     (2023). https://doi.org/10.1145/3573051.3596186                                            [64] Yan, L., Gašević, D., Echeverria, V., Zhao, L., Jin, Y., Li, X., Martinez-Maldonado,
+[46] Papathoma, T., Ferguson, R., Littlejohn, A., Coe, A.: Making the production of                  R.: In Sync or Out of Sync? Understanding Stress and Learning Performance
+     learning at scale more open and flexible. In: Proceedings of the Third (2016) ACM               in Collaborative Healthcare Simulations through Physiological Synchrony and
+     Conference on Learning @ Scale. p. 273–276. L@S ’16, ACM, New York, NY, USA                     Arousal. International Journal of Artificial Intelligence in Education 35(4), 2421–
+     (2016). https://doi.org/10.1145/2876034.2893432                                                 2452 (Dec 2025). https://doi.org/10.1007/s40593-025-00475-9
+[47] Radford, A., Kim, J.W., Xu, T., Brockman, G., McLeavey, C., Sutskever, I.: Robust          [65] Yang, H., Alozie, N., Rachmatullah, A.: Collaboration at scale: Exploring member
+     speech recognition via large-scale weak supervision. In: Proceedings of the 40th                role changing patterns in collaborative science problem-solving tasks. In: Pro-
+     International Conference on Machine Learning. ICML’23 (2023)                                    ceedings of the Ninth ACM Conference on Learning @ Scale. p. 309–312. L@S
+[48] Riley, W., Hansen, H., Gürses, A.P., Davis, S., Miller, K., Priester, R.: The nature,           ’22, ACM, New York, NY, USA (2022). https://doi.org/10.1145/3491140.3528319
+     characteristics and patterns of perinatal critical events teams. In: Henriksen, K.,        [66] You, J., Chung, J.W., Chowdhury, M.: Zeus: Understanding and optimizing GPU
+     Battles, J.B., Keyes, M.A., Grady, M.L. (eds.) Advances in Patient Safety: New                  energy consumption of DNN training. In: Usenix Nsdi (2023)
+     Directions and Alternative Approaches (Vol. 3: Performance and Tools). Agency              [67] Zambrano, A.F., Liu, X., Barany, A., Baker, R.S., Kim, J., Nasiar, N.: From ncoder
+     for Healthcare Research and Quality (US), Rockville, MD (Aug 2008), pMID:                       to chatgpt: From automated coding to refining human coding. In: Arastoopour Ir-
+     21249924                                                                                        gens, G., Knight, S. (eds.) Advances in Quantitative Ethnography, Communica-
+[49] Rosen, M.A., Hunt, E.A., Pronovost, P.J., Federowicz, M.A., Weaver, S.J.: In Situ               tions in Computer and Information Science, vol. 1895. Springer, Cham (2023).
+     Simulation in Continuing Education for the Health Care Professions: A Systematic                https://doi.org/10.1007/978-3-031-47014-1_32
+     Review. Journal of Continuing Education in the Health Professions 32(4), 243–254           [68] Zhang, A.G., Tang, X., Oney, S., Chen, Y.: Cflow: Supporting semantic flow analy-
+     (2012). https://doi.org/10.1002/chp.21152                                                       sis of students’ code in programming problems at scale. In: Proceedings of the
+[50] Salas, E., Reyes, D.L., McDaniel, S.H.: The science of teamwork: Progress, re-                  Eleventh ACM Conference on Learning @ Scale. p. 188–199. L@S ’24, ACM, New
+     flections, and the road ahead. American Psychologist 73(4), 593–600 (2018).                     York, NY, USA (2024). https://doi.org/10.1145/3657604.3662025
+     https://doi.org/10.1037/amp0000334                                                         [69] Zhao, L., Echeverria, V., Swiecki, Z., Yan, L., Alfredo, R., Li, X., Gase-
+[51] Samaraweera, S., Zhao, L., Echeverria, V., Alfredo, R., Chen, G., Davis, J., Leonny,            vic, D., Martinez-Maldonado, R.: Epistemic network analysis for end-users:
+     S., Sevenhuysen, S., Connell, C., Gasevic, D., Martinez-Maldonado, R., Dhar-                    Closing the loop in the context of multimodal analytics for collaborative
+     maratne, A.: From formal learning to professional practice: Automated llm-based                 team learning. In: Proceedings of the 14th Learning Analytics and Knowl-
+     coding and visualisation of team dialogue in in-situ healthcare simulation. In: Pro-            edge Conference. p. 90–100. LAK ’24, ACM, New York, NY, USA (2024).
+     ceedings of the 16th International Learning Analytics & Knowledge Conference                    https://doi.org/10.1145/3636555.3636855
+     (LAK ’26). ACM, New York, NY, USA (2026)                                                   [70] Zhao, L., Gašević, D., Swiecki, Z., Li, Y., Lin, J., Sha, L., Yan, L., Alfredo, R.,
+[52] Sarangi, S.: Editorial: Team work and team talk as distributed and coordinated                  Li, X., Martinez-Maldonado, R.: Towards automated transcribing and coding
+     action in healthcare delivery. Communication & Medicine 13(1), 1–7 (2017).                      of embodied teamwork communication through multimodal learning analyt-
+     https://doi.org/10.1558/cam.32569                                                               ics. British Journal of Educational Technology 55(4), 1673–1702 (Jul 2024).
+[53] Sivarajkumar, S., Kelley, M., Samolyk-Mazzanti, A., Visweswaran, S., Wang, Y.:                  https://doi.org/10.1111/bjet.13476
+     An Empirical Evaluation of Prompting Strategies for Large Language Mod-                    [71] Zhao, L., Swiecki, Z., Gasevic, D., Yan, L., Dix, S., Jaggard, H., Wotherspoon,
+     els in Zero-Shot Clinical Natural Language Processing: Algorithm Develop-                       R., Osborne, A., Li, X., Alfredo, R., Martinez-Maldonado, R.: Mets: Multimodal
+     ment and Validation Study. JMIR Medical Informatics 12, e55318 (Apr 2024).                      learning analytics of embodied teamwork learning. In: LAK23: 13th International
+     https://doi.org/10.2196/55318                                                                   Learning Analytics and Knowledge Conference. p. 186–196. LAK2023, ACM, New
+[54] Southwell, R., Pugh, S., E. Margaret Perkoff, Clevenger, C., Bush, J., Lieber,                  York, NY, USA (2023). https://doi.org/10.1145/3576050.3576076
+     R., Ward, W., Foltz, P., D’Mello, S.: Challenges and Feasibility of Auto-                  [72] Zhu, Y., Gu, J.C., Sikora, C., Ko, H., Liu, Y., Lin, C.C., Shu, L., Luo, L., Meng, L.,
+     matic Speech Recognition for Modeling Student Collaborative Discourse                           Liu, B., Chen, J.: Accelerating Inference of Retrieval-Augmented Generation via
+     in Classrooms. In: Mitrovic, A., Bosch, N. (eds.) Proceedings of the 15th                       Sparse Context Selection (2024). https://doi.org/10.48550/ARXIV.2405.16178
+     International Conference on Educational Data Mining. Zenodo (Jul 2022).
+     https://doi.org/10.5281/ZENODO.6853109                                                     Received 16 February 2026
+[55] Stadler, W.: Multicriteria Optimization in Engineering and in the Sciences, vol. 37.
+     Springer Science & Business Media (1988)
+[56] Stahl, G.: Group Cognition: Computer Support for Building
+     Collaborative Knowledge. MIT Press, Cambridge, MA (2006).
+     https://doi.org/10.7551/mitpress/3372.001.0001
+[57] Stenseth, H.V., Steindal, S.A., Solberg, M.T., Ølnes, M.A., Sørensen, A.L., Strandell-
+     Laine, C., Olaussen, C., Farsjø Aure, C., Pedersen, I., Zlamal, J., Gue Mar-
+     tini, J., Bresolin, P., Linnerud, S.C.W., Nes, A.A.G.: Simulation-Based Learning
+     Supported by Technology to Enhance Critical Thinking in Nursing Students:
+     Scoping Review. Journal of Medical Internet Research 27, e58744 (Feb 2025).
+     https://doi.org/10.2196/58744
+

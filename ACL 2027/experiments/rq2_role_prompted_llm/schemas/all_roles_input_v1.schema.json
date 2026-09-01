@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/rq2/all-roles-input-v1.json",
+  "title": "Source-free Qwen3 All roles analysis projection",
+  "type": "object",
+  "required": [
+    "input_schema_version",
+    "study_id",
+    "projection_status",
+    "contains_real_observations",
+    "manuscript_eligible",
+    "lane",
+    "fixture_assumptions",
+    "external_study_references",
+    "reviewer_model",
+    "items"
+  ],
+  "properties": {
+    "input_schema_version": {"const": "rq2-all-roles-input-v1"},
+    "study_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "projection_status": {"const": "source_free_software_fixture_only"},
+    "contains_real_observations": {"const": false},
+    "manuscript_eligible": {"const": false},
+    "lane": {"$ref": "#/$defs/lane"},
+    "fixture_assumptions": {
+      "type": "object",
+      "required": ["qualification_gate_passed"],
+      "properties": {
+        "qualification_gate_passed": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "external_study_references": {
+      "$ref": "#/$defs/externalStudyReferences"
+    },
+    "reviewer_model": {
+      "type": "object",
+      "required": ["model_id", "model_snapshot_sha256"],
+      "properties": {
+        "model_id": {"const": "qwen3:8b"},
+        "model_snapshot_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/item"}
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "externalStudyReferences": {
+      "type": "object",
+      "required": [
+        "verification_status",
+        "qualification_seal_sha256",
+        "eligibility_truth_seal_sha256",
+        "review_matrix_seal_sha256"
+      ],
+      "properties": {
+        "verification_status": {
+          "const": "not_verified_by_source_free_component"
+        },
+        "qualification_seal_sha256": {"$ref": "#/$defs/sha256"},
+        "eligibility_truth_seal_sha256": {"$ref": "#/$defs/sha256"},
+        "review_matrix_seal_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "lane": {
+      "oneOf": [
+        {
+          "const": {
+            "corpus": "dreaddit",
+            "source_split": "official_train",
+            "internal_lane": "development_train",
+            "experimental_role": "development_diagnostic",
+            "heldout": false
+          }
+        },
+        {
+          "const": {
+            "corpus": "dreaddit",
+            "source_split": "official_test",
+            "internal_lane": "in_domain_audit",
+            "experimental_role": "post_development_audit_diagnostic",
+            "heldout": true
+          }
+        },
+        {
+          "const": {
+            "corpus": "agyw_focus_groups",
+            "source_split": "all_focus_groups",
+            "internal_lane": "heldout_cross_domain_evaluation",
+            "experimental_role": "heldout_cross_domain_diagnostic",
+            "heldout": true
+          }
+        }
+      ]
+    },
+    "errorFamily": {
+      "enum": [
+        "unsupported_evidence",
+        "source_concentration",
+        "counterevidence_loss",
+        "contextual_flattening",
+        "unsupported_abstraction"
+      ]
+    },
+    "targetFlag": {
+      "enum": [
+        "unsupported_inference",
+        "hidden_source_concentration",
+        "lost_negative_case",
+        "contextual_flattening",
+        "unsupported_abstraction"
+      ]
+    },
+    "allErrorFlag": {
+      "enum": [
+        "fabricated_or_altered_quote",
+        "wrong_attribution",
+        "unsupported_inference",
+        "hidden_source_concentration",
+        "lost_negative_case",
+        "contextual_flattening",
+        "unsupported_abstraction",
+        "sensitive_or_diagnostic_inference",
+        "inconsistent_codebook",
+        "other"
+      ]
+    },
+    "ratingProjection": {
+      "type": "object",
+      "required": ["disposition", "cannot_judge", "serious_error_flags"],
+      "properties": {
+        "disposition": {
+          "enum": ["accept", "revise", "reject", "escalate"]
+        },
+        "cannot_judge": {
+          "type": "array",
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "evidential_credibility",
+              "voice_boundary_preservation",
+              "scope_calibration"
+            ]
+          }
+        },
+        "serious_error_flags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/allErrorFlag"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"disposition": {"const": "accept"}},
+            "required": ["disposition"]
+          },
+          "then": {
+            "properties": {"serious_error_flags": {"maxItems": 0}}
+          }
+        },
+        {
+          "if": {
+            "properties": {"serious_error_flags": {"minItems": 1}},
+            "required": ["serious_error_flags"]
+          },
+          "then": {
+            "properties": {
+              "disposition": {"enum": ["revise", "reject", "escalate"]}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"cannot_judge": {"minItems": 1}},
+            "required": ["cannot_judge"]
+          },
+          "then": {
+            "properties": {"disposition": {"const": "escalate"}}
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "actor_id",
+        "model_id",
+        "model_snapshot_sha256",
+        "role_prompt_sha256",
+        "rating_repetition",
+        "evaluator_item_sha256",
+        "observation_status",
+        "rating",
+        "fixture_observation_sha256"
+      ],
+      "properties": {
+        "actor_id": {"type": "string", "minLength": 1},
+        "model_id": {"const": "qwen3:8b"},
+        "model_snapshot_sha256": {"$ref": "#/$defs/sha256"},
+        "role_prompt_sha256": {"$ref": "#/$defs/sha256"},
+        "rating_repetition": {"type": "integer", "minimum": 1, "maximum": 3},
+        "evaluator_item_sha256": {"$ref": "#/$defs/sha256"},
+        "observation_status": {
+          "enum": [
+            "valid",
+            "invalid_output",
+            "content_filtered",
+            "timeout",
+            "truncation",
+            "terminal_failure",
+            "missing",
+            "abstention"
+          ]
+        },
+        "rating": {
+          "oneOf": [
+            {"$ref": "#/$defs/ratingProjection"},
+            {"type": "null"}
+          ]
+        },
+        "fixture_observation_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"observation_status": {"const": "valid"}},
+            "required": ["observation_status"]
+          },
+          "then": {
+            "properties": {"rating": {"$ref": "#/$defs/ratingProjection"}}
+          },
+          "else": {
+            "properties": {"rating": {"type": "null"}}
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "roleObservationSet": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {"$ref": "#/$defs/observation"}
+    },
+    "item": {
+      "type": "object",
+      "required": [
+        "item_id",
+        "cluster_id",
+        "error_family",
+        "required_flag",
+        "evaluator_item_sha256",
+        "role_observations"
+      ],
+      "properties": {
+        "item_id": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"},
+        "cluster_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_.:-]+$"
+        },
+        "error_family": {"$ref": "#/$defs/errorFamily"},
+        "required_flag": {"$ref": "#/$defs/targetFlag"},
+        "evaluator_item_sha256": {"$ref": "#/$defs/sha256"},
+        "role_observations": {
+          "type": "object",
+          "required": ["researcher", "qualitative_methods", "domain"],
+          "properties": {
+            "researcher": {"$ref": "#/$defs/roleObservationSet"},
+            "qualitative_methods": {"$ref": "#/$defs/roleObservationSet"},
+            "domain": {"$ref": "#/$defs/roleObservationSet"}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

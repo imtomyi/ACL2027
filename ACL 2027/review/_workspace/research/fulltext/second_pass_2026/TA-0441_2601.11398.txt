@@ -1,0 +1,1385 @@
+                                                    Understanding Help Seeking for Digital Privacy, Safety, and Security
+
+                                                                    ⋄                      ⋄                       †                   ⋄                    ⋄
+                                                    Kurt Thomas , Sai Teja Peddinti , Sarah Meiklejohn , Tara Matthews , Amelia Hassoun ,
+                                                                     ⋄                  ⋄                     ⋄                ⋄           ⋄
+                                                   Animesh Srivastava , Jessica McClearn , Patrick Gage Kelley , Sunny Consolvo , Nina Taft
+
+                                                                                 ⋄             †
+                                                                                  Google           University College London
+
+                                         Abstract—The complexity of navigating digital privacy, safety,      seeking help, how quickly help-seeking needs shift over
+
+
+
+
+arXiv:2601.11398v1 [cs.CR] 16 Jan 2026
+                                         and security threats often falls directly on users. This leads      time, and what specific needs are currently unmet remains
+                                         to users seeking help from family and peers, platforms and          unknown.
+                                         advice guides, dedicated communities, and even large language           In this paper, we study help seeking for digital privacy,
+                                         models (LLMs). As a precursor to improving resources across         safety, and security at scale through the lens of Reddit. Our
+                                         this ecosystem, our community needs to understand what              dataset includes over 1.1 billion Reddit posts authored by
+                                         help seeking looks like in the wild. To that end, we blend          users over four years from January 2021–December 2024.
+                                         qualitative coding with LLM fine-tuning to sift through over        We focus on Reddit as users publicly ask bespoke questions
+                                         one billion Reddit posts from the last four years to identify       to the broader community [18], [34], often relying on the
+                                         where and for what users seek digital privacy, safety, or           platform’s anonymity when discussing potentially sensitive
+                                         security help. We isolate three million relevant posts with 93%     topics [4], [35], [36]. Our investigation focuses on three
+                                         precision and recall and automatically annotate each with the       research questions:
+                                         topics discussed (e.g., security tools, privacy configurations,     RQ1: What is the scope and scale of help seeking for digital
+                                         scams, account compromise, content moderation, and more).                privacy, safety, and security on Reddit? How have
+                                         We use this dataset to understand the scope and scale of                 trends evolved over time?
+                                         help seeking, the communities that provide help, and the
+                                         types of help sought. Our work informs the development of
+                                                                                                             RQ2: What subreddits (e.g., communities) do users turn to
+                                                                                                                  for help with digital privacy, safety, and security?
+                                         better resources for users (e.g., user guides or LLM help-
+                                         giving agents) while underscoring the inherent challenges of        RQ3: What types of support do users request? How com-
+                                         supporting users through complex combinations of threats,                plex is it to meet users’ bespoke needs?
+                                         platforms, mitigations, context, and emotions.                          We answer these questions using a novel, mixed methods
+                                                                                                             approach that blends qualitative research with quantitative
+                                         1. Introduction                                                     analysis utilizing LLMs. We demonstrate that by fine-tuning
+                                                                                                             a Gemini model based on a qualitative definition of help
+                                             Internet users are confronted with a broad array of             seeking for digital privacy, safety, and security, we are able
+                                         threats to their digital privacy, safety, and security. Attacks     to surface three million help-seeking questions across more
+                                         include compromise and fraud conducted by cybercrimi-               than 5,000 subreddits with 93% precision and recall. Using
+                                         nals [5], [51], interpersonal abuse by close relations [10],        a similar process, we automatically annotate each post with
+                                         [23], [50], and unintended data collection by platforms [25],       one of nine possible topics (e.g., Account tools for 2FA,
+                                         [40]. The burden of navigating these threats often falls on         password managers, and access issues; or Privacy tools for
+                                         users who may lack the requisite technical expertise, tools,        Tor, VPNs, or ad blockers).
+                                         or resources to adequately protect themselves. This ulti-               We find that help seeking for digital privacy, safety, and
+                                         mately leads users to seek help from family and peers [22],         security has rapidly grown over 66% in the last year, with
+                                         [38], [39], [43], platforms and advocacy groups [43]–[45],          over 100,000 questions posted every month at the end of
+                                         dedicated online communities [18], [34], and more recently,         2024. Most users seek support for scams (28%), accessing or
+                                         large language models (LLMs) [11].                                  protecting their accounts (20%), and navigating privacy tools
+                                             A precursor to improving help-giving resources—no               and settings (20%), but we also observe a rise in users seek-
+                                         matter where users turn for support—is understanding what           ing help for harassment (10%) and related tools for blocking
+                                         help seeking for digital privacy, safety, or security looks         or reporting abusers (6%). Thousands of subreddits help
+                                         like in the wild. Prior work has focused on qualitative             users to navigate these threats, with some—like r/scams—
+                                         investigations of help seeking for individual topics, such as       providing specialized support for specific threats, while
+                                         harassment and sexual abuse [4], [55]; ensuring a user’s            others—like r/facebook or r/coinbase—help users navigate
+                                         privacy when interacting with smart home devices [31];              digital privacy, safety, or security concerns associated with
+                                         or emerging AI chatbots [2]. However, the scale of users            specific platforms. Across topics and subreddits, users ask
+others to help them make sense of situations, to provide              3. Methodology
+guidance for what to do next or technical troubleshooting,
+or to provide emotional reassurance to put them at ease.                  Our study blends qualitative research with LLM fine-
+    Our results underscore the brittleness of one-size-fits-all       tuning to develop a scalable pipeline that sifts through Red-
+approaches to digital privacy, safety, and security advice.           dit posts to identify posts seeking help for digital privacy,
+Users experience complex combinations of threats, plat-               safety, or security. Our pipeline also automatically extracts
+forms, mitigations, context, and emotions that shape their            the topics discussed (e.g., security tools, scams) and the
+support needs. We discuss the implications this has for sub-          emotional sentiment of the post. We provide a high-level
+reddits that provide help, online resources and help centers,         overview of our pipeline in Figure 1, which we describe in
+as well as help-giving agents built on LLMs. Furthermore, as          detail below.
+researchers explore benchmarks to assess the digital privacy,
+safety, or security knowledge of models [30], [32], [37],             3.1. Reddit dataset
+[52], these benchmarks should reflect the rich, real-world
+needs identified in our dataset. To support further research in           Our Reddit dataset consists of over 1.5 billion original
+this space, we plan to release the URLs of the help-seeking           posts—the first post in a discussion thread that may include
+posts in our study along with our model annotations.                  multiple nested replies. For simplicity, we refer to original
+                                                                      posts hereafter as posts. Our dataset originates from a pre-
+2. Related work                                                       existing, internet-wide crawl of public URLs which respects
+                                                                      robots.txt and other rules for crawlers. Our corpus spans
+                                                                      nearly four years, from January 1, 2021 to December 1,
+Scope and quality of online self-help resources. Users                2024. For each post, we have the text of the post, the user-
+can currently turn to a diverse set of online resources for           name that authored the post, the timestamp when the post
+advice related to digital privacy, safety, and security. These        was created, the subreddit (e.g., community) where the post
+include curated educational resources for youth [15], [24]            appeared, and a unique post identifier. Our Reddit dataset
+and the general public [3]; help guides for specific digital          contains posts from 7 million subreddits. For the purposes
+privacy, safety, or security practices [12], [16], [21], [26];        of our study, we restrict our analysis to (1) posts with at
+and platform-specific help centers. Redmiles et al. assessed          least 100 characters (77% of posts meet this criteria) and (2)
+the utility of many of these resources and found that while           subreddits with at least 1,000 posts (92% of posts meet this
+the advice is accurate, online guides fail to prioritize which        criteria). Here, our intent is to identify well structured help-
+advice to follow, leading to an overwhelming volume of                seeking questions posed to more active subreddits. These
+recommendations [45]. Even experts struggle to prioritize             two criteria reduce our search space to 1.1 billion posts
+advice [46], [56]. Users are thus left to navigate through            appearing on 81,006 subreddits.
+a sea of recommendations without the technical expertise
+to assess the tradeoffs of various protections [46]. Re-              3.2. Identifying help-seeking posts
+searchers recently explored whether LLMs can assist with
+this knowledge and discovery gap, but found that the most                 Given a post from our Reddit dataset, the first stage of
+sophisticated models currently available fail to offer consis-        our pipeline identifies whether the post involves seeking help
+tently accurate advice [11], [13]. Our study helps to inform          for digital privacy, safety, or security (Figure 1, ❶).
+the design of better resources by examining the threats,
+                                                                      Defining help seeking. To arrive at a definition of help
+platforms, and contexts for which users currently seek help.
+                                                                      seeking, nine members of our research team with ex-
+Help seeking via online communities. Help seeking refers              pertises spanning privacy, safety, and security reviewed
+to the actions taken by individuals to obtain assistance to           800 posts randomly sampled from 53 manually identi-
+meet their needs, or seek personal or psychological sup-              fied subreddits that focused on privacy (e.g., r/privacy,
+port [6]. Multiple factors influence where people turn to             r/privacyguides), safety (e.g., r/scams, r/stalking), security
+for help for digital privacy, safety, or security, such as            (e.g., r/infosec, r/security), and general technology support
+age, gender, and socio-economic status [43]–[45]. Online              (e.g., r/techsupport, r/ask). See Appendix A for a full list of
+communities—like Reddit—have emerged as an important                  subreddits. Researchers regularly reviewed posts, engaged in
+outlet for help seeking, in part due to their low barrier of          discussion on nuanced boundaries, and collectively refined
+entry and reduced fear of stigmatization [4], [22], [35], [36].       a shared definition of help seeking.
+Prior studies of help seeking via online communities have                 For a post to be in scope for our study, the post had to (1)
+narrowly focused on individual topics, such as harassment             seek to prevent, or be experiencing, or know someone who
+and sexual abuse [4], [55], or interpreting the privacy and           is experiencing a digital privacy, safety, or security concern;
+safety attitudes of users based on conversations surrounding          and (2) ask for advice on how to respond to the concern,
+IoT devices [31] or AI chatbots [2]. Our study examines a             which might include general sense making (e.g., “Why is
+much larger scope of digital privacy, safety, or security help        this happening?”), technical advice (e.g., “How do I block
+seeking in terms of the topics studied, timeframe, and scale          this person?”), therapeutic advice (e.g., “Is feeling this way
+of data analyzed.                                                     normal?”), relationship advice (e.g., “Can I trust them?”), or
+
+
+                                                                  2
+Figure 1: Automated pipeline for identifying posts seeking help for digital privacy, safety, or security. Human experts
+reviewed thousands of Reddit posts to define help seeking and to identify nine distinct help-seeking topics. These same
+experts annotated a golden dataset for fine-tuning which allowed an LLM to generalize and apply these qualitative definitions
+at-scale, in addition to isolating the emotion of the post.
+
+
+advice about external support (e.g., “Can the police help?”).         (e.g., end-to-end encrypted messaging, account takeover,
+We also considered implicit requests for help as in scope             permission settings, etc.) and conducted a stratified search
+(e.g., “I’m freaking out”). Per this definition, the following        across Reddit for these concepts by prompting Gemini 1.5
+two posts would be in scope:                                          Flash (Appendix A). Additionally, we used a preliminary
+                                                                      version of our help-seeking prompt (Appendix B) to identify
+     “Is this a scam? I have a package from Amazon                    posts that might meet our definition of help seeking. These
+     out today, but the e-mail and address seem a bit                 searches increased the subreddits covered by our golden
+     fishy.”                                                          dataset to a total of 749 (from 53).
+                                                                          To label every post in our golden dataset as help seeking
+     “I’m freaked out because my name is searchable                   or not, two or more researchers independently coded each
+     on Spokeo and Im afraid someone will dox me.                     post following a consensus coding approach [9] to facilitate
+     What can I do?”                                                  consistent judgment [8]. In the event of disagreement, the
+    Our definition treats the following as out of scope:              broader research team engaged in resolution sessions to
+purely informational or news posts; incidental mentions of            arrive at a consensus on the most appropriate label.1 Of the
+technology; exclusively seeking educational resources; com-           2,000 posts analyzed, we labeled 747 as help seeking and
+mercial questions where the entity experiencing a concern             1,253 as not help seeking. We caution this golden dataset is
+is a business; or help seeking related to how to intentionally        not truly random, and may contain some biases. Our goal
+cause harm. Per these exclusions, the following two posts             was to rely on multiple sampling techniques to minimize
+would be out of scope due to being purely informational               bias, while expanding our search to all of Reddit with the
+and educational, respectively:                                        assistance of LLMs. We further discuss limitations of our
+                                                                      approach in Section 3.7. For subsequent evaluations, we split
+     “Was shopping on Facebook Marketplace. Beware                    our golden dataset, using 75% (1,500 posts) for training,
+     of [seller] ...They’re a known scammer”                          10% for validation (200), and 15% for testing (300).
+
+     “I want to grow my skills in cybersecurity ...What               Prompt engineering & fine-tuning. We considered two
+     do you recommend?”                                               strategies for instructing an LLM on how to apply our
+                                                                      help-seeking definition at scale: in-context learning and fine-
+For the remainder of the paper, we refer to posts that meet           tuning using Low-Rank Adaptation (LoRA) [29], which has
+our definition as help-seeking posts.                                 demonstrated on-par or better performance compared to full
+                                                                      fine-tuning for training datasets of our scale. We iteratively
+Curating a golden dataset. The same researchers who
+                                                                      experimented with multiple prompt versions that differed in
+engaged in defining help seeking manually labeled a total
+                                                                      the task type (prediction-only vs. chain-of-thought genera-
+of 2,000 posts to act as a golden dataset. Creating this
+                                                                      tion of a justification prior to the prediction, which requires
+dataset via random sampling across all of Reddit would be
+                                                                      more tokens and incurs a higher cost) and whether to
+prohibitively expensive for producing a sufficient number
+                                                                      include examples to reduce task ambiguity (zero-shot vs.
+of positive help-seeking examples—most of Reddit is not
+                                                                      few-shot). Based on performance, we settled on a prediction-
+dedicated to digital privacy, safety, or security. Instead, we
+                                                                      only prompt that consisted of three parts: (1) a definition
+labeled the 800 posts that we previously discussed, as well as
+                                                                      of help seeking as detailed earlier; (2) a set of exclusion
+1,200 new posts. We sampled this latter set by leveraging ex-
+isting privacy, safety, and security taxonomies [1], [7], [17],          1. Per our approach to resolving disagreement, we do not report inter-
+[27], [46], [48], [50], [54], [55] to enumerate 79 concepts           rater reliability.
+
+
+
+                                                                  3
+         Metric        Fine-tuned model       Few-shot prompt                        Dataset                                                   Value
+         Recall                    93.3%                 93.3%                       Help-seeking posts                                    3,010,841
+         Precision                 88.3%                 68.1%                       Unique subreddits                                         5,401
+         F1                        90.7%                 78.7%                       Unique users                                          2,011,878
+         Accuracy                  93.3%                 84.4%
+                                                                                     Time period               January 1, 2021 – December 1, 2024
+TABLE 1: Performance of our LoRA fine-tuned Gemini 1.5
+                                                                                TABLE 2: Summary of Reddit posts identified by our fine-
+Flash model for identifying help-seeking posts, as well as a
+                                                                                tuned model as help seeking for digital privacy, safety, or
+few-shot prompt using Gemini 1.5 Flash, based on holdout
+                                                                                security.
+test sample of N=300.
+
+                                                                                precision of all posts automatically labeled as help seeking
+criteria as detailed earlier; and (3) a static, few-shot list of
+                                                                                in our dataset. Using a random sample of N=322 posts, two
+examples containing both positive and negative examples of
+                                                                                coders independently reviewed and manually labeled each
+help seeking. See Appendix B for our finalized prompt.
+                                                                                post as help seeking or not before resolving any disagree-
+    We evaluated the in-context learning capabilities of                        ment as before. This sample consisted of 300 help-seeking
+Gemini 1.5 Flash2 with the aforementioned prompt on our                         posts, and 22 false positives, which equates to a precision
+test dataset of 300 posts, achieving an F1 score of 78.7%                       of 93.2% (±2.76% at 95% CI).4 For estimating recall, it
+as shown in Table 1. We deemed the model’s precision                            is infeasible to manually review a statistically significant
+of 68.1% to be too noisy for the purpose of downstream                          volume of negative model outputs to identify false negatives.
+accurate measurements.                                                          Instead, we estimate the recall of our model based on our
+    As an alternative, we LoRA fine-tuned a Gemini 1.5                          golden dataset to be 93.3% (± 2.82% at 95% CI).
+Flash model using our training and validation datasets and
+the same in-context prompt. We configured training to use
+a rank of 4; 4,000 training steps; a batch size of 2; and a                     3.3. Identifying help-seeking topics
+learning rate of 0.0001. We report the results of this LoRA
+model on our test dataset of 300 posts in Table 1. Overall,                         Given a help-seeking post, the second stage of our
+the fine-tuned model achieved an F1 score of 90.7%, out-                        analysis pipeline identifies the digital privacy, safety, or
+performing in-context learning by 12% when evaluated on                         security topics discussed within the post (Figure 1, ❷), with
+the same dataset.                                                               the potential of multiple labels applying to a single post.
+Identifying help-seeking posts at-scale. Applying our fine-                     Enumerating help-seeking topics. We began with deduc-
+tuned model to all 1.1 billion posts in our Reddit dataset                      tive thematic analysis of prior taxonomies [1], [7], [17],
+would be prohibitively expensive. We instead relied on                          [27], [46], [48], [50], [54], [55] to identify common digital
+stratified sampling to first isolate relevant subreddits where                  privacy, safety, or security topics. We supplemented this
+people engaged in help seeking for digital privacy, safety,                     with inductive, iterative coding of 300 posts (from the final
+and security. We took a stratified sample of 100 posts from                     validation dataset used to estimate precision in the wild) by
+each of the 81,006 subreddits in our dataset totaling roughly                   nine researchers to refine the topics based on the data. Our
+8.1 million posts, and labeled each post with our fine-tuned                    hybrid approach [19] yielded nine top-level themes—each
+model. In total, 6,691 subreddits contained at least one                        containing multiple sub-themes. We refer to these hereafter
+post identified by our model as help seeking. We checked                        simply as topics. We list the nine topics and provide a short
+whether any of these subreddits are now private, quaran-                        description of each in Table 3. For example, this post from
+tined, or banned compared to when they were crawled.                            r/fidelityinvestments relates to the Scam topic:
+As of December 14, 2024, 1,289 of the 6,691 relevant                                  “New Scam? Got a weird email claiming to be
+subreddits were inaccessible.3 We omitted these subreddits                            Fidelity. On a home a bought 2 years ago. They
+from subsequent analysis.                                                             even got the address spelled incorrectly...”
+    Across the remaining 5,401 public, active, relevant sub-
+reddits, there were a total of 89 million posts. We classified                  Whereas the following post from r/1password relates to both
+all of these with our fine-tuned model, identifying 3 million                   the Account Tools and Compromise topics:
+help-seeking posts (3.4%). We summarize our dataset in                                “Help! Master password may have been changed
+Table 2. This dataset forms the basis of our subsequent topic                         by a hacker. I am in a bit of a panic as my master
+labeling and analysis.                                                                password to open 1password is not working...”
+Final validation. As a final validation step, we estimate the                   See Appendix C for our full codebook.
+   2. We opted for Gemini Flash over Gemini Pro as the former required          Curating a golden dataset. The same researchers involved
+less compute resources, which was critical to scaling to all of Reddit.         in thematic analysis also manually labeled a golden dataset
+Gemini 1.5 was the most sophisticated model available for our use case at
+the time we began the first stage of our pipeline development.                    4. This differs from our estimate in Table 1 in part due to our final
+   3. We also excluded one community, r/kgbtr that appeared to be similar       dataset reflecting posts from 5,401 subreddits, compared to our golden test
+to other banned communities, but was not banned at the time of our check.       dataset sampled from 749 subreddits.
+
+
+
+                                                                            4
+            Topic    Description                                                                                                             Frequency
+    Account tools    Topics include account recovery (including cryptocurrency wallets), account security configurations (e.g., 2FA, SMS           124
+                     authentication), forgotten passwords, password managers, or inaccessible accounts or devices.
+      Safety tools   Topics include platform-provided safety tools such as blocking, reporting, takedown, and other moderation tools.               63
+    Security tools   Topics include popular security tools (e.g., anti-virus, hardware cryptocurrency wallets), security practices (e.g.,          121
+                     encryption, access control, logging, firewalls), or general security topics (e.g., jailbreaking, network security).
+    Privacy tools    Topics include popular privacy tools (e.g., Tor, VPNs, ad blockers), configuring privacy settings (e.g., cookies,             151
+                     E2EE), data controls (e.g., permissions, settings), or general privacy topics (e.g., preventing tracking).
+     Compromise      Users who suspect or describe behavior that suggest their account or device may have been compromised. Topics                 126
+                     include account hacking, suspicious sign-ins or OTPs, malware, or suspicious files.
+ Platform actions    Users experiencing friction with platform policies or safety barriers. Topics include being banned, suspended, false          100
+                     reported; access being blocked to websites or services; or transactions being incorrectly flagged as fraud.
+           Scams     Users mentioning fraud or scams; also transactions or missing funds or goods for unclear reasons. Topics include fake         174
+                     job postings, sextortion, spam, unauthorized transactions, stolen funds (including cryptocurrencies), or suspicious
+                     webpages or links.
+      Harassment     Users mentioning harassment or sexual abuse. Topics include toxic comments, stalking, doxxing, grooming,                      116
+                     interpersonal abuse, or image-based sexual abuse (e.g., cyberflashing, non-consensual explicit imagery).
+   Data concerns     Users concerned about their data being exposed, misused, or inappropriately collected. Topics include oversharing,            105
+                     breaches, retention, collection, and consent.
+
+TABLE 3: Digital privacy, safety, and security topics that emerged from our reflexive and deductive thematic analysis. The
+frequency values indicate their representation among the 750 hand-validated help-seeking posts.
+
+
+of 750 posts across all nine topics, where multiple topics                         Topic                   Recall    Precision        F1     Accuracy
+might apply. Here, we re-used the 300 posts that we previ-                         Account tools           95.1%        86.7%      90.7%       97.0%
+ously discussed as well as relied on a preliminary version of                      Safety tools            95.7%        91.7%      93.6%       98.9%
+our topic classification prompt (Appendix D) to conduct a                          Security tools          85.0%        91.9%      88.3%       96.6%
+                                                                                   Privacy tools           96.2%        87.9%      91.9%       96.6%
+stratified search across all 9 topics, yielding another 450                        Compromise              97.9%        95.8%      96.8%       98.9%
+posts. These additional posts were sampled to improve                              Platform actions        91.7%        97.1%      94.3%       98.5%
+representation of harder-to-find topics and also to correct for                    Scams                   96.8%        90.9%      93.7%       97.0%
+common errors from the prompt. Two or more researchers                             Harassment              95.2%        95.2%      95.2%       98.5%
+                                                                                   Data concerns           95.0%        90.5%      92.7%       97.7%
+independently coded each post for all nine topics, with any
+disagreement resolved by the broader research team. Our                            Overall                 94.5%        89.6%      92.0%       97.3%
+final topic golden dataset contains 6,750 labels—9 binary
+                                                                               TABLE 4: Performance of our LoRA fine-tuned Gemini 2.0
+topic labels for 750 posts. Table 3 provides a breakdown
+                                                                               Flash model for identifying help-seeking topics, based on a
+of the prevalence of each topic in our golden dataset. For
+                                                                               holdout test sample of N=2,362 individual topic labels.
+subsequent experiments, we stratified and split the 6,750
+labels, using 50% for training, 15% for validation, and 35%
+for testing.                                                                   (Appendix D). We configured training to use rank=4; train-
+Prompt engineering & fine-tuning. We again considered                          ing steps=3000; batch size=16; and learning rate=0.0001.
+both in-context learning and LoRA fine-tuning to apply our                     We report the F1 score per topic in Table 4 with an overall
+multi-label topic codebook at-scale. For the overall prompt                    F1 score of 92.0%, outperforming our in-context approach.
+structure, we experimented with chain-of-thought, few-shot                     Identifying help-seeking topics at-scale. We applied our
+examples, exposing only a single topic definition, or all topic                topic model to all 3 million help-seeking posts, resulting in
+definitions at once. Ultimately, for in-context learning we                    27 million inferred topic labels.
+settled on a ten-shot prompt with a single topic targeted
+per prompt. To select the few-shot examples, we created
+Gemini text embeddings of all training samples, selecting
+                                                                               3.4. Identifying emotional sentiment
+the 10 semantically closest neighbors for each test sample
+                                                                                   Prior work has demonstrated that it is feasible to accu-
+under evaluation. However, F1 performance of this approach
+                                                                               rately extract users’ emotions from text [1], [27]. To evaluate
+ranged from 73%–83%, which we considered unacceptable.
+                                                                               if certain help-seeking topics are associated with strong
+    As an alternative, we LoRA fine-tuned a Gemini 2.0
+                                                                               (positive or negative) emotions, we obtained the emotions
+Flash model5 using a prompt covering every topic, but with
+                                                                               classifier from Harkous et al. [27] and used it to identify
+a switch statement to produce a single label per prompt call
+                                                                               the dominant emotion across all of the 3 million posts in
+  5. At this time of our experimentation, Gemini 2.0 was now available.        our help-seeking dataset. The classifier yields one of 28
+As before, we opted for Flash over Pro due to available compute.               emotions, with only a single label produced per post.
+
+
+                                                                           5
+3.5. Qualitative analysis of help seeking
+
+
+
+
+                                                                                  Monthly volume of help seeking
+                                                                                                                   100000     Posts       Users
+    Separate from our automated pipeline, we qualitatively                                                          90000
+explored a random sample of help-seeking posts and topics                                                           80000
+to holistically understand the nature of support that users
+sought. We again relied on a hybrid deductive and inductive                                                         70000
+
+coding approach [19]. We developed a codebook by starting                                                           60000
+with initial help-seeking codes from Wei et al. [55] (who                                                           50000
+studied help seeking for image-based sexual abuse), examin-
+ing help-seeking posts, and inductively refining the codes to                                                       40000
+
+ensure they were grounded in the data. Two researchers then                                                               -01 1-07 2-01 2-07 3-01 3-07 4-01 4-07 5-01
+                                                                                                                       21     2    2    2    2    2    2    2     2
+                                                                                                                     20     20   20   20   20   20   20   20   20
+independently coded 250 randomly sampled help-seeking
+posts (which had previously been coded for digital privacy,
+safety, or security topics). They regularly met to resolve                     Figure 2: Volume of monthly help-seeking activity on Reddit
+disagreements (following a consensus coding approach [9]),                     for digital privacy, safety, and security concerns. (Note
+interpret the coded data, and develop themes. By 250 posts,                    truncated y-axis.)
+our codes and themes were stable and we ceased further
+analysis.                                                                      approach allows users to retain control over post content
+    Our final dataset of 250 posts includes a set of need                      (e.g., for deletion) and respects the rules of crawlers.
+type codes (i.e., different kinds of help people indicated
+they need in their post)—such as a need to better under-
+stand their situation (sensemaking); a need for advice on                      3.7. Limitations
+how to act given their situation (guidance); or a need for
+                                                                                   As with any measurement study, our methods have
+reassurance, validation, or self expression in response to
+                                                                               several limitations. Our crawl of 1.5 billion Reddit posts
+emotions (therapeutic). It also includes a set of domain
+                                                                               may be incomplete, resulting in some help-seeking posts
+codes (i.e., an area of knowledge or information) that were
+                                                                               being omitted from our study. Our reliance on Gemini 1.5
+applied when knowledge of the domain would likely be nec-
+                                                                               and 2.0 to identify help-seeking posts and topics incurs
+essary to interpret the request—such as technical (relating
+                                                                               both false positives and negatives. Such errors may be non-
+to technology), platform (a subset of technical related to
+                                                                               uniform throughout time or may disproportionately apply
+the use or behavior of specific platform UI flows, functions,
+                                                                               to some help-seeking (sub-)topics more than others. While
+procedures, or policies), or risk/harm (relating to digital-
+                                                                               we provide estimates for the precision and recall of all our
+safety risks, the potential for tech-facilitated harm by an
+                                                                               classifiers, our golden datasets may be biased, leading to
+attacker, or attackers’ behavior). We also annotated the
+                                                                               analysis errors. Due to the potentially compounding factors
+structure of each post,6 by coding when digital privacy,
+                                                                               of multiple classifier errors, we omit any discussion of p-
+safety, or security topics in a post represented: the cause
+                                                                               values from our study. Finally, our study is limited to what
+that initiated help seeking; practices a user reported; and
+                                                                               users posted to Reddit. Self-censorship, community rules,
+ultimately the question posed by the user.
+                                                                               and platform reach may influence which users and what
+                                                                               topics appear in our dataset.
+3.6. Ethics
+    Similar to prior studies of Reddit [20], our analysis is                   4. Help-seeking trends
+limited to publicly shared data. Our study plan was reviewed
+by experts at our institution in domains including ethics,                         We begin our results by examining help seeking for
+human subjects research, policy, legal, privacy, safety, and                   digital privacy, safety, and security at-scale. This includes
+security. While the institution of the authors does not require                measuring how the volume of help seeking has changed over
+IRB approval, we adhere to similarly strict standards. For                     time, identifying the topics for which users sought help, and
+privacy purposes, we exclude all Reddit communities in our                     exploring the relationship between help-seeking topics and
+original crawl that were private or quarantined at the time of                 posts’ dominant emotions.
+our study from subsequent analysis. When quoting posts, we                     Growth of help-seeking posts over time. Overall, our
+omit reference to the user that authored the post and redact                   pipeline identified 3 million help-seeking posts on Reddit
+personally identifying information shared by the user. To                      from January 2021–December 2024. Figure 2 shows how
+enable re-use of our dataset, we plan to release a list of all                 help seeking grew as a general practice during this time.
+help-seeking posts, represented as just the URL alongside                      While relatively stable from 2021–2023, the volume of posts
+our automatically generated annotations. This dehydrated                       and unique monthly users (e.g., the authors of posts) acceler-
+                                                                               ated in 2024. The peak in August 2024 reflects over 100,000
+  6. Three other researchers from the team applied these structure codes
+to the dataset of 250 posts, following the same approaches described
+                                                                               posts in a single month from nearly 85,000 unique users.
+here–inductive codebook refinement, two independent coders per post, and       These measurements reflect the durable and increasing need
+meeting to resolve all disagreements.                                          for help. Users continue to encounter digital privacy, safety,
+
+
+                                                                           6
+   Topic                               Volume   Percentage
+   Scams                                919K      28.2%
+   Account tools                        662K      20.3%                                                     0.30
+   Privacy tools                        650K      20.0%
+
+
+
+
+                                                                      Monthly ratio of help-seeking posts
+   Data concerns                        524K      16.1%
+   Compromise                           509K      15.6%                                                     0.25
+   Security tools                       457K      14.0%
+   Platform actions                     382K      11.7%
+   Harassment                           339K      10.4%                                                     0.20
+   Safety tools                         190K       5.8%
+
+TABLE 5: Breakdown of help-seeking topics by volume and                                                     0.15
+as a percentage of all help-seeking posts. Totals do not add
+to 100% as multiple topics could apply to a single post.                                                    0.10
+
+
+
+
+and security concerns and seek help on how to navigate their                                                0.05
+
+situation. This growth also correlates with general Reddit
+                                                                                                                 -01        -0 7        -01        -07        -01        -07        -01        -0  7             -01
+platform growth: daily active users increased 46% in 2024                                                     21         21          22         22         23         23         24         24              25
+                                                                                                            20         20          20         20         20         20         20         20           20
+over a year prior [41].
+                                                                                                                            Scams                        Compromise                            Security tools
+Breakdown of help-seeking topics. Table 5 shows the                                                                         Account tools                Data concerns                         Harassment
+breakdown of help-seeking topics in our dataset. Scams                                                                      Privacy tools                Platform actions                      Safety tools
+
+represented one of the largest sources of help-seeking posts
+(28.2%). Relevant posts touched on having fallen victim to           Figure 3: Temporal trends in help-seeking topics. Each line
+scams (“I gave personal details to a scammer...what else can         represents the ratio of posts that contained a topic versus all
+I do?”), identifying suspicious messages and websites (“Is           help-seeking posts, per month.
+this a legit email? I’ve gotten about 6 of these recently.”),
+unexplained charges (“I am wondering if anyone else has
+seen a similar charge?”), missing funds (“Accidentally sent          actionability also are critical dimensions to consider when
+my life savings to a BTC address”), and more.                        planning interventions [47], [56].
+    Account tools (20.3%) was also a popular focus for help          Evolution of help-seeking topics over time. Figure 3 shows
+seeking. Relevant posts touched on login issues (“Why can’t          the relative growth and decline of help-seeking topics across
+I login?”), uncertainty with security settings (“I have set up       posts, controlling for any monthly changes in the number
+a 2FA ...however [hacker is] still able to log in.”), and how        of help-seeking posts overall. The ratio of posts related to
+to use various account security mechanisms like security             Scams has steadily increased over time from 23% of posts
+questions, password managers, passkeys, and more. Privacy            in 2021 to 32% of posts at the end of 2024. By contrast,
+tools (20.0%) was another popular topic. Here, users asked           Compromise—which covers topics related to account hi-
+about popular privacy tools like Tor, VPNs, and ad blockers          jacking, suspicious sign-ins, infected devices, and more—
+(“Does AdGuard VPN break Google functions?”), general                has remained relatively stable at 14–17% of posts. Security
+privacy practices (“How do I get internet on my laptop away          tools—such as anti-virus, firewalls, encryption, hardware
+from home privately?”), and configuring privacy settings             wallets, and more—has steadily declined from a peak of
+(“Is there a one click way to add the current website to             20% of posts in early 2021 to 10% of posts at the end of
+the ‘Delete cookie and site data on restart”’).                      2024.7 Smaller shifts are also apparent, such as friction with
+    Harassment (10.4%) and Safety tools (5.8%) were less             Platform actions—covering account suspension or having
+common compared to other help-seeking topics. Users dis-             transactions blocked—modestly increasing from a low of
+cussed various forms of interpersonal abuse from ex-partners         10% posts to now 14% of posts in 2024. Monitoring these
+(“I think my ex-partner is controlling what I see on so-             dynamics (along with the overall volume of help seeking)
+cial media”), family members (“my mother was check-                  can help researchers and practitioners to identify emerging
+ing through my laptop”), and strangers encountered online            issues as well as longstanding unmet user needs. For ex-
+(“Had some kind of raider join me and my friend’s server”).          ample, our current data makes clear that Scams represent a
+Safety tools adjacent to these topics included discussions of        growing share of all digital privacy, safety, and security help
+blocking people (“Why can a blocked caller still text me?”),         seeking on Reddit; users appear to be struggling to assess
+reporting accounts, communities, or content (“Do reports             the authenticity of content they encounter online.
+actually do anything?”), or having accounts or content taken
+                                                                     Correlation between help-seeking topics. We calculate the
+down (“Can you help me getting his account down?”).
+                                                                     Pearson correlation between help-seeking topics—where a
+    We caution interpreting these metrics as a prioritized
+ranking due to how model errors in topic detection (dis-               7. While the proportion of posts related to Security tools has decreased,
+cussed previously in Table 4) may influence our estimates.           we do not observe a drop in the absolute volume of posts related to this
+Furthermore, prevalence is just one metric: severity and             topic—other topics are merely growing faster.
+
+
+
+                                                                 7
+                                                                          Pla                              Da
+               Ac               Sa      Se                Pri       Co        tfo                   Ha
+                  cou                      cu                 va        mp        rm                          ta
+                                  fet             rit                                                  ra         co
+                      nt
+                           to         yt             yt         cy
+                                                                   to      ro
+                                                                              mi
+                                                                                     ac
+                                                                                        tio      Sc
+                                                                                                   am
+                                                                                                         ss
+                                                                                                            me       nc
+                                                                                                                        er
+                                                                                                                                                                  0.40
+                             ols        oo              oo            ols       se          ns                 nt         ns
+                                             ls             ls                                        s
+                                                                                                                                                                  0.35
+
+
+
+
+                                                                                                                                    Emotion prevalence in posts
+        Account tools           1.0        −0.1           −0.1       −0.1        0.1       0.0      −0.2      −0.1      −0.1
+                                                                                                                                                                  0.30
+          Safety tools      −0.1             1.0          −0.1       −0.0      −0.1        0.0       0.0       0.3      −0.0
+                                                                                                                                                                  0.25
+
+        Security tools      −0.1           −0.1            1.0        0.0        0.1      −0.1      −0.1      −0.1      −0.1                                      0.20
+
+                                                                                                                                                                  0.15
+         Privacy tools      −0.1           −0.0            0.0        1.0      −0.1       −0.1      −0.2      −0.1       0.2
+                                                                                                                                                                  0.10
+         Compromise             0.1        −0.1            0.1       −0.1        1.0      −0.1      −0.0      −0.1      −0.1
+                                                                                                                                                                  0.05
+
+      Platform actions          0.0          0.0          −0.1       −0.1      −0.1        1.0      −0.1      −0.0      −0.1                                      0.00
+                                                                                                                                                      ls          ls          ls           ls                  ns          s            t           s
+                                                                                                                                                   oo           oo          oo          oo           ise              am             en          rn
+                                                                                                                                                tt           yt          yt          yt         om          tio     Sc           sm           ce
+               Scams        −0.2             0.0          −0.1       −0.2      −0.0       −0.1       1.0      −0.1      −0.1
+                                                                                                                                              un          et         rit           ac         pr          ac                   as        c  on
+                                                                                                                                             o          f           u            v          m          rm                   r
+                                                                                                                                         Ac
+                                                                                                                                           c        S a
+                                                                                                                                                              Se
+                                                                                                                                                                  c         Pr i        Co         tfo                   Ha           ta
+                                                                                                                                                                                               Pla                                  Da
+          Harassment        −0.1             0.3          −0.1       −0.1      −0.1       −0.0      −0.1       1.0       0.0
+
+
+
+       Data concerns        −0.1           −0.0           −0.1        0.2      −0.1       −0.1      −0.1       0.0       1.0                                                    confusion           fear                  curiosity
+                                                                                                                                                                                annoyance           anger                 sadness
+
+Figure 4: Heatmap showing Pearson correlations between
+each pair of help-seeking topics.                                                                                                  Figure 5: Top dominant emotions identified in posts for each
+                                                                                                                                   of the nine help-seeking topics.
+
+single post can touch on multiple topics—to identify co-                                                                                                           “Can an unused Android app with permission use
+occurring topics. Figure 4 shows our results. We find that                                                                                                         my data? I downloaded a voice changer a few
+help-seeking topics are largely independent, with only some                                                                                                        weeks ago, never used it, then forgot about it.
+weak correlations. For example, posts that touch on Com-                                                                                                           Today I...saw that it had permission for files and
+promise as a topic may also discuss Account tools (0.1) and                                                                                                        media. I’m totally freaking out...Does this mean it
+Security tools (0.1) as prior practices or potential remedies.                                                                                                     might have uploaded my data in secret?”
+Similarly, some posts related to Harassment discuss Safety
+tools (0.3); and posts discussing Data concerns touch on                                                                               Emotions offer an alternate perspective (in addition to
+Privacy tools (0.2). By contrast, Scams is weakly negatively                                                                       prevalence and actionability discussed earlier) to consider
+correlated with discussions of Privacy tools (-0.2). The                                                                           when planning interventions. We can consider ‘anger’, ‘fear’
+general lack of overlap between help-seeking topics within                                                                         and ‘disgust’ as capturing strongly negative emotions. Or-
+a single post points to the possibility of tailoring advice                                                                        dering our topics based on the fraction of posts within
+and tooling per topic, rather than designing a monolithic                                                                          the topic containing strongly negative emotions yields the
+resource where users need to navigate every possible topic                                                                         following: Harassment (55%), Safety tools (46%), Scams
+simultaneously.                                                                                                                    (42%), Compromise (39%), Data concerns (36%), Platform
+                                                                                                                                   actions (29%), Account tools (23%), Privacy tools (19%),
+Breakdown of dominant emotions by help-seeking topic.                                                                              and Security tools (17%). Clearly this differs from the order
+Of 28 possible emotions, we found that just 6 emotions                                                                             in Table 5. Prior frameworks also advocate that interventions
+were the most dominant in 88% of posts: confusion (32%),                                                                           should take into consideration the emotional state of a
+annoyance (22%), fear (16%), anger (9%), curiosity (5%),                                                                           user [33], [47].
+and sadness (4%). Figure 5 shows a scatter plot of the
+percentage of posts expressing these 6 emotions per each                                                                           5. Help-seeking subreddits
+help-seeking topic. Confusion was the most common dom-
+inant emotion across 7 of the 9 topics. This may reflect                                                                               We continue our results by examining where users
+users’ struggles when navigating digital privacy, safety, and                                                                      seek help on Reddit. Here, we measure the most popu-
+security. For example, one user asked on r/paypal about the                                                                        lar help-seeking subreddits and explore how they all ori-
+risks of sharing their phone number with the platform:                                                                             ent around three community structures: general support;
+     “I know this might sound silly, but if I use my                                                                               platform-specific support; and specialized support for harm-
+     phone number in the creation of an account, can                                                                               ful experiences, tools, and best practices.
+     they charge or do anything with my phone?”                                                                                    Popular help-seeking subreddits. Table 6 shows a break-
+                                                                                                                                   down of the top 10 subreddits ranked by volume of help-
+    Fear was the second most common dominant emotion
+                                                                                                                                   seeking posts. We find r/scams was the most popular sub-
+for most non-tool topics—such as Scams, Harassment, Data
+                                                                                                                                   reddit, contributing 3.9% of all help-seeking posts. That
+concerns, and Compromise—highlighting the potential emo-
+                                                                                                                                   subreddit positions itself as a place “for people wanting to
+tional weight of harmful experiences about which users seek
+                                                                                                                                   educate themselves, find support, and discover ways to help
+help. For example, one user on r/privacy articulated their
+                                                                                                                                   a friend or loved one who may be a victim of a scam.”
+fear that an app was collecting their data:
+                                                                                                                                   According to Reddit’s official statistics [42], this community
+
+
+                                                                                                                               8
+       Subreddit          Volume     Percentage   Density                   Subreddit              Volume   Percentage   Density
+       r/scams             117,578        3.9%     55.7%                    r/antivirus            24,481        0.8%     87.0%
+       r/techsupport        78,083        2.6%     10.6%                    r/computerviruses       5,054        0.2%     85.1%
+       r/instagram          60,970        2.0%     35.3%                    r/yubikey               4,172        0.1%     82.6%
+       r/legaladvice        54,378        1.8%      7.4%                    r/cybersecurity help   12,230        0.4%     81.6%
+       r/advice             47,195        1.6%      3.8%                    r/adguard               6,115        0.2%     77.8%
+       r/facebook           40,383        1.3%     48.5%                    r/tails                 4,566        0.2%     75.4%
+       r/privacy            34,647        1.2%     59.6%                    r/bitwarden            10,148        0.3%     73.6%
+       r/coinbase           34,621        1.1%     40.0%                    r/sextortion           22,797        0.8%     72.8%
+       r/help               34,590        1.1%     24.2%                    r/privacyguides         6,231        0.2%     72.0%
+       r/nostupidquestions 34,014         1.1%      2.4%                    r/mullvadvpn            4,438        0.1%     70.3%
+
+TABLE 6: Top 10 subreddits ranked by the number of help-             TABLE 7: The top 10 subreddits according to help-seeking
+seeking posts. We report the overall volume of help-seeking          density, limited to subreddits that contribute at least 0.1% of
+posts per subreddit, the overall percentage of help-seeking          overall help-seeking posts. We additionally report the overall
+posts the subreddit contributes, and the fraction of all posts       volume of help-seeking posts per subreddit and the overall
+within a subreddit classified as help seeking for digital            percentage of help-seeking posts the subreddit contributes.
+privacy, safety, or security which we refer to as density.
+
+                                                                     top 10 subreddits ranked by help-seeking density. Each of
+had 1.1 million members as of May 2025 and was in the top            these communities narrowly focused on specialized sup-
+1% of communities. Along with r/privacy—which had 1.5                port for a specific harmful experience (e.g., r/sextortion,
+million members—these subreddits provided what we call               r/computerviruses), tool (e.g., r/yubikey, r/adguard), or best
+specialized support for help-seeking questions for millions          practice (e.g., r/privacyguides, r/cybersecurity help). Con-
+of members. Among the top 10 subreddits, these two had the           sequently, they were much smaller by volume and cumula-
+highest density (>55%) of help-seeking posts—calculated as           tively contributed just 3.3% of help-seeking posts overall.
+the fraction of all posts on a subreddit that asked for help         For example, r/sextortion had only 35K members and was
+specifically about digital privacy, safety, or security.             tailored to “current or former victim[s] of sextortion or
+    Five subreddits in the top 10 provided what we call gen-         online blackmail”. Users of the subreddit asked about the
+eral support (r/techsupport, r/legaladvice, r/advice, r/help,        sophistication of scams (“I asked her to send me a video of
+and r/nostupidquestions). For example, r/techsupport adver-          her saying my name, which she did! Do scams sometimes
+tises itself as a community for anyone “stumped on a tech            involve a real girl?”) and how to navigate the demands
+problem.” Illustrative questions from our dataset touched on         of criminals (“He’s been threatening to send the photos to
+“troubles with proxy settings”, “receiving [unwanted] ran-           my school twitter if I don’t send him money”). Likewise,
+dom links”, worry after “browsing with my firewall turned            r/yubikey had 38K members, with questions touching on
+off”, or why a file was “considered malicious in Virus To-           capabilities (“Can you use a Yubikey to unlock a phone?”)
+tal”. Despite densities of only 2.4–24.2%, these subreddits          and risks (“Is it safe to use my Yubikey on a public and/or
+likely served as easily-discoverable starting places even if         compromised computer?”). These specialized support com-
+more specialized subreddits existed.                                 munities likely provide an outlet to users whose questions
+    Three subreddits in the top 10 focused on what we call           may go beyond the expertise of general support subreddits.
+platform support (r/facebook, r/instagram, r/coinbase). One              Beyond the top 10 specialized communities, only 75
+user on r/facebook posted “someone hacked my account and             subreddits in our dataset had a help-seeking density greater
+I can’t reclaim it”. Another user on r/coinbase had their            than 50%. Just 200 had a density greater than 25%. These
+account “restricted from selling, withdrawing, and sending           200 subreddits cumulatively contributed only 29% of all
+crypto” and was looking for solutions. These users may have          help-seeking posts. The remaining 71% of posts were dis-
+been seeking platform-specific remedies or information, a            persed across 5,201 low-density subreddits—evidence that
+phenomenon we explore in Section 6. The relatively high              users might struggle to identify the right community to
+densities for these subreddits (35.3–48.5%) suggest that             reach out to with their digital privacy, safety, or security
+communities can operate as unofficial, quasi-support chan-           questions and that these communities likely do not specialize
+nels for privacy, safety, and security concerns for platforms.       in digital privacy, safety, or security support. This poses a
+    Beyond the top 10 subreddits—which contributed 18%               potential community design challenge for matching users to
+of help-seeking posts—the cumulative volume of help-                 the necessary expertise required to answer their question. It
+seeking posts followed a log-scale distribution. The top             also means that research studies for help seeking that limit
+100 subreddits contributed 48% of posts, the top 1,000               their search to specialized communities may fail to discover
+contributed 89% of posts, before a long tail of 5,401 total          the bulk of pertinent help-seeking needs.
+subreddits. This long tail illustrates that users seek help
+                                                                     Breakdown of subreddits by help-seeking topic. We eval-
+for digital privacy, safety, and security across thousands of
+                                                                     uate how help-seeking topics vary by subreddit in Figure 6.
+communities, with no single subreddit being dominant.
+                                                                     For each topic we extracted the top 10 subreddits by vol-
+Specialized help-seeking subreddits. Table 7 shows the               ume, which after deduplication yielded 45 subreddits (x-
+
+
+                                                                 9
+                                                                                                                             r/f                                                  r/a
+                                                                     r/b r/h
+                                                                                                             r/c
+                                                                                                                 y
+                                                                                                                                 ac
+                                                                                                                                   eb                         r/p                     bu r/ r/ra r/rel                               r/n
+                                                            r/h         itc om                       r/g     r/p ber                    o                                  r/c          siv na ise ati r/ r/t                            os
+                                                                                                                                   r/s okd                         e           ry          er rci db on am rue                             tu
+                   r/2                         r/d r/led        om         oin en      r/u          r/s ensh irat secu r/tec                                    r/s rson                                             o r/o      r/l           pid
+         r/b               r       r/a r/in                             r                 b                                            h     i     r/t                            pt     r ela ss      yn sh it                     e
+            itw    r /
+                       0     /
+                         07 fac pp sta            i sc ge
+                                                      o   r     r /
+                                                                               b   e
+                                                                    es /an eg tw r/ oc
+                                                                      e              o   b
+                                                                                            l
+                                                                                              k   r /
+                                                                                                        elf in ed rit hs r/ ad ab ikt /y
+                                                                                                           h     h    g   y  u      i p    o
+                                                                                                                                               s
+                                                                                                                                                   l   o
+                                                                                                                                                         r
+                                                                                                                                                           o r / s
+                                                                                                                                                                   ex alf
+                                                                                                                                                                      t   i     r/p cur /coi tion istic arc ip_a heas ffmy ffmy r/a gala r/p que
+                                                                                                                                                                                     o
+                ar gm sc           e    l                                    t   i                    p                                                                     n
+                                     bo ehe gra r/he rda wal trez cur ivir nne rki itco orig r/ iho ost ack am _he pp ho wb edm khe utu cam orti an ayp ren ba sh bu ssi dvi sho che che dvi dvi riva stio
+                                                                                                                                                                                             n         a   i
+                  de           a p                       p     l           i            n         t             e    e             o      n      a           b           o                           i        s    c
+                     n ail        e ok lp m lp             p et or ty us rs               g in in or le           d    d es lp      rt      e      n   e lp      e     s   n ce al cy se ps se ts                    e le st st ce ce cy ns
+
+
+
+
+                                                                                                                                                                                                                                                                 Percentage of help-seeking posts
+  Account tools    97   65   61   47   44   40   32   26   16    16   6    6    16   6    16    1    3    1    18   73   2    32   19    25    1    59   20   17   6    3    15   24   17   44   5    3    6    4    5    4    4    6    6    12   9
+
+
+    Safety tools   0    4    3    10   2    8    13   10    0    0    0    0    0    1    0     2    0    0    0    1    0    3    2     4     0    2    10   10   7    52   1    1    1    0    27   38   25   22   23   20   20   19   12   1    8
+                                                                                                                                                                                                                                                        80
+  Security tools   9    9    2    1    6    0    1    3    100   99   95   90   69   67   61    1    8    32   50   1    31   32   34    6     1    0    0    1    2    1    1    0    40   8    1    1    1    1    1    1    1    2    2    13   4
+
+
+   Privacy tools   11   15   5    20   25   17   23   14    5    6    11   12   11   51   9    100   99   93   63   3    12   26   24    25    3    9    15   18   4    39   8    10   7    5    13   14   19   11   13   13   13   13   11   63   17   60
+
+   Compromise      9    24   39   28   22   17   13   18   11    11   4    79   10   13   10    2    7    2    6    98   91   68   54    27    0    31   6    16   11   4    9    7    15   10   8    5    6    5    4    6    5    8    7    11   13
+
+
+
+
+                                                                                                                                                                                                                                                             belonging to a topic within each subreddit
+Platform actions   1    7    28   26   3    35   21   20    1    1    0    1    3    3    4     6    12   3    4    4    3    3    4     4    100   87   52   33   2    5    6    20   6    23   8    16   5    9    10   10   7    9    8    3    7    40
+
+
+         Scams     1    15   21   14   12   11   10   20   25    20   3    13   24   2    32    4    4    1    2    7    14   32   14    12    0    9    10   14   99   97   80   63   53   45   10   13   15   13   13   18   18   27   39   6    29
+
+                                                                                                                                                                                                                                                        20
+    Harassment     0    2    2    4    3    4    7    7     0    0    3    0    0    1    0     0    0    0    0    0    0    9    3     5     0    1    5    4    3    9    1    1    0    0    99   97   93   86   79   76   75   60   43   4    12
+
+
+ Data concerns     7    14   3    19   23   16   16   16    3    3    15   7    7    14   7     3    28   5    15   2    8    31   19    26    1    10   16   19   8    67   14   6    7    2    10   8    16   10   25   22   23   23   30   63   34
+
+
+
+
+Figure 6: Percentage of help-seeking posts belonging to a topic within each subreddit. Since a Reddit post can discuss
+multiple help-seeking topics, the percentages in a column can be >100%.
+
+
+axis). Each cell represents the fraction of help-seeking posts                                                                          drop around June 2023 correlates with a Reddit-wide protest
+discussed per topic on the y-axis. We order subreddits by                                                                               tied to API access when many subreddits went dark [49].
+the most popular topic per subreddit.                                                                                                   Other fast-growing subreddits focused on platforms such as
+    The aforementioned dynamics of general support, plat-                                                                               r/facebook (235%), r/iphone (1259%), r/tiktokhelp (149%),
+form support, and specialized support are apparent in this vi-                                                                          r/whatsapp (234%), r/windowshelp (168%), and the gaming
+sualization. For example, general support communities like                                                                              platform r/faceitcom (210%). While smaller in absolute
+r/nostupidquestions and r/help receive questions covering all                                                                           volume, we also see that r/sextortion grew 469% over the
+nine topics. Some users appear to self-select which general                                                                             last 4 years. These temporal shifts suggest that the increasing
+support community they engage for help: Harassment was                                                                                  reach of platforms and the evolution of scams—both in
+popular on r/advice (60%) and r/relationship advice (75%);                                                                              terms of volume and tactics—influence help seeking.
+whereas Scams (80%) was popular on r/personalfinance.                                                                                       Figure 8 shows the subreddits where help seeking
+This may stem from a perceived match between a com-                                                                                     declined the most. There was a sharp drop in help-
+munity’s (non-digital) expertise and the remedy sought by                                                                               seeking posts to cryptocurrency-related r/coinbase (-57%),
+the user (e.g., relational, financial).                                                                                                 r/ledgerwallet (-68%), r/bitcoin (-41%), r/cryptocurrency (-
+    Topics on platform support communities matched the                                                                                  75%), and r/binance (-100%) from their peaks in 2021.
+capabilities of the platform. For example, help-seeking posts                                                                           The original peaks correlate with the price of BTC in-
+on r/facebook primarily asked about Account tools (46.9%)                                                                               creasing from around $20,000 USD in December 2020 to
+and Compromise (27.9%), but extended to Platform actions                                                                                $60,000 USD in March 2021 before dropping back down to
+(25.9%) and Privacy Tools (20.0%). For r/coinbase, ques-                                                                                $30,000 USD in June 2021. The brief uptick and decline of
+tions related to Account tools (44%), Scams (45%), and                                                                                  r/genshinhacked in 2023 relates to a community spawning to
+Platform Actions (23%). Similar trends can be observed for                                                                              “combat the growing number of hacked Genshin accounts by
+r/applehelp, r/discordapp, r/gmail, r/paypal, and r/youtube.                                                                            offering ways to better account security.” Finally, we see a
+    Specialized support communities covered much nar-                                                                                   decline in help-seeking posts to r/twitter (-68%), potentially
+rower ranges of topics. We find that posts to r/antivirus                                                                               due to its conversion into X. These trends reveal that help
+focused primarily on Security tools (90%) and Compromise                                                                                seeking tracks the broader technology ecosystem.
+(79%); posts to r/scams focused on Scams (99%); and
+posts to r/tor focused on Privacy tools (99%). As a whole,                                                                              6. Help-seeking needs
+our measurements suggest that a user seeking help has to
+discover which of multiple relevant subreddits best meets                                                                                   We conclude our results with a qualitative deep dive
+their needs. Each subreddit also needs members to triage                                                                                into help-seeking needs, with the goal of informing effective
+multiple support topics.                                                                                                                responses or solutions that meet these user needs. To that
+                                                                                                                                        end, we examine the type of support requested (e.g., factual
+Temporal trends across subreddits. We measure how the                                                                                   details, guidance on next steps, reassurance), the domain
+largest subbredits where users seek help change over time.                                                                              knowledge necessary to interpret users’ questions, and other
+For every subreddit with at least 10,000 posts (41 subreddits                                                                           contexts within help-seeking posts that shape users’ needs.
+total, 34% of posts), we calculate the percentage change
+between the volume of help-seeking posts in 2021 compared                                                                               6.1. Types of help sought
+to our cutoff in 2024. We omit smaller subreddits from our
+analysis—some with large rates of change—due to limited                                                                                     Our qualitative analysis of 250 posts surfaced three
+influence they have on overall volume of help seeking.                                                                                  primary reasons that users sought digital privacy, safety,
+    Figure 7 shows the subreddits where help seeking most                                                                               or security help: for sensemaking, guidance, or therapeutic
+grew. In terms of overall volume, r/scams grew from roughly                                                                             support. Multiple needs might appear in a single post. We
+13,000 posts in 2021 to 51,000 posts in 2024 (273%). The                                                                                discuss each of these below. While some users sought to
+
+
+                                                                                                                              10
+                                                            r/scams                 r/tiktokhelp                                                                                3000                                  r/coinbase                             r/cryptocurrency
+
+
+
+
+ Monthly volume of help-seeking posts                                                                                                    Monthly volume of help-seeking posts
+                                        5000                r/facebook              r/whatsapp                                                                                                                        r/relationship_advice                  r/genshinhacked
+                                                            r/antivirus             r/cybersecurity_help                                                                                                              r/ledgerwallet                         r/binance
+                                                                                                                                                                                2500
+                                                            r/sextortion            r/windowshelp                                                                                                                     r/bitcoin                              r/twitter
+                                        4000
+                                                            r/iphone                r/faceitcom                                                                                                                       r/personalfinance                      r/pihole
+                                                                                                                                                                                2000
+
+                                        3000
+                                                                                                                                                                                1500
+
+                                        2000
+                                                                                                                                                                                1000
+
+                                        1000                                                                                                                                     500
+
+
+                                           0                                                                                                                                       0
+
+                                                 -01          -07         -01     -07     -01     -07     -01      -07       -01                                                          -01        -07        -01        -07        -01        -07        -01        -07             -01
+                                               21        21            22       22      23      23      24      24        25                                                           21         21         22         22         23         23         24         24            25
+                                          20           20           20        20      20      20      20      20       20                                                         20            20         20         20         20         20         20         20         20
+
+
+Figure 7: Top subreddits based on the rate of growth in help-                                                                           Figure 8: Top subreddits based on the rate of decline in
+seeking post volume between 2021–2024.                                                                                                  help-seeking post volume between 2021–2024.
+
+
+connect with external support (e.g., from an employee at a                                                                              with descriptions of actions already taken by the user or
+platform or law enforcement), we omit this from discussion                                                                              detailed context about the issue. Some of these posts touched
+due to its low prevalence (just 9 of 250 posts or 4%).                                                                                  on specific procedures where there was likely a knowable,
+Sensemaking. Users most often sought help in the form of                                                                                correct answer. For example, one post to r/techsupport
+sensemaking to better understand the specifics of a digital                                                                             asked about how to configure system updates (which would
+privacy, safety, or security topic (164 of 250 posts or 66%).                                                                           include security updates) after jailbreaking their device:
+Example questions were akin to “what is happening?”,                                                                                                                             “I just realized my Amazon tablet hasn’t updated
+“anyone else ever see this?”, “anyone know why this hap-                                                                                                                         since I got it in 2020. ‘Check for updates’ function
+pened?”, or “is this safe?”. These questions were often                                                                                                                          in settings just fails instantly. This is probably a re-
+paired with context related to an issue or threat a user was                                                                                                                     sult of me ‘jailbreaking’ it to force install Google
+experiencing. For example, a user on r/translationstudies                                                                                                                        Play Store. I used the Amazon Fire Toolbox V9.2.1
+asked whether a job listing for a translator was trustworthy                                                                                                                     to do this. However the toolbox doesn’t have an
+given the sensitive details requested:                                                                                                                                           option to update the Android OS. How do I go
+                                         “Trying to find work...but scared one of [the job                                                                                       about this?”
+                                         listings] is a scam...They replied asking to do an                                                 However, many guidance questions did not have straight-
+                                         online interview...They sent me a list of questions                                            forward solutions. For example, one user wanted help con-
+                                         to answer...[Lists questions]...I don’t really under-                                          tacting a platform for support:
+                                         stand why they might need to know which phone
+                                         carrier I use or if I have a good credit score or                                                                                       “Is there any actual way to contact this game
+                                         not...Sorry if I’m just being paranoid, but I’m just                                                                                    support??? My account has been stolen and the
+                                         trying to be cautious while finding work online!””                                                                                      stupid account retrieval form is literally useless
+                                                                                                                                                                                 and when i try to contact them via email it auto
+Apart from threats, users would also seek help understanding                                                                                                                     replies that this email is only for login stuck issues
+technology issues. For example, a user on r/bitwarden asked:                                                                                                                     and for other issues use game support.”
+                                         “I created a Bitwarden account, downloaded Fire-                                                   Addressing guidance needs likely requires taking into
+                                         fox extension and Android app and logged in on                                                 consideration a user’s context, asking follow-up questions,
+                                         both. Then I added 2FA via passcode, for which                                                 and helping the user move forward. It also requires recog-
+                                         I use Duo. That worked on Firefox, but then I                                                  nizing when there is no viable solution.
+                                         couldn’t sync on Android....What’s going on?”
+                                                                                                                                        Therapeutic. While less common, users also sought thera-
+    Other sensemaking needs expressed by users included
+                                                                                                                                        peutic support (47 of 250 posts or 19%). Users authoring
+requests for factual information, explanations, recommen-
+                                                                                                                                        these posts were seeking emotional reassurance (“Please
+dations, predictions, and subjective judgments of situations
+                                                                                                                                        help put my mind at ease”), an outlet for strong emotions
+or technology. Addressing sensemaking needs requires syn-
+                                                                                                                                        or to tell their story (“I feel really hopeless”), commiseration
+thesizing a user’s unstructured concerns and providing ex-
+                                                                                                                                        (“I hate this site”), or validation that their emotions were
+planations and rationales.
+                                                                                                                                        a reasonable response to a frustrating or painful situation
+Guidance. Users also sought guidance on actions they could                                                                              (“I’m really just looking for support or to vent”). Most of
+follow to resolve digital privacy, safety, or security issues                                                                           these users were also seeking sensemaking or guidance help.
+(100 of 250 posts or 40%). These requests were often paired                                                                             Some users recognized that their situations were incredibly
+
+
+                                                                                                                                   11
+challenging and were not necessarily seeking concrete guid-           6.3. Contextual details
+ance to resolve the situation (though they might include a
+plea for anything that could improve it).                                 Help-seeking posts often referenced highly-specific con-
+    Addressing therapeutic needs goes beyond technical                textual details that users interlaced with their questions. Two
+reassurance, recommendations, or step-by-step guides and              important contexts that we observed were root causes and
+likely requires a sense of community. Even if a help resource         practices. Root causes referenced experienced, threatened,
+does not directly address therapeutic needs, it likely needs          or otherwise non-hypothetical issues that precipitated the
+to provide sensitive, empathetic support.                             help-seeking post. Illustrative examples from different posts
+                                                                      included “my [Pixel] 5a hasn’t been receiving any updates
+                                                                      since Aug 5” and “noticed ES File Explorer taking up
+6.2. Critical domain knowledge                                        nearly 16gb of storage” after which this user suspected
+                                                                      it was stealing their data. Separately, practices reflected a
+                                                                      user’s existing digital privacy, safety, or security posture or
+    Help-seeking posts commonly required domain-specific              steps they previously took to remediate an issue. Examples
+knowledge to interpret (and likely to respond effectively).           included “I try to recover it, it asks me what my last
+For example, a majority of posts touched on specific plat-            password was”; “I blocked a contact on my phone”; and
+forms and tools as part of the scope of help seeking                  “anti-virus says all the APK I downloaded were safe”.
+(142 of 250 posts or 57%). Users referenced multi-purpose                 Providing tailored help can thus require interpreting
+platforms (e.g., Google, Apple, Microsoft), messaging and             lengthy contexts, ignoring tangential details, identifying po-
+social media (e.g., Instagram, Facebook, TikTok, WhatsApp,            tential inaccuracies or omissions to probe deeper on, and
+Snapchat, Reddit), crypto platforms or wallets (Blockfi,              ultimately recommending a course of action or other form
+KuCoin, Ledger Nano, Binance), peer-to-peer money apps                of support. In the following example (demonstrating Com-
+(e.g., CashApp, Venmo, PayPal), games (e.g., Roblox, Fort-            promise as a root cause and Account Tools use as practices),
+nite, RuneScape, Playstation), security and privacy tools             generic account security advice would be unsatisfactory to
+(e.g., Wireguard, Windscribe, Bitwarden, Opacity), shop-              this user who has exhausted existing options (and who may
+ping apps, (e.g., Temu, eBay, Etsy), and many more. As                be infected with malware):
+an example, some users sought comparisons between the
+digital privacy, safety, or security merits of different tools             “I’ve had the unfortunate luck of having my jagex
+or platforms, such as this post to r/electrum on whether to                [gaming platform] account hacked [root cause].
+use a hardware or software cryptocurrency wallet:                          I’ve changed the password [practice] and kicked
+                                                                           all the accounts off the launcher requiring a re log
+     “Want to make sure I understand the pros and                          [practice]. I have set up a 2fa [practice] and feel
+     cons of these two approaches: Use BitBox app                          the account is safer now however they’re still able
+     alone (without Electrum, using vendor software)                       to log in and be on the account [root cause] which
+     to generate wallet. Use Electrum to generate wal-                     I’m unsure how that’s possible and wondering if
+     let and store seed on BitBox. Is one inherently                       anyone could help or give tips.”
+     safer / better than the other?”
+
+    Knowledge of attackers, digital-safety risks, and tech-           7. Discussion
+facilitated harms was also commonly required to interpret
+                                                                          Our results illustrate the complexity of digital privacy,
+help seeking requests (111 of 250 posts or 44%). This stems
+                                                                      safety, and security help seeking across Reddit. We discuss
+from many questions relating to harmful experiences such
+                                                                      ways that help-giving resources can potentially overcome at
+as Compromise, Platform actions, Scams, Harassment, or
+                                                                      least some of this complexity.
+Data concerns (Section 4). Users requested help to under-
+stand and/or determine how to act in specific threatening or
+harmful circumstances. For example, one user asked:                   7.1. Complex help-seeking needs
+
+     “Does anyone know why hackers are interested                          Our measurements demonstrate that help seeking is a
+     in my Spotify account? I don’t have Spotify pre-                 complex combination of threats, platforms, mitigations, con-
+     mium, never have. Literally nothing valuable on                  text, and emotions. Users’ needs are co-evolving alongside
+     my ACC...and somebody suspicious has logged in                   attackers’ tactics and platforms. Users’ help-seeking ques-
+     TWICE?”                                                          tions are not effectively answered by simply enumerating
+                                                                      the benefits of two-factor authentication or outlining the
+    Other pertinent domain knowledge related to technical             tradeoffs of various privacy settings. Instead, help seeking
+needs (39 of 250 posts or 16%) as well as non-technical               is richly contextual, capturing the state of a user’s compre-
+needs including financial advice (37 or 15%), relationship            hension of a topic, their suspicions for the root cause of
+advice (16 or 6%), and legal advice (8 or 3%). The shear              an issue, and detailed technical descriptions of their system
+breadth of domain knowledge underscores the complexity of             environment and prior remediation attempts. Addressing
+connecting users with the right expertise for their question.         these needs requires synthesizing the user’s unique context;
+
+
+                                                                 12
+having intimate knowledge of platform idiosyncrasies; hav-                       Beyond topics, guide writers should also consider the
+ing expertise across digital privacy, safety, and security risks             substance of the help they offer. Some guidance needs
+and harms; and iteratively providing instructions—all while                  (e.g., requests for step-by-step instructions) are well-suited
+users experience confusion, annoyance, and even fear that                    for online resources or help centers. But users also had
+may stymie their forward progress.                                           more complex guidance needs—like asking for advice in
+                                                                             situations where there is no agreed upon approach—and
+7.2. Design implications                                                     sensemaking needs—a desire to know what is going on
+                                                                             and what to make of their situation. Therapeutic needs
+    Our measurements show that digital privacy, safety, or                   may be ill-suited for such resources. Writers should also
+security help seeking on Reddit is rapidly growing. We                       consider tailoring resources per platform. Navigating this
+posit this is likely due to inadequate existing self-help                    level of specificity (e.g., topics and platforms) may require
+resources, because they might be undiscoverable, unwieldily,                 restructuring how users search for help, with users providing
+or unhelpful. Potential solutions include building novel help-               a description of their issue which triggers a semantic-based
+giving agents or improving existing help-giving pathways.                    search, rather than keyword-based searches or topic indexes.
+Our implications are organized for three key stakeholders in
+help-giving: LLM developers, security and privacy advice                     Community organizers. Help giving on Reddit is frag-
+guide writers, and community organizers, including Reddit                    mented. Users have to identify which of thousands of
+mods.                                                                        subreddits best meets their bespoke questions. Meanwhile,
+                                                                             every subreddit needs to have community members with
+LLM agent developers. Agents—LLMs that use tools to                          the expertise and bandwidth to answer tens of thousands
+engage in multi-step reasoning to solve tasks—represent a                    of questions, or risk having a smaller set of experts spend
+promising design direction for help giving. Agents appear                    considerable time correcting others or having questions go
+to be well-suited to the rich contextual details present in                  unanswered. These issues of discovery and scaling are not
+our dataset. They also provide an experience similar to                      unique to Reddit and impact other offline service providers
+Reddit that allows for natural language queries and in-                      that help people to navigate digital privacy, safety, and
+teractive replies. Multi-modality might allow an agent to                    security (e.g., advocacy groups, social workers) [28], [53].
+interpret screen contents (e.g., current permission settings),               In the context of Reddit, automation may help with the
+or even configure those settings with app or browser inte-                   intake of users seeking help. For example, r/scams provides
+gration. Agents could potentially collaborate with and in-                   community members with macros to automatically provide a
+tegrate expert-written guides (discussed below), which may                   user seeking help with descriptions of popular attacks (e.g.,
+help to reduce the risk of an LLM offering incorrect ad-                     airdrop scam, romance scam, tech support scam).
+vice. Similarly, agents might benefit from platform-specific                     Further research is needed for how best to blend all
+knowledge, something that prior research indicates current                   the aforementioned resources to improve the quality of
+frontier models struggle with [37]. However, agents may                      help, creating an ecosystem of care that can meet all of
+be unsuitable to meeting the therapeutic needs of users—                     the sensemaking, guidance, and therapeutic needs of users,
+such as their desire for emotional support and a sense of                    without overburdening any single pillar of support.
+community.
+    Further research is necessary to validate that LLMs can
+provide accurate, effective advice and whether the quality is                8. Conclusion
+consistent across topics—including those of high severity or
+low actionability. From an evaluation perspective, it is criti-                   We presented the results of a mixed methods study of
+cal that any digital privacy, safety, or security benchmarks—                four years of help seeking for digital privacy, safety, and se-
+which are actively being developed [30], [32], [37], [52]—                   curity across Reddit. We built a novel analysis pipeline that
+reflect the real-world complexity of help seeking.                           sifted through 1.1 billion Reddit posts from 2021–2024 to
+                                                                             identify posts where users asked for digital privacy, safety, or
+Guide writers. Our results indicate that help seeking tends                  security help. We identified 3 million relevant help-seeking
+to narrowly focus on just one topic at a time (e.g., Scams                   posts with 93% precision and recall. We automatically an-
+vs. Privacy tools).8 This allows online resources and help                   notated these with the topics discussed (e.g., security tools,
+centers to potentially specialize in which topic they support.               privacy configuration, scams, and more) and the dominant
+As always, this comes with the caveat for whether experts                    emotional sentiment of the post. Analyzing this help-seeking
+for a given topic agree on best practices. While account                     dataset, we found that help seeking grew 66% in the last
+security advice is prescriptive among experts [46], emerging                 year, reaching a peak of 100,000 questions every month
+threats like harassment lack the same consensus around                       at the end of 2024. Users asked for help for a variety of
+protective practices [56]. Similarly, while privacy tools and                topics, some of the most popular of which included scams
+data concerns were among the most popular help-seeking                       (28%), account tools and access issues (20%), and privacy
+topics in our study, it may be difficult for a single privacy                tools and settings (20%). Our qualitative analysis showed
+guide to capture every user norm [14].                                       that providing help seekers with effective support requires
+  8. Over half of the posts we found (58%) exclusively focused on one        navigating a complex combination of threats, platforms,
+topic; 91% contained one or two topics.                                      mitigations, contexts, and emotions. We discussed how LLM
+
+
+                                                                        13
+agents, guide writers, and community organizers could oper-                           [18] N. Ellison, R. Gray, J. Vitak, C. Lampe, and A. Fiore. Calling
+ate collaboratively as an ecosystem of care to better meet all                             all Facebook friends: Exploring requests for help on facebook. In
+                                                                                           Proceedings of the International AAAI Conference on Web and Social
+of a user’s digital privacy, safety, and security help-seeking                             Media, 2013.
+needs. To support such advancements, we plan to release the
+                                                                                      [19] J. Fereday and E. Muir-Cochrane. Demonstrating rigor using thematic
+URLs of our dataset and the annotations from our model.                                    analysis: A hybrid approach of inductive and deductive coding and
+                                                                                           theme development. International Journal of Qualitative Methods,
+References                                                                                 2006.
+                                                                                      [20] C. Fiesler, M. Zimmer, N. Proferes, S. Gilbert, and N. Jones. Re-
+[1]   O. Akgul, S. T. Peddinti, N. Taft, M. L. Mazurek, H. Harkous,                        member the human: A systematic review of ethical considerations
+      A. Srivastava, and B. Seguin. A decade of privacy-relevant Android                   in reddit research. Proceedings of the ACM on Human-Computer
+      app reviews: Large scale trends. In Proceedings of the USENIX                        Interaction, 2024.
+      Security Symposium, 2024.                                                       [21] I. C. A. C. I. T. Force. Online child exploitation prevention initia-
+[2]   M. Ali, A. Arunasalam, and H. Farrukh. Understanding users’                          tive. https://www.icactaskforce.org/assets/OCEPI%20Ten%20Best%
+      security and privacy concerns and attitudes towards conversational                   20Practices%20Guide%20-%20Color.pdf, 2025.
+      AI platforms. In Proceedings of the IEEE Symposium on Security                  [22] D. Freed, S. Consolvo, D. Cosley, P. G. Kelley, E. Ricart, K. Thomas,
+      and Privacy, 2025.                                                                   and N. N. Bazarova.        Help-seeking and coping strategies for
+[3]   N. C. Alliance. Stay safe online. https://www.staysafeonline.org/,                   technology-facilitated abuse experienced by youth. Proceedings of
+      2025.                                                                                the ACM on Human-Computer Interaction, 2025.
+[4]   N. Andalibi, O. L. Haimson, M. De Choudhury, and A. Forte.                      [23] D. Freed, J. Palmer, D. Minchala, K. Levy, T. Ristenpart, and N. Dell.
+      Understanding social media disclosures of sexual abuse through the                   “A stalker’s paradise” How intimate partner abusers exploit technol-
+      lenses of support seeking and anonymity. In Proceedings of the CHI                   ogy. In Proceedings of the CHI conference on human factors in
+      conference on human factors in computing systems, 2016.                              computing systems, 2018.
+[5]   R. Anderson, C. Barton, R. Böhme, R. Clayton, M. J. Van Eeten,                 [24] Google. Be internet awesome. https://beinternetawesome.withgoogle.
+      M. Levi, T. Moore, and S. Savage. Measuring the cost of cybercrime.                  com/en us, 2025.
+      The Economics of Information Security and Privacy, 2013.
+                                                                                      [25] R. Gross and A. Acquisti. Information revelation and privacy in online
+[6]   G. Barker, A. Olukoya, and P. Aggleton. Young people, social support                 social networks. In Proceedings of the ACM Workshop on Privacy in
+      and help-seeking. International journal of adolescent medicine and                   the Electronic Society, 2005.
+      health, 2005.
+                                                                                      [26] P. Guides. https://www.privacyguides.org/, 2025.
+[7]   M. Beals, M. DeLiema, and M. Deevy. Framework for a taxonomy
+      of fraud. Financial Fraud Research Center, 2015.                                [27] H. Harkous, S. T. Peddinti, R. Khandelwal, A. Srivastava, and N. Taft.
+                                                                                           Hark: A deep learning system for navigating privacy feedback at
+[8]   R. E. Boyatzis. Transforming Qualitative Information: Thematic                       scale. In Proceedings of the IEEE Symposium on Security and
+      Analysis and Code Development. Sage, 1998.                                           Privacy, 2022.
+[9]   M. A. Cascio, E. Lee, N. Vaudrin, and D. A. Freedman. A team-                   [28] S. Havron, D. Freed, R. Chatterjee, D. McCoy, N. Dell, and T. Ris-
+      based approach to open coding: Considerations for creating intercoder                tenpart. Clinical computer security for victims of intimate partner
+      consensus. Field Methods, 2019.                                                      violence. In Proceedings of the USENIX Security Symposium, 2019.
+[10] R. Chatterjee, P. Doerfler, H. Orgad, S. Havron, J. Palmer, D. Freed,            [29] E. J. Hu, Y. Shen, P. Wallis, Z. Allen-Zhu, Y. Li, S. Wang, L. Wang,
+     K. Levy, N. Dell, D. McCoy, and T. Ristenpart. The spyware used                       and W. Chen. LoRA: Low-rank adaptation of large language models.
+     in intimate partner violence. In Proceedings of the IEEE Symposium                    https://arxiv.org/abs/2106.09685, 2021.
+     on Security and Privacy, 2018.
+                                                                                      [30] P. Jing, M. Tang, X. Shi, X. Zheng, S. Nie, S. Wu, Y. Yang,
+[11] Y. Chen, A. Arunasalam, and Z. B. Celik. Can large language models                    and X. Luo.      Secbench: A comprehensive multi-dimensional
+     provide security & privacy advice? measuring the ability of llms                      benchmarking dataset for llms in cybersecurity. arXiv preprint
+     to refute misconceptions. In Proceedings of the Annual Computer                       arXiv:2412.20787, 2024.
+     Security Applications Conference, 2023.
+                                                                                      [31] J. Li, K. Sun, B. S. Huff, A. M. Bierley, Y. Kim, F. Schaub, and
+[12] F. Defenders.        Digital security resources.         https://www.                 K. Fawaz. “It’s up to the consumer to be smart”: Understanding
+     frontlinedefenders.org/en/digital-security-resources, 2025.                           the security and privacy attitudes of smart home users on reddit. In
+[13] Z. Delile, S. Radel, J. Godinez, G. Engstrom, T. Brucker, K. Young,                   Proceedings of the IEEE Symposium on Security and Privacy, 2023.
+     and S. Ghanavati. Evaluating privacy questions from stack overflow:              [32] Z. Liu, J. Shi, and J. F. Buford. Cyberbench: A multi-task benchmark
+     Can chatgpt compete? In Proceedings of the International Require-                     for evaluating large language models in cybersecurity. In AAAI 2024
+     ments Engineering Conference Workshops, 2023.                                         Workshop on Artificial Intelligence for Cyber Security, 2024.
+[14] J. L. Dupree, R. Devries, D. M. Berry, and E. Lank. Privacy                      [33] T. Matthews, E. Bursztein, P. G. Kelley, L. Kissner, A. Kramm,
+     personas: Clustering users via attitudes and behaviors toward security                A. Oplinger, A. Schou, M. Sleeper, S. Somogyi, D. Szostak,
+     practices. In Proceedings of the CHI Conference on Human Factors                      K. Thomas, A. Turner, J. P. Woelfer, L. L. You, I. Zahorian, and
+     in Computing Systems, 2016.                                                           S. Consolvo. Supporting the digital safety of at-risk users: Lessons
+[15] C. S. Education.         Digital citizenship curriculum.     https:                   learned from 9+ years of research & training. ACM Transactions on
+     //www.commonsense.org/education/digital-citizenship/curriculum?                       Computuer-Hum Interaction, 2025.
+     topic=privacy--security, 2025.                                                   [34] M. R. Morris, J. Teevan, and K. Panovich. What do people ask
+[16] EFF.       Security starter pack.           https://ssd.eff.org/playlist/             their social networks, and why? a survey study of status message
+     want-security-starter-pack, 2025.                                                     Q&A behavior. In Proceedings of the SIGCHI Conference on Human
+                                                                                           factors in Computing Systems, 2010.
+[17] S. Egelman and E. Peer. Scaling the security wall: Developing a
+     security behavior intentions scale (SeBIS). In Proceedings of the                [35] X. Pan, Y. Hou, and Q. Wang. Are we braver in cyberspace? Social
+     Annual ACM Conference on Human Factors in Computing Systems,                          media anonymity enhances moral courage. Computers in Human
+     2015.                                                                                 Behavior, 2023.
+
+
+
+                                                                                 14
+[36] S. T. Peddinti, K. W. Ross, and J. Cappos. “On the internet, nobody
+     knows you’re a dog”’: A Twitter case study of anonymity in social                 You are an expert assistant designed to identify people discussing
+     networks. In Proceedings of the ACM Conference on Online Social                   or asking questions related to a specific topic. Please review the
+     Networks, 2014.                                                                   following Reddit post and answer Yes or No if the author is
+                                                                                       discussing or asking any question related to:
+[37] V. Prakash, K. Lee, A. Bhattacharya, D. Y. Huang, and J. Staddon.
+     Assessment of llm responses to end-user security questions. arXiv                 - End-to-end encryption
+     preprint arXiv:2411.14571, 2024.                                                  - Private messaging
+[38] E. Rader and R. Wash. Identifying patterns in informal sources of                 - HTTPS
+     security information. Journal of Cybersecurity, 2015.                             - VPN
+                                                                                       - Tor
+[39] E. Rader, R. Wash, and B. Brooks. Stories as informal lessons about
+                                                                                       - Anonymity
+     security. In Proceedings of the Symposium on Usable Privacy and
+                                                                                       - Incognito mode
+     Security, 2012.
+[40] A. Razaghpanah, R. Nithyanand, N. Vallina-Rodriguez, S. Sundare-                  Subreddit: [SUBREDDIT]
+     san, M. Allman, C. Kreibich, P. Gill, et al. Apps, trackers, privacy,             Reddit post: [POST]
+     and regulators: A global study of the mobile tracking ecosystem.                  Answer:
+     In Proceedings of the Network and Distributed System Security
+     Symposium, 2018.
+                                                                                   Figure 9: Stratified sampling prompt designed to identify
+[41] Reddit. Quarterly results. https://investor.redditinc.com/financials/
+     quarterly-results/default.aspx, 2025.
+                                                                                   posts related to a specific privacy, safety, or security topics—
+                                                                                   in this case, encryption or anonymity tools.
+[42] Reddit. Top communitites. https://www.reddit.com/best/communities/
+     3, 2025.
+[43] E. M. Redmiles, S. Kross, and M. L. Mazurek. How i learned to
+                                                                                   [55] M. Wei, S. Consolvo, P. G. Kelley, T. Kohno, T. Matthews, S. Meikle-
+     be secure: A census-representative survey of security advice sources
+                                                                                        john, F. Roesner, R. Shelby, K. Thomas, and R. Umbach. Understand-
+     and behavior. In Proceedings of the ACM SIGSAC Conference on
+                                                                                        ing help-seeking and help-giving on social media for image-based
+     Computer and Communications Security, 2016.
+                                                                                        sexual abuse. In Prcoeedings of the USENIX Security Symposium,
+[44] E. M. Redmiles, A. R. Malone, and M. L. Mazurek. I think they’re                   2024.
+     trying to tell me something: Advice sources and selection for digital
+     security. In Proceedings of the IEEE Symposium on Security and                [56] M. Wei, S. Consolvo, P. G. Kelley, T. Kohno, F. Roesner, and
+     Privacy, 2016.                                                                     K. Thomas. “There’s so much responsibility on users right now:”
+                                                                                        Expert advice for staying safer from hate and harassment. In Pro-
+[45] E. M. Redmiles, N. Warford, A. Jayanti, A. Koneru, S. Kross,                       ceedings of the CHI Conference on Human Factors in Computing
+     M. Morales, R. Stevens, and M. L. Mazurek. A comprehensive quality                 Systems, 2023.
+     evaluation of security and privacy advice on the web. In Proceedings
+     of the USENIX Security Symposium, 2020.
+[46] R. W. Reeder, I. Ion, and S. Consolvo. 152 simple steps to stay safe          Appendix A.
+     online: Security advice for non-tech-savvy users. IEEE Security &             Golden Dataset Sampling
+     Privacy, 2017.
+[47] M. K. Scheuerman, J. A. Jiang, C. Fiesler, and J. R. Brubaker. A
+     framework of severity for harmful content online. Proceedings of the          Help-seeking subreddit sampling (N=800). We randomly
+     ACM on Human-Computer Interaction, 2021.                                      sampled 800 posts across the following subreddits:
+[48] D. J. Solove. A taxonomy of privacy. University of Pennsylvania               r/abusiverelationships, r/advice, r/ask, r/askgaybros,
+     Law Review, 2005.                                                             r/askmen, r/asknetsec, r/askreddit, r/asktransgender,
+[49] M. Sung.        Thousands of subreddits go dark to protest                    r/askuk, r/care, r/cptsd, r/cyberlaws, r/cybersecurity,
+     Reddit’s API pricing.            https://techcrunch.com/2023/06/12/           r/cybersecurity101,          r/cybersecurity help,         r/dating,
+     reddit-blackout-8000-subreddits-went-dark-protest-api/, 2023.
+                                                                                   r/dating advice, r/depression, r/domesticviolence, r/eff,
+[50] K. Thomas, D. Akhawe, M. Bailey, D. Boneh, E. Bursztein, S. Con-              r/emotionalabuse, r/europeprivacy, r/facebook, r/gdpr,
+     solvo, N. Dell, Z. Durumeric, P. G. Kelley, D. Kumar, et al. Sok:
+     Hate, harassment, and the changing landscape of online abuse. In
+                                                                                   r/hacking, r/help, r/howtohack, r/infosec, r/legaladvice,
+     Proceedings of the IEEE Symposium on Security and Privacy, 2021.              r/makemefeelbetter, r/mentalhealth, r/narcissisticabuse,
+[51] K. Thomas, F. Li, A. Zand, J. Barrett, J. Ranieri, L. Invernizzi,             r/opsec,     r/privacy,       r/privacyguides,      r/privacytools,
+     Y. Markov, O. Comanescu, V. Eranti, A. Moscicki, et al. Data                  r/privacytoolsio,        r/privatelife,     r/raisedbynarcissists,
+     breaches, phishing, or malware? understanding the risks of stolen             r/redditsecurity,     r/relationship advice,       r/relationships,
+     credentials. In Proceedings of the ACM SIGSAC Conference on                   r/scams, r/security, r/sex, r/sextortion, r/sexualassault,
+     Computer and Communications Security, 2017.
+                                                                                   r/stalking,        r/suicidewatch,           r/technologyprotips,
+[52] N. Tihanyi, M. A. Ferrag, R. Jain, T. Bisztray, and M. Debbah. Cyber-         r/techsupport, r/trueoffmychest, r/twoxchromosomes.
+     metric: a benchmark dataset based on retrieval-augmented generation
+     for evaluating llms in cybersecurity knowledge. In Proceedings of             Privacy, safety, and security topic sampling (N=281).
+     the IEEE International Conference on Cyber Security and Resilience,           We used Gemini 1.5 Flash to identify posts discussing
+     2024.
+                                                                                   privacy, safety, and security, irrespective of whether a user
+[53] E. Tseng, M. Sabet, R. Bellini, H. K. Sodhi, T. Ristenpart, and
+     N. Dell. Care infrastructures for digital security in intimate partner
+                                                                                   was seeking help for the topic discussed. We constructed
+     violence. In Proceedings of the CHI Conference on Human Factors               14 distinct prompts covering 79 different topics (e.g., end-
+     in Computing Systems, 2022.                                                   to-end encrypted messaging, account takeover, permission
+[54] Y. Wang and A. Kobsa. Privacy Enhancing Technology. IGI Global,               settings, etc.). We show one prompt variant in Figure 9.
+     Hershey, PA, 2009.                                                            We applied each prompt to 50,000 posts selected randomly
+
+
+                                                                              15
+across Reddit. Of 700,000 results output by Gemini, just                         informal support, including legal, platform employees, social
+0.5% indicated the positive presence of a privacy, safety,                       workers, etc.
+or security topic. We selected up to 30 positively labeled                       - Other: Asks or expresses a need for some other type of help
+posts per prompt variant, which after de-duplication yielded                     that pertains to a tech-facilitated privacy, security, or safety issue
+                                                                                 not covered by the types above.
+a final sample of 281 posts.
+Model-guided sampling (N=935). We prompted Gemini                                We consider a post to be NOT HELP SEEKING for tech-
+                                                                                 facilitated privacy, security, abuse, or safety issues if it matches
+1.5 Flash with a preliminary help-seeking prompt (Ap-                            any of the following:
+pendix B) that we applied to a random sample of 10M                              - A privacy, security, abuse, or safety issue but does not have a
+posts across Reddit, from which we selected 935 posts that                       technology component (i.e., is not a tech-facilitated issue).
+Gemini labeled as potentially help seeking.                                      - Has an incidental mention of tech-facilitated privacy, security,
+                                                                                 abuse, or safety issue or solution, but where the help-seeking
+    Our final sample, the aggregate of these three strate-                       request is not related to the technology use.
+gies, consisted of 2016 posts covering 749 subreddits. We                        - Implicitly requests for support to prevent or cope with a
+removed 16 posts from consideration due to being cross-                          privacy, security, abuse, or safety issue. We want a help-seeking
+posted duplicates, or due to containing just a URL, the                          post to explicitly request for support.
+                                                                                 - Purely descriptive of an experience with an issue, without any
+contents of which would be inaccessible to an LLM without                        request for support.
+tools. This left us with 2,000 sample posts.                                     - A fantasy situation or a news story.
+                                                                                 - An “Ask me anything” (AMA) where people invite questions
+                                                                                 about their experiences.
+Appendix B.                                                                      - A moderator warning about unacceptable behavior on the
+Help-seeking identification prompt                                               forum.
+                                                                                 - A general complaint about the state of the world without an
+                                                                                 expressed desire for a specific solution or help-seeking need.
+   The following text is from an online communication posted to                  - Seeking help about a violation of trust that does not constitute
+   the subreddit “{{subreddit}}”: “{{text}}”                                     abuse. (e.g., ”I found out my boyfriend is sending nude photos
+                                                                                 to his ex”)
+   Based on the text content and the subreddit, we need to                       - Providing advice, support, or resources to someone experiencing
+   determine if the text is seeking help related to privacy, security,           online abuse, such as a public service announcement warning or
+   abuse, or a safety issue. A HELP SEEKING post includes two                    informing others about an abusive person or online space.
+   parts:                                                                        - Queries related to enterprises/companies, rather than an
+                                                                                 individual.
+   PART I - GOAL: The author is seeking to prevent, or is                        - An information request for purely educational purpose (”I want
+   experiencing, or is close to someone who has experienced or                   to grow my skills in cyber security”). To include educational
+   perpetrated a tech-facilitated privacy, security, abuse, or safety            requests, the post needs to explicitly be in support of preventing
+   issue. Posts about business needs or those by perpetrators trying             or coping with personal privacy, security, abuse, or safety issues.
+   to do harm or evade safety guards are OUT OF SCOPE and NOT                    - By a perpetrator who wants to harm others, or wants to
+   HELP SEEKING. We consider a post to potentially be HELP                       evade or remedy an existing privacy, security, abuse, or safety
+   SEEKING if the issue mentioned in the post EXPLICITLY                         protection/safeguard.
+   involves the use of technology (as a source of harm or source
+   of solution) and EXPLICITLY requests for help. Also, it should                You are to provide your classification of the post as a binary
+   include one of the following personal aspects:                                (0 or 1) response, where 0 indicates the post is NOT HELP
+   - Active/Prior Event: Explicitly sharing details of the security,             SEEKING and 1 indicates it is HELP SEEKING.
+   privacy, abuse, or safety issue the author or someone they are
+   close to are facing or perpetrating.                                          Below are a few hard example posts and their classification:
+   - Preventative Event: Content related to preventing potential                 {{examples}}
+   harms by enabling or modifying security, abuse, or privacy
+   settings. Educational queries focused on improving personal                   Based on the HELP SEEKING definitions and the examples
+   security or privacy postures are also considered preventative                 shared above, what is the binary classification for the following
+   events.                                                                       text and subreddit?
+                                                                                 - text: “{{text}}”
+   PART II - TYPE OF HELP SOUGHT: We consider a post                             - subreddit: “{{subreddit}}”
+   to be help-seeking if it explicitly includes one or more of the
+   following. Requests outside these issues (e.g., requests for funds)
+   are OUT OF SCOPE and NOT HELP SEEKING.
+   - Sensemaking: Asks or expresses a need for support in trying to
+                                                                              Appendix C.
+   understand what is happening, or in understanding an issue or              Help-seeking topic codebook
+   related resource (a technology, setting, process, etc.).
+   - Guidance: Asks or expresses a need for guidance about what                   Each topic is defined below. The codebook also included
+   self-reliant actions they can take next. This includes technical
+   advice, or whether or how to use platform-provided tools or help           examples for coders to reference, like those listed in the
+   pages.                                                                     Topic Prompt shown in Appendix D.
+   - Therapeutic: Asks or expresses a need for validation or                      Account tools: Mentions of access to or configuration of
+   emotional support related to an issue.                                     an account, device, or service. These are typically accounts
+   - Relationship: Asks or expresses a need for advice on how to
+   navigate a relationship affected by the issue.                             held by the user. Requires an explicit mention of access
+   - External support: Asks or expresses a need for advice on                 or configuration issues (not implied by a report of hacking,
+   whether or how to reach out to a third-party for formal or                 account banning, etc.). This code may be applied on its own
+                                                                              or together with other Topic codes that explain what hap-
+
+
+                                                                         16
+pened for the user to have account access or configuration             You are a helpful assistant designed to detect Reddit posts dis-
+questions (e.g., content moderation, compromise, etc.).                cussing privacy, security, or safety topics. Answer Yes or No for
+    Safety tools: Mentions of tools related to moderation              whether a post discusses any of the following topical categories,
+                                                                       even if there is just a brief mention.
+or countering abuse. Excludes spam and screening (apply                —————————————–
+Security Tools code instead).                                          Here are the possible list of topical categories and their descrip-
+    Security tools: Mentions of tools related to security              tions that aid in assignment:
+practices.                                                             Category-1: Account tools
+                                                                       Definition: Mentions of how to configure or recover an account,
+    Privacy tools: Mentions of tools related to privacy                device, or service related to access or configuration. These are
+practices. Apply Data Concerns code for requests involving             typically accounts held by the user.
+explicit mentions of data privacy concerns; this Topic code            Posts related to this category may discuss any of the following:
+                                                                       - Recovering access to an account, service, or device (due to
+can be co-applied when a specific tool is stated as related            lockout, forgotten password, or a login issue)
+to the request.                                                        - Difficulty creating, registering, or verifying an account or service
+    Compromise: Mentions of an account or device being                 - Recovering access to a cryptocurrency wallet (due to a lost or
+compromised by an (implied or explicitly noted) attacker.              inaccessible wallet)
+                                                                       - Verifying a cryptocurrency wallet
+This code requires a (perceived, implied, or explicit) at-             - Accessing the login history of an account
+tacker. This can include cases where described behavior                - Restore device from backup
+strongly implies a related attack, inferred by the researchers,        - Resetting a password, changing a password, creating a strong
+even if the poster does not understand the situation. Also use         password, or using a password manager
+                                                                       - Configuring authentication security features like two-factor au-
+the Account Tools code if the user explicitly mentions issues          thentication, SMS authentication, one-time passwords, security
+accessing an account. Also use the Data Concerns code if               questions, fingerprints, biometrics, passkeys, or pin numbers
+the user explicitly mentions concerns about data exposure              - Losing access to an account, device, or service
+due to compromise.                                                     - Account management settings
+                                                                       The following posts are not related to this category:
+    Platform actions: Mentions of a safety control or policy           - Discusses a password leak, having their account blocked, or
+(such as content moderation or fraud detection), typically             having their account hacked.
+by a platform or third party (such as an employer), that has           Category-2: Safety Tools
+                                                                       Definition: Mentions of tools related to moderation or countering
+gone awry and/or is causing friction with the user.                    abuse. Any mentions of spam, or screening, should be ‘Security
+    Scams: Mentions of fraud, scams, or impersonation for              tools’ category.
+the apparent purposes of a scam or fraud. Also includes                Posts related to this category may discuss any of the following:
+                                                                       - How to block a gaming or social media account, email, or phone
+transactions and missing funds or goods where the reason is            number
+unclear. Use this code when a user encounters a potentially            - How to report another user on any platform (e.g., for harass-
+fraudulent artifact (like a suspicious website or message),            ment)
+but hasn’t yet been compromised (as opposed to the Com-                - How to request an account be taken down on any platform (e.g.,
+                                                                       for impersonation)
+promise code). Use the Harassment code for impersonation               - How to use moderation tools on any platform
+for the apparent purposes of harassment or abuse.                      - How someone circumvented being blocked on any platform
+    Harassment: Mentions of interpersonal harassment or                The following posts are not related to this category:
+abuse by an attacker, including sexual abuse and grooming.             - Discusses spam or scams
+                                                                       Category-3: Security tools
+    Data concerns: Mentions related to a user’s concerns or            Definition: Mentions of tools related to security practices.
+unease about the way their data is being used by or exposed            Posts related to this category may discuss any of the following:
+to others (typically a platform). Use the Harassment code              - Security tools such as anti-virus, Virus Total, safe search, Safe
+                                                                       Browsing, firewalls, spam filters, or caller ID
+instead when data is exposed or tampered with by a person,             - Security applications such as Wireshark, SELinux, SSH
+where the intent seems to be to harm someone. Use the                  - Security hardware like trust platform modules or trusted execu-
+Privacy Tools code (possibly double-coding) when they are              tion environments
+explicitly referring to a tool or practice that would increase         - Cryptocurrency wallets, KYC processes, hardware wallets,
+                                                                       ledger
+privacy.                                                               - Security practices like encryption, HTTPS, filesystem access
+                                                                       control, port scanning/blocking, browser safety settings, access
+                                                                       controls, secure mail-forwarding, end-to-end encryption, and au-
+Appendix D.                                                            dit logs
+                                                                       - Software or security updates
+Help-seeking topic identification prompt                               - Physical security measures for devices (camera and microphone
+                                                                       covers)
+                                                                       - Network security, wifi security, device security, camera security,
+    Note that the topic definitions in the prompt are different        operating system security, jailbreaking
+from Appendix C (which continued to evolve after the                   - Advice on which application is more secure
+prompt). This does not pose an issue as we LoRA fine-tuned             The following posts are not related to this category:
+                                                                       - Discusses account security or passwords
+using only data labeled with the most up-to-date qualitative           - Discusses VPNs
+codebook. The text definitions are only a hint to the LLM,             - Discusses privacy
+whereas the labels are what guide the model training.                  Category-4: Privacy tools
+
+
+
+
+                                                                  17
+Definition: Mentions of tools related to privacy practices.                  of deceit, a trick or some dishonest means to deprive another of
+Posts related to this category may discuss any of the following:             their money or property; a subset of fraud.”
+- Privacy tools (e.g., Private browsing; Private operating systems;          Posts related to this category may discuss any of the following:
+Private search engines; Tor; VPN; Ad blockers; Brave; Tails;                 - Being the victim or target of a scam, fraud, sextortion, crypto
+SSH; Google Voice)                                                           scam, fake job posting, or employment scams
+- Privacy practices, configuration, and hardening (e.g., Creating a          - Scams using a person’s personal information
+secondary account; Creating a secondary phone number; Chang-                 - Bots, spam, and unwanted communication
+ing addresses; Anonymous accounts; Disabling syncing; Going                  - Unauthorized or unexplained charges or transactions
+off grid; Disposal of devices; Cookies)                                      - Stolen or missing cryptocurrency funds
+- Privacy protocols such as encryption, E2EE, SSH, HTTPS                     - Stolen or missing credit card funds
+- Privacy settings and data controls (e.g., Cookies; Permissions;            - Problems or delays with a transaction, including cryptocurrency
+Settings; Deletion of data or accounts; Isolation; Data hiding)              funds
+- Privacy techniques like deleting data, hiding data, isolating data,        - Other fraud such as incomplete purchases, blocked transactions,
+deleting accounts, or preventing tracking                                    stolen personal details, missing goods, and lost money
+- Erasing data from a device or account                                      - Fake accounts, suspicious websites, suspicious URLs, suspicious
+- General privacy topics (e.g., Network privacy settings; Camera             messages, or suspicious receipts
+privacy; Mic privacy; Physical privacy; Device privacy)                      - Browser warnings for an unsafe webpage (e.g., phishing)
+- Comparisons between competing privacy options (e.g., Single                - Trustworthyness of a website
+sign on vs. new account), or advice on which application is more             - Impersonation or identity theft
+private.                                                                     The following posts are not related to this category:
+The following posts are not related to this category:                        - Bots, spam, and unwanted communications for the purpose of
+- If the post only discusses account security or passwords.                  harassment
+- If the post only discusses how a person’s privacy has been                 - Discussing an account or device being hacked
+violated, or a worry about privacy without mention of any specific           Category-8: Harassment
+privacy tools.                                                               Definition: Interpersonal harassment or abuse by an attacker.
+- Posts where we have to assume the use of a privacy tool since              Posts related to this category may discuss any of the following:
+it isn’t explicitly mentioned.                                               - Non-consensual explicit imagery, Child sexual abuse, grooming,
+Category-5: Compromise                                                       Cyberflashing, unwanted nude images, or image-based sexual
+Definition: Mentions of an account or device being compromised               harassment
+by an (implied or explicitly noted) attacker.                                - Interpersonal abuse or Intimate partner violence, including
+Posts related to this category may discuss any of the following:             evidence collection for the same
+- Account hacking, theft, or compromise, including changing                  - Impersonation for the purposes of harassment or abuse
+account details                                                              - Stalking, monitoring & controlling an individual through
+- Device hacking, theft, or compromise                                       surveillance or monitoring devices
+- Suspicious sign-in attempt or account activity                             - Requesting or controlling victim’s devices and communication
+- Suspicious verification message or OTP                                     channels, or accessing device without consent
+- Suspicious device behavior or suspected virus                              - Harassment via text messages and phone calls, doxxing, inten-
+- Concern whether an account or device is at-risk of compromise              tionally exposing private info, threats of violence, toxic content,
+- Malware, adware, viruses, spyware, ransomware, or unwanted                 trolling, bullying
+software                                                                     Category-9: Data concerns
+- Risky downloads or suspicious files                                        Definition: The user wants to take an action involving their data
+Category-6: Platform actions Definition: Mentions of a safety                (such as hiding, reducing visibility, deletion, etc.), or is concerned
+control or policy, typically by a platform or third party (such as           or uneasy about the way their data is being used by or exposed
+an employer), that has gone awry and/or is causing friction with             to others (typically a platform).
+the user.                                                                    Posts related to this category may discuss any of the following:
+Posts related to this category may discuss any of the following:             - Data collection concerns such as consent, Data retention, Data
+- Person violated a platforms policy                                         overcollection, Data harvesting, terms of service.
+- Account was banned, blocked, suspended, removed, or deleted                - Data sharing concerns such as with third parties, sharing without
+by a platform                                                                consent, unintended sharing
+- Account was frozen or disabled by a platform                               - Privacy concerns such as if a mic is listening, a camera is
+- IP address was blocked                                                     watching, a device always listening, or if the device is being
+- Access to a website or service was blocked, removed, revoked,              scanned
+or restricted                                                                - Privacy concerns such as if someone can find the user
+- Functionality for a service was inappropriately disabled                   - Data loss risk
+- Content being hidden, taken down, or deleted due to rule                   - Data visibility, exposure or leak concerns such as unintended
+violation                                                                    leaks, data breaches, password leaks, identity leaks
+- Payment was prevented or incorrectly flagged as fraud                      - Data retention
+- Person was falsely reported to a platform                                  - Data misuse including unexplained traffic, ads, or a concern for
+- Foreign payment was blocked or restricted, or transaction in-              how a person’s data is being used
+correctly flagged as fraud                                                   - Unexplained app behavior where content wont disappear, or an
+- Serivce is banned or prohibited in a region (due to export                 app is not respecting privacy settings
+controls)                                                                    The following posts are not related to this category:
+The following posts are not related to this category:                        - Data loss risk in the presence of an attacker
+- Discusses being unable to login to their account for a reason              - Post discusses specific privacy controls
+other than being blocked                                                     - Post discusses sextortion or nude images, including unintended
+Category-7: Scams Definition: Mentions of fraud, scams, or                   leakage
+impersonation for the apparent purposes of a scam or fraud. Fraud            - Post discusses scams or fraud
+is defined: “An act committed by predatory others and involves an            —————————————–
+act of deception using a false promise or a threat; a broad category         For a given Reddit post and a topical category, you are to
+where ‘scam’ is a subset.” Scam is defined: “The intentional use             identify if the topical category is applicable to the post by
+
+
+
+
+                                                                        18
+providing your answer as a ‘Yes’ or ‘No’ value.
+
+Now provide your decision for the following Reddit post.
+<Post>
+{{ text }}
+</Post>
+<Subreddit>
+{{ subreddit }}
+</Subreddit>
+<Topical Category>
+{{ category }}
+</Topical Category>
+<Answer>
+
+
+
+
+                                                           19
+

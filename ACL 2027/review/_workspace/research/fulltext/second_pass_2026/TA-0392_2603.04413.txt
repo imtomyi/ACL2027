@@ -1,0 +1,1137 @@
+                                                    S IMULATING M EANING , N EVERMORE !
+                                         I NTRODUCING ICR: A S EMIOTIC -H ERMENEUTIC M ETRIC FOR
+                                              E VALUATING M EANING IN LLM T EXT S UMMARIES
+
+
+                                                           Natalie Perez                             Sreyoshi Bhaduri                   Aman Chadha∗
+                                                        University of Hawai‘i                        Private Corporation                Amazon GenAI
+
+
+
+
+arXiv:2603.04413v2 [cs.CL] 6 Mar 2026
+                                                           Hawai‘i, USA                               New York, USA                     California, USA
+                                                    natalie.perez@hawaii.edu                    sreyoshibhaduri@gmail.com                hi@aman.ai
+
+
+
+
+                                                                                                A BSTRACT
+                                                     Meaning in human language is relational and context-dependent, and it emerges through a dynamic
+                                                     system of signs rather than fixed interactions between words and concepts. In computational
+                                                     computing, the inherently sembiotic and interpretative structures in language make generating
+                                                     accurate meaning challenging. This article advances an interdisciplinary framework for studying
+                                                     meaning in machine-generated language by integrating semiotics and hermeneutics via systematic
+                                                     qualitative research methods. We first review scholarship on meaning and machines, tracing how
+                                                     linguistic signs are transformed into vectorized representations in both static and contextualized
+                                                     embedding models, and identifying gaps between statistical approximation and human interpretive
+                                                     meaning. Building on this foundation, we introduce the Inductive Conceptual Rating (ICR) metric,
+                                                     a qualitative evaluation approach grounded in inductive content analysis and reflective thematic
+                                                     analysis, designed to assess semantic accuracy and meaning alignment in generative artificial
+                                                     intelligence (GenAI) outputs, beyond surface-level lexical and similarity metrics. We then apply ICR
+                                                     in an empirical study, comparing large language model (LLM) generated thematic summaries with
+                                                     human-generated outputs across five datasets (N = 50 to 800). The results show that while language
+                                                     models achieve high linguistic and semantic similarity scores, they consistently underperformed
+                                                     when compared with human outputs on semantic accuracy, particularly in capturing recurring,
+                                                     contextually grounded meanings. However, LLM performance improves with larger datasets, but
+                                                     the results remains variable across models, and we hypothesize the variability in model results
+                                                     is associated with the increase in frequency of reoccurring or related concepts. We conclude by
+                                                     discussing the epistemological and practical implications of treating GenAI outputs as dynamic sign
+                                                     systems, arguing for evaluation frameworks that foreground human interpretation when assessing
+                                                     meaning with respect to machine-mediated language generation.
+
+
+                                        Keywords generative AI · semantics · hermeneutics · semiotics · large language models · inductive conceptual rating
+                                        (ICR) · unstructured data
+
+                                        1       Introduction
+                                                                     “On the morrow he will leave me, as my Hopes have flown before.”
+                                                                                    Then the bird said “Nevermore.” [...]
+                                                                   “Take thy beak from out my heart, and take thy form from off my door!”
+                                                                                       Quoth the Raven “Nevermore.”
+                                                                      “And my soul from out that shadow that lies floating on the floor
+                                                                                        Shall be lifted, nevermore!”
+                                                                                   — The Raven by Edgar Allan Poe, 1845
+
+                                            ∗
+                                                This research was conducted independently of the author’s work at Amazon.
+Simulating Meaning, Nevermore!
+
+
+Language meaning is dependent on signs, interrelations, and context. Saussure (1916) described this relationship
+as a linguistic sign system [1]; this system always contains the combination of a signifier (word) and a signified
+(conceptual meaning), with its sign (overall meaning) generated based on how the signifier and signified relate
+within a system of signs. This argument is easily illustrated within the poem The Raven, written by Edgar Allan
+Poe in 1845 [2]. The word “Nevermore” is a signifier (word), yet the word is repeated throughout The Raven, and
+its signified (conceptual meaning) changes with each new stanza. In one section of the poem, “Nevermore” refers
+to a lover never getting to see a lost love again, and a few stanzas later, “Nevermore” is used to refer to a person
+struggling to find comfort, and then it later is used to refer to a person experiencing eternal despair. Within the
+poem, Nevermore’s meaning changes, rather than staying the same, making Nevermore an example of a polysemy,
+which is one signifier (word) linked to multiple signifieds (meaning), within a single text [3]. In contrast, large
+language models (LLMs) are often evaluated using automated evaluation metrics, which often treat signifiers (words)
+as static, context-independent units, which assumes that a word carries a fixed signified (conceptual meaning)
+[4]. As a result, LLM evaluation metrics might not always capture the context-dependent shifts in signifieds,
+producing outcomes that risk failing to capture the nuanced, relational and fluid meaning of signs present in texts
+like The Raven. It is along these lines that we argue the use of automated metrics as computational proxies for
+meaning could result in metric scores that do not always reflect the intended meaning of language within a reference text.
+
+Context-dependent meaning in human language directly illuminates a central challenge in computational linguistics
+and natural language processing (NLP). For instance, in NLP, a common strategy to model language meaning has
+been word embeddings that encode signifiers (words) as vectors (points) in a high-dimensional semantic space [5].
+These embeddings approximate semantic relationships, which are words that frequently appear in similar contexts;
+an embedding places the related words or tokens closer together in a vector space, which allows models to “predict”
+likely words or phrases in context [6, 7]. However, unlike human interpretation, traditional word embeddings do not
+inherently encode the signified (meaning). In traditional static embeddings (e.g., BoW, TF-IDF, Word2Vec, GloVe),
+models assign a single fixed vector to each word, regardless of context [4]. Unfortunately, while these traditional
+models can create dense word vectors that relate to general semantic relationships, they fail to distinguish across the dif-
+ferent signifiers (meanings), and can face particular challenges with polysemous words across different contexts [4, 3, 8].
+
+More recent advances have attempted to overcome the limitations of static embeddings by developing contextualized
+embedding (e.g., BERT, RoBERTa, DistillBERT, ELECTRA, ALBERT) that generate context-dependent or dynamic
+word representations. Contextual embeddings are designed to identify the meaning of a word based on the surrounding
+words, which has helped to address polysemy words and richer syntactic and semantic relationships [4]. Not
+surprisingly, studies applying contextual embeddings have reported improvements in topic modeling [9, 10], text
+summarization [11], sentiment analysis [12], etc. Despite these improvements, even contextual embeddings remain
+approximations, as illustrated by automated metrics, as the embedded signifiers (words) and signified (meaning) are
+based on statistical patterns and co-occurrence frequencies rather than grounded, embodied human experience or the
+cultural, historical, or social nuances that constantly shape a word’s meaning [13, 1]. Consequently, while these new
+embedding strategies provide powerful and new computational tools for language generation, these models continue to
+lack the ability to fully replicate the depth, variability, and contextual richness of human interpretive processes.
+
+
+2     Background
+Researchers frequently evaluate GenAI outputs using automated metrics designed to quantify textual characteristics
+such as similarity, coherence, or alignment. Table 1 summarizes prominent metrics across a range of output categories
+(Table 1), as illustrated by Croxford et al. (2025) [14].
+
+While these metrics have been used to scale, reproduce, and examine a variety of linguistic characteristics, they have
+limitations. For instance, automated metrics tend to identify surface-level language or statistical proximity over
+interpretive meaning, which can fail to account for polysemy, contextual shifts, rhetorical intent, or culturally situated
+interpretations [15, 16]. These outcomes can be problematic, since GenAI outputs may achieve high automated scores,
+even with subtle but substantive distortions in the actual meaning, emphasis, or truthfulness of a reference text [17]. We
+argue that the use of automated metrics as computational proxies for meaning can result in scores that do not accurately
+or truthfully reflect input data meaning.
+
+
+2.1   Traditional Qualitative Evaluation Approaches
+In contrast, traditional qualitative evaluation approaches include a range of approaches to evaluate meaning. These
+approaches are embedded in specific research designs, such as reflexive thematic analysis, inductive content analysis,
+
+
+                                                             2
+Simulating Meaning, Nevermore!
+
+
+Table 1: List of Common LLM Evaluation Metrics, Applications, and Limitations (Adapted from Croxford et al., 2025)
+
+ Reference Details     Type                 Metrics                   Application                 Metric Limitations
+                       Word or Character    ROUGE, METEOR, JS         Evaluate                    Does not measure
+ Reference Depen-      Based                Divergence, CIDEr,        lexical/character overlap   context-dependent
+ dent                                       PyrEval, sacreBLEU,       and structural fidelity.    meaning, polysemy, or
+                                            SERA, POURPRE, BE,                                    paraphrases; limited
+                                            BLEU, GTM,                                            semantic nuance.
+                                            WER/TER,
+                                            ITER/CDER, chF,
+                                            characTER, EED, YiSi,
+                                            Q-Metrics
+                       Learned Metrics      COMET, BLEURT,            Evaluate model semantic     Does not measure
+                                            CREMER, BEER,             adequacy and fluency        implied meaning,
+                                            BLEND, Composite,         via learned                 rhetoric, or
+                                            NNEval, RUSE, BERT        representations.            cultural/contextual cues.
+                       Probability-Based    CBMI, NIST                Weigh matches by            Does not measure
+                                                                      informativeness,            factual correctness or
+                                                                      emphasizing                 real-world grounding.
+                                                                      rare/content-rich
+                                                                      n-grams.
+                       Embedding-Based      BERTScore,                Evaluate semantic           Does not measure
+                                            MoverScore, AutoSumm      similarity via              pragmatic, interpretive,
+                                            ENG, MeMoG, SPICE,        embeddings.                 and ethical dimensions.
+                                            BERTr, WEWPI, WMD,
+                                            SIMILE, NUBIA
+                       Word or Character    SIMetrix                  Assesses intrinsic          Does not measure
+ Reference Indepen-    Based                                          structural and stylistic    meaning, factuality, or
+ dent                                                                 properties.                 task-specific adequacy.
+                       Learned Metrics      COMET                     Predicts fluency,           Does not measure
+                                                                      coherence, and adequacy     nuanced meaning or
+                                                                      without references.         ethical alignment.
+                       Probability-Based    BARTScore, HARiM+         Evaluates likelihood        Does not measure
+                                                                      under pretrained LMs        factual accuracy or
+                                                                      for fluency/coherence.      contextual correctness.
+                       Embedding-Based      SEM-nCG                   Evaluates semantic          Does not measure model
+                                                                      organization, discourse     reasoning,
+                                                                      coherence, and content      argumentation, or
+                                                                      structure.                  multi-document
+                                                                                                  coherence.
+
+
+
+phenomenological analysis, discourse analysis, narrative analysis, semiotic analysis, and hermeneutic inquiry, among
+others, to evaluate meaning as emergent, relational, and context-dependent, emphasizing how individuals use language
+to construct experiences, identities, power, and understanding [18, 19, 20, 21, 22, 23]. Additional approaches include
+expert review panels, rubric-based coding schemes, and consensus scoring, which often utilize predefined categories, a
+priori criteria, or standardized codebooks to support consistency and comparability [24, 25]. While these approaches
+offer rich sensitivity to context, and are arguably better suited to identify meaning characteristics, like polysemy,
+cultural nuances, and idiographic positionalities, they are typically descriptive, case-bound, and are not designed to
+explicitly replicate reproducible metrics [24, 26]. As a result, traditional qualitative evaluation excels at interpreting
+meaning, but not necessarily scaling insights [25, 27].
+
+
+2.2   Human-in-the-loop (HITL) Approaches
+Human-in-the-loop (HITL) approaches often complement automated evaluation metrics, but are arguably less rigorous
+than traditional qualitative methods in explicitly addressing how meaning is constructed, negotiated, or interpreted
+across contexts. The literature illustrates the ways HITL contributes to evaluating language models through active
+learning, interactive machine learning, and expert-guided feedback by supplying labels, correcting predictions, and
+shaping model learning [28]. HITL approaches are also used to support real-time intervention when AI outputs are
+
+
+                                                            3
+Simulating Meaning, Nevermore!
+
+
+ambiguous or potentially biased [29]. Aside from providing judgment, in many cases, HITL approaches focus on
+annotations, label creation or confirmation, or preference rankers, guiding model training and validation without an
+explicit account of how meaning is constructed or negotiated across contexts [30]. In addition, risk-based frameworks
+use humans to calibrate involvement according to task criticality and potential harm [31]. Overall, HITL integrates
+human judgment to improve performance, fairness, and safety, but typically does not operationalize interpretive
+meaning explicitly.
+
+
+2.3 Proposal of a New Epistemological Evaluation Metric
+Consequently, there is a need to adequately identify how word meanings vary across contexts to more comprehensively
+evaluate the truthfulness of GenAI outputs, particularly from an epistemological perspective on meaning. This study in-
+troduces a methodology for systematic qualitative research that leverages a two step analytical process using a Reflective
+Thematic Analysis (RTA) and an Inductive Content Analysis (ICA) to generate a metric for quantifying the semantic
+fidelity of a GenAI output when compared with a reference text. An Inductive Conceptual Rating (ICR) provides a
+structured, rigorous approach for identifying signifiers (words), signifieds (conceptual meaning), categorizing emergent
+themes, and interpreting language within context, without imposing predefined relationships, calculations, codes, or
+embedded assumptions [32, 33]. Grounding this approach within the context of semiotics and hermeneutics allows this
+approach to emphasize relational and context-dependent, highlighting the centrality of human interpretation in under-
+standing how meaning is produced, interpreted, and negotiated in language (see Appendix 1 for more conceptual details).
+
+This study contributes theoretically by framing meaning in language as relational, context-dependent, and emergent,
+emphasizing the limitations of current computational metrics and LLM embeddings in capturing nuanced, culturally
+situated meaning [1, 22, 23, 13]. Methodologically, it introduces the Inductive Conceptual Rating (ICR), combining
+reflective thematic and inductive content analysis to systematically evaluate meaning fidelity and truthfulness
+in LLM-generated outputs without relying on predefined codes [32, 33]. Empirically, applying ICR across five
+datasets (N = 50 to 800) reveals that LLMs, while achieving high lexical or embedding-based similarity, consistently
+underperformed, when compared with humans, in capturing contextually grounded and recurring meanings. While
+LLM performance showed improvements with larger datasets, the results varied.
+
+
+3    Introducing an Interpretative Evaluation Metric: Inductive Conceptual Rating (ICR)
+Evaluating meaning in GenAI outputs is challenging. For instance, automated metrics, like lexical overlap, embedding
+similarity, or probability-based scores provide scale, reproducibility, and top-down, deductive evaluation, but they often
+fail to capture context-dependent meaning, polysemy, or emergent semantics. Human-in-the-loop (HITL) approaches
+offer functional judgment, but they typically lack fully systematic, epistemologically grounded evaluation. In contrast,
+traditional qualitative methods provide interpretive depth and relational understanding, though they are less scalable
+[26]. In the context of LLM evaluation, automated metrics operationalize a top-down strategy, flagging misalignments
+as errors based on predefined patterns, whereas human-centered, case-based approaches, adopt a bottom-up, inductive
+strategy, allowing researchers to uncover the nuanced, context-dependent ways meaning is constructed, changed, or
+omitted.
+
+
+3.1 Epistemological Justification
+According to Borgstede and Scholz (2021), differences in quantitative and qualitative approaches mirror variable-based
+versus case-based modeling [34]. In variable-based quantitative modeling, relational structures are represented as
+functional relations across all objects [34]:
+
+
+                                                   ∀i :      yi = f (xi )
+This equation expresses that for every instance i in the dataset, y is a function of x. Evaluation takes place deductively,
+where predictions for individual instances are derived from general law, and deviations indicate potential flaws in
+the underlying theory or model [34]. In this context, ablation of features can take place, like removing n-grams,
+embeddings, or likelihood estimates, to produce predictable changes in scores. In the context of LLM evaluation
+metrics, this reflects the structural sensitivity that a metric might have, rather than subtleties in its ability to differentiate
+meaning [35]. When replications fail or results vary, it does not necessarily indicate semantic instability, but rather that
+the assumed one-to-one mapping between signifier and signified does not hold to be universally true [34]. In other
+words, if an evaluation metric gives inconsistent results or fails to replicate, this variability could show that a respective
+
+
+                                                                4
+Simulating Meaning, Nevermore!
+
+
+metric’s reliability or general applicability is limited.
+
+Conceptually, this deductive framing treats signs as stable inputs rather than as as interpretive or context-dependent
+relationships. For instance, a signifier (e.g., tokens, n-grams, embeddings, or likelihood estimates) is treated as a fixed,
+measurable input x, while the signified is assumed to follow deterministically as an output y = f (x). As a result, the
+sign itself is reduced to a functional mapping between linguistic form and evaluative outcome, rather than understood as
+a dynamic relation shaped by context, interpretation, or use. The output, therefore, is that meaning is modeled not
+as a dynamic, relational process but as a predictable outcome of feature extraction, reducing semiotic complexity to
+functional determinism and constraining how language, judgment, and understanding can be represented.
+
+Alternatively, in case-based qualitative modeling, relational structures are expressed as existential statements [34]:
+
+
+                                                      ∃i : XY Zi
+This equation expresses that there exists at least one case i for which a given property or pattern holds true. Unlike
+universal claims, existential statements like this one do not deductively generalize with other cases; instead, any
+extension beyond the observed instance is inductive, relying on perceived similarities rather than invariant laws [34].
+This means that the variance of XY Z across cases is unconstrained and its distribution may be sparse, multimodal,
+or even idiosyncratic. Any extension of the finding beyond the observed case, therefore, takes place inductively
+rather than deductively. In qualitative modeling, ablation may occur through coder variation, shifts in conceptual
+granularity, or differences in thematic overlap, each of which can yield divergent yet interpretable outcomes [36, 37];
+these differences are not noise relative to the claim but are instead consistent with the logic of the equation, which
+does not assume stability or repeatability. From this lens, variability would only constitute a problem if a universal
+claim were being made; under an existential formula, however, variation is epistemologically meaningful, as it can
+help to identify boundary conditions, reveal heterogeneity, and clarify where XY Z does not occur. In this sense,
+∃i : XY Zi defines a logical space in which divergence across cases is not only expected but can also be analytically
+productive, particularly within qualitative modeling. Hence, rather than signaling error, variability, within this
+approach, is epistemologically informative, as it reveals the boundaries of semantic generalization, clarifies the scope of
+intended application, and identifies domains where top-down metrics may fail to capture critical nuances [34, 27, 38, 18].
+
+Conceptually, this inductive framing treats signs, signifiers, and signifieds as relational and contingent rather than as
+fixed one-to-one mappings. For instance, a signifier is not assumed to carry a single, stable meaning across cases;
+instead, its interpretation may shift depending on culture, context, conceptual granularity, or analytical lens [27, 19].
+Consequently, the signified is context-dependent and emergent, formed through interpretation rather than deduced from
+a universal rule [38]. The sign itself is, therefore, understood as a situated relationship between signifier and signified,
+co-constructed within a specific case rather than mechanically reproducible across all cases [1].
+
+The core takeaways, regarding the differences in epistemological roles of quantitative and qualitative approaches, is that
+quantitative methods aim to demonstrate structure, reproducibility, and generalizable claims, and also indicate whether
+a model or metric behaves consistently across datasets; whereas, qualitative methods aim to capture nuance, context,
+and interpretative variability, showing where meaning is fluid and dependent on a range of possible factors. Overall,
+these approaches are complementary, particularly for LLM evaluation, as quantitative metrics are effective at measuring
+lexical or surface-level features, such as word frequencies, embeddings, or n-grams, and at testing patterns reproducibly
+across datasets. However, qualitative evaluation excel at revealing semantic meaning, nuance, and contextual variation,
+showing how meaning is situated, tolerating variability and highlighting areas where quantitative metrics may overlook
+subtle or context-dependent aspects of meaning. By combining both approaches, researchers can leverage the precision
+and reproducibility of quantitative metrics while also accounting for the richness and interpretive flexibility revealed
+through qualitative analysis. Quantitative methods identify what patterns exist, and qualitative methods clarify what
+those patterns mean and where they might fail, providing a more holistic evaluation of meaning in LLM outputs.
+3.2 ICR Metric
+Given the context-dependent nature of both human language and model-generated text, evaluating meaning in GenAI
+outputs requires systematic, interpretive methods that are grounded in accurate representations of meaning. The
+Inductive Conceptual Rating (ICR) metric is designed to address automated evaluation metric gaps by combining
+two traditional qualitative approaches: Reflective Thematic Analysis (RTA) [26] and Inductive Content Analysis
+(ICA) [39]. By merging these distinct qualitative approaches, researchers can utilize their respective outputs and
+quantify a transparent and theoretically grounded evaluation of meaning. More specifically, the ICR metric leverages
+the interpretive role of human experts by situating meaning within a relational and context-dependent framework that
+
+
+                                                             5
+Simulating Meaning, Nevermore!
+
+
+quantifies how closely GenAI outputs identity and illustrates meaning; ICR does so by explicitly modeling signifiers
+(words) and signifieds (meanings), using thematic structures, to capture semantic nuances and tracing those structures
+across outputs.
+
+3.3 Analytical Overview
+This approach integrates Braun and Clarke’s (2021) Reflective Thematic Analysis (RTA) [26] with Zhang and
+Wildemuth’s (2009) Inductive Content Analysis (ICA) [39], to establish a grounded interpretive baseline in which
+GenAI outputs can be evaluated for accuracy and truthfulness. The the following procedures outline how to deploy the
+ICR metric to evaluate content generated from LLMs, using reference text(s):
+
+3.3.1 Step 1. Conduct a Reflective Thematic Analysis (RTA)
+The first stage of ICR involves conducting a Reflective Thematic Analysis (RTA) across the entire reference dataset, or
+“golden datasets,” under examination. RTA is used to inductively identify patterns of meaning, recurrent themes, and
+contextual relationships through six steps: data familiarization, generation of initial codes, identification of themes,
+thematic review, further defining themes, and generating insights [37]. This process emphasizes extensive engagement
+with the raw, unstructured data, engaging in researcher reflexivity, interpretive depth, and achieving coding and meaning
+saturation [40, 37].
+
+To enhance reliability and rigor, multiple expert researchers independently analyze the dataset, comparing interpretations
+and resolving discrepancies through discussion or statistical analysis. In particular, statistical measures such as Cohen’s
+kappa [41], Krippendorf’s alpha [42] or Fleiss’ kappa [43] can be applied to quantify inter-rater agreement, providing
+an empirical check on the consistency of thematic coding and alignment. This systematic and collaborative approach
+produces a human-interpreted thematic structure that reflects how meaning is constructed, negotiated, and stabilized
+within the dataset. Importantly, RTA prioritizes conceptual coherence, contextual nuance, and interpretive insight over
+frequency-based dominance. The resulting themes function as an interpretive baseline of words, meanings, conceptual
+sequencing, and relationships grounded in human sense-making, that will later be used to compare and evaluate GenAI
+outputs.
+
+3.3.2 Step 2. Conduct an Inductive Content Analysis (ICA)
+Once the RTA baseline has been established, the second stage of ICR applies an Inductive Content Analysis (ICA) to
+examine GenAI outputs. Unlike RTA, which produces a human-interpreted thematic structure, ICA is inductive and
+exploratory, allowing the GenAI outputs to reveal how meanings are represented [33]. Researchers systematically
+examine outputs to identify signifiers, emergent categories, and patterns of meaning without imposing the RTA-derived
+themes a priori. In particular, this process involves documenting and analyzing the concepts generated by GenAI
+outputs. This process ensures that model-generated interpretations are captured on their own terms, reflecting how a
+model constructs semantic relationships, prioritizes certain concepts over others, and makes decisions about reference
+text nuances like polysemy words.
+
+Importantly, an ICA must be independently conducted and applied to both the researcher-generated RTA output and
+the GenAI output. To perform an ICA, scholars can use Zhang and Wildemuth’s (2009) qualitative content analysis
+framework [39], which includes eight-steps: preparing data, defining unit of analysis, developing categories/coding
+scheme, testing coding scheme, coding full dataset, assess consistency, analyzing and drawing conclusions, and
+producing findings. Importantly, the same systematic process must be applied to both the human-generated output
+(RTA) and model-generated output (LLM) (refer to Appendix 2 for example output).
+
+3.3.3 Step 3. Compare the GenAI and RTA Outputs via ICA
+Once the ICA is individually applied to the human-generated and model-generated outputs, researchers can examine the
+presence or absence of previously identified categories or concepts to analytically compare the GenAI outputs with the
+RTA-derived human baseline. This comparison enables researchers to evaluate the alignment, distortion, omission, or
+fabrication of meaning in relation to a reference text(s).
+
+For example, consider an RTA output that identifies the theme “Work-life Harmony Challenges”, with associated
+concepts like “Flexible Scheduling,” “Personal Well-being,” and “Family Support.” A systematic comparison using
+the ICA process might reveal that the GenAI output overemphasizes career-related aspects while under-representing
+personal well-being and family support. In another dataset with the same theme, the comparison might show that
+the GenAI output generates novel conceptual combinations not present in the human data, producing a hallucination
+
+
+                                                            6
+Simulating Meaning, Nevermore!
+
+
+error. Alternatively, in a different dataset, the GenAI output may closely match the human-RTA baseline. Without
+a systematic baseline for comparison, it is difficult to determine how accurate or truthful a model’s outputs are. A
+robust conceptual comparison, such as ICA, therefore helps reveal where outputs converge or diverge in meaning (see
+Appendix 3 for a more detailed example).
+
+3.3.4 Step 4. Quantify the Inductive Conceptual Rating (ICR)
+The final step in calculating the ICR is to quantify the results. Researchers should evaluate the conceptual presence or
+absence of concepts in the human baseline and LLM-generated outputs using the accuracy formula:
+                                                   True Positives + True Negatives
+                  Accuracy =
+                                True Positives + False Positives + True Negatives + False Negatives
+This calculation produces a quantifiable interpretive rating of meaning accuracy (i.e., how closely GenAI outputs reflect
+RTA outputs) and truthfulness (i.e., whether GenAI outputs preserve contextual relationships and produce supported
+or misleading interpretations). After evaluation, an ICR score ranging from 0 to 1 can be assigned. Higher values
+indicate stronger overall alignment with the human baseline, fewer errors (both false positives and false negatives), and
+better preservation of relevant concepts. This metric captures gradations of alignment by using the RTA output as the
+reference against which GenAI outputs are compared and measured.
+
+For instance, suppose a researcher is evaluating an LLM-generated summary of a short text about climate change. The
+human baseline (RTA) identifies the key concepts: greenhouse gases, global temperature rise, renewable energy, and
+policy interventions. The LLM-generated output mentions greenhouse gases, global temperature rise, and renewable
+energy, but omits policy interventions and incorrectly adds carbon taxes are universally adopted. Using ICR, the
+researcher would calculate:
+        • True positives (TP): 3 concepts correctly captured (greenhouse gases, global temperature rise, renewable
+           energy)
+        • False negatives (FN): 1 concept missing (policy interventions)
+        • False positives (FP): 1 concept incorrectly added (carbon taxes are universally adopted)
+        • True negatives (TN): Not applicable here; no true negatives identified
+In this example, the resulting ICR score is 0.6, which indicates that 60% of the concepts identified in the GenAI
+output align with those present in the human baseline, while 40% represent unsupported, potentially misleading,
+or hallucinatory additions. Interpreted in this way, the ICR score provides a quantitative indicator of conceptual
+alignment and contextual truthfulness between human-generated and GenAI-generated interpretations. A more detailed
+illustration of this scoring process is provided in Appendix 4.
+
+3.4 Positioning and Practical Implications
+It is important to acknowledge that the ICR metric is not intended to replace automated metrics, but rather to
+complement them in contexts where evaluation requires sensitivity to meaning, interpretation, and use. This is
+particularly critical for large language model tasks such as summarization and thematic generation, as well as for
+high-risk applications where truthfulness, contextual accuracy, and semantic fidelity are essential. Unlike automated
+metrics that treat meaning as a stable output derived from fixed inputs, ICR explicitly attends to meaning as a dynamic
+relation shaped by context, interpretation, and analytic judgment. Consequently, the effective application of ICR
+requires qualitative competency. In particular, to successfully apply ICR, researchers should have qualitative evaluative
+expertise and be familiar with rigorous hermeneutical practices that make interpretive decisions transparent and
+accountable. By integrating human interpretive insight with systematic assessment, ICR offers epistemological value by
+revealing how meaning is constructed, negotiated, and transformed across contexts, while also providing practical
+benefits by generating actionable insights for model evaluation, responsible deployment, and informed use.
+
+
+4   Case-Study: Analyzing Unstructured Text Data using the ICR Metric
+Unsurprisingly, given the premise of this article, we argue that understanding how large language models (LLMs)
+analyze unstructured text requires both linguistic and semantic evaluation. While LLMs can generate coherent outputs,
+the alignment of these outputs with human interpretations of meaning remains uncertain, particularly for complex
+or nuanced concepts. By using an ICR metric, to compare human-generated outputs with LLM-outputs, in this
+example, thematic summaries, we assess not only surface-level textual similarity but also deeper conceptual fidelity,
+interpretive alignment, and context. The approach enables rigorous evaluation across multiple datasets, models, and
+
+
+                                                           7
+Simulating Meaning, Nevermore!
+
+
+prompt strategies, providing insights into the accuracy, consistency, truthfulness, and limitations in machine-generated
+sense-making.
+
+4.1   Methodology
+This study used a mixed-methods triangulation design to assess the accuracy of LLM-generated thematic summaries
+[38]. Two data types were analyzed: qualitative open-text comments and quantitative ratings of those comments. The
+quantitative analysis followed a post hoc design using previously collected survey data, measuring textual similarity
+between original reference text and their corresponding LLM-generated summaries, followed by descriptive statistics
+and correlation tests. The qualitative analysis applied a Reflective Thematic Analysis (RTA) to generate outputs that
+reflect the reference datasets. Next, an Inductive Content Analysis (ICA) was used to compare the concepts and
+meanings in the original reference text with the RTA-generated outputs and the LLM-generate outputs. The RTA
+analyses were conducted first, before the LLM-generated outputs. Once the RTA and LLM-outputs were generated
+independently of each other, we integrated an ICR to evaluate surface-level (linguistic) similarity and deeper-level
+(semantic) meaning [44, 45].
+4.1.1 Dataset
+Five datasets, ranging from N=50 to N=800 (see Table 2), were drawn from open-text survey responses pertaining to a
+question about perceptions of work. Each comment ranged from 1 to 300 words. Preprocessing included removal of
+personally identifiable information and exclusion of low-quality responses (e.g., “none,” “N/A”). To ensure consistency,
+both human analysts and LLMs were required to produce exactly three themes per dataset, each with a name (<5-words)
+and a 3 to 4 sentence summary. LLMs were prompted to output this standardized format in JSON to enable direct
+comparison with human-generated summaries. A synthetic example of the format is shown in Appendix 2.
+
+Table 2: Characteristics of the Datasets Used in the Case Study: Response Counts, Corpus Size (word and character
+counts), and Prevalent Topics in Dataset
+
+ Dataset #   Responses    Word Count      Character Count       Most Frequent Topics
+      1           50         1,801             8,496            Organization, leadership, strategy
+      2          100          5,339            26,897           Policy, organization, leadership
+      3          200          7,467            36,221           Culture, organization, strategy
+      4          400          8,299            40,004           Resources, organization, tasks
+      5          800         49,982           238,389           Organization, culture, leadership
+
+
+4.1.2 Establishing Ground-truth
+To establish a ground truth, researchers conducted a Reflective Thematic Analysis (RTA) on each dataset using
+Braun and Clarke’s (2006) six-step method [18]. This served as a baseline to assess the accuracy, consistency, and
+potential biases in LLM-generated summaries. Multiple raters were involved to enhance reliability, and comparisons
+between human and LLM outputs were made using inductive conceptual content analysis (ICA) following Zhang and
+Wildemuth’s (2009) process [39]. Concepts were coded using short phrases (<5 words) and categorized inductively.
+Consistency was evaluated through iterative coding, with discrepancies addressed by refining categories. The presence
+or absence of each concept was documented for comparison across outputs.
+
+4.1.3 LLM Selection and Implementation
+Examining Sonnet 3.5 and Nova Pro is valuable because they differ in architectural maturity, training emphasis,
+and representational capacity, which directly shapes how meaning is constructed in generated text [46]. Sonnet 3.5
+emphasizes instruction-following and structured reasoning, making it useful for examining how prompts are translated
+into explicit thematic organization, while Nova Pro is comparatively less performant on standard benchmarks and often
+exhibits weaker abstraction and contextual integration [36]. Studying these models together allows the ICR framework
+to capture gradations of meaning alignment across systems and demonstrates that high linguistic fluency does not
+necessarily equate to semantic accuracy, reinforcing the need for human-centered interpretive evaluation.
+
+4.1.4 Prompt Engineering
+Dozens of prompts were tested using various strategies (e.g., zero-shot, few-shot, chain-of-thought). We refined
+prompts iteratively based on output alignment with study objectives [47]. Due to model-specific behavior, final
+prompts were tailored per model while maintaining a consistent structure (e.g., generate 3 themes, 2–4 sentence
+summaries). All models were run with standardized parameters: Temperature = 0, top-k = 0.25, top-p = 0.99.
+
+
+                                                            8
+Simulating Meaning, Nevermore!
+
+
+Importantly, each prompt and model was run ten times. In total, fifty outputs were generated for each model, with a to-
+tal of 100 outputs [47]. The most frequently recurring output used as the representative output for each model and dataset.
+
+4.1.5 Evaluation Metrics
+We used several key metrics across two dimensions: linguistic similarity and semantic accuracy. For linguistic metrics,
+we used cosine similarity and BERTScore. For semantic similarity, we used the ICR metric to measure agreement in
+concept presence between RTA and GenAI outputs.
+
+
+5   Results
+The results showed variability across models and datasets in terms of similarity, accuracy, and reliability. This section
+provides a high level overview of our findings while the following figures illustrate the results visually:
+       • Dataset N = 50: For the smallest dataset, all outputs show identical Recall, Precision, and F1 scores, indicating
+         similar surface-level coverage. However, semantic accuracy diverges with the human-RTA achieving perfect
+         ICR (1.00), while both Sonnet 3.5 and Nova Pro scored substantially lower (0.69). This suggests that although
+         LLM-generated thematic summaries appear linguistically adequate, in this instance, the models missed or
+         distorted core meanings, particularly with a small dataset.
+       • Dataset N = 100: At N = 100, Sonnet 3.5 achieved high linguistic performance (Cosine = 0.89, F1 = 0.91),
+         outperforming the human RTA across lexical metrics. Despite this, its ICR dropped to 0.35, indicating semantic
+         misalignment. Nova Pro showed slightly lower linguistic scores but a higher ICR score (0.48). The human
+         RTA maintained a strong balance between linguistic alignment and semantic accuracy (ICR = 0.86).
+       • Dataset N = 200: With moderate data volume, linguistic metrics were relatively high across all outputs.
+         Sonnet 3.5 and Nova Pro demonstrated strong Recall and F1, but semantic accuracy remained inconsistent
+         with Nova Pro achieving substantially higher ICR rating (0.75), while Sonnet 3.5 had a lower score (0.39).
+         The RTA demonstrated near-complete semantic coverage (ICR = 0.96).
+       • Dataset N = 400: At N = 400, both LLMs achieved high linguistic similarity, particularly Sonnet 3.5 (F1 =
+         0.90). However, ICR scores were modest (0.47 for Sonnet; 0.53 for Nova), which indicates a gap in contextual
+         meaning. The human RTA had a slight drop in Recall but maintained high semantic fidelity (ICR = 0.94).
+       • Dataset N = 800: For the largest dataset, both models demonstrated their highest overall performance.
+         Linguistic similarity was high across the board, and ICR scores improved (0.65 for Sonnet 3.5; 0.76 for Nova
+         Pro). Nevertheless, the human RTA still achieved higher semantic accuracy (ICR = 0.93). These results suggest
+         that increased data volume enhances LLM semantic alignment but does not fully close the gap with human
+         interpretive analysis.
+
+6   Discussion
+This case-study illustrates a comparison between GenAI outputs and human-generated outputs of unstructured data
+meaning, using the ICR metric to quantify semantic fidelity. Across all dataset sizes, LLMs demonstrated high
+surface-level performance, which is shown by cosine similarity and F1 scores, but the models consistently had lower
+scores with semantic alignment. This divergence highlights a critical finding that LLMs can be effective at content
+matching, with respect to replicating lexical patterns and topical overlap, but these types of models may exhibit limited
+capacity for meaning matching, which requires relational reasoning, contextual grounding, and recognition of recurring
+and fluid conceptual structures. These results contribute to ongoing research about the interpretive capabilities of AI,
+reinforcing the semiotic distinction between signifiers (words) and signifieds (meaning).
+
+We identified dataset size as a factor that seemed to influence semantic stability. While surface-level metrics remained
+consistent, ICR scores fluctuated substantially with smaller datasets and stabilized only once datasets exceeded
+approximately 200 responses. Even with the largest dataset (N = 800), neither LLM fully reached human levels of
+interpretive coherence, suggesting that increased data volume improves but might not entirely guarantee semantic
+fidelity. Human researchers, in contrast, maintained high ICR scores regardless of dataset size, illustrating the
+robustness of human interpretive reasoning in extracting meaning from sparse data. This finding highlights both the
+strengths and limitations of AI-driven qualitative synthesis and reinforces the importance of incorporating human
+judgment.
+
+Model-level analysis also revealed a nuances. While research suggests more advanced LLMs can achieve higher results
+across benchmarks [48], our study supports that models can achieve high linguistic metric results, but the models’
+
+
+                                                            9
+Simulating Meaning, Nevermore!
+
+
+
+    Figure 1: Evaluation Metric Results Visuals Comparing Human RTA Results with Sonnet 3.5 and Nova Pro
+
+
+
+
+                                                    10
+Simulating Meaning, Nevermore!
+
+
+demonstrated substantial variability when attempting to synthesize and generate accurate meaning from complex,
+multifaceted human experiences. These findings suggest that model newness or architectural complexity may not
+necessarily produce better results. This finding challenges the assumption that newer or larger models, as a metric like
+ICR can capture misalignment in LLM-generated outputs.
+
+Lastly, the results reveal epistemological importance. Unlike traditional analytical tools, which primarily observe or
+measure a phenomena, the probabilistic nature of LLMs means these tools transform sign systems without reflexivity,
+historical situatedness, or awareness of cultural and contextual factors central to human understanding, which are
+important elements of traditional qualitative research and meaning-making [27, 38, 18, 39, 19, 24]. The empirical ICR
+gap (researcher: 0.93 vs. LLMs: 0.35-0.76) quantifies this deficit and supports the view that GenAI outputs simulate
+rather than generate meaning [49]. This distinction is critical for researchers who seek to employ generative AI in
+interpretive work, particularly where high surface or content similarity does not imply deep comprehension of meaning.
+
+
+6.1 Implications
+Given the findings of the case-study, we identified several implications for theory, methodology, and practical use:
+       • Lexical vs. semantic alignment: This study found two foundation LLMs excelled at lexical, content matching
+         but struggled with meaning matching. This suggests a friction between linguistic relatedness and interpretive
+         understanding. The data reveals that automated metrics might get lexical alignment right but not necessarily
+         the depth of meaning. Metrics such as ICR can help with assessing semantic fidelity beyond surface-level
+         similarity.
+       • Dataset size and interpretive stability: Semantic accuracy improved with larger datasets, yet even higher
+         data volumes did not guarantee convergence with human interpretation. This study suggests researchers remain
+         necessary to quantify meaning representation with GenAI outputs, especially in small-scale or conceptually
+         nuanced unstructured text thematic syntheses.
+       • Epistemological considerations: LLMs simulate meaning without reflexivity or contextual awareness. The
+         gap between human and AI semantic performance highlights the importance of positioning GenAI outputs as
+         tools for pattern detection and preliminary synthesis rather than as sources of understanding.
+       • Inductive evaluative approach: Integrating LLMs with human baseline comparisons allows for efficient
+         detection of patterns while preserving interpretive rigor. ICR provides a transparent framework to assess GenAI
+         outputs and offers a validation process to evaluate meaning. It also requires experienced human researchers
+         who are proficient in multiple analytical approaches to be conducted effectively.
+Overall, our findings indicate that the two LLMs examined in this study can generate surface-level lexical match-
+ing outputs, but the models struggled with deeper, context-dependent semantic meaning. With that said, metrics
+like ICR indicate value in measuring semantic fidelity to determine the extent that an LLM is truthful in its outputs or not.
+
+6.1.1 Limitations
+We acknowledge several limitations associated with the case-study. First, the case study focused on open-text survey
+responses to a single question about perceptions of work; the results may not generalize to other domains or data types.
+Second, the establishment of ground truth through Reflective Thematic Analysis (RTA), while methodologically rigorous
+and supported by multiple raters, reflects a situated human interpretive framework rather than a universal representation
+of meaning, which is reflective of the human condition in interpreting signs, signifieds, and signifiers. Third, the analysis
+examined only two language models using tailored prompts and fixed parameters, and the observed patterns of semantic
+misalignment may be due to model or prompt-specific instructions and may not extend to other models or configurations.
+Fourth, the ICR metric operationalizes semantic alignment through binary concept presence, which captures conceptual
+coverage but does not account for degrees of overlap, relational structure, or differences in interpretive emphasis;
+there are opportunities to expand this metric further. These limitations suggest that while the ICR framework offers a
+promising approach for evaluating semantic fidelity in GenAI outputs that focus on thematic summarization or more
+broadly conceptual analysis, further validation across domains, models, and contexts is recommended for future research.
+
+While the use-case in this study illustrated unstructured survey text-based data, ICR’s transferability to other
+research domains and fields relies on the type of content and extent of human expertise needed. Conceptually, the
+method is domain-agnostic, as it has been designed to compare GenAI-outputs with a human-generated interpretive
+baseline. This allows for a range of settings where themes, concepts, or semantic relationships are present and can be
+meaningfully coded. However, there are specific instances where ICR might require additional considerations. For
+one, domain-specific language or settings may require specific adjustments. Legal texts, for instance, might contain
+
+
+                                                            11
+Simulating Meaning, Nevermore!
+
+
+subtle differences in phrasing that may change the nature of rights or policies, and an RTA baseline must include
+fine-grain distinctions. Alternatively, clinical notes will likely contain shorthand, acronyms, and terminology that
+may require coders to be experts in the field to avoid misinterpretation.Aside from field-considerations, ICR largely
+depends on human-coded baselines, which requires that coders contain domain and qualitative expertise to be able
+to identify relevant concepts accurately. Since LLMs can behave differently across various domains, foundational
+model architecture might misrepresent legal jargon or medical terms or cultural dialect, and an ICR can be ideal in
+quantifying these divergent ruptures of meaning, but the baseline must reflect domain-specific meaning to ensure more
+valid alignment. Overall, the ICR metric is highly adaptable across different domains, but its success depends on careful
+human baseline creation, domain-aware coding practices, and can be enhanced with inter-rater reliability.
+
+
+7   Conclusion
+This study highlights GenAI variability in surfacing meaning and the ways an ICR metric allows researchers to
+avoid measuring stimulated meaning, and, instead use actualized meaning to determine output accuracy. While the
+LLMs examined in this study demonstrate impressive proficiency in replicating surface-level lexical patterns, these
+models can fall short in achieving semantic depth and relational coherence that characterize human interpretation; this
+distinction highlights a fundamental tension between statistical fluency and interpretive understanding, revealing that
+the replication of language is not synonymous with grammar or word-matching.
+
+From a theoretical perspective, these findings reinforce the semiotic distinction between signifiers and signifieds, and
+they echo hermeneutic principles emphasizing contextuality, reflexivity, and the situated nature of meaning. GenAI, by
+probabilistically transforming sign systems, simulates interpretive processes but is inhibited by the historical, cultural,
+or experiential context necessary for genuine meaning understanding. The empirical gap in ICR scores between
+humans and LLMs in this study quantifies the epistemic limitations and offers a lens in which researchers can assess the
+interpretive reliability of AI analysis.
+
+We would be remiss if we did not recognize the multidimensionality challenge of meaning. As Picasso (1966) observed,
+“If there were only one truth, you couldn’t paint a hundred canvases on the same themes.” Picasso hits on the inherently
+messy nature of meaning; it can be plural, layered, nuanced, and open to multiple expressions. In this light, LLMs, in
+producing varied but imperfect approximations of human understanding, may offer a single or perhaps even a few
+different representations of meaning. Albeit, those representations may be inherently wrong, but they could also be
+accurate; without a baseline to compare, it is difficult to fully know. To this end, we argue LLMs should not serve as the
+composite truth-teller or meaning maker. Ultimately, we advocate for an inductive epistemology, where researchers
+provide interpretation, contextual grounding, and ethical reflection that are necessary for systematic meaningful
+analysis. By using metrics like ICR, researchers can draw clearer boundaries between identifying linguistic simulation
+and deeper conceptual understanding. In doing so, researchers can ensure that GenAI outputs enhance, rather than
+simulate, or worse, obscure the richness of human meaning-making.
+
+
+References
+ [1] F. De Saussure. Nature of the linguistic sign. Bedford/St. Martin’s Press, 1916.
+ [2] E. A. Poe. The Raven: Tales and Poems. Penguin, 2013.
+ [3] E. N. Purba and B. A. R. Damanik. Polysemy and homonymy in semantic interpretation. Young Journal of Social
+     Sciences and Humanities, 1(3):101–109, 2025.
+ [4] A. D. Bhargavi. Comparative study of static and contextual text vectorization for sentiment analysis. International
+     Journal for Research in Applied Science & Engineering Technology, 2025.
+ [5] M. Apidianaki. From word types to tokens and back: A survey of approaches to word meaning representation and
+     interpretation. Computational Linguistics, 49(2):465–523, 2023.
+ [6] A. Izzidien. Word vector embeddings hold social ontological relations capable of reflecting meaningful fairness
+     assessments. AI and Society, 37(1):299–318, 2022.
+ [7] A. Izzidien and D. Stillwell. The golden rule as a heuristic to measure the fairness of texts using machine learning.
+     arXiv preprint arXiv:2111.00107, 2021.
+ [8] J. Grindrod. Transformers, contextualism, and polysemy. arXiv preprint arXiv:2404.09577, 2024.
+ [9] F. Viegas, A. Pereira, W. Cunha, C. França, C. Andrade, E. Tuler, and M. A. Gonçalves. Exploiting contex-
+     tual embeddings in hierarchical topic modeling and investigating the limits of the current evaluation metrics.
+     Computational Linguistics, pages 1–41, 2025.
+
+
+                                                           12
+Simulating Meaning, Nevermore!
+
+
+[10] M. Alizadeh and A. Seilsepour. A novel self-supervised sentiment classification approach using semantic labeling
+     based on contextual embeddings. Multimedia Tools and Applications, 84(12):10195–10220, 2025.
+[11] R. Gangundi and R. Sridhar. Rbca-ets: enhancing extractive text summarization with contextual embedding and
+     word-level attention. International Journal of Information Technology, 17(2):1127–1135, 2025.
+[12] B. Paneru, B. Thapa, and B. Paneru. Sentiment analysis of movie reviews: a flask application using cnn with
+     roberta embeddings. Systems and Soft Computing, 7:200192, 2025.
+[13] A. Arseniev-Koehler. Theoretical foundations and limits of word embeddings: what types of meaning can they
+     capture? Sociological Methods & Research, 53(4):1753–1793, 2024.
+[14] E. Croxford, Y. Gao, N. Pellegrino, K. Wong, G. Wills, E. First, and M. Afshar. Current and future state of
+     evaluation of large language models for medical summarization tasks. npj Health Systems, 2(1):6, 2025.
+[15] A. Karjus. Machine-assisted quantitizing designs: augmenting humanities and social sciences with artificial
+     intelligence. Humanities and Social Sciences Communications, 12(1):1–18, 2025.
+[16] E. M. Bender and A. Koller. Climbing towards nlu: On meaning, form, and understanding in the age of data. In
+     Proceedings of the 58th annual meeting of the Association for Computational Linguistics, pages 5185–5198, July
+     2020.
+[17] J. K. Miller and W. Tang. Evaluating llm metrics through real-world capabilities. arXiv preprint arXiv:2505.08253,
+     2025.
+[18] V. Braun and V. Clarke. Using thematic analysis in psychology. Qualitative Research in Psychology, 3(2):77–101,
+     2006.
+[19] J. A. Smith, P. Flowers, and M. Larkin. Interpretative phenomenological analysis: Theory, method and research.
+     Sage, London, UK, 2009.
+[20] N. Fairclough. Media Discourse. Edward Arnold, London, 1995.
+[21] C. K. Riessman. Narrative methods for the human sciences. Sage, 2008.
+[22] U. Eco. A theory of semiotics, volume 217. Indiana University Press, 1979.
+[23] H. G. Gadamer. Hermeneutics and social science. Cultural Hermeneutics, 2(4):307–316, 1975.
+[24] M. B. Miles, A. M. Huberman, and J. Saldaña. Qualitative data analysis: A methods sourcebook. SAGE
+     Publications, Thousand Oaks, CA, 3rd edition, 2014.
+[25] G. Guest, K. M. MacQueen, and E. E. Namey. Applied Thematic Analysis. Sage Publications, 2011.
+[26] V. Braun and V. Clarke. To saturate or not to saturate? questioning data saturation as a useful concept for thematic
+     analysis and sample-size rationales. Qualitative Research in Sport, Exercise and Health, 13(2):201–216, 2021.
+[27] J. W. Creswell and C. N. Poth. Qualitative inquiry and research design: Choosing among five approaches. Sage
+     Publications, 2016.
+[28] B. Wagner, J. Kuebler, and M. Zalnieriute. Humans in the loop: exploring the challenges of human participation
+     in automated decision-making systems. Frontiers in Political Science, 7:1611563, 2025.
+[29] H. Mamman, S. Basri, A. Balogun, A. A. Imam, G. Kumar, and L. F. Capretz. Unbiasing on the fly: Explanation-
+     guided human oversight of machine learning system decisions. arXiv preprint arXiv:2406.17906, 2024.
+[30] S. Amershi, M. Cakmak, W. B. Knox, and T. Kulesza. Power to the people: The role of humans in interactive
+     machine learning. AI Magazine, 35(4):105–120, 2014.
+[31] L. Kandikatla and B. Radeljic. Ai and human oversight: A risk-based framework for alignment. arXiv preprint
+     arXiv:2510.09090, 2025.
+[32] S. Elo and H. Kyngäs. The qualitative content analysis process. Journal of Advanced Nursing, 62(1):107–115,
+     2008.
+[33] P. Mayring. Qualitative content analysis: Theoretical background and procedures. In Approaches to qualitative
+     research in mathematics education: Examples of methodology and methods, pages 365–380. Springer Netherlands,
+     Dordrecht, 2014.
+[34] M. Borgstede and M. Scholz. Quantitative and qualitative approaches to generalization and replication – a
+     representational perspective. Frontiers in Psychology, 12:605823, 2021.
+[35] C. Zhang, B. Peng, X. Sun, Q. Niu, J. Liu, K. Chen, and T. Wang. From word vectors to multimodal embeddings:
+     Techniques, applications, and future directions for large language models. arXiv preprint arXiv:2411.05036, 2024.
+
+
+                                                           13
+Simulating Meaning, Nevermore!
+
+
+[36] R. Bedemariam, N. Perez, S. Bhaduri, S. Kapoor, A. Gil, E. Conjar, and N. Nayyar. Potential and perils of large
+     language models as judges of unstructured textual data. arXiv preprint arXiv:2501.08167, 2025.
+[37] V. Braun and V. Clarke. Conceptual and design thinking for thematic analysis. Qualitative Psychology, 9(1):3,
+     2022.
+[38] J. W. Creswell and J. D. Creswell. Research design: Qualitative, quantitative, and mixed methods approaches.
+     Sage Publications, 2017.
+[39] Y. Zhang and B. M. Wildemuth. Qualitative analysis of content. In Applications of social research methods to
+     questions in information and library science, volume 308(319), pages 1–12. Libraries Unltd Inc., 2009.
+[40] M. Hennink and B. N. Kaiser. Sample sizes for saturation in qualitative research: A systematic review of empirical
+     tests. Social Science and Medicine, 292:114523, 2022.
+[41] Jacob Cohen. A coefficient of agreement for nominal scales. Educational and Psychological Measurement,
+     20(1):37–46, 1960.
+[42] Klaus Krippendorff. Content Analysis: An Introduction to Its Methodology. SAGE Publications, 4 edition, 2018.
+[43] Joseph L. Fleiss. Measuring nominal scale agreement among many raters. Psychological Bulletin, 76(5):378–382,
+     1971.
+[44] E. Fitkov-Norris, N. Kocheva, and N. Bhimireddy. Are we there yet? thematic analysis, nlp and machine learning
+     for academic research: a comparative review. In FBSS Research Conference 2023, June 2023.
+[45] T. C. Guetterman, T. Chang, M. DeJonckheere, T. Basu, E. Scruggs, and V. V. Vydiswaran. Augmenting qualitative
+     text analysis with natural language processing: methodological study. Journal of Medical Internet Research,
+     20(6):e231, 2018.
+[46] J. Jacas, H. Winchester, A. E. Boyd, and B. Johnson. Architecture matters: Understanding how LLM model types
+     influence harmful language detection in technical contexts. In Proceedings of the 1st International Workshop on
+     Responsible Software Engineering, pages 7–12, June 2025.
+[47] J. He, M. Rungta, D. Koleczek, A. Sekhon, F. X. Wang, and S. Hasan. Does prompt formatting have any impact
+     on LLM performance? arXiv preprint arXiv:2411.10541, 2024.
+[48] R. Lunardi, V. Della Mea, S. Mizzaro, and K. Roitero. On robustness and reliability of benchmark-based evaluation
+     of llms. arXiv preprint arXiv:2509.04013, 2025.
+[49] M. T. Hicks, J. Humphries, and J. Slater. Chatgpt is bullshit. Ethics and Information Technology, 26(2):1–10,
+     2024.
+[50] R. Barthes. Elements of semiology. Macmillan, 1977.
+[51] Geert Hofstede. Culture’s Consequences: Comparing Values, Behaviors, Institutions and Organizations Across
+     Nations. Sage, Thousand Oaks, CA, 2 edition, 2001.
+[52] Vicki K. Kanuha. Na ‘ohana: Native hawaiian families. In Ethnicity and Family Therapy, pages 64–74. Guilford
+     Press, New York, NY, 2005.
+[53] J. Lyons. Semantics, volume 2. Cambridge University Press, 1977.
+[54] A. Cruse. Meaning in language: An introduction to semantics and pragmatics. Oxford University Press, 2004.
+[55] J. Li, M. Zhang, N. Li, D. Weyns, Z. Jin, and K. Tei. Generative ai for self-adaptive systems: State of the art and
+     research roadmap. ACM Transactions on Autonomous and Adaptive Systems, 19(3):1–60, 2024.
+[56] L. Dvořáčková. Analyzing word embeddings and their impact on semantic similarity: through extreme simulated
+     conditions to real dataset characteristics. Neural Computing and Applications, pages 1–29, 2025.
+[57] H. Alkaabi, A. K. Jasim, and A. Darroudi. From static to contextual: A survey of embedding advances in nlp.
+     PERFECT: Journal of Smart Algorithms, 2(2):64–73, 2025.
+[58] S. S. Sengar, A. B. Hasan, S. Kumar, and F. Carroll. Generative artificial intelligence: a systematic review and
+     applications. Multimedia Tools and Applications, 84(21):23661–23700, 2025.
+[59] A. S. Martín. What generative artificial intelligence means for terminological definitions. arXiv preprint
+     arXiv:2402.16139, 2024.
+[60] J. Requeima, J. Bronskill, D. Choi, R. Turner, and D. K. Duvenaud. Llm processes: Numerical predictive
+     distributions conditioned on natural language. Advances in Neural Information Processing Systems, 37:109609–
+     109671, 2024.
+[61] B. Liu. An efficient construction method for matrix decomposition-based natural language processing models in
+     low-dimensional embedding space. J. Combin. Math. Combin. Comput., 127:3319–3337, 2025.
+
+
+                                                          14
+Simulating Meaning, Nevermore!
+
+
+[62] J. Devlin, M. W. Chang, K. Lee, and K. Toutanova. Bert: Pre-training of deep bidirectional transformers for
+     language understanding. In Proceedings of the 2019 Conference of the North American Chapter of the Association
+     for Computational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers), pages
+     4171–4186, June 2019.
+[63] J. Haber and M. Poesio. Polysemy—evidence from linguistics, behavioral science, and contextualized language
+     models. Computational Linguistics, 50(1):351–417, 2024.
+[64] R. Josselson. The hermeneutics of faith and the hermeneutics of suspicion. Narrative Inquiry, 14(1):1–28, 2004.
+[65] D. Nesbitt, D. Fleischer, E. Callahan, M. Rozenfeld, and M. Taleb. Semantic contextual embedding for domain-
+     specific task transfer in large language models. Authorea, 2024.
+[66] S. Shan. Towards reflexive ai: A comprehensive exploration of enhancing social science research through nlp.
+     In Future of Information and Communication Conference, pages 765–792. Springer Nature Switzerland, March
+     2025.
+[67] P. Resnik. Large language models are biased because they are large language models. Computational Linguistics,
+     51(3):885–906, 2025.
+
+A     Appendix 1: Additional Key Concepts
+A.1   Semiotics and Meaning
+The field of semiotics posits that meaning does not reside in words themselves but emerges through relational systems
+of signs. Saussure, who in 1916 described a linguistic sign to be composed of the signifier and the signified, argued that
+meaning does not emerge from a direct correspondence between a word and a concept; instead, meaning emerges
+from the position of a sign within a broader system of differences. Meaning, therefore, is inherently relational and
+context-dependent rather than fixed or intrinsic. He posits that humans have an incredible ability to fluidly recognize
+and interpret signs, given a variety of conditions. In later years, ’sembiotic theorists expanded Saussure’s early theories
+to include the instability and multidimensionalness’ of meaning. For instance, Barthes (1977) argued that signs function
+within cultural or ideological systems [50]. Within these particular systems, meaning is constantly reinterpreted and
+reshaped. From this perspective, theorists suggest that a sign is never neutral in meaning, but rather meaning is always
+influenced by social, historical, and/or cultural contexts in which the signs reside in and are interpreted from. From this
+perspective, the same sign may mean something in one culture and yet the same sign may mean something entirely
+different in another culture.
+
+In talking about the concept of culture, we must recognize micro, meso, and macro layers. For instance, even subtle
+cultural differences can influence sign meaning. In fact, a sign could mean something distinct within a micro-culture,
+such as a particular group of people, that function under a broader cultural or population context, such as home culture
+compared to national culture [51]. Take the word “family.” Within a micro-culture, such as a particular Hawaiian
+’ohana, “family” can include or refer to not only parents and children but also extended relatives, close friends, and
+even community members who share mutual care and responsibility [52]. Whereas, in the broader U.S. national culture,
+“family” is often interpreted more narrowly as the nuclear unit of parents and children. Globally, in other cultural
+contexts, “family” might extend to multiple generations living together, or carry legal and social connotations that differ
+entirely from U.S. usage. Signs across these cultural examples can thus vary in meaning and also contain overlap,
+depending on cultural context. Hence, signs, and more broadly meaning, are dependent on the conditions of the system
+they reside in, rather than a word itself.
+
+
+A.1.1 Polysemy
+The concept of polysemy is the study of the multidimensionality of a sign. In other words, polysemy is one signifier
+(word) that is associated with multiple signifieds (meaning), such as the word “nevermore” in Poe’s The Raven
+[53, 54]. Words that contain multiple meanings, such as the contextual positioning of the word “nevermore” or the
+more popular polysemy word “run” do not contain a single, stable meaning; instead, their interpretation often depends
+on contextual cues, narrative positioning, and relational use. Run, for instance, has hundreds of meanings, including
+moving fast, flowing, making a regular journey, managing, a candidate in a political election, etc. When we consider
+this duplicity with words, semiotics become particularly important and informative in language and meaning. Afterall,
+humans interpret by decoding language fluidly, and recognizing the sign, signified, and signified allows us to engage in
+interpretive flexibility, which is a central part of how human language functions [1].
+
+
+
+                                                            15
+Simulating Meaning, Nevermore!
+
+
+A.1.2 Computational Representations of Meaning
+In computational linguistics and natural language processing (NLP), meaning is modeled through statistical
+representations of language. Word embeddings are used to encode words as vectors in high-dimensional vector
+spaces that allow for semantic clustering by grouping words in patterns of co-occurrence and distributional similarity
+[55, 56, 5, 6]. Traditional and later static embedding models include Bag of Words, TF-IDF, Word2Vec, and GloVe, and
+these models assign a single, fixed vector to each word type, regardless of context [57]. Consequently, these models
+operate at the level of signifiers (words) rather than signifieds (meaning), as they can capture a word, but not necessarily
+its situated meaning [35]; this means traditional NLP models output language where meaning is inferred indirectly
+through frequency and proximity relationships rather than through conceptual or contextual understanding, which has
+resulted in challenges with polysemy and contextual meaning [4].
+
+A.1.3 Contextual Embeddings
+Recent advances in embedding models have sought to address traditional embedding limitations through contextualized
+embeddings. In models such as BERT, RoBERTa, ALBERT, and DistilBERT, each input token passes through multiple
+self-attention and feedforward layers, where a token is iteratively updated to reflect its contextual meaning. For
+example, the word “run” is interpreted differently when used in the context of a “model run” versus a “marathon run,”
+even though the “run” token embedding is identical; the model’s transformations disambiguate meaning according to
+the context of “model” and “marathon” [4, 58]. This process allows embeddings to capture fine-grained semantic
+distinctions that static embeddings cannot, improving performance in tasks like topic modeling, summarization,
+and sentiment analysis [9, 11, 12]. From a semiotic perspective, the contextual embedding process reconfigures the
+relationship between signifier and signified. While promising, gaps are still present in meaning representations with
+contextual embedding models. This is not entirely surprising because human meaning identification emerges through
+interpretive engagement with signs in context, whereas GenAI approximates meaning via statistical relationships in
+latent vector spaces, where similarity, distance, and direction encode semantic relatedness [1, 59, 5]. Despite their
+advantages, contextual embeddings are statistical approximations, grounded in mathematical patterns rather than fluid,
+embodied, culturally situated and interpretive understanding.
+
+A.1.4 Transformer Layers and Meaning
+In large language models, transformer layers operationalize contextual embeddings using self-attention mechanisms to
+weigh the relevance of each token relative to others, while feedforward networks project these weighted representations
+into higher-dimensional spaces that encode increasingly abstract semantic features [55]. Through this iterative
+transformation, polysemous words gain context-specific vector representations, allowing the model to distinguish
+multiple signifieds (meanings) of the same signifier (word). However, these processes are still statistical approximations,
+since they capture semantic coherence probabilistically without actualized interpretive understanding, making GenAI
+outputs sensitive to prompt phrasing and probabilistic sampling [60, 61]. From a semiotic perspective, transformer
+layers and contextual embeddings enable GenAI models to simulate the relational dynamics between signifier and
+signified, but the models do not interpret meaning in the traditional human linguistic or hermeneutic sense [1, 5, 59];
+because models reproduce how words tend to be connected to meanings in language, but the models do not interpret
+meaning, since the model does not inherently understand, interpret, or reflect the way humans do through a bricolage of
+lived experience and intention.
+
+A.1.5 Conceptual Variability and Hermeneutics
+While contextual embeddings and transformer layers allow language models to disambiguate polysemous words at
+the sentence level, challenges remain across longer sequences, where multiple interpretations of interacting words
+coexist as probabilistic possibilities in latent space [62, 63]. For example, consider the concept of “work-life harmony.”
+If fifty individuals provided their personal experiences of the concept, and a researcher prompted a language model
+to define work-life harmony given the input data of the 50 individuals, the model would synthesize these inputs by
+negotiating statistical patterns encoded in embeddings and transformer layers, albeit with some contextual constraints
+from the prompt. The resulting output might emphasize dominant themes, but there is a risk of underrepresentation of
+less frequent perspectives, or subtle variations in phrasing or context that could yield different interpretations from a
+placed-based or contextual positionality from an individual embedded within a particular culture or group. Although
+transformer-based models produce coherent text, the models do not “understand” meaning in a human sense and
+remain probabilistic, surfacing approximations of semantic relationships. GenAI outputs ultimately are an advanced
+guessing-game of what a text’s meaning might be, given certain conditions.
+
+Alternatively, hermeneutics is a critical framework for understanding and identifying meaning and meaning variability
+in human experiences. Gadamer (1975) emphasizes that interpretation is historically and culturally situated, shaped
+
+
+                                                            16
+Simulating Meaning, Nevermore!
+
+
+by the interpreter’s prior knowledge, cultural horizons, and the social context in which meaning is produced [23].
+Alternatively, Ricoeur (1970) argues that there are different types of hermeneutics, such as a hermeneutic of suspicion,
+which critically interrogates underlying structures, assumptions, and power dynamics, and a hermeneutics of faith,
+which seeks to identify coherence, meaning, and narrative continuity within texts [64]. Applied to a dataset of
+individual experiences, Gadamer and Ricoeur’s perspectives of hermeneutics encourages researchers to engage in a
+layered approach, where one can explore patterns, recurring themes, and implicit assumptions (suspicion), while also
+attending to the lived coherence and subjective sense-making expressed by individuals (faith).
+
+From a hermeneutical perspective, like a semiotic lens, meaning is never fixed; instead, meaning emerges through a
+dialogical process of interpretation, as the researcher actively negotiates between the signifiers (words), the signified
+(meaning), and the broader social, cultural, and temporal context within a text. Applied to the example of 50 individuals,
+hermeneutical practices can highlight what work-life harmony means from diverse human experiences; this approach
+allows researchers to synthesize multiple perspectives of “work-life harmony,” revealing both shared elements and
+unique variations, while situating each individual response within a dynamic, relational framework of meaning. It
+also forces researchers to examine “worklife harmony” from a nomothetic and an idiographic perspective, moving
+between the whole and the individual, the general and the specific. Hermeneutics forces researchers to recognize
+potential friction or tension in experiences, and identify where experiences overlap and differ to avoid over-indexing on
+a dominant view or non-dominant view. From this lens, hermeneutics complements semiotic theory by foregrounding
+the interpretive work required to translate raw textual data into coherent, contextually grounded understanding, rather
+than treating meaning as a static property inherent in data.
+
+
+A.1.6 Challenges with GenAI Outputs and Meaning Representation
+Despite the advantages of contextual embeddings and transformer architectures, GenAI outputs face fundamental
+limitations in representing meaning, particularly when dealing with complex, multi-faceted human experiences. From
+a semiotic and hermeneutic perspective, GenAI outputs reveal a tension between signifiers (words) and signifieds
+(meaning). For instance, embeddings can simulate semantic relationships [65] but lack reflexive interpretation [66];
+since LLMs mimic language through highly complex mathematical systems and processes but do not aim to analyze
+data grounded in identifying truth or the reality of human experiences, these models may produce biased or misleading
+interpretations without recognizing them as such [67]. This means evaluating GenAI requires frameworks that
+integrate technical understanding with interpretive methods, such as reflective thematic analysis and inductive content
+analysis, to trace how meaning emerges, shifts, or diverges from human experience. Treating GenAI as a semiotic
+infrastructure highlights that outputs simulate rather than understand meaning [49]. Ultimately, in viewing GenAI this
+way highlights that outputs are simulations of meaning, structured by the model’s architecture and training data, and not
+true understanding. Therefore, human interpretations are critical to assess meaning fidelity, coherence, and truthfulness.
+
+B    Appendix 2: Example of GenAI Thematic Outputs in JSON
+theme1: "name": "Adaptive Organizational Learning",
+"summary": "Organizations are increasingly prioritizing continuous learning as a core capability. By encouraging
+experimentation, reflection, and knowledge sharing, teams are better equipped to respond to uncertainty and change.
+This adaptive approach allows organizations to evolve alongside emerging challenges while cultivating resilience and
+long-term innovation."
+
+theme2: "name": "Human-Centered Technology Integration",
+"summary": "As advanced technologies become embedded in everyday work, organizations are re-centering human
+values in system design and implementation. Emphasizing usability, transparency, and ethical considerations ensures
+that technology supports rather than replaces human judgment. This integration strengthens trust, efficiency, and
+meaningful engagement between people and tools."
+
+theme3: "name": "Distributed Leadership Practices",
+"summary": "Leadership is shifting from hierarchical control toward distributed and collaborative models. Teams
+are empowered to make decisions, share responsibility, and contribute diverse perspectives. This redistribution of
+leadership fosters accountability, accelerates problem-solving, and supports more inclusive organizational cultures."
+
+
+C    Appendix 3: RTA Procedural Example
+The study followed a structured Reflective Thematic Analysis (RTA) process. The steps are outlined below:
+
+
+                                                           17
+Simulating Meaning, Nevermore!
+
+
+      1. Data Familiarization Researchers first read all 50 participant responses multiple times to immerse themselves
+         in the data. Sample excerpts include:
+            • “I feel balanced when I can manage my deadlines without sacrificing family time.”
+            • “Sometimes work demands spill over into my personal life, which makes me anxious.”
+            • “Having flexible hours allows me to pursue hobbies and maintain relationships.”
+            • “I constantly struggle with guilt when prioritizing my career over personal time.”
+         This stage allowed the research team to note initial impressions, recurring concepts (e.g., balance, flexibility,
+         guilt), and variations in experiences.
+      2. Initial Coding Researchers applied open coding to the data, assigning descriptive labels to meaningful units.
+         Example codes include:
+            • Boundary management: describing the ability to separate work and personal life
+            • Flexibility: references to adjustable schedules or remote work options
+            • Emotional tension: feelings of guilt, stress, or anxiety related to competing priorities
+            • Personal fulfillment: engagement in hobbies, family, or self-care
+         Multiple researchers coded independently to capture diverse interpretations.
+      3. Theme Identification Codes were grouped into broader conceptual themes:
+            • Work-Life Balance: managing competing demands of work and personal life
+            • Autonomy and Flexibility: control over schedule, ability to work remotely, or choose tasks
+            • Emotional Experience: stress, guilt, satisfaction, or relief associated with harmonizing roles
+            • Meaning and Purpose: sense of fulfillment derived from achieving harmony in daily routines
+      4. Thematic Review Themes were reviewed for coherence and overlap. Researchers examined whether each
+         theme adequately captured the coded data and maintained conceptual clarity. For example, some codes related
+         to stress were initially grouped under “Emotional Experience” but were subdivided into work-induced stress
+         and life-induced stress for nuance.
+      5. Defining Themes Each theme was precisely defined and contextualized:
+            • Work-Life Balance: Practices and strategies participants use to allocate time and energy between profes-
+              sional and personal responsibilities
+            • Autonomy and Flexibility: Extent to which participants can make choices about work timing, location,
+              and task prioritization
+            • Emotional Experience: Positive and negative affective responses arising from attempts to achieve harmony
+            • Meaning and Purpose: Subjective interpretations of fulfillment, identity, and satisfaction from integrating
+              work and life roles
+      6. Generating Insights The final RTA output highlighted relationships among themes. For example, participants
+         with higher Autonomy and Flexibility reported lower Emotional Tension and higher Meaning and Purpose,
+         suggesting that structural supports directly influence experiential outcomes.
+Inter-Rater Reliability
+Cohen’s kappa (κ = 0.87) and Fleiss’ kappa (κ = 0.85) indicated high agreement among researchers, confirming
+consistent thematic interpretation.
+Interpretive Baseline
+The resulting thematic structure, detailing conceptual sequencing, relationships, and contextual nuance, constitutes the
+human-interpreted baseline. This baseline provides the benchmark for subsequent ICR evaluation of GenAI-output
+summaries or analyses of participants’ experiences with work-life harmony.
+
+D    Appendix 4: ICA Output Example
+D.1 Inductive Content Analysis of GenAI Outputs
+The analysis followed a structured Inductive Content Analysis (ICA) procedure on the GenAI outputs. Steps are
+outlined below:
+      1. Data Preparation GenAI outputs were collected in response to the prompt: “Summarize the experiences of
+         50 participants discussing their work-life harmony.” Sample outputs included:
+
+
+                                                           18
+Simulating Meaning, Nevermore!
+
+
+           • “Participants prioritize career success, often at the expense of personal time, though some report flexible
+             schedules aiding balance.”
+           • “Many participants experience stress and guilt, but hobbies and family activities help mitigate work
+             pressures.”
+           • “Work-life harmony is achieved when individuals can manage deadlines while also dedicating time to
+             self-care and relationships.”
+        The data were cleaned for consistency, segmented into meaningful units (sentences or phrases), and prepared
+        for coding.
+     2. Unit of Analysis Each sentence or meaningful phrase was treated as a unit of analysis, enabling the researchers
+        to capture distinct concepts or semantic contributions from the AI output.
+     3. Developing Categories / Coding Scheme Using inductive content analysis via Zhang et al. (2009), emergent
+        categories were identified based on recurring patterns, without imposing RTA-derived themes. Example
+        emergent categories included:
+           • Career Emphasis: mentions of work, deadlines, productivity
+           • Personal Well-being: references to hobbies, family, relaxation, mental health
+           • Flexibility: mentions of schedule control, remote work, adjustable hours
+           • Emotional Tension: stress, anxiety, guilt associated with balancing roles
+           • Integrated Meaning: statements about achieving harmony or fulfillment
+     4. Testing and Coding the Dataset Researchers iteratively coded several GenAI output samples to refine
+        categories, resolve ambiguities, and ensure consistent interpretation. Once finalized, the full dataset of GenAI
+        outputs was coded according to the emergent categories.
+     5. Assessing Consistency Inter-coder agreement was checked (Cohen’s κ = 0.81), confirming reliable coding of
+        GenAI outputs.
+     6. Comparison with RTA Baseline
+        The emergent ICA categories were compared to the RTA-derived human baseline themes. Table 3 summarizes
+        the comparison:
+
+Table 3: Comparison of RTA Themes (Human), ICA (LLM) Categories and Analytical Assessment (Observations) of
+Semantic Alignment, Distortion, and Omission
+
+ RTA Theme                              ICA Category Representation             Observations
+ Flexible Scheduling                    Flexibility                             GenAI outputs captured flexibility
+                                                                                but emphasized remote work more
+                                                                                than participant quotes indicated.
+ Personal Well-being                    Personal Well-being                     GenAI outputs underrepresented
+                                                                                nuanced emotional experiences, e.g.,
+                                                                                guilt and anxiety, in favor of generic
+                                                                                “self-care.”
+ Career-Personal Integration            Integrated Meaning                      GenAI outputs produced
+                                                                                overgeneralized statements about
+                                                                                achieving harmony, sometimes
+                                                                                combining career and personal life
+                                                                                without reflecting participants’
+                                                                                tension.
+ Emotional Experience                   Emotional Tension                       GenAI outputs acknowledged stress
+                                                                                but often minimized the relational
+                                                                                context present in participant
+                                                                                responses.
+
+        This comparison highlighted alignment, distortion, omission, and amplification. For example, GenAI outputs
+        aligned with RTA in capturing broad themes (Flexibility, Career Emphasis) but underrepresented nuanced
+        emotional experiences (guilt, anxiety) and overgeneralized integrative statements.
+     7. Calculating the ICR Score
+
+
+                                                          19
+Simulating Meaning, Nevermore!
+
+
+       The GenAI outputs were evaluated by comparing the conceptual content of the generated interpretations with
+       the themes identified through Reflexive Thematic Analysis (RTA). Conceptual alignment was assessed using
+       the following classification categories:
+          • True Positives (TP): Concepts present in the RTA baseline that were accurately reflected in the GenAI
+            output (e.g., Flexibility, Career Emphasis).
+          • False Positives (FP): Concepts introduced by the GenAI output that were not present in the RTA baseline
+            (e.g., “all participants enjoy career success”).
+          • False Negatives (FN): Concepts identified in the RTA baseline but omitted from the GenAI output (e.g.,
+            nuanced emotional tension or feelings of guilt).
+          • True Negatives (TN): The absence of unrelated or irrelevant conceptual content in the GenAI output.
+        Using these classifications, an Inductive Conceptual Rating (ICR) score was calculated using an accuracy-based
+        metric. For example, in the current dataset, the GenAI output correctly captured 5 relevant concepts (TP =
+        5), introduced 1 unsupported concept (FP = 1), omitted 1 relevant concept (FN = 1), and had no additional
+        irrelevant concepts (TN = 0). Using the accuracy formula:
+
+                                                 TP + TN                   5+0          5
+                       ICR(Accuracy) =                             =                 = ≈ 0.714
+                                          TP + FP + TN + FN           5+1+0+1           7
+       This ICR score of approximately 0.714 reflects moderate-to-strong overall conceptual alignment between
+       the GenAI interpretation and the human baseline; this indicates that most themes were captured accurately,
+       while a smaller portion of identified concepts were either missed or incorrectly introduced. Higher ICR
+       scores represent stronger correspondence with the human-generated analysis and fewer errors in conceptual
+       interpretation.
+
+
+
+
+                                                         20
+

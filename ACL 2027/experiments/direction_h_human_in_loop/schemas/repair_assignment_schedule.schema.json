@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-repair-assignment-schedule-v1.json",
+  "title": "Direction H coordinator-only repair-assessor schedule",
+  "description": "Frozen private join among eligible assessors, panel arms, source panel identifiers, isolated bundle aliases, and out-of-band assignment tokens.",
+  "type": "object",
+  "required": [
+    "assignment_schedule_version",
+    "study_id",
+    "schedule_id",
+    "status",
+    "visibility",
+    "data_scope",
+    "contains_protected_text",
+    "created_at_utc",
+    "assignment_seed_hex",
+    "input_hashes",
+    "design",
+    "reviewers"
+  ],
+  "properties": {
+    "assignment_schedule_version": {
+      "const": "direction-h-repair-assignment-schedule-v1"
+    },
+    "study_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "schedule_id": {
+      "type": "string",
+      "pattern": "^RASCH-[0-9A-F]{20}$"
+    },
+    "status": {
+      "const": "frozen"
+    },
+    "visibility": {
+      "const": "coordinator_only_until_all_repair_assessments_lock"
+    },
+    "data_scope": {
+      "const": "synthetic_only"
+    },
+    "contains_protected_text": {
+      "const": false
+    },
+    "created_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "assignment_seed_hex": {
+      "description": "Private 256-bit seed used only to reproduce balance search, aliases, bundle identifiers, and tokens.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "input_hashes": {
+      "type": "object",
+      "required": [
+        "public_panel_manifest_sha256",
+        "private_arm_map_sha256",
+        "reviewer_roster_sha256",
+        "reviewer_roster_schema_sha256",
+        "assessor_bundle_schema_sha256",
+        "repair_panel_item_schema_sha256",
+        "assignment_builder_script_sha256",
+        "repair_assessment_lock_script_sha256",
+        "repair_assessment_lock_schema_sha256",
+        "repair_assessment_collector_script_sha256",
+        "pilot_item_schema_sha256",
+        "qualitative_output_schema_sha256",
+        "repair_assessment_schema_sha256",
+        "paper_metric_rating_schema_sha256",
+        "post_revision_rating_link_schema_sha256",
+        "repair_assessor_runtime_readme_sha256"
+      ],
+      "properties": {
+        "public_panel_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "private_arm_map_sha256": {"$ref": "#/$defs/sha256"},
+        "reviewer_roster_sha256": {"$ref": "#/$defs/sha256"},
+        "reviewer_roster_schema_sha256": {"$ref": "#/$defs/sha256"},
+        "assessor_bundle_schema_sha256": {"$ref": "#/$defs/sha256"},
+        "repair_panel_item_schema_sha256": {"$ref": "#/$defs/sha256"},
+        "assignment_builder_script_sha256": {"$ref": "#/$defs/sha256"},
+        "repair_assessment_lock_script_sha256": {"$ref": "#/$defs/sha256"},
+        "repair_assessment_lock_schema_sha256": {"$ref": "#/$defs/sha256"},
+        "repair_assessment_collector_script_sha256": {"$ref": "#/$defs/sha256"},
+        "pilot_item_schema_sha256": {"$ref": "#/$defs/sha256"},
+        "qualitative_output_schema_sha256": {"$ref": "#/$defs/sha256"},
+        "repair_assessment_schema_sha256": {"$ref": "#/$defs/sha256"},
+        "paper_metric_rating_schema_sha256": {"$ref": "#/$defs/sha256"},
+        "post_revision_rating_link_schema_sha256": {"$ref": "#/$defs/sha256"},
+        "repair_assessor_runtime_readme_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "design": {
+      "type": "object",
+      "required": [
+        "assignment_targets",
+        "allocated_feedback_arms",
+        "observed_feedback_arms",
+        "unavailable_target_case_count",
+        "unavailable_target_cases_sha256",
+        "single_observed_arm_qualification",
+        "panel_item_count",
+        "total_assignment_count",
+        "selected_balance_trial",
+        "every_item_exact_target_coverage_verified",
+        "no_more_than_one_variant_per_task_per_rater_verified",
+        "within_stratum_workload_difference_at_most_one_verified",
+        "within_rater_arm_count_difference_at_most_one_verified",
+        "fresh_aliases_verified",
+        "isolated_bundle_subset_verified"
+      ],
+      "properties": {
+        "assignment_targets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/assignmentTarget"}
+        },
+        "allocated_feedback_arms": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"type": "string", "minLength": 1, "maxLength": 160},
+          "uniqueItems": true
+        },
+        "observed_feedback_arms": {
+          "description": "Arms with schema-valid hard-gate-passing revisions available for assessment. This may contain one arm only when the private map proves all paired missing-arm cases terminal-unavailable.",
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1, "maxLength": 160},
+          "uniqueItems": true
+        },
+        "unavailable_target_case_count": {"type": "integer", "minimum": 0},
+        "unavailable_target_cases_sha256": {"$ref": "#/$defs/sha256"},
+        "single_observed_arm_qualification": {
+          "enum": [
+            "not_needed_multiple_allocated_arms_observed",
+            "allowed_only_because_missing_paired_cases_terminal_unavailable"
+          ]
+        },
+        "panel_item_count": {"type": "integer", "minimum": 1},
+        "total_assignment_count": {"type": "integer", "minimum": 1},
+        "selected_balance_trial": {"type": "integer", "minimum": 0},
+        "every_item_exact_target_coverage_verified": {"const": true},
+        "no_more_than_one_variant_per_task_per_rater_verified": {"const": true},
+        "within_stratum_workload_difference_at_most_one_verified": {"const": true},
+        "within_rater_arm_count_difference_at_most_one_verified": {"const": true},
+        "fresh_aliases_verified": {"const": true},
+        "isolated_bundle_subset_verified": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "reviewers": {
+      "type": "array",
+      "minItems": 2,
+      "items": {"$ref": "#/$defs/reviewerSchedule"}
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "evaluatorGroup": {
+      "enum": [
+        "researcher",
+        "qualitative_methods_expert",
+        "domain_expert",
+        "dual_expertise"
+      ]
+    },
+    "assignmentTarget": {
+      "type": "object",
+      "required": ["evaluator_group", "assessments_per_panel_item"],
+      "properties": {
+        "evaluator_group": {"$ref": "#/$defs/evaluatorGroup"},
+        "assessments_per_panel_item": {"type": "integer", "minimum": 1, "maximum": 20}
+      },
+      "additionalProperties": false
+    },
+    "reviewerSchedule": {
+      "type": "object",
+      "required": [
+        "rater_id",
+        "evaluator_group",
+        "assessor_alias",
+        "bundle_id",
+        "assignment_token",
+        "assignment_token_sha256",
+        "rater_binding_sha256",
+        "bundle_directory",
+        "bundle_manifest_sha256",
+        "bundle_tree_sha256",
+        "workload_count",
+        "arm_counts",
+        "assignments"
+      ],
+      "properties": {
+        "rater_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,159}$"
+        },
+        "evaluator_group": {"$ref": "#/$defs/evaluatorGroup"},
+        "assessor_alias": {"type": "string", "pattern": "^RAA-[0-9A-F]{20}$"},
+        "bundle_id": {"type": "string", "pattern": "^RAB-[0-9A-F]{20}$"},
+        "assignment_token": {
+          "description": "Secret distributed out of band only to this assessor; never copy it into the reviewer bundle.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "assignment_token_sha256": {"$ref": "#/$defs/sha256"},
+        "rater_binding_sha256": {"$ref": "#/$defs/sha256"},
+        "bundle_directory": {"type": "string", "pattern": "^pilot/repair_assessor_bundles/RAB-[0-9A-F]{20}$"},
+        "bundle_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "bundle_tree_sha256": {"$ref": "#/$defs/sha256"},
+        "workload_count": {"type": "integer", "minimum": 1},
+        "arm_counts": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {"type": "integer", "minimum": 0}
+        },
+        "assignments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/privateAssignment"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "privateAssignment": {
+      "type": "object",
+      "required": [
+        "display_order",
+        "feedback_arm",
+        "source_blinded_revision_id",
+        "source_task_id",
+        "source_revision_case_id",
+        "source_repeat_index",
+        "source_target_assessment_reference_id",
+        "source_panel_item_sha256",
+        "assigned_blinded_revision_id",
+        "assigned_task_id",
+        "assigned_target_assessment_reference_id",
+        "corpus_id",
+        "assigned_item_file",
+        "assigned_item_sha256"
+      ],
+      "properties": {
+        "display_order": {"type": "integer", "minimum": 1},
+        "feedback_arm": {"type": "string", "minLength": 1, "maxLength": 160},
+        "source_blinded_revision_id": {"type": "string", "minLength": 1, "maxLength": 160},
+        "source_task_id": {"type": "string", "minLength": 1, "maxLength": 160},
+        "source_revision_case_id": {"type": "string", "minLength": 1, "maxLength": 160},
+        "source_repeat_index": {"type": "integer", "minimum": 0},
+        "source_target_assessment_reference_id": {"type": "string", "minLength": 1, "maxLength": 160},
+        "source_panel_item_sha256": {"$ref": "#/$defs/sha256"},
+        "assigned_blinded_revision_id": {"type": "string", "pattern": "^RAI-[0-9A-F]{20}$"},
+        "assigned_task_id": {"type": "string", "pattern": "^RAT-[0-9A-F]{20}$"},
+        "assigned_target_assessment_reference_id": {"type": "string", "pattern": "^RAREF-[0-9A-F]{20}$"},
+        "corpus_id": {"type": "string", "minLength": 1, "maxLength": 160},
+        "assigned_item_file": {"type": "string", "pattern": "^items/RAI-[0-9A-F]{20}\\.json$"},
+        "assigned_item_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

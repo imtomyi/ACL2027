@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "paper_metric_judge.schema.json",
+  "title": "Paper-aligned blinded model-judge record",
+  "type": "object",
+  "required": [
+    "judge_prompt_version",
+    "judge_model_id",
+    "packet_id",
+    "run_index",
+    "evaluated_at_utc",
+    "candidate_scores",
+    "panel_limitations"
+  ],
+  "properties": {
+    "judge_prompt_version": {
+      "const": "qc-paper-judge-v1"
+    },
+    "judge_model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "packet_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_index": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "evaluated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "candidate_scores": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "blind_id",
+          "evidential_credibility",
+          "voice_boundary_preservation",
+          "scope_calibration",
+          "cannot_judge",
+          "code_reference_matches",
+          "theme_reference_matches",
+          "serious_error_flags",
+          "confidence",
+          "rationale"
+        ],
+        "properties": {
+          "blind_id": {
+            "type": "string",
+            "pattern": "^B[1-5]$"
+          },
+          "evidential_credibility": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "maximum": 5
+          },
+          "voice_boundary_preservation": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "maximum": 5
+          },
+          "scope_calibration": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "maximum": 5
+          },
+          "cannot_judge": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "evidential_credibility",
+                "voice_boundary_preservation",
+                "scope_calibration"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "code_reference_matches": {
+            "$ref": "#/$defs/referenceMatches"
+          },
+          "theme_reference_matches": {
+            "$ref": "#/$defs/referenceMatches"
+          },
+          "serious_error_flags": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "fabricated_or_altered_quote",
+                "wrong_attribution",
+                "unsupported_inference",
+                "hidden_source_concentration",
+                "lost_negative_case",
+                "contextual_flattening",
+                "unsupported_abstraction",
+                "sensitive_or_diagnostic_inference",
+                "inconsistent_codebook",
+                "other"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "confidence": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "panel_limitations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "referenceMatches": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "required": [
+          "reference_concept_id",
+          "match_status",
+          "generated_concept_ids",
+          "rationale"
+        ],
+        "properties": {
+          "reference_concept_id": {
+            "type": "string",
+            "pattern": "^R0[1-6]$"
+          },
+          "match_status": {
+            "enum": ["recovered", "unmatched", "cannot_judge"]
+          },
+          "generated_concept_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[CT][0-9]{2}$"
+            },
+            "uniqueItems": true
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {"match_status": {"const": "recovered"}}
+            },
+            "then": {
+              "properties": {"generated_concept_ids": {"minItems": 1}}
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "match_status": {"enum": ["unmatched", "cannot_judge"]}
+              }
+            },
+            "then": {
+              "properties": {"generated_concept_ids": {"maxItems": 0}}
+            }
+          }
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

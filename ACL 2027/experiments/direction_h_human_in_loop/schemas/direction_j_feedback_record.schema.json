@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-direction-j-feedback-v1.json",
+  "title": "Direction H feedback linked to one exact Direction J shared rating",
+  "description": "A Direction-H-only feedback sidecar. The linked rating remains an unwrapped direction-j-shared-rating-v1 object, and the model_feedback projection reuses Direction H's existing structure exactly.",
+  "type": "object",
+  "required": [
+    "feedback_version",
+    "feedback_id",
+    "bridge_id",
+    "assignment_id",
+    "item_id",
+    "rating_key",
+    "feedback_status",
+    "model_feedback",
+    "created_at_utc"
+  ],
+  "properties": {
+    "feedback_version": {
+      "const": "direction-h-direction-j-feedback-v1"
+    },
+    "feedback_id": {
+      "type": "string",
+      "pattern": "^DHJF_[a-f0-9]{16}$"
+    },
+    "bridge_id": {
+      "const": "direction-h-direction-j-synthetic-qualification-v1"
+    },
+    "assignment_id": {
+      "type": "string",
+      "pattern": "^DJA_[a-f0-9]{16}$"
+    },
+    "item_id": {
+      "type": "string",
+      "pattern": "^DJI_[a-f0-9]{16}$"
+    },
+    "rating_key": {
+      "$ref": "#/$defs/ratingKey"
+    },
+    "feedback_status": {
+      "enum": [
+        "no_change",
+        "actionable_revision",
+        "reject_or_regenerate",
+        "human_escalation"
+      ]
+    },
+    "model_feedback": {
+      "$ref": "https://warrantroute.local/schemas/direction-h-feedback-record-v1.json#/$defs/modelFeedback"
+    },
+    "created_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "feedback_status": {
+            "const": "no_change"
+          }
+        },
+        "required": [
+          "feedback_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "model_feedback": {
+            "properties": {
+              "findings": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "feedback_status": {
+            "enum": [
+              "actionable_revision",
+              "reject_or_regenerate"
+            ]
+          }
+        },
+        "required": [
+          "feedback_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "model_feedback": {
+            "properties": {
+              "findings": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "ratingKey": {
+      "type": "object",
+      "required": [
+        "rating_schema_version",
+        "rating_record_sha256",
+        "actor_id",
+        "rating_repetition",
+        "item_id",
+        "packet_id",
+        "output_id"
+      ],
+      "properties": {
+        "rating_schema_version": {
+          "const": "direction-j-shared-rating-v1"
+        },
+        "rating_record_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "actor_id": {
+          "const": "charlie"
+        },
+        "rating_repetition": {
+          "const": 1
+        },
+        "item_id": {
+          "type": "string",
+          "pattern": "^DJI_[a-f0-9]{16}$"
+        },
+        "packet_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "output_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

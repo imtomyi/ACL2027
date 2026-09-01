@@ -1,0 +1,915 @@
+    QuaLLM: An LLM-based Framework to Extract Quantitative Insights
+                       from Online Forums
+                      Varun Nagaraj Rao                                    Eesha Agarwal
+                   Princeton University / CITP                           Princeton University
+                   varunrao@princeton.edu                          eagarwal@alumni.princeton.edu
+
+        Samantha Dalal                              Dana Calacci                          Andrés Monroy-Hernández
+ University of Colorado, Boulder                 Penn State University                    Princeton University / CITP
+samantha.dalal@colorado.edu                       dcalacci@psu.edu                         andresmh@princeton.edu
+
+                          Abstract                                                                         Top-Level
+                                                                                                            Top-LevelTheme
+                                                                                                           Top-Level Theme
+                                                                                                                      Theme A
+                                                                                                              Sub-Theme
+                                                                                                               Sub-Theme
+                                                                                                              Sub-Theme 1
+        Online discussion forums provide crucial data                                                           “... ... ...” Prevalence
+                                                                                                               “ “... ... ...”
+                                                                                                                               Prevalence%
+                                                                                                                           ” Prevalence %
+                                                                                                                                         %
+        to understand the concerns of a wide range of
+                                                                                                              Sub-Theme
+                                                                                                               Sub-Theme
+        real-world communities. However, the typi-                                                            Sub-Theme 2
+                                                                                                                “...
+                                                                                                                 “......
+                                                                                                                      ......”
+                                                                                                                          ...” Prevalence
+                                                                                                                               Prevalence%%
+        cal qualitative and quantitative methodologies                                            QuaLLM       “           ” Prevalence %
+        used to analyze those data, such as thematic
+        analysis and topic modeling, are infeasible                                                           Sub-Theme
+                                                                                                               Sub-Theme
+                                                                                                              Sub-Theme n
+        to scale or require significant human effort                                                           “...
+                                                                                                                “......
+                                                                                                                     ......”
+                                                                                                                         ...” Prevalence
+                                                                                                                              Prevalence%%
+                                                                                                               “           ” Prevalence %
+        to translate outputs to human readable forms.            > 1 Million Posts and Comments
+        This study introduces QuaLLM, a novel LLM-                   from Online Communities
+
+        based framework to analyze and extract quanti-           Figure 1: QuaLLM transforms large-scale unstructured
+        tative insights from text data on online forums.         text-based online forum discussions on platforms like
+        The framework consists of a novel prompting              Reddit and Facebook into a structured survey-style for-
+        and human evaluation methodology. We ap-                 mat, identifying top-level themes associated with preva-
+        plied this framework to analyze over one mil-            lence ranked sub-themes (by frequency of occurrence)
+        lion comments from two of Reddit’s rideshare             and representative quotes.
+        worker communities, marking the largest study
+        of its type. We uncover significant worker con-
+        cerns regarding AI and algorithmic platform              2021) and thematic analysis (Braun and Clarke,
+        decisions, responding to regulatory calls about
+                                                                 2012), to extract themes. Although detailed, these
+        worker insights. In short, our work sets a new
+        precedent for AI-assisted quantitative data anal-
+                                                                 methodologies demand considerable human effort
+        ysis to surface concerns from online forums.             and interpretation. Such detailed interpretations
+                                                                 may not always be necessary for identifying broad
+1       Introduction                                             trends across large online communities. Alterna-
+Text data from online forums, such as Reddit, has                tively, positivist quantitative (Park et al., 2020) tech-
+been used to study issues affecting diverse com-                 niques like LDA (Abdul et al., 2018) and BERT
+munities (Proferes et al., 2021). Researchers have               derivatives for topic modeling distill topics, which
+leveraged this data across various domains, includ-              humans can interpret and convert into themes 2 ,
+ing healthcare (Zamanifard and Robb, 2023; Xu                    offering greater scalability. However, they require
+et al., 2023; Ho et al., 2017; Paxman, 2021), po-                careful hyperparameter selection, operate on lim-
+litical discourse (Papakyriakopoulos et al., 2023;               ited context length, and require significant human
+De Francisci Morales et al., 2021; Marchal, 2020),               effort to translate outputs to human readable forms.
+education (Madsen and Madsen, 2022; Park et al.,                    Recent advancements in LLMs and prompt en-
+2018), and gig work1 (Rosenblat and Stark, 2016;                 gineering (Shah et al., 2023; Nori et al., 2023;
+Sannon et al., 2022; Yao et al., 2021; Watkins,                  OpenAI, 2023; Deng et al., 2023) offer an alter-
+2022; Ma et al., 2018), to highlight critical con-               native for analyzing extensive text data from online
+cerns and trends.                                                forums, addressing limitations of scale and con-
+    Studies analyzing this text data for social phe-             text. Specifically, LLMs have been shown to per-
+nomena often use interpretive qualitative method-                    2
+                                                                       We distinguish between topics/concepts and themes; a
+ologies (Gichuru, 2017) like coding (Saldaña,                    topic/concept is a concrete and specific subject matter of a
+                                                                 text often expressed as a single word or a short phrase, while
+    1
+     A market characterized by short-term and freelance work     a theme is an interpretive and abstract insight conveyed by the
+like food delivery and ridesharing                               text, typically articulated as a complete sentence.
+
+                                                            1355
+                                   Findings of the Association for Computational Linguistics:
+                                                 NAACL 2025, pages 1355–1369
+                            April 29 - May 4, 2025 ©2025 Association for Computational Linguistics
+                                                    Human          Human             Human          Machine                  Machine           Human           Machine
+                                                  Annotations     Evaluation       Annotations     Evaluation               Evaluation       Annotations      Evaluation
+
+
+                                                                List of Concerns                 List of Concerns            List of Most
+                                                                and Associated                     Classified by           Representative
+                               Dataset of Posts                      Quotes                          Top-​level           Concerns (Sub-​                  Quantified List of
+                                                                                                      Themes              themes) by Top-​                       Most
+    Browse Online   Topic of                                                                                                level Themes                    Representative
+                                                                                                                    LLM                      LLM
+     Communities    Interest                        LLM                             LLM                                                                    Concerns (Sub-​
+                                                                                                                                                           themes) by Top-​
+                                 Generation                                                      Aggregation and            Prevalence                       level Themes
+                                  Prompt                         Classification                     Ranking
+                                                                    Prompt                                                    Prompt
+                                                                                                     Prompt
+
+                                                  Top-​level Themes                                                                                            Findings
+
+                                        Themes derived from human expertise based on prior research,
+                                          generation prompt interpretations, and expert knowledge.
+
+
+
+      Figure 2: QuaLLM’s multiphase prompting attempts to evoke the steps that human analysts might perform.
+
+
+form well on generation, classification, and ranking                                   complex problems through stepwise reasoning, and
+tasks (Zhao et al., 2023), and thus have the potential                                 Ensembling, (Wang et al., 2022) which aggregates
+to assist researchers in text data analysis. However,                                  outputs of multiple model runs to obtain a con-
+the lack of an effective methodology for extracting                                    sensus output. Despite these advances, accurately
+themes from online communities limits their use.                                       evaluating LLM outputs is challenging, with hu-
+We address this with the following contributions:                                      man evaluation generally preferred (Amer, 2023).
+                                                                                       Building on prior work, we introduce a framework
+  (i) We introduce QuaLLM, an LLM-based frame-                                         consisting of a novel prompting and human evalu-
+      work consisting of a novel prompting and hu-                                     ation methodology for the quantitative analysis of
+      man evaluation methodology for the thematic                                      text data from online forums.
+      analysis and extraction of quantitative insights
+      from online forums’ text data (See Figure 1).                                    Gig Work and Reddit Analysis.             Regulatory
+ (ii) We apply our framework to a case study on                                        bodies (White House OSTP, 2023) have sought
+      Reddit’s rideshare communities, analyzing                                        public insights on the impact of AI and algorithmic
+      over one million comments—the largest study                                      management by employers (Kantor and Sundaram,
+      of its kind—to identify worker concerns re-                                      2022; Bernhardt et al., 2021), particularly in the gig
+      garding AI and algorithmic platform deci-                                        economy. Gig workers actively discuss their expe-
+      sions, responding to regulatory calls (White                                     riences on anonymous forums, e.g., Reddit, which
+      House OSTP, 2023).                                                               have become a rich research data source. Previ-
+(iii) We discuss the broader implications of using                                     ous studies on rideshare worker concerns using
+      LLMs for quantitative text data analysis.                                        Reddit, highlighting issues of privacy, scams, and
+                                                                                       support systems (Rosenblat and Stark, 2016; San-
+Taken together, our work establishes a new prece-                                      non et al., 2022; Yao et al., 2021; Watkins, 2022;
+dent for AI-assisted quantitative data analysis to                                     Ma et al., 2018), have been small-scale, limited
+surface concerns from online forums.                                                   by manual coding4 . We use QuaLLM to examine
+                                                                                       over 1 million comments from rideshare workers,
+2      Related Work                                                                    significantly broadening the scope to amplify all
+LLM Prompting and Evaluation.               LLMs                                       voices and also to translate this academic research
+have been used for generation of topics and con-                                       into policy-relevant insights (Nagaraj Rao et al.,
+cepts (Shah et al., 2023; Zhao et al., 2023)3 , clas-                                  2024a,b, 2025).
+sification (Deng et al., 2023), and ranking (Qin
+et al., 2023) tasks via advances in prompt engi-                                       3         QuaLLM Framework
+neering (Nori et al., 2023; OpenAI, 2023). Popu-
+lar prompting methods include: In-context learn-                                       We introduce QuaLLM (Figure 2), a framework
+ing (Brown et al., 2020), which teaches LLMs                                           consisting of a prompting method and evaluation
+new tasks with few labeled examples, Chain of                                          strategy for the thematic analysis of text data from
+Thought (Wei et al., 2022), which breaks down                                          online forums.
+    3
+      The novelty of our work lies in surfacing themes (e.g.,
+                                                                                            4
+“facing fear leads to growth”) rather than topics or concepts                              the largest dataset analyzed about 2.6K posts (Watkins,
+(e.g., “fear,” “love,” “bias of LLMs”)                                                 2022) using qualitative data analysis methodologies
+
+                                                                                  1356
+3.1 LLM Prompting Method for Analysis of                      Clarke, 2012), which groups together a number of
+    Online Forum Data                                         related codes, serving as a filtration mechanism.
+Our approach begins with collecting datasets from             Aggregation Prompt.            Aggregates concerns
+specified periods across any public threaded dis-             into sub-themes based on classifications and iden-
+cussion forum, such as Reddit and Facebook. We                tifies representative concerns (e.g., top 5) within
+aim to extract and summarize the predominant con-             each top-level theme. We manually select represen-
+cerns of workers within these communities through             tative quotes for each sub-theme.
+a four-step prompting process: generation, classifi-          Prevalence Prompt.              Classifies concerns
+cation, aggregation, and prevalence.                          within top-level themes as belonging to one of
+Generation Prompt.          The generation step in-           the sub-themes or an “other” category, facilitat-
+volves the generation of concern summaries from               ing quantitative analysis of concern prevalence by
+online discussions relevant to a specific topic and           theme percentage.
+linking each concern with a representative quote.
+                                                               3.2     LLM Outputs Evaluation Strategy
+The prompt is broken down into seven steps, follow-
+ing best prompt engineering practices from prior              To validate the LLM outputs, we propose a mix
+research and industry (OpenAI, 2023; Adams et al.,            of human and computational evaluation methods
+2023; Nori et al., 2023; Wang et al., 2023). The              based on the following metrics: factuality and com-
+steps include:                                                pleteness for generation, accuracy for classification
+                                                              and prevalence, and distinctness and coverage for
+  1. identifying concerns                                     aggregation prompts, respectively.
+  2. aggregating to avoid redundancy
+  3. selecting representative quotes5                          3.2.1    Generation Prompt:
+  4. assessing concern frequency and impact                    This prompt generates new text given unstructured
+  5. formatting outputs in JSON with concern ti-               source text as input.
+     tles, descriptions, and quotes                            Factuality: Determines if the LLM’s output con-
+  6. ensuring concerns are topic-specific and de-              cerns reflect the source data. Evaluators respond to:
+     rived from input data without external knowl-            “Is this candidate concern (and quote) output by
+     edge                                                      the LLM present in the reference human generated
+  7. reiterating to prevent redundancy and indicat-            list of transparency concerns? Answer Yes or No”.
+     ing when no concerns are present                          The factuality score is the proportion of accurate
+                                                               LLM-generated concerns akin to precision.
+To minimize API calls, we aggregate posts and                  Completeness: Evaluates the LLM’s ability to cap-
+comments into groups. For each group, we pro-                  ture all relevant concerns, asking: “Is this reference
+grammatically enhance the JSON output with the                 human concern present in the candidate concern
+timestamp of the earliest post and assign a unique             (and associated quote) output by the LLM? An-
+identifier. All these steps are necessary since direct         swer Yes or No.” The completeness score denotes
+prompting may cause hallucinations, redundancy,                the proportion of human-identified concerns recog-
+and inconsistent output. This prompting strategy               nized by the LLM, akin to recall.
+is similar to “open coding,” where one derives new
+theories and concepts informed from the underly-               3.2.2    Classification and Prevalence Prompts:
+ing data (Saldaña, 2021).                                     Both these prompts classify source text into prede-
+Classification Prompt.            We define a set of          fined categories.
+top-level themes, typically around 4-5, based on              Accuracy: Assesses the correctness of LLM clas-
+prior research, parallel participant interviews, or           sifications, measuring the proportion of accurately
+other expert input, and the outputs of the genera-            classified samples.
+tion prompt. We then prompt the LLM to classify
+each identified concern accordingly, with an ad-               3.2.3    Aggregation Prompt:
+ditional “other” category for irrelevant concerns.            This prompt generates aggregated text given source
+This step mirrors “thematic analysis” (Braun and              text as input. We leverage a topic model to gener-
+   5
+                                                              ate topics for the entire text and find those topics
+     we argue that forcing the model to choose and output
+quotes is a form of Chain-of-Thought prompting (Wei et al.,   most similar to the subthemes. Human evaluation
+2022) strategy and find that it helps prevent hallucination   on a subset does not accurately capture the task,
+                                                          1357
+and instead, we pivoted to a computational evalua-            (1, 054, 030 from Uber, 338, 746 from Lyft). We
+tion of the entire text using well-established topic          then grouped submissions and comments into sets
+modeling techniques.                                          of five for each LLM API call (See Appendix A for
+Distinctness: We measure the proportion of unique             the prompts). We encountered an 11% error rate
+most-similar topics associated with each sub-theme            due to throttling and content issues. Finally, we ob-
+across all the sub-themes. A higher value indicates           tained 58,728 concerns which we categorized into
+a greater diversity in the subthemes.                         four themes: Enhancing Transparency and Explain-
+Coverage (k): We measure the proportion of                    ability (24,721 concerns, 42%), Predictability and
+unique most-similar topics associated with each               Worker Agency (12,728 concerns, 22%), Better
+of the ‘n’ sub-themes that are also found among               Safety and More Time (6,144 concerns, 10.5%),
+the most frequent ‘nk’ topics of the overall text.            and Ensuring Fairness and Non-Discrimination
+For example, if n=5 and k=2, we would look at                 (4,280 concerns, 7%); the remaining 18.5% were
+the 5 sub-themes amongst the top 10 most frequent             categorized as “Other”. We then aggregated these
+overall topics. A higher CR-k implies the sub-                findings to highlight the top five concerns for each
+themes represent prevalent or significant themes in           theme and calculated their prevalence across the
+the text.                                                     dataset.
+
+4   Case Study of Worker Concerns from                        4.2   Findings
+    Rideshare Subreddits                                      We briefly summarize our findings below. We
+                                                              also provide tables of the aggregated, ranked, and
+We apply our framework to rideshare subreddit
+                                                              prevalence-quantified themes in Appendix B.
+data (r/uberdrivers, r/lyftdrivers) using
+                                                              (i) Enhancing Transparency and Explainability:
+the GPT4-Turbo model on Microsoft Azure to iden-
+                                                              Drivers are concerned about opaque fare calcula-
+tify worker concerns regarding AI and platform
+                                                              tions, unclear incentives, and uncertain criteria for
+algorithms. See Appendices A, B, and D for our
+                                                              earnings, surge pricing, and cancellations (Table 2)
+prompts, findings, and costs incurred, respectively.
+                                                              (ii) Predictability and Worker Agency: Drivers
+   We chose rideshare subreddits for their active
+                                                              face unpredictable earnings from fluctuating surge
+400K+ member community, presence of active dis-
+                                                              pricing, algorithm changes, increased competition,
+cussions of worker concerns, which is of interest to
+                                                              complex incentive qualifications, and low compen-
+regulators, accessible and comprehensive data, and
+                                                              sation for long pickups and waits. (Table 3)
+relevance to Human-Computer Interaction, Eco-
+                                                              (iii) Better Safety and More Time: Drivers face navi-
+nomics, and Communications researchers studying
+                                                              gation issues, support access difficulties, challenges
+the harms caused to workers as a result of rideshare
+                                                              with false complaints, and low compensation for
+platforms’ algorithmic management (Nagaraj Rao
+                                                              additional tasks and wait times. (Table 4)
+et al., 2025; Zhang et al., 2022; Dubal, 2023; Rosen-
+                                                              (iv) Ensuring Fairness and Non-Discrimination:
+blat and Stark, 2016). We now describe our dataset
+                                                              Drivers dispute their fare share and platform take
+and summarize our findings.
+                                                              rates, fairness in ride assignments, the influence
+4.1 Dataset and Experiments                                   of demographics on ratings, and the criteria for
+                                                              deactivation. (Table 5)
+We obtained comprehensive 2019-2022 data from
+r/uberdrivers and r/lyftdrivers via https:                    4.3   Evaluation
+//the-eye.eu/redarcs/, focusing on this period                4.3.1 Generation Prompt.
+to capture recent concerns, particularly relevant due
+                                                              We randomly sampled 125 submissions and all the
+to app changes and the unavailability of post-2022
+                                                              2,511 associated comments, jointly annotated by
+data due to Reddit API changes6 . After processing
+                                                              two researchers, to create a reference list of con-
+to remove short samples, our dataset7 comprised
+                                                              cerns. The two researchers then jointly evaluated
+65,377 submissions (47, 106 from Uber, 18, 271
+                                                              the LLM outputs against the reference list of con-
+from Lyft) and 1, 392, 776 associated comments
+                                                              cerns and resolved any differences through discus-
+   6
+     Reddit API restrictions enforced in Feb’23; see https:   sions. We obtained a factuality score of 0.55 and a
+//www.redditinc.com/policies/data-api-terms                   completeness score of 0.78. Lower factuality was
+   7
+     On Reddit, a submission is a post, and a comment is a
+response to a post or another comment. We concatenate and     primarily due to the LLM identifying concerns that
+use the text from posts and all associated comments           are part of the input context but not directly related
+                                                          1358
+Evaluation Metrics        Factuality         Completeness             Distinctness            Coverage (k)              Accuracy
+Analysis phase
+                                                                                                                    Classification,
+evaluated with       Generation           Generation            Aggregation               Aggregation
+                                                                                                                    Prevalence
+metric
+Reference data       Theme extraction     Theme extraction      Topic extraction using    Topic extraction using    Labeling
+generation           by human             by human              topic models              topic models              by humans
+method               (2 researchers)      (2 researchers)       (BERTopic)                (BERTopic)                (2 researchers)
+Comparison b/w
+                     Manually             Manually              Automatically             Automatically             Automatically
+reference data and
+                     (2 researchers)      (2 researchers)       (Python Program)          (Python Program)          (Python Program)
+LLM output
+Limitation of
+                                                                Need for interpretation   Need for interpretation
+reference data       Costly               Costly                                                                    Costly
+                                                                of topic model outputs    of topic model outputs
+generation method
+Evaluation           125 posts            125 posts
+                                                                47,873 concerns           47,873 concerns           100 concerns
+sample size          2,511 comments       2,511 comments
+                                                                                                                    58,728 concerns
+                     65,377 posts         65,377 posts                                                              (classification)
+Actual data size                                                47,873 concerns           47,873 concerns
+                     1,392,776 comments   1,392,776 comments                                                        47,873 concerns
+                                                                                                                    (prevalence)
+                                                                                          0.95* (k=1)               0.74* (classification)
+Results              0.55*                0.78*                 0.80*
+                                                                                          1.00* (k=2)               0.82* (prevalence)
+
+Table 1: Metrics Chosen to Evaluate LLM-Powered Analysis Phases and Results. Metric values belong to the closed
+interval [0,1], with higher values indicative of better performance. * values are statistically significantly different
+from chance measured via a binomial test (p-value <0.05).
+
+
+to AI and algorithmic decisions. Moreover, the                     tional method for evaluation. We fit a topic model
+lower factuality score was less concerning as out-                 on the entire text (title+description) associated with
+puts that are not factual (i.e., identified by the LLM             each top-level theme to obtain the top 5 and 10 top-
+but not by humans) were mostly filtered out into                   ics. Subsequently, we identified the most similar
+the “Other” category during the classification step                topic for each of the 5 sub-themes. The results
+and excluded from any further analysis.                            demonstrated a distinctness of 0.80, coverage(1) of
+                                                                   0.95, and coverage(2) of 1.00, indicating that the
+4.3.2 Classification and Prevalence Prompts.
+                                                                   LLMs’ outputs were distinct and well-represented
+Two researchers jointly annotated 100 LLM-                         among the most frequent topics.
+classified concerns to establish ground truth labels,
+assigning one label per concern. They compared
+LLM outputs with these labels, achieving a con-                    5     Conclusion
+sensus accuracy of 0.74. The achieved accuracy is
+significant because misclassified samples, exclud-                 Our study introduces a new LLM-based framework
+ing those labeled as “Other,” can still contribute                 with a prompting method and evaluation strategy to
+to the analysis. This is because concerns might fit                analyze online forum data, demonstrated through
+into multiple categories depending on the analyt-                  the largest analysis of over 1 million rideshare sub-
+ical perspective. These concerns remain valuable                   reddit comments to date. The methodology’s re-
+for later aggregation and prevalence prompts, even                 cursive nature demonstrates its versatility, e.g., the
+if placed in a different category. Using a similar                 Aggregation and Prevalence prompts can function
+method, researchers obtained an accuracy of 0.82                   as Generation and Classification at the sub-theme
+for the prevalence prompts’ output.                                level, and initial filtering can reframe as classify-
+                                                                   ing concerns’ relevance to the overall theme. This
+4.3.3 Aggregation Prompt.                                          approach highlights LLMs’ capability to efficiently
+We employed BERTopic for topic modeling (see                       process large unstructured datasets, establishing a
+Appendix C for hyperparameter details). Given                      precedent for future AI-assisted positivist quantita-
+the large volume of concerns (4K-25K) per top-                     tive research. But does an increase in data equate
+level theme, human evaluation on a subset would                    to enhanced understanding? Echoing Agnew et al.
+not accurately capture the task’s nuances. There-                  (2024)’s sentiments, we believe further research is
+fore, we adopted this well-established computa-                    essential.
+                                                               1359
+Ethical and Broader Impacts Statement                   experiences, pointing to a lack of context-
+                                                        sensitivity (Bender et al., 2021; Alkaissi and Mc-
+Scaling online forum analysis with LLMs
+                                                        Farlane, 2023; Rudolph et al., 2023). Others (Bano
+QuaLLM presents a novel framework that lever-           et al., 2023) argue LLMs cannot match the innate
+ages the power of LLMs to analyze vast amounts          human ability to perform specific tasks in inexpli-
+of unstructured text data efficiently and translate     cable ways, described in conceptual frameworks
+it to a form that resembles community survey re-        for knowledge creation (Li and Gao, 2003; Collins,
+sponses. Beyond analyzing online discussions in         2005). This gap raises doubts about LLMs’ capabil-
+rideshare communities on Reddit, this methodol-         ity for interpretation crucial to fields such as anthro-
+ogy has broad applicability across numerous do-         pology (Malinowski, 1929) and sociology (Weber,
+mains, across any platform, where large amounts         1949), challenging their application within the qual-
+of unstructured text are prevalent and traditional      itative interpretivist research paradigm (Gichuru,
+positivist quantitative methodologies (Park et al.,     2017; Glaser et al., 1968; Denzin, 2001).
+2020) such as topic models through LDA, may fall           On the other hand, advocates for LLM-enhanced
+short.                                                  research suggest LLMs align with human outputs
+Healthcare Forums: Identify discussions of med-         and may replace human judgement (Dwivedi et al.,
+     ications from patient forums comparing anec-       2023; Bano et al., 2023; Chew et al., 2023; Xiao
+     dotal experiences and widespread concerns.         et al., 2023; Dai et al., 2023; Tai et al., 2023; Duni-
+Customer Feedback: Filter through customer ser-         vin, 2024). Further, they find integrating AI with
+     vice chats and emails to identify recurring        human expertise can improve the scope and scale
+     product or service issues.                         of analyses, facilitating efficient processing of vast,
+Policy and Regulation: Review public responses          unstructured datasets.
+     to policy proposals, identifying key points of        Our research stands in the middle and under-
+     support and contention.                            scores the potential of LLMs to help researchers
+Educational Feedback: Review online forums              engage with data in a way that can supply intrinsic
+     and course feedback to extract themes related      meaning at scale while stressing the need to recog-
+     to assessment and course content.                  nize their limitations and the continued importance
+Financial Market Sentiments: Analyze investor
+                                                        of human oversight and interpretation.
+     forums and financial news comments to gauge
+                                                           Broadly, QuaLLM can also be used in mixed
+     market sentiment towards certain stocks or
+                                                        methods study designs to complement data from
+     economic policies.
+                                                        interviews and focus groups with adequate safe-
+QuaLLM’s evaluation reveals strengths and               guards and evaluations.
+necessitates further refinement
+Due to the unique nature of our pipeline approach,
+                                                        Limitations
+which combines several tasks into a cohesive work-      Interpretivist vs. Positivist trade-offs: While
+flow, there are no established baselines or bench-           LLMs efficiently aggregate broad trends, re-
+marks available for direct end-to-end comparison             flecting a positivist quantitative approach that
+and evaluation. Topic models might offer a com-              assumes text has intrinsic meaning, individual
+parison for the generation prompt outputs, yet they          experiences may be neglected. This contrasts
+require significant human effort to translate outputs        with the interpretivist qualitative paradigm,
+to human-readable forms, unlike our methodology,             which values subjective meaning derived
+where the LLM autonomously generates topics,                 from the interaction between the researcher
+making baselining challenging.                               and the data.
+   This absence of precedent opens questions re-        Small scale human evaluation: We            acknowl-
+garding effective baselining and benchmarking for            edge the limited generalizability of our human
+performance evaluation. As a result, human evalu-            evaluation due to the relatively small sample
+ation serves as the gold standard for evaluation.            size
+                                                        Hyperparameter-sensitive topic modeling:
+LLMs can be used to assist researchers and                   BERTopic performance is very sensitive to
+complement existing methods                                  the choice of hyperparameters, and this can
+Some researchers highlight limitations in LLMs’              result in significant variation in results based
+understanding of complex human emotions and                  on the chosen hyperparameter values.
+                                                    1360
+Reproducibility concerns: The stochasticity of         References
+    LLM outputs raises concerns about repro-
+                                                       Ashraf Abdul, Jo Vermeulen, Danding Wang, Brian Y
+    ducibility. However, this variability mirrors        Lim, and Mohan Kankanhalli. 2018. Trends and tra-
+    the inherent subjectivity of human perspec-          jectories for explainable, accountable and intelligible
+    tives, which can differ across time and con-         systems: An hci research agenda. In Proceedings of
+    texts.                                               the 2018 CHI conference on human factors in com-
+                                                         puting systems, pages 1–18.
+Bias in LLMs: LLM outputs are influenced by bi-
+     ases introduced during training, alignment        Griffin Adams, Alexander Fabbri, Faisal Ladhak, Eric
+     processes, and prompt design, which may             Lehman, and Noémie Elhadad. 2023. From sparse to
+                                                         dense: GPT-4 summarization with chain of density
+     affect what concerns are highlighted, favor         prompting. arXiv preprint arXiv:2309.04269.
+     structured language over informal text, and
+     introduce potential socio-economic or stylis-     William Agnew, A Stevie Bergman, Jennifer Chien,
+     tic biases; additionally, API errors (e.g., due     Mark Díaz, Seliem El-Sayed, Jaylen Pittman, Shakir
+                                                         Mohamed, and Kevin R McKee. 2024. The illusion
+     to profanity) may create selection bias in the      of artificial inclusion. In Proceedings of the CHI
+     analyzed data.                                     Conference on Human Factors in Computing Systems,
+Misinformation in Online Communities:                    pages 1–12.
+    Misinformation in online forums can distort        Hussam Alkaissi and Samy I McFarlane. 2023. Ar-
+    analysis, and the spread of false information        tificial hallucinations in ChatGPT: implications in
+    may reflect user biases or socio-economic            scientific writing. Cureus, 15(2).
+    factors. However, the noise may smoothen
+                                                       Meor Amer. 2023. Evaluating LLM outputs.
+    out when aggregated over millions of posts,
+    reducing its overall impact.                       Muneera Bano, Didar Zowghi, and Jon Whittle. 2023.
+                                                        Exploring qualitative research using LLMs. arXiv
+                                                        preprint arXiv:2306.13298.
+Acknowledgements
+                                                       Emily M Bender, Timnit Gebru, Angelina McMillan-
+We acknowledge the Azure Cloud Computing                 Major, and Shmargaret Shmitchell. 2021. On the
+                                                         dangers of stochastic parrots: Can language models
+Grant from CSML at Princeton, which enabled
+                                                         be too big? In Proceedings of the 2021 ACM confer-
+access to Microsoft Azure compute resources. We          ence on fairness, accountability, and transparency,
+thank Sayash Kapoor for insightful discussions           pages 610–623.
+on the conceptual and normative implications of
+LLMs and prompting strategies. We are grateful         Annette Bernhardt, Lisa Kresge, and Reem Suleiman.
+                                                         2021. Data and algorithms at work.
+to Vinayshekhar Bannihatti Kumar for his valu-
+able input on defining evaluation metrics. We          Virginia Braun and Victoria Clarke. 2012. Thematic
+thank Sunnie Kim for her contributions on con-           analysis. American Psychological Association.
+nections to Explainable AI. We appreciate Eliza-
+                                                       Tom Brown, Benjamin Mann, Nick Ryder, Melanie
+beth Anne Watkins for providing valuable critiques       Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind
+from an interpretivist perspective, which helped         Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+reframe our work. We thank Yuhan Liu, Beza               Askell, et al. 2020. Language models are few-shot
+Desta, and Kiyosu Maeda from the Princeton HCI           learners. Advances in neural information processing
+                                                         systems, 33:1877–1901.
+group for their annotations. We are grateful to
+Hope Schroeder for her feedback on evaluations         Robert Chew, John Bollenbacher, Michael Wenger, Jes-
+and broad discussions on applications. We thank          sica Speer, and Annice Kim. 2023. Llm-assisted con-
+Prof. Arvind Narayanan and Mihir Kshirsagar from         tent analysis: Using large language models to support
+Princeton CITP for their insights on the generaliza-     deductive coding. arXiv preprint arXiv:2306.14924.
+tion of this work and its policy implications. We      Harry M Collins. 2005. What is tacit knowledge? In
+thank Prof. Brian Keegan for pointing us to the          The practice turn in contemporary theory, pages 115–
+Reddit data source. Finally, we thank the anony-         128. Routledge.
+mous CSCW and FAccT reviewers for their valu-
+                                                       Shih-Chieh Dai, Aiping Xiong, and Lun-Wei Ku.
+able feedback, which helped frame the larger paper       2023. LLM-in-the-loop: Leveraging large lan-
+of which this is a part.                                 guage model for thematic analysis. arXiv preprint
+                                                         arXiv:2310.15100.
+                                                   1361
+Gianmarco De Francisci Morales, Corrado Monti, and           Marisa Alise Madsen and Dag Øivind Madsen. 2022.
+  Michele Starnini. 2021. No echo in the chambers             Communication between parents and teachers of spe-
+  of political interactions on reddit. Scientific reports,    cial education students: A small exploratory study of
+  11(1):2818.                                                 reddit posts. Social Sciences, 11(11):518.
+
+Xiang Deng, Vasilisa Bashlovkina, Feng Han, Simon            Bronislaw Malinowski. 1929. Practical anthropology.
+  Baumgartner, and Michael Bendersky. 2023. Llms               Africa, 2(1):22–38.
+  to the Moon? Reddit market sentiment analysis with
+  large language models. In Companion Proceedings            Nahema Marchal. 2020. The polarizing potential of
+  of the ACM Web Conference 2023, pages 1014–1019.             intergroup affect in online political discussions: Evi-
+                                                               dence from reddit r/politics. Politics (July 10, 2020).
+Norman K Denzin. 2001. Interpretive interactionism,
+  volume 16. Sage.                                           Varun Nagaraj Rao, Samantha Dalal, Eesha Agarwal,
+                                                               Dana Calacci, and Andrés Monroy-Hernández. 2025.
+Veena Dubal. 2023. On algorithmic wage discrimina-             Rideshare transparency: Translating gig worker in-
+  tion. Available at SSRN 4331080.                             sights on AI platform design to policy. Proceed-
+                                                               ings of the ACM on Human-Computer Interaction,
+Zackary Okun Dunivin. 2024. Scalable qualitative               9(CSCW1).
+  coding with LLMs: Chain-of-Thought reasoning
+  matches human performance in some hermeneutic              Varun Nagaraj Rao, Samantha Dalal, Dana Calacci, and
+  tasks. arXiv preprint arXiv:2401.15170.                      Andrés Monroy-Hernández. 2024a. Call for trans-
+                                                               parency in rideshare platform operations.
+Yogesh K Dwivedi, Nir Kshetri, Laurie Hughes,
+  Emma Louise Slade, Anand Jeyaraj, Arpan Kumar              Varun Nagaraj Rao, Kyler Zhou, Sayash Kapoor, and
+  Kar, Abdullah M Baabdullah, Alex Koohang, Vish-              Arvind Narayanan. 2024b. Future-proof AI act:
+  nupriya Raghavan, Manju Ahuja, et al. 2023. “so              Trustworthy general-purpose AI - risk identification
+  what if ChatGPT wrote it?” Multidisciplinary per-            and assessment measures for systemic risks.
+  spectives on opportunities, challenges and implica-
+  tions of generative conversational AI for research,        Harsha Nori, Yin Tat Lee, Sheng Zhang, Dean Carig-
+  practice and policy. International Journal of Infor-         nan, Richard Edgar, Nicolo Fusi, Nicholas King,
+  mation Management, 71:102642.                                Jonathan Larson, Yuanzhi Li, Weishung Liu, et al.
+                                                               2023. Can generalist foundation models outcom-
+Joseph L Fleiss, Bruce Levin, and Myunghee Cho Paik.           pete special-purpose tuning? Case study in medicine.
+   2013. Statistical methods for rates and proportions.        arXiv preprint arXiv:2311.16452.
+   john wiley & sons.
+                                                             OpenAI. 2023. Prompt engineering.
+Mwenda J Gichuru. 2017. The interpretive research
+ paradigm: A critical review of is research methodolo-       Orestis Papakyriakopoulos, Severin Engelmann, and
+ gies. International Journal of Innovative Research            Amy Winecoff. 2023. Upvotes? Downvotes? No
+ and Advanced Studies (IJIRAS), 4(2):1–5.                      votes? Understanding the relationship between reac-
+                                                               tion mechanisms and political discourse on Reddit.
+Barney G Glaser, Anselm L Strauss, and Elizabeth               In Proceedings of the 2023 CHI Conference on Hu-
+  Strutzel. 1968. The discovery of grounded theory;            man Factors in Computing Systems, pages 1–28.
+  strategies for qualitative research. Nursing research,
+  17(4):364.                                                 Albert Park, Mike Conway, et al. 2018. Harness-
+                                                               ing reddit to understand the written-communication
+Chia-Ling Lynn Ho, Wenjing Pan, and Laramie D Tay-             challenges experienced by individuals with mental
+  lor. 2017. Stigma of HIV testing on online HIV               health disorders: analysis of texts from mental health
+  forums: self-stigma and the unspoken. Journal of             communities. Journal of medical Internet research,
+  Psychosocial Nursing and Mental Health Services,             20(4):e8219.
+  55(12):34–43.
+                                                             Yoon Soo Park, Lars Konge, and Anthony R Artino Jr.
+Jodi Kantor and Arya Sundaram. 2022. The rise of the           2020. The positivism paradigm of research. Aca-
+  worker productivity score (new york times).                  demic medicine, 95(5):690–694.
+
+Meng Li and Fei Gao. 2003. Why Nonaka highlights             Christina G Paxman. 2021. “Everyone thinks i am just
+ tacit knowledge: a critical review. Journal of knowl-         lazy”’: Legitimacy narratives of americans suffering
+ edge management, 7(4):6–14.                                   from fibromyalgia. Health, 25(1):121–137.
+
+Ning F Ma, Chien Wen Yuan, Moojan Ghafurian, and             Nicholas Proferes, Naiyan Jones, Sarah Gilbert, Casey
+  Benjamin V Hanrahan. 2018. Using stakeholder the-            Fiesler, and Michael Zimmer. 2021. Studying
+  ory to examine drivers’ stake in uber. In Proceedings        Reddit: A systematic overview of disciplines, ap-
+  of the 2018 CHI conference on human factors in com-          proaches, methods, and ethics. Social Media+ Soci-
+  puting systems, pages 1–12.                                  ety, 7(2):20563051211019004.
+                                                         1362
+Zhen Qin, Rolf Jagerman, Kai Hui, Honglei Zhuang,         Ziang Xiao, Xingdi Yuan, Q Vera Liao, Rania Abdel-
+  Junru Wu, Jiaming Shen, Tianqi Liu, Jialu Liu,            ghani, and Pierre-Yves Oudeyer. 2023. Support-
+  Donald Metzler, Xuanhui Wang, et al. 2023.                ing qualitative analysis with large language models:
+  Large language models are effective text rankers          Combining codebook with GPT-3 for deductive cod-
+  with pairwise ranking prompting. arXiv preprint           ing. In Companion Proceedings of the 28th Inter-
+  arXiv:2306.17563.                                         national Conference on Intelligent User Interfaces,
+                                                            pages 75–78.
+Alex Rosenblat and Luke Stark. 2016. Algorithmic la-
+  bor and information asymmetries: A case study of        Tian Xu, Junnan Yu, Dylan Thomas Doyle, and Stephen
+  Uber’s drivers. International journal of communica-        Voida. 2023. Technology-mediated strategies for cop-
+  tion, 10:27.                                               ing with mental health challenges: Insights from peo-
+                                                             ple with bipolar disorder. Proceedings of the ACM
+Jürgen Rudolph, Samson Tan, and Shannon Tan. 2023.           on Human-Computer Interaction, 7(CSCW2):1–31.
+   ChatGPT: Bullshit spewer or the end of traditional
+   assessments in higher education? Journal of Applied    Zheng Yao, Silas Weden, Lea Emerlyn, Haiyi Zhu, and
+   Learning and Teaching, 6(1).                             Robert E Kraut. 2021. Together but alone: Atomiza-
+                                                            tion and peer support among gig workers. Proceed-
+Johnny Saldaña. 2021. The coding manual for qualita-        ings of the ACM on Human-Computer Interaction,
+  tive researchers. The coding manual for qualitative       5(CSCW2):1–29.
+  researchers, pages 1–440.
+                                                          Samaneh Zamanifard and Andrew Robb. 2023. Social
+Shruti Sannon, Billie Sun, and Dan Cosley. 2022. Pri-       virtual reality is my therapist: Overcoming social
+  vacy, surveillance, and power in the gig economy. In      anxiety disorder through using social virtual reality.
+  Proceedings of the 2022 CHI Conference on Human           In Extended Abstracts of the 2023 CHI Conference
+  Factors in Computing Systems, pages 1–15.                 on Human Factors in Computing Systems, pages 1–6.
+Chirag Shah, Ryen W White, Reid Andersen, Georg
+                                                          Angie Zhang, Alexander Boltz, Chun Wei Wang, and
+  Buscher, Scott Counts, Sarkar Snigdha Sarathi Das,
+                                                            Min Kyung Lee. 2022. Algorithmic management
+  Ali Montazer, Sathish Manivannan, Jennifer Neville,
+                                                            reimagined for workers and by workers: Centering
+  Xiaochuan Ni, et al. 2023. Using large language
+                                                            worker well-being in gig work. In Proceedings of the
+  models to generate, validate, and apply user intent
+                                                            2022 CHI Conference on Human Factors in Comput-
+  taxonomies. arXiv preprint arXiv:2309.13063.
+                                                            ing Systems, pages 1–20.
+Robert H Tai, Lillian R Bentley, Xin Xia, Jason M
+  Sitt, Sarah C Fankhauser, Ana M Chicas-Mosier, and      Wayne Xin Zhao, Kun Zhou, Junyi Li, Tianyi Tang,
+  Barnas G Monteith. 2023. An examination of the use       Xiaolei Wang, Yupeng Hou, Yingqian Min, Beichen
+  of large language models to aid analysis of textual      Zhang, Junjie Zhang, Zican Dong, et al. 2023. A
+  data. bioRxiv, pages 2023–07.                            survey of large language models. arXiv preprint
+                                                           arXiv:2303.18223.
+Bailin Wang, Zi Wang, Xuezhi Wang, Yuan Cao, Rif A
+  Saurous, and Yoon Kim. 2023. Grammar prompting
+  for domain-specific language generation with large
+  language models. arXiv preprint arXiv:2305.19234.
+Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le,
+  Ed Chi, Sharan Narang, Aakanksha Chowdhery, and
+  Denny Zhou. 2022. Self-consistency improves chain
+  of thought reasoning in language models. arXiv
+  preprint arXiv:2203.11171.
+Elizabeth Anne Watkins. 2022. “Have you learned your
+   lesson?” Communities of practice under algorith-
+   mic competition. New Media & Society, 24(7):1567–
+   1590.
+Max Weber. 1949. “Objectivity” in social science and
+ social policy. The methodology of the social sciences,
+ pages 49–112.
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten
+   Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou,
+   et al. 2022. Chain-of-Thought prompting elicits rea-
+   soning in large language models. Advances in Neural
+   Information Processing Systems, 35:24824–24837.
+White House OSTP. 2023. Request for information;
+ Automated worker surveillance and management.
+                                                      1363
+A    Prompts
+
+                                 Listing 1: GPT-4 Generation Prompt
+1 Analyze a set of JSON objects , each representing a submission from the r / UberDrivers
+     and r / LyftDrivers subreddits . For each JSON object , you will find the following
+    information :
+2
+3 Submission Title : The title of the Reddit post .
+4 Submission Body : The main content or message of the post .
+5 Timestamp : The date and time when the post was submitted .
+6 Group Key : A unique identifier that is common across all 5 submissions in the
+    dataset .
+7 Comments : A list of all comments made on the submission .
+8
+9 Generate a list of the most frequently occurring and impactful concerns due to AI
+    and algorithmic platform features discussed by drivers within the input context .
+10
+11 Step 1: Identify mentions in submission bodies , titles , and / or comments about
+    concerns that pertain to a lack of knowledge or available information regarding the
+    platforms ’ algorithms for drivers , including but not limited to fares , routes ,
+    incentive programs , driver preferences , etc .
+12
+13 Step 2: Group similar concerns across comments and submissions to ensure a mutually
+    exclusive list of concerns and avoid redundancy . For example , multiple mentions of
+    fare calculation issues should be grouped under a single concern .
+14
+15 Step 3: From the grouped concerns , select the most representative quote for each
+    concern . Ensure the quote clearly illustrates the specific concern due to AI and
+    algorithmic platform features .
+16
+17 Step 4: Assess which concerns are mentioned most frequently and have the most
+    significant impact on drivers .
+18
+19 Step 5: Create a list of these concerns in a JSON format . Each entry should include
+    ( with these specific field names ) :
+20 " title ": The title of the concern
+21 " description ": A brief description (10 -20 words )
+22 " quote ": The selected representative quote .
+23
+24 Step 6: Ensure the final list is concise , precise , and specifically addresses
+    drivers ’ concerns due to AI and algorithmic platform features present regarding the
+    platform ’ s algorithms and policies . Include only those concerns found in the input
+    context without generalizing based on prior or outside knowledge .
+25
+26 Step 7: Group any similar concerns to avoid redundancy . If there are no concerns ,
+    output " No concerns ". Do not generate any other text .
+
+
+
+
+                                               1364
+                              Listing 2: GPT-4 Classification Prompt
+1 Task : Analyze a list of rideshare drivers ’ transparency concerns . Each concern
+   should be evaluated and categorized into one of the following five categories . For
+   each concern listed , assign exactly one letter that corresponds to its most
+   appropriate classification in the same order as the original list ( preserving the
+   serial number of the concern ) .
+2
+3 Categories :
+4
+5 A . Need for Enhancing Transparency and Explainability : Concerns due to the lack of
+   information and explanations about AI and algorithmic features , required for drivers
+    to do their work . These include opaque trip details , unclear surge boundaries ,
+   bonus and quest clarity issues , lack of wage breakdown , platform take rate and
+   clarity on how prices and bonuses are calculated , and the impact of ratings on
+   metrics .
+6
+7 B . Need for Greater Predictability and Worker Agency : Concerns due to significant
+   variation in AI and algorithmic features leading to reduced worker agency and
+   diminished predictability of work conditions . These include unpredictable wages ,
+   misleading destination filter , immense variation in surge prices and quest matches
+   across drivers and location , and deceptive trip offers .
+8
+9 C . Need for Better Safety and More Time : Concerns focused on safety risks and time
+  pressures due to the AI and algorithmic features . These include dangerous
+  multitasking , compromised route safety , unattainable quests , and acceptance rate
+  concerns , emphasizing the need for improved safety and time management in app design
+  .
+10
+11 D . Need for Ensuring Fairness and Non - Discrimination : Concerns related to
+   algorithmic wage discrimination . These include unequal pay for similar work ,
+   earnings below the prevailing minimum wage , influence of the demographic
+   characteristics of drivers and riders on earnings , all caused by opaque AI and
+   algorithmic features .
+12
+13 E . Other Concerns : Any concerns that do not fit into the above categories .
+14
+15 Output Format : Present the analysis in a dictionary format with the serial number of
+    the concern as the key and the classification as the value , preserving the order of
+    the concerns .
+16
+17 {1: A , 2: B , 3: C}
+18
+19 Note : Ensure that each concern is classified under only one of the aforementioned
+   categories and that there is one classification corresponding to each concern in the
+    input , e . g ., for 400 transparency concerns , there should be 400 items in the
+   dictionary . Do not generate any other text .
+
+
+
+
+                                              1365
+                                       Listing 3: GPT-4 Aggregation and Ranking Prompt
+ 1 The data contains a list of concerns of rideshare drivers obtained from discussions
+    on the r / uberdrivers and r / lyftdrivers subreddits . Each concern title and its
+    description is present on consecutive lines .
+ 2
+ 3 These concerns are relevant to < insert category description from Classification
+    Prompt >
+ 4
+ 5 Identify the 5 most frequently occurring themes of concerns . Ensure each concern is
+    sufficiently different from the others on the list . Don ’ t repeat the same concern in
+     the list . If there are similar concerns , group them and find another one .
+ 6
+ 7 Provide the output in a rank ordered format :
+ 8 { concern_rank : <a number between 1 -5 > , concern_title : string , concern_description :
+    string of 10 -20 words }
+
+
+                                                   Listing 4: GPT-4 Prevalence Prompt
+ 1 Classify each line which contains the title and description of a concern from
+    rideshare drivers on Reddit into the following 6 categories :
+ 2
+ 3 < list the 5 categories A to E from the aggregation prompt output >
+ 4 F : Other
+ 5
+ 6 Output Format : Present the analysis in a dictionary format with the serial number of
+      the concern as the key and the classification as the value , preserving the order of
+      the concerns .
+ 7
+ 8 {1: A , 2: B , 3: C}
+ 9
+10 Note : Ensure that each concern is classified under only one of the aforementioned
+    categories and that there is one classification corresponding to each concern in the
+     input , e . g ., for 400 concerns , there should be 400 items in the dictionary . Do not
+    generate any other text .
+
+
+B     Findings
+
+                     Harm                                                              Quote                                        % (Count)
+Drivers are unsure about opaque fare calculation    “$30 to the middle of nowhere and had to eat dead miles to drive back”          29
+methods.                                                                                                                            (7,202)
+Issues with understanding and qualifying for        “Are they really expecting a thumbnail of a map with zero details of where      20
+incentive programs, bonuses, and quests.            I’d need to be to have a ride qualify for the Quests to be useful?”             (4,880)
+Drivers express concerns over clarity in ride       “A driver who keeps a high AR, low cancel rate, gets mostly 5 Stars, and        11
+assignments and earnings determination by al-       gives out mostly 5 Stars to pax will get better (more lucrative) rides than a   (2,765)
+gorithms.                                           driver the company’s algorithm doesn’t like.”
+Confusion persists over surge pricing determi-      “I get a ton of riders telling me they are paying 40−60 for the ride (surging   8
+nation and boundaries.                              rate), but when the ride ends, I get around $6 (non-surge rate pay)”            (1,858)
+Concerns over lack of clarity in cancellation       “Then I ask about the cancellation fee and they said they can’t provide one     5
+criteria and the associated fare impact.            as no option came up.”                                                          (1,197)
+
+Table 2: Most representative concerns on Reddit relevant to the need for enhancing transparency and explainability
+(Total = 24,721).
+
+
+
+
+                                                                     1366
+                        Harm                                                             Quote                                     % (Count)
+Drivers face uncertain and fluctuating income due to      “Uber has always done that. When they offer a higher promo, they         23
+changes in surge and quest pricing.                       manipulate and lower surges.”                                            (2,953)
+Challenges with understanding and adapting to algo-       “I multi-app, but the algorithm has changed. If you log off from the     19
+rithm changes that affect ride assignments and income.    app, to ride for another app, the algorithm puts you on the bottom       (2,408)
+                                                          of the queue after you log on again for the next ride.”
+Complexity and unpredictability in qualifying for in-     “Monday thru Thursday is 20 trip min & Friday thru Sunday is 40          14
+centive programs like quests and bonuses.                 trip min to get the bonus. Like why?”                                    (1,799)
+Concerns over inadequate payment for time and dis-        “I don’t understand what the hell is Uber thinking when giving us        11
+tance invested in long pickups and waits.                 long pickups for short trips. NOBODY sane accepts a $4 ride for          (1,429)
+                                                          someone half an hour away.”
+A rise in driver numbers contributing to fewer avail-     “Now that millions of new drivers have joined overnight due to the       5
+able rides and lower earnings.                            unemployment benefits ending, rides have dried up.”                      (658)
+
+Table 3: Most representative concerns on Reddit relevant to the need for enhancing predictability and worker agency
+(Total = 12,728).
+
+
+
+
+                        Harm                                                             Quote                                     % (Count)
+Drivers experience technical difficulties with app nav-   “I started using the Lyft nav, then Google maps, then Waze only to       20
+igation and route mapping, leading to disruptions.        go back to the Lyft nav. I went through that cycle because the Lyft      (1,208)
+                                                          nav sucks but at least you see everything going on with the app. With
+                                                          the others, I’ve lost out on streaks and pings because of glitches,
+                                                          etc.”
+Challenges in contesting false passenger complaints       “They claimed the fare was adjusted due to a rider complaint or          16
+and inadequate platform responses affecting driver        something. They’re lying.”                                               (990)
+status.
+Drivers express risks due to dangerous multitasking       “If a Pax wants to be taken to a part of town I don’t feel safe going,   15
+and unsafe areas suggested by algorithms                  I feel like I should know, for my own safety and peace of mind.”         (909)
+Difficulty reaching and obtaining help from support       “Support was really quick to respond...only took 13 days.”               14
+for various driver safety issues                                                                                                   (863)
+Drivers are not fairly paid for extensive wait times      “The stop system is bullshit. You make less money, 100%. I just          14
+during stops or added tasks                               checked. To order two rides, one there, one back, $17. To order the      (856)
+                                                          same ride, but using stops it’s $13.”
+
+Table 4: Most representative concerns on Reddit relevant to the need for better safety and more time (Total = 6,144).
+
+
+
+
+                          Harm                                                             Quote                                   % (Count)
+Drivers express discontent with the percentage of fares       “Yeah it’s always high ride demand and they charge the passen-        24
+they receive compared to what the platform charges cus-       gers high prices and drivers earnings are like 25%”                  (1,025)
+tomers.
+Concerns over unclear or unfair deactivation decisions        “I canceled two orders for the distance and my account was            20
+based on customer complaints or automated systems.            deactivated for fraud.”                                              (850)
+Uncertainty about how ratings are determined and their        “I read that Lyft will try to match a pax with a driver that both      9
+direct impact on drivers’ work opportunities.                 had 5 starred each other in the past.”                               (384)
+Drivers feel platform algorithms unfairly influence ride      “a lady was standing next to my car and ordered a lyft and it          7
+distribution, surge pricing, and overall income.              gave her a driver that was outside of the Bonus zone and 20          (316)
+                                                              minutes away.”
+Concern over algorithms distributing rides unfairly or pri-   “Perceived favoritism by the app’s algorithm towards newer             4
+oritizing certain drivers                                     drivers can limit earnings for long-term drivers.”                   (151)
+
+Table 5: Most representative concerns on Reddit relevant to the need for ensuring fairness and non-discrimination
+(Total = 4,280).
+
+
+
+                                                                    1367
+C    BERTopic Hyperparameters
+
+# Load CSV d a t a
+d f = pd . r e a d _ c s v ( f i l e n a m e )
+
+# C o n c a t e n a t e t i t l e and d e s c r i p t i o n i n t o one t e x t column
+df [ ’ text ’ ] = df [ ’ t i t l e ’ ] + " " + df [ ’ d e s c r i p t i o n ’ ]
+
+dim_model = UMAP( n _ n e i g h b o r s =15 ,
+                  n _ c o m p o n e n t s =10 ,
+                  min_dist =0.0 ,
+                  metric =’ cosine ’ ,
+                  r a n d o m _ s t a t e =42)
+
+# I n i t i a l i z e BERTopic
+t o p i c _ m o d e l = BERTopic (
+         n r _ t o p i c s =" a u t o " ,
+         m i n _ t o p i c _ s i z e =100 ,
+         n_gram_range =(1 , 2 ) ,
+         umap_model= dim_model
+)
+
+# F i t BERTopic on t h e c o n c a t e n a t e d t e x t s from t h e CSV
+topic_model . f i t ( df [ ’ text ’ ] )
+
+
+
+
+                                                  1368
+D    Financial Expenditure of Using LLMs
+In this section, we delve into the costs incurred
+from utilizing the GPT4-Turbo LLM on Microsoft
+Azure to synthesize concerns from the Reddit data.
+
+    Cost Category      Token Quantity      Cost (USD)
+ Input Token Rate            -          $0.01 per 1K tokens
+ Output Token Rate           -          $0.03 per 1K tokens
+  Total Input Tokens   135.12 million        $1351.20
+ Total Output Tokens   10.37 million          $311.10
+
+ Total Expenditure           -               $1662.30
+
+Table 6: GPT4-Turbo Token Usage and Associated
+Costs
+
+  We spent a total of $1,662.30 for using GPT4-
+Turbo via Microsoft Azure, which our university
+helped fund.
+
+E    IRR Measurements
+For the Classification and Prevalence stages, which
+associated a label with a given text input, we cal-
+culated inter-rater reliability (IRR). Three trained
+annotators annotated 100 randomly chosen samples
+each for both stages. We calculated human-human
+IRR and human-LLM IRR using Fleiss’ Kappa. To
+calculate human-LLM IRR, we generated the hu-
+man labels by taking the majority vote of the three
+annotators. If no clear majority existed, i.e., all
+three annotators chose different labels, we labeled
+the class as ’Other’. The results were as follows:
+For the Classification stage, the human-human IRR
+was 0.59, and the human-LLM IRR was 0.54. For
+the Prevalence stage, the human-human IRR was
+0.63, and the human-LLM IRR was 0.61. These
+results suggest good agreement according to the
+interpretation guidelines by Fleiss et al. (2013).
+Crucially, the human-human and human-LLM IRR
+values differed by less than 0.05, demonstrating
+LLMs can substitute human labels.
+
+
+
+
+                                                              1369
+

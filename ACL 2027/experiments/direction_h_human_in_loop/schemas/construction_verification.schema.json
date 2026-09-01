@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-construction-verification-v1.json",
+  "title": "Independent synthetic pilot construction verification",
+  "type": "object",
+  "required": [
+    "verification_version",
+    "study_id",
+    "visibility",
+    "verifier_id",
+    "verifier_is_charlie",
+    "verifier_helped_construct_items",
+    "verified_at_utc",
+    "truth_map_sha256",
+    "items",
+    "overall_disposition",
+    "notes"
+  ],
+  "properties": {
+    "verification_version": { "const": "direction-h-construction-verification-v1" },
+    "study_id": { "const": "direction-h-synthetic-pilot-v1" },
+    "visibility": { "const": "coordinator_only" },
+    "verifier_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "not": { "const": "charlie_dev_researcher_01" }
+    },
+    "verifier_is_charlie": { "const": false },
+    "verifier_helped_construct_items": { "const": false },
+    "verified_at_utc": { "type": "string", "format": "date-time" },
+    "truth_map_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "items": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": [
+          "task_id",
+          "intended_condition",
+          "intended_target_flag",
+          "source_output_integrity_reviewed",
+          "intended_manipulation_present",
+          "target_flag_matches_manipulation",
+          "second_material_manipulation_absent",
+          "no_planted_control_materially_adequate",
+          "disposition",
+          "rationale"
+        ],
+        "properties": {
+          "task_id": { "enum": ["DHQ-001", "DHQ-002", "DHQ-003", "DHQ-004"] },
+          "intended_condition": {
+            "enum": ["controlled_defect", "no_planted_defect_control"]
+          },
+          "intended_target_flag": {
+            "type": ["string", "null"],
+            "enum": [
+              "fabricated_or_altered_quote",
+              "wrong_attribution",
+              "unsupported_inference",
+              "hidden_source_concentration",
+              "lost_negative_case",
+              "contextual_flattening",
+              "unsupported_abstraction",
+              "sensitive_or_diagnostic_inference",
+              "inconsistent_codebook",
+              "other",
+              null
+            ]
+          },
+          "source_output_integrity_reviewed": { "type": "boolean" },
+          "intended_manipulation_present": { "type": ["boolean", "null"] },
+          "target_flag_matches_manipulation": { "type": ["boolean", "null"] },
+          "second_material_manipulation_absent": { "type": "boolean" },
+          "no_planted_control_materially_adequate": { "type": ["boolean", "null"] },
+          "disposition": {
+            "enum": ["verified_for_detection", "workflow_only", "reject_item"]
+          },
+          "rationale": { "type": "string", "minLength": 1, "maxLength": 5000 }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "intended_condition": { "const": "controlled_defect" } },
+              "required": ["intended_condition"]
+            },
+            "then": {
+              "properties": {
+                "intended_target_flag": { "type": "string" },
+                "intended_manipulation_present": { "type": "boolean" },
+                "target_flag_matches_manipulation": { "type": "boolean" },
+                "no_planted_control_materially_adequate": { "type": "null" }
+              }
+            },
+            "else": {
+              "properties": {
+                "intended_target_flag": { "type": "null" },
+                "intended_manipulation_present": { "type": "null" },
+                "target_flag_matches_manipulation": { "type": "null" },
+                "no_planted_control_materially_adequate": { "type": "boolean" }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "disposition": { "const": "verified_for_detection" } },
+              "required": ["disposition"]
+            },
+            "then": {
+              "properties": {
+                "source_output_integrity_reviewed": { "const": true },
+                "second_material_manipulation_absent": { "const": true }
+              },
+              "anyOf": [
+                {
+                  "properties": {
+                    "intended_condition": { "const": "controlled_defect" },
+                    "intended_manipulation_present": { "const": true },
+                    "target_flag_matches_manipulation": { "const": true }
+                  }
+                },
+                {
+                  "properties": {
+                    "intended_condition": { "const": "no_planted_defect_control" },
+                    "no_planted_control_materially_adequate": { "const": true }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "additionalProperties": false
+      }
+    },
+    "overall_disposition": {
+      "enum": ["verified_for_detection", "workflow_only", "reject_and_rebuild"]
+    },
+    "notes": { "type": "string", "maxLength": 5000 }
+  },
+  "additionalProperties": false
+}
+

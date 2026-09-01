@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/rq2/warrantroute-router-input-v1.json",
+  "title": "Source-free WarrantRoute router input projection",
+  "type": "object",
+  "required": [
+    "input_schema_version",
+    "study_id",
+    "item_id",
+    "evaluator_item_sha256",
+    "lane",
+    "researcher_observation",
+    "feature_projection",
+    "pre_specialist_only",
+    "heldout_accessed_before_policy_freeze",
+    "contains_source_text",
+    "contains_protected_attributes",
+    "contains_verified_error",
+    "contains_specialist_outcomes"
+  ],
+  "properties": {
+    "input_schema_version": {"const": "warrantroute-router-input-v1"},
+    "study_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "item_id": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"},
+    "evaluator_item_sha256": {"$ref": "#/$defs/sha256"},
+    "lane": {"$ref": "#/$defs/lane"},
+    "researcher_observation": {"$ref": "#/$defs/researcherObservation"},
+    "feature_projection": {
+      "type": "object",
+      "required": [
+        "feature_set_id",
+        "feature_set_sha256",
+        "numeric",
+        "boolean",
+        "categorical_codes"
+      ],
+      "properties": {
+        "feature_set_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "feature_set_sha256": {"$ref": "#/$defs/sha256"},
+        "numeric": {"$ref": "#/$defs/numericFeatures"},
+        "boolean": {"$ref": "#/$defs/booleanFeatures"},
+        "categorical_codes": {"$ref": "#/$defs/categoricalFeatures"}
+      },
+      "additionalProperties": false
+    },
+    "pre_specialist_only": {"const": true},
+    "heldout_accessed_before_policy_freeze": {"const": false},
+    "contains_source_text": {"const": false},
+    "contains_protected_attributes": {"const": false},
+    "contains_verified_error": {"const": false},
+    "contains_specialist_outcomes": {"const": false}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "featureName": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
+    "numericFeatures": {
+      "type": "object",
+      "maxProperties": 64,
+      "propertyNames": {"$ref": "#/$defs/featureName"},
+      "additionalProperties": {"type": "number"}
+    },
+    "booleanFeatures": {
+      "type": "object",
+      "maxProperties": 64,
+      "propertyNames": {"$ref": "#/$defs/featureName"},
+      "additionalProperties": {"type": "boolean"}
+    },
+    "categoricalFeatures": {
+      "type": "object",
+      "maxProperties": 64,
+      "propertyNames": {"$ref": "#/$defs/featureName"},
+      "additionalProperties": {"type": "integer", "minimum": 0, "maximum": 255}
+    },
+    "lane": {
+      "oneOf": [
+        {
+          "const": {
+            "corpus": "dreaddit",
+            "source_split": "official_train",
+            "internal_lane": "development_train",
+            "experimental_role": "development_diagnostic",
+            "heldout": false
+          }
+        },
+        {
+          "const": {
+            "corpus": "dreaddit",
+            "source_split": "official_test",
+            "internal_lane": "in_domain_audit",
+            "experimental_role": "post_development_audit_diagnostic",
+            "heldout": true
+          }
+        },
+        {
+          "const": {
+            "corpus": "agyw_focus_groups",
+            "source_split": "all_focus_groups",
+            "internal_lane": "heldout_cross_domain_evaluation",
+            "experimental_role": "heldout_cross_domain_diagnostic",
+            "heldout": true
+          }
+        }
+      ]
+    },
+    "ratingProjection": {
+      "type": "object",
+      "required": [
+        "evidential_credibility",
+        "voice_boundary_preservation",
+        "scope_calibration",
+        "cannot_judge",
+        "confidence",
+        "disposition",
+        "requested_expertise"
+      ],
+      "properties": {
+        "evidential_credibility": {"type": ["integer", "null"], "minimum": 1, "maximum": 5},
+        "voice_boundary_preservation": {"type": ["integer", "null"], "minimum": 1, "maximum": 5},
+        "scope_calibration": {"type": ["integer", "null"], "minimum": 1, "maximum": 5},
+        "cannot_judge": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 3,
+          "items": {
+            "enum": [
+              "evidential_credibility",
+              "voice_boundary_preservation",
+              "scope_calibration"
+            ]
+          }
+        },
+        "confidence": {"type": "integer", "minimum": 1, "maximum": 5},
+        "disposition": {"enum": ["accept", "revise", "reject", "escalate"]},
+        "requested_expertise": {"enum": ["none", "qualitative_methods", "domain", "both"]}
+      },
+      "additionalProperties": false
+    },
+    "researcherObservation": {
+      "type": "object",
+      "required": [
+        "actor_id",
+        "model_id",
+        "model_snapshot_sha256",
+        "prompted_role",
+        "rating_repetition",
+        "evaluator_item_sha256",
+        "observation_status",
+        "rating",
+        "observation_sha256"
+      ],
+      "properties": {
+        "actor_id": {"const": "qwen3_8b_researcher_reviewer_v1"},
+        "model_id": {"const": "qwen3:8b"},
+        "model_snapshot_sha256": {"$ref": "#/$defs/sha256"},
+        "prompted_role": {"const": "researcher"},
+        "rating_repetition": {"const": 1},
+        "evaluator_item_sha256": {"$ref": "#/$defs/sha256"},
+        "observation_status": {
+          "enum": ["valid", "invalid_output", "content_filtered", "timeout", "terminal_failure", "missing"]
+        },
+        "rating": {
+          "oneOf": [
+            {"$ref": "#/$defs/ratingProjection"},
+            {"type": "null"}
+          ]
+        },
+        "observation_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"observation_status": {"const": "valid"}}, "required": ["observation_status"]},
+          "then": {"properties": {"rating": {"$ref": "#/$defs/ratingProjection"}}},
+          "else": {"properties": {"rating": {"type": "null"}}}
+        }
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,849 @@
+CentaurTA: A Self-Improving Human-Agents Collaboration Framework
+                       for Thematic Analysis
+
+           Lei Wang                             Min Huang                              Eduard Dragut
+        Temple University                  Independent Researcher                     Temple University
+    tom.lei.wang@temple.edu                minerstudy@gmail.com                     edragut@temple.com
+
+
+
+                      Abstract                               into qualitative research workflows, with the most
+     Qualitative analysis is essential for studying          substantial uptake occurring in TA (de Morais Leça
+     complex social and behavioral phenomena,                et al., 2025). Prior work demonstrates that LLMs
+     yet existing large language model (LLM) ap-             can accelerate early-stage analytic tasks such as
+     proaches face key limitations. Fully automated          open coding, generating candidate themes, and
+     pipelines often compromise methodological               scaffolding codebook. For example, CoAIcoder
+     rigor, while manual coding remains costly and           (Gao et al., 2023) integrates a small language model
+     labor-intensive. Although recent work em-
+                                                             to recommend codes during initial coding, while
+     phasizes human–AI collaboration, many multi-
+     agent systems focus primarily on theme-level            CollabCoder (Gao et al., 2024) embeds GPT-based
+     outputs, provide limited human oversight, and           assistance into a three-stage pipeline involving in-
+     overlook grained, data-level coding quality.            dependent coding, code merging, and theme gener-
+     We introduce CentaurTA, an iterative, self-             ation. In contrast, Qiao et al., 2025 propose a fully
+     improving human–agent framework for scal-               automated, multi-agent framework that performs
+     able thematic analysis. CentaurTA places hu-            TA without human involvement, raising concerns
+     mans in the loop to oversee and guide analysis,
+                                                             about bias, loss of reflexivity, and misalignment
+     using expert feedback as a persistent learning
+     signal to drive prompt-level refinement. By
+                                                             with core qualitative epistemologies.
+     combining structured human feedback with                   Empirical studies caution against fully auto-
+     rubric-based evaluation, CentaurTA provides             mated TA. Lee et al., 2024 find that the effective
+     fine-grained supervision for both open cod-             use of ChatGPT in qualitative research requires sus-
+     ing and theme construction while preserving             tained human-AI collaboration (Wang et al., 2026;
+     methodological rigor. Experiments across mul-           Zhu and Callison-Burch, 2025), with human exper-
+     tiple datasets, baselines, and LLM families             tise playing a central role in contextual interpreta-
+     show that CentaurTA improves coding align-
+                                                             tion (Lan et al., 2025), theoretical grounding, and
+     ment and transparency, highlighting the central
+     role of human feedback in reliable qualitative          validation. As a result, there is growing consen-
+     analysis. Our code and data are available at            sus that LLMs should function not as autonomous
+     https://github.com/Tom-Owl/CentaurTA.                   coders but as analytic partners embedded within
+                                                             human-centered workflows that preserve human in-
+1    Introduction
+                                                             terpretive authority (Morgan, 2025). However, de-
+Thematic analysis (TA) is widely regarded as a flex-         spite this consensus, existing LLM-assisted QDA
+ible and foundational approach for making sense              systems provide limited support for meaningful
+of qualitative data (Braun and Clarke, 2006). It             human-in-the-loop interaction. Earlier interactive
+typically unfolds through iterative cycles of coding         approaches to semi-automated coding emphasize
+and theme development, which require both ana-               visualization or lightweight intervention, but do
+lytic adaptability and interpretive judgment. De-            not enable systematic learning from human feed-
+spite its methodological accessibility, however, con-        back (Drouhard et al., 2017; Marathe and Toyama,
+ducting rigorous TA remains labor-intensive, cog-            2018; Malaviya et al., 2024). More recent LLM-
+nitively demanding, and challenging to replicate             based frameworks often incorporate human feed-
+(Rietz et al., 2020; Nowell et al., 2017). Recent            back only as a one-off corrective step rather than
+advances in large language models (LLMs) have                as a signal for iterative system improvement (Gao
+created new avenues for augmenting qualitative in-           et al., 2025). For example, (Xu et al., 2025) intro-
+quiry. These models are increasingly incorporated            duce a multi-agent, human-in-the-loop framework
+                                                       15871
+                Findings of the Association for Computational Linguistics: ACL 2026, pages 15871–15884
+                             July 2-7, 2026 ©2026 Association for Computational Linguistics
+for TA of clinical interviews. While the system               • Empirical findings: evidence that iterative
+incorporates expert intervention, it lacks an iter-             human feedback improves alignment, that
+ative self-improvement mechanism (Deng et al.,                  rubric-based early stopping helps prevent over-
+2025) that allows agents to adapt based on expert               fitting in self-improvement, and that learned
+feedback. As a result, human experts must provide               principles can transfer to other platforms.
+redundant corrections to a static framework. More-
+over, the study does not include systematic human         2    Datasets
+evaluation of code-level quality, limiting insight
+                                                          In this study, we use 3 domain-specific datasets
+into how AI assistance affects analytic rigor.
+                                                          (Chen et al., 2022; Aljebreen et al., 2024; Yang
+   Taken together, existing work reveals a critical
+                                                          et al., 2025a; Dugan et al., 2024). USRS: this
+gap: the absence of a fine-grained, self-improving
+                                                          dataset focus on self-regulated learning of Chinese
+human–AI collaboration loop for TA. Recent po-
+                                                          undergraduates, which consists of 12 personal Re-
+sition research emphasizes that many human-in-
+                                                          flection texts written in Chinese by National Schol-
+the-loop systems (Chen et al., 2024c; Dragut et al.,
+                                                          arship recipients over the past two years from Uni-
+2021; Zhang et al., 2019) conceptualize expert in-
+                                                          versity H (Huang, 2024). ASP: this dataset ex-
+put as episodic supervision rather than as a learning
+                                                          plores the challenges and assistive technology for
+signal (Zhang et al., 2025a) that enables continu-
+                                                          autistic job seekers (West et al., 2025). It contains
+ous system adaptation (Shen et al., 2025). Hence,
+                                                          first-person narrative (Subbiah et al., 2025; Wu
+existing frameworks either emphasize automation
+                                                          et al., 2025a) in English from 15 participants rep-
+at the expense of qualitative rigor or incorporate hu-
+                                                          resenting three employment pathways: university-
+man feedback in ways that fail to support iterative
+                                                          based coordinators, state vocational rehabilitation
+model or agent improvement. This gap constrains
+                                                          job coaches, and autistic individuals with prior ex-
+both efficiency and scalability, particularly for large
+                                                          perience in these programs (Garrison et al., 2025).
+qualitative datasets where repeated manual correc-
+                                                          Dreaddit: a public English-language corpus of
+tion becomes prohibitive.
+                                                          short, multi-domain social media texts for stress
+   To bridge this gap, we proposed CentaurTA, a           detection. We use the half of test set for analysis,
+self-improving human-agent collaboration frame-           which can provide presentative test set at the same
+work for TA, which explicitly models human feed-          time align with other dataset make them have the
+back as a persistent learning signal within an iter-      same amount of text (Turcan and McKeown, 2019).
+ative analytic loop. Our approach enables LLM-            USRS and ASP have received IRB approval. All
+based agents to refine their open coding and theme        datasets were anonymized prior to analysis, with
+construction behavior over time based on expert           identifiable information (e.g., names, addresses,
+intervention, reducing redundant errors while pre-        and other sensitive personal details) removed or
+serving human interpretive control. Our design            replaced by anonymous identifiers. Table 1 summa-
+is informed by recent advances in self-improving          rizes the dataset statistics used in our experiments.
+LLM agents and alignment research, which em-
+phasize that reliable improvement requires treating       3    Method
+human judgment as repeatable supervision rather
+than a one-off fix (Mondal et al., 2024; Chen et al.,     We present an overview of the proposed framework,
+2024b; Wang et al., 2024; Nayak et al., 2024). Our        CentaurTA, in Figure 1. Formally, let D denote a
+contributions are:                                        set of long-context documents (Zhang et al., 2024;
+                                                          Paul et al., 2022; Han et al., 2026) with research
+   • CentaurTA: a self-improving, human-                  background as b. Each document d ∈ D is decom-
+     centered agent framework for thematic                posed into an ordered list of sentences, denoted
+     analysis with an Actor–Critic design and             as sent(d) = {s1 , s2 , . . . , sn }. The objective of
+     prompt-level optimization driven by expert           CentaurTA is to perform thematic analysis, which
+     feedback.                                            consists of two sub-tasks.
+                                                          Task 1: Open Coding. The framework first pro-
+   • Rubric evaluation: a constraint-based evalu-         duces a structured set of analytical units, each
+     ation protocol for open coding and theme con-        represented as (code, quote, ref ), where code is
+     struction that yields fine-grained, actionable       an open-ended inductive code inferred from d,
+     signals beyond coarse LLM-as-Judge metrics.          quote ⊆ d is a concise textual fragment extracted
+                                                     15872
+    Dataset                               Domain                 Context    # Doc   Language    #w      # sent   Avg # w
+    USRS (Huang, 2024)                    Education              Long         12    Chinese    25,718    471      2,143
+    ASP (Garrison et al., 2025)           Autistic Job Seekers   Middle       15    English    12,678    651       845
+    Dreaddit (Turcan and McKeown, 2019)   Stress Analysis        Short       214    English    19,358    822       98
+
+                                                Table 1: Data statistics
+
+
+from the original document, and ref ⊆ {1, . . . , n}             and performs optimization at the prompt level
+denotes the indices of the sentences in sent that sup-           for rubric learning, enabling model-agnostic and
+port the code (Rao et al., 2026). Let C = {ci }m   i=1           lightweight adaptation.
+denote the global set of open codes generated
+in Task 1, obtained by applying open coding to                   3.3   Actor-Critic Module
+each Sdocument d ∈ D and aggregating the results:                The Actor-Critic module consists of two comple-
+C = d∈D OpenCoding(d|b).                                         mentary agents: an Actor responsible for genera-
+Task 2: Theme Construction. Building on the                      tion and a Critic responsible for evaluation. In con-
+outputs C of Task 1, the framework then derives                  trast to single-model generation or direct reward
+higher-level thematic representations in the form                modeling, the actor-critic paradigm allows the eval-
+(theme, def, codes, rationale). Here, theme denotes              uation strategy to evolve independently from the
+an abstract concept synthesized from multiple open               generation process, which is particularly impor-
+codes, def provides a detailed definition of the                 tant when human feedback is sparse or expensive.
+theme, codes ⊆ C refers to a subset of the open                  Given an input x with research background as b
+codes generated in Task 1, and rationale explains                and an Actor prompt pa , the Actor generates a
+how these codes are integrated to form the theme.                candidate output
+
+3.1 Document Batching and Batch Accuracy                                            y = πθ (x | pa , b),
+
+To support long-context documents while keep-                    where πθ denotes a LLM parameterized by θ. The
+ing human feedback cognitively manageable, we                    Actor prompt pa encodes task instructions, con-
+process each document d in contiguous sentence                   straints, and optional reasoning guidance.
+batches. Specifically, we partition document into                   Conditioned on the input-output pair (x, y) and
+batches of size B sentences, and each interaction                a Critic prompt pc , the LLM-based Critic Qϕ evalu-
+round operates on one batch. In this study, we                   ates the quality of the Actor’s output and produces
+set B=10 as a practical trade-off: shorter batches               a binary reward signal:
+often lack sufficient local context for reliable the-
+matic interpretation, while longer batches impose                          rc = Qϕ (x, y | pc , b), rc ∈ {Y, N }.
+excessive review burden during human feedback
+                                                                 3.4   Human-Agent Collaboration
+and revision. We use batch accuracy to quantify
+alignment during iterative human–agent collabora-                Human expert feedback is incorporated to ensure
+tion. For each generated item in a batch, the Critic             that the Critic’s evaluations are aligned with human
+outputs a binary decision rc ∈ {Y, N } and the hu-               preference. Given the Actor’s output y and Critic’s
+man annotator provides a corresponding label rh .                output rc , a human annotator provides feedback
+For each code or theme, both the human annotator                 in the form of binary labels and natural language
+and the Critic Agent assign a binary label (Y/N).                decision notes as rationale, denoted as
+Batch accuracy is defined as the proportion of items
+                                                                                     rh = H(x, y, rc )
+labeled as Y within a batch.
+                                                                    Specifically, we design a two-stage human feed-
+3.2 Overview                                                     back protocol that cleanly separates efficiency from
+We propose a self-improving Actor–Critic agent                   authority: Stage 1 - Simulated human value feed-
+framework with human-in-the-loop to provide high-                back A simulated expert agent (GPT-5.2 with do-
+quality feedback for prompt optimization, illus-                 main knowledge) generates provisional feedback
+trated in Figure 1. Unlike conventional reinforce-               (draft labels and short rationales) for candidate out-
+ment learning with parameter updates, our ap-                    puts. These drafts are used solely to pre-screen and
+proach operates entirely in natural language space               prioritize items for review, reducing the volume
+                                                          15873
+                                                                   Prompt
+                                                                 Optimization
+
+
+          Input                                                                               Output
+                        Actor               Critic            Human Feedback
+
+
+Figure 1: Overview of CentaurTA. The framework decomposes long documents into sentence batches, performs
+open coding and theme construction with an Actor agent, evaluates outputs with a Critic agent, and uses human
+feedback to refine role-specific prompts via a prompt optimizer.
+
+
+of cases requiring expert attention. Stage 2 - Do-         Learned principles can be snapshot at different it-
+main expert feedback as final supervision. Domain          erations and transferred (Li et al., 2019) to other
+experts review, revise, and finalize the simulator’s       workflows (e.g., by replacing the prompts used in
+drafts in real time. Only the expert-validated la-         other systems) to test generalization.
+bels and rationales are used to supervise prompt              This coordinated, parallel prompt refinement
+optimization for principles distillation (Jones et al.,    drives a self-improving system evolution. As the
+2025). Details about the annotators are provided in        Actor produces increasingly higher quality outputs
+Appendix A.                                                and the Critic becomes more aligned with human
+   Importantly, human feedback is not used to di-          judgment, the system’s dependence on human ex-
+rectly optimize the Actor or the Critic agents. In-        pert feedback naturally diminishes. Consequently,
+stead, it serves as a supervisory signal for the           human supervision becomes progressively sparser
+prompt optimization module, which refines the              over time, substantially improving the efficiency
+CoT prompts of both Actor and Critic agents.               and scalability of the overall framework.
+Moreover, the learning signal is not derived from
+model–model agreement: the simulator’s outputs             3.6   Evaluation Methods
+are proposals, while experts determine the final su-       To assess the performance of our CentaurTA frame-
+pervision. This design lowers repetitive annotation        work, we employed three complementary evalu-
+cost while preserving expert control over what the         ation methods: (1) LLM-as-Judge for credibility
+system learns.                                             and conformability and (2) rubric based evaluation.
+                                                           These evaluation methods offer comprehensive in-
+3.5 Prompt Optimization                                    sight into CentaurTA’s performance for open cod-
+The Prompt Optimizer is an LLM-based agent pa-             ing and theme construction.
+rameterized by a prompt po that coordinates the re-        Credibility and Conformability 1) Credibility
+finement of the chain-of-thought (CoT) prompts for         evaluates whether the generated codes, sub-themes,
+both the Actor and the Critic, enabling prompt level       or themes can represent the data. 2) Conformability
+self improvement. The Actor and Critic prompts             assesses whether the generated codes, sub-themes,
+are refined using role specific supervision signals.       or themes are data-driven and consistent with the
+The Actor prompt is updated based on human feed-           original input context (Qiao et al., 2025). For both
+back over generated outputs, whereas the Critic            dimensions, the LLM-as-Judge (Zheng et al., 2023)
+prompt is optimized to better match human assess-          makes binary decision for each output, and the suc-
+ments of its binary evaluations. The prompt opti-          cess rate (percentage of correct cases) is reported
+mization process is defined as:                            as metric.
+                                                           Rubric-based evaluation. To obtain fine-grained,
+      p∗a = PromptOpt(x, y, rh , pa | po , b),       (1)   verifiable quality signals for both open coding and
+                                                           theme construction, we instruct domain experts
+      p∗c = PromptOpt(x, rc , rh , pc | po , b).     (2)   to build a rubric library (Asai et al., 2026; Yifei
+                                                           et al., 2025; Rao and Callison-Burch, 2026a; Chen
+   We refer to the evolving CoT prompts p∗a and p∗c        et al., 2024a) that decomposes qualitative-method
+as learned principles: they are explicit, natural lan-     requirements into binary, checkable constraints,
+guage guidelines distilled from human rationales           which are applied via an LLM-as-Judge prompt.
+that steer generation (Actor) and evaluation (Critic).     For rubric based evaluation of open coding, we
+                                                      15874
+                                                           Domain     Method   Model     Credibility (%)   Conformability (%)
+                                                                      Atlas    -              50.00               50.00
+                                                                      MC       GPT-5         100.00              100.00
+                                                           USRS
+                                                                      TA       GPT-5         100.00              100.00
+                                                                      TA       GPT-5.2        90.00               90.00
+                                                                      Atlas    -             80.00               80.00
+                                                                      MC       GPT-5         91.67               91.67
+                                                           ASP
+                                                                      TA       GPT-5         92.31               92.31
+                                                                      TA       GPT-5.2       94.12               94.12
+                                                                      Atlas    -              83.33               83.33
+                                                                      MC       GPT-5          61.11               61.11
+                                                           Dreaddit
+                                                                      TA       GPT-5          93.33               93.33
+                                                                      TA       GPT-5.2       100.00              100.00
+Figure 2: Domain Expert design unseen constraints for
+rubric-based evaluation                                   Table 2: Performance comparison of theme construction
+
+
+define the following constraints for code format:         constraints (e.g., concise naming and complete in-
+• R1 (Context alignment): Codes must be closely           clusion of supporting codes), and 4 domain-specific
+   aligned with the stated research background and        constraints enforcing domain-appropriate thematic
+   analytic focus.                                        organization.
+• R2 (Avoid over-abstraction): Codes should re-              Given the research background, source text, and
+   main descriptive and avoid excessive conceptual-       system outputs, an LLM based judge returns a
+   ization or theory-level inference.                     JSON decision matrix with Y/N labels for each
+• R3 (Semantic clarity): Each code must be                rubric; we compute rubric accuracy as the average
+   semantically self contained and clearly inter-         constraint satisfaction rate across items (optionally
+   pretable in isolation.                                 stratified by rubric category).
+• R4 (Evidence grounding): The quoted text must
+   accurately and sufficiently support the meaning        4     Results
+   of the code.
+                                                          4.1     Experimental Setting and Details
+• R5 (Semantic completeness): Each code should
+   explicitly specify its core semantic elements (e.g.,   We evaluate the performance of our CentaurTA
+   actor, action, and object or information source)       framework against 2 baselines: 1) MindCoder (Gao
+   to avoid underspecification.                           et al., 2025), an LLM-powered workflow for quali-
+• R6 (Faithful interpretation): Codes must not            tative analysis, while enabling humans to conduct
+   introduce unsupported causal claims or interpre-       meaningful interpretation. 2) Atlas.ti (ATLAS.ti,
+   tations beyond what is warranted by the quoted         2025), a commercial platform for AI Coding.
+   evidence.
+• R7 (Conciseness and precision): Codes should            4.2 The Necessity of Rubric-based Evaluation
+   be concise and focused, avoiding non-essential         Previous work has employed an LLM-as-Judge
+   modifiers while preserving essential meaning.          paradigm to evaluate qualitative codebooks in
+We ensure that the resulting constraints are new          terms of credibility and conformability. As shown
+and diverse (Lin et al., 2024; Pyatkin et al., 2025;      in Table 2, we conduct thematic analysis using
+Li et al., 2026; Feng et al., 2025b; Rao and              three platforms, Atlas, MindCoder, and CentaurTA,
+Callison-Burch, 2026b). As shown in Figure 2,             across three domains: USRS, ASP, and Dreaddit.
+for open coding, each {code, quote, sentence_id}          While credibility and conformability provide quan-
+item is evaluated using 18 constraints: 6 general         titative assessments of codebook quality, this eval-
+rules (e.g., avoiding unsupported causal inference        uation paradigm has several limitations. 1) It lacks
+and enforcing clear conceptual boundaries), 7 for-        mechanisms for evaluating open-code phrases; 2)
+mat/linguistic constraints (e.g., noun/gerund phras-      it does not provide fine-grained feedback signals to
+ing, length limits, semantic self containment, and        support iterative codebook improvement; and, 3) it
+referential clarity), and 5 domain specific con-          fails to access the alignment between AI-assisted
+straints tailored to each dataset. For theme construc-    tools with human expert. To address these issues,
+tion, each theme is evaluated with 12 constraints:        we introduce a rubric-based evaluation framework
+4 general theme-construction rules (e.g., level con-      for multifaceted assessment of thematic analysis
+sistency and inter theme distinctiveness), 4 format       across both the open-coding and theme construc-
+                                                     15875
+                                                                          Iteration: 1                                               Iteration: 10
+                                                                                                                 1.Ensure that coding is strictly aligned with the core
+                                                                                                                 research theme. Generated codes should remain faithful
+                                                              1. Coding should be closely aligned with the       to the original statements;
+                                                                 research context;
+                                                                                                                 2. Maintain semantic completeness in each code by
+                                                              2. Over-abstraction or excessive                   clearly specifying the subject, action, and object;
+                                                              conceptualization should be avoided;
+                                                                                                                 3. Quoted excerpts should be sufficient to support the
+                                                              3. Each code should be semantically                meaning of the code, avoiding fragments that are too
+                                                              complete, specific, and clearly defined;           short to convey complete meaning or provide adequate
+                                                                                                                 justification;
+                                                              4. Quotations should accurately select key
+                                                              excerpts from the original text that support the   4. Control the level of abstraction in coding by
+                                                              code;                                              prioritizing descriptive and concrete expressions that
+                                                                                                                 reflect participants’ actual experiences or behaviors;
+                                                              5. The number of codes should balance
+                                                              conciseness and representativeness.
+       (a) Baseline comparison for the open coding                                                               5. When a single sentence may correspond to multiple
+                                                                                                                 themes, priority should be given to the code that is most
+       task evaluated with a rubric-based LLM-as-                                                                closely aligned with the main research focus.
+
+       Judge.
+                                                         Figure 4: Learned principles of the actor agent for open
+                                                         coding at the 1st and 10th iterations.
+
+
+                                                         4.3           Effectiveness of Human–Agent
+                                                                       Collaboration
+
+                                                         Iterative human–agent collaboration substantially
+       (b) Baseline comparison for the theme con-        enhances open coding performance. Following the
+       struction task evaluated with a rubric-based
+       LLM-as-Judge.                                     batching protocol in Section 3.1, we measure batch
+                                                         accuracy as the agreement between Critic deci-
+Figure 3: Baseline comparisons for open coding and       sions and human labels within each 10-sentence
+theme construction tasks under rubric-based LLM-as-      batch. As illustrated in Figure 6a, batch accuracy
+Judge evaluation. MC denotes MindCoder, TA denotes       increases monotonically with the number of hu-
+CentaurTA, and TA+MC denotes applying the learned
+                                                         man feedback iterations across two expert interac-
+principles of CentaurTA to MindCoder.
+                                                         tion trajectories. After approximately 20 interac-
+                                                         tion rounds, batch accuracy consistently exceeds
+tion stages. As shown in Figure 3, the proposed          90%, indicating that the agentic system achieves
+CentaurTA framework consistently achieves better         near-complete alignment with human experts for a
+performance, particularly in the theme construc-         given document piece. These results demonstrate
+tion stage. More detailed results are provided in        that the proposed CentaurTA can reliably align
+Appendix B, Table 4.                                     agent behavior with expert-level thematic analy-
+   Moreover, the principles learned through the hu-      sis through iterative self-improving. In our frame-
+man–agent collaboration process can be transferred       work, human experts are only required to supervise
+to other AI platforms to enhance their performance       and revise the critic agent’s decisions. All labor-
+on thematic sub-tasks, demonstrating the transfer-       intensive components, including manual annotation
+ability of the proposed method. Figure 4 illustrates     and prompt engineering, are handled automatically
+an example of such learned principles. We ob-            by the critic agent and prompt optimization agent,
+serve that as human–agent feedback interactions          enabling high-quality open coding with substan-
+increase, the actor agent’s guiding principles con-      tially reduced human effort.
+tinue to evolve and become more specifically fo-            Figure 5 presents the detailed rubric-based
+cused on open coding. For example, the agent             scores for coding format during the open coding
+increasingly emphasizes aligning codes with the          process. We observe that different rubrics exhibit
+original context, ensuring semantic completeness,        distinct evolutionary trajectories as the number of
+and avoiding fragmented coding. These observa-           iterations increases. This pattern reflects the inher-
+tions indicate that the proposed human–agent col-        ently complex nature of thematic analysis, in which
+laboration framework successfully transfers human        multiple objectives are optimized simultaneously
+expert knowledge to the actor agent through itera-       and improvements along one constraint may occur
+tive self-improvement, in which human feedback           at the expense of another. In particular, we observe
+serves as a supervisory signal guiding the prompt        occasional tension between R5 and R7. R5 requires
+optimizer to refine the actor agent’s coding princi-     that codes explicitly specify the actor, information
+ples, thereby improving alignment over successive        source, and purpose, whereas R7 emphasizes that
+iterations.                                              coding expressions should be concise and precise,
+                                                      15876
+Overall Acc
+
+
+
+
+Figure 5: Evolution of rubric-based coding format            (a) Human-Agent Collabora- (b) Rubric-based evaluation
+scores across iterations in the open coding process, high-   tion for self-improving    for early stopping
+lighting trade-offs between conciseness and semantic
+completeness.                                                Figure 6: Human–Agent collaboration and self-
+                                                             improving workflow.
+
+
+eliminating non-core modifiers. As a result, enforc-         4.5    The Transition from Human-driven to
+ing excessive conciseness may sometimes lead to                     Agent-driven Self-improvement
+the omission of critical semantic elements, such as
+                                                             As shown in Figure 7, the Critic Agent supports
+the acting subject or information source, explaining
+                                                             self-improvement by comparing its feedback with
+the observed trade-off between these two rubrics.
+                                                             human annotations and providing discrepancy sig-
+                                                             nals to the prompt optimizer. The left region
+                                                             (highlighted in red) represents the human-driven
+4.4 Rubric-Based Early Stopping to Prevent
+                                                             phase, where continuous expert feedback aligns
+    Overfitting in Self-Improving Process
+                                                             the agent with human preferences and leads to in-
+                                                             creasing batch accuracy. As training progresses,
+Although iterative human feedback consistently im-
+                                                             the system transitions to an agent-driven regime, in
+proves batch-level accuracy in Figure 6a, excessive
+                                                             which the Critic Agent performs self-critique and
+self-improvement may lead to overfitting, where
+                                                             autonomously generates optimization cues. The
+learned principles become overly specialized to a
+                                                             resulting accuracy fluctuations in the right region
+single document fragment. To explore this over-
+                                                             indicate effective self-refinement with reduced hu-
+fitting risk in the self-improvement process, we
+                                                             man intervention.
+extract learned principles (i.e., the optimized Ac-
+tor/Critic CoT prompts) at different stages on the           5     Analysis
+USRS domain (iterations 0, 1, 5, and up to 25)
+and evaluate them on both training and held-out              Agreement Between LLM Judge and Human
+test sets using our proposed rubric-based evalua-            Annotators Expert alignment was established dur-
+tion method. Results are shown in Figure 6b. We              ing rubric construction (Cohen’s κ = 0.78 among
+observe rubric scores increase steadily up to ap-            three domain experts), reflecting agreement on the
+proximately 10 iterations and decline thereafter             evaluation criteria. We further conducted an ad-
+on both splits, suggesting that continued feedback           ditional validation study: a domain expert manu-
+leads to overfitting. Unlike conventional overfit-           ally labeled 300 open-coding results in the USRS
+ting, where training performance improves while              domain and we compared these labels with rubric-
+test performance degrades, overfitting here occurs           based LLM-as-Judge decisions (Yang et al., 2025b).
+when batch-level accuracy continues to rise (Figure          Inter-annotator Agreement (IAA) was evaluated us-
+6a) but overall rubric-based performance decreases           ing Cohen’s κ and constraint-level accuracy. The
+on both training and test sets. This finding shows           LLM judge achieves 90% average rubric accuracy,
+that rubric-based evaluation can serve as a signal           comparable to the human expert’s 89%. The over-
+for early stopping in human–agent collaboration.             all IAA score is κ = 0.68, indicating substantial
+Our proposed CentaurTA can achieve its maximum               agreement. Agreement is higher for general rules
+performance gain with only 10% of the full docu-             (κ = 0.71) and slightly lower for domain-specific
+ment for self-improving human-agent collaboration            constraints (κ = 0.64), which are inherently more
+for open coding, substantially reducing human ef-            nuanced. These results suggest that the rubric-
+fort compared to prior approaches require manual             based protocol provides reliable, expert-aligned
+review of all open coding outputs and customized             constraint verification rather than coarse end-to-
+prompt engineering.                                          end scoring.
+                                                        15877
+                             USRS                         ASP                    Dreaddit
+
+
+
+
+                    Human                      Human                       Human
+                             Agent Driven                Agent Driven      Driven   Agent Driven
+                    Driven                     Driven
+
+
+
+
+                 Figure 7: The transition from human-driven to agent-driven self-improvement.
+
+
+Ablation Study To clarify the contributions of dif-        been proposed to improve agent performance, its
+ferent feedback sources and system components,             applicability to qualitative analysis is unclear given
+we conducted controlled experiments on the Open            the small number of codes and themes typically
+Coding task in the USRS domain (batch size =               involved. MindCoder integrates LLM outputs, self-
+10 sentences, maximum 25 refinement iterations).           critiques, and human revision within an interactive
+Figure 8 shows the impact of removing different            framework (Gao et al., 2025), but relies heavily on
+feedback sources. The full C ENTAURTA system               manual inspection and prompt engineering, creat-
+achieves 90% rubric accuracy with an average run-          ing scalability bottlenecks.
+time of 25 minutes across 10 refinement rounds.            Feedback-Driven Self-Improvement in LLM
+Removing iterative feedback reduces accuracy to            Agents Recent advances in self-improving large
+81%, indicating that iterative refinement is neces-        language model (LLM) agents have moved be-
+sary for reliable performance. Using only domain-          yond prompt-level self-correction toward explicit
+expert feedback maintains comparable accuracy              feedback-driven learning loops. Prior work has
+(90%) but increases runtime substantially to 42            shown that intrinsic self-correction without a reli-
+minutes, while using only simulated-human feed-            able external signal can be brittle and may amplify
+back improves efficiency (7 minutes, 5 rounds) but         bias or indecision (Zhang et al., 2025b). To ad-
+reduces accuracy to 85%, suggesting that perfor-           dress this limitation, subsequent approaches intro-
+mance gains arise from the complementary two-              duce dedicated critic agents, distilled critic models
+stage feedback mechanism rather than the simula-           (Mondal et al., 2024), and decomposition-based
+tor alone.                                                 critique–refine pipelines (Ferraz et al., 2024) to
+                                                           strengthen feedback quality.
+6   Related Work
+                                                           7    Conclusions
+Multi-agent Systems for Thematic Analysis
+Multi-agent frameworks extend LLM-based The-               This work introduces CentaurTA, a self-improving
+matic Analysis by assigning specialized roles (e.g.,       human–agent collaboration framework for thematic
+coder, aggregator, reviewer) to improve scalability        analysis that treats expert feedback as a persis-
+and diversity of interpretation (Lee et al., 2024; Gao     tent learning signal rather than a one-off correc-
+et al., 2023, 2024; Feng et al., 2025a). Thematic-         tion. CentaurTA operationalizes thematic analy-
+LM coordinates multiple agents to maintain code-           sis into open coding and theme construction, and
+books and aggregate codes across corpora (Qiao             couples an Actor–Critic module with a prompt-
+et al., 2025). However, existing agentic systems           optimization loop so that both generation and evalu-
+typically lack mechanisms to learn from human              ation criteria can be refined over successive human
+feedback over time and are often evaluated only            feedback rounds.
+at the theme level, without assessing code-level              A central novelty of our approach is a rubric-
+quality. Moreover, reliance on automatic metrics           based evaluation protocol that provides fine-
+or LLM-based evaluators risks misalignment with            grained, verifiable signals for both stages of the-
+human qualitative judgment (Wang and Dragut,               matic analysis. Beyond coarse end-to-end judg-
+2024). Other recent agentic approaches share sim-          ments (e.g., credibility and conformability), our
+ilar limitations, including limited human evalua-          rubrics evaluate code- and theme-level quality un-
+tion and static agent behavior (Xu et al., 2025; Yi        der explicit methodological and structural con-
+et al., 2025). While reinforcement learning has            straints, enabling interpretable diagnostics, transfer-
+                                                    15878
+               Figure 8: Impact of removing different feedback sources on accuracy and runtime
+
+
+able learned principles (i.e., optimized Actor/Critic   Ethical Considerations
+CoT prompts), and rubric-based early stopping to
+mitigate overfitting during self-improvement.           This work studies LLM-assisted thematic analy-
+   Across three domains (USRS, ASP, and Dread-          sis of qualitative text and proposes a human–agent
+dit) and multiple baselines, CentaurTA achieves         collaboration framework that explicitly preserves
+consistently strong thematic outcomes, and iter-        human interpretive control. The study does not
+ative human–agent collaboration improves open-          involve experiments on human subjects beyond
+coding alignment with experts (exceeding 90%            expert-in-the-loop feedback for evaluating and
+batch accuracy after ∼20 interaction rounds).           guiding model outputs. Such feedback constitutes
+Moreover, rubric trajectories reveal that peak gen-     low-risk annotation of non-sensitive text and does
+eralizable performance can be reached with limited      not involve intervention, deception, or collection
+feedback (e.g., ∼10% of a document), substantially      of personal identifiers.
+reducing redundant expert corrections; the learned         We evaluate CentaurTA on three datasets span-
+principles can also be transferred to improve other     ning education, assistive employment, and social
+AI-assisted workflows.                                  media. Two datasets (USRS and ASP) received
+                                                        prior IRB approval from their original studies, and
+8   Acknowledgments                                     all datasets were anonymized before analysis, with
+                                                        identifiable information removed or replaced by
+This work was supported in part by the U.S. NSF         anonymous identifiers. We adhere to the licenses
+under awards 2107213 and 2026513. We thank              and usage terms of all datasets and do not release
+Michael West for valuable suggestions on thematic       any new raw personal data.
+analysis evaluation. We also thank Yifei Li for            Because qualitative analysis involves interpre-
+inspiring us to explore rubric-based evaluation         tive judgment, improper automation may introduce
+methods. We thank Drs. Stephen MacNeil and              bias, over-abstraction, or epistemic distortion. To
+Hongchang Gao for their constructive feedback.          mitigate these risks, CentaurTA requires explicit
+                                                        evidence grounding for each code, incorporates
+9   Limitation
+                                                        rubric-based constraints derived from qualitative
+We acknowledge several limitations for future ex-       methodology, and places human experts in the loop
+ploration. First, open-source LLMs could be em-         to oversee, correct, and guide agent behavior.
+ployed as the underlying models for agents. Sec-           Finally, we acknowledge the environmental and
+ond, more sophisticated techniques for prompt op-       computational costs associated with LLMs. Our
+timization could be investigated, such as reinforce-    framework operates entirely at the prompt level
+ment learning or evolutionary algorithms. Third,        without parameter updates, enabling lightweight
+while our rubric-based evaluation protocol provides     adaptation and reducing unnecessary computation.
+fine-grained signals, it may not capture all aspects    We believe these design choices support respon-
+of thematic quality; Finally, human evaluations for     sible deployment of LLMs in qualitative research
+interpretability and error analysis can gain deeper     while maintaining methodological rigor and human
+insights (Wen et al., 2025; Wen, 2025; Wen and          accountability.
+Rezapour, 2025).
+                                                   15879
+References                                                   Eduard Dragut, Yunyao Li, Lucian Popa, and Slobo-
+                                                               dan Vucetic. 2021. Data science with human in the
+Abdullah Aljebreen, Weiyi Meng, and Eduard C. Dragut.          loop. In Proceedings of the 27th ACM SIGKDD Con-
+  2024. Analysis and detection of "pink slime" web-            ference on Knowledge Discovery & Data Mining,
+  sites in social media posts. In Proceedings of               KDD ’21, page 4123–4124, New York, NY, USA.
+  the ACM Web Conference 2024, WWW ’24, page                   Association for Computing Machinery.
+  2572–2581, New York, NY, USA. Association for
+  Computing Machinery.                                       Margaret Drouhard, Nan-Chen Chen, Jina Suh, Rafal
+Akari Asai, Jiashu He, Rui Shao, and 1 others.                Kocielnik, Vanessa Pena-Araya, Keting Cen, Xiangyi
+  2026. Synthesizing scientific literature with retrieval-    Zheng, and Cecilia R Aragon. 2017. Aeonium: Vi-
+  augmented language models. Nature, 650:857–863.             sual analytics to support collaborative qualitative cod-
+                                                              ing. In 2017 IEEE Pacific Visualization Symposium
+ATLAS.ti. 2025.        Ai coding powered                      (PacificVis), pages 220–229. IEEE.
+  by    OpenAI.        https://atlasti.com/
+  ai-coding-powered-by-openai.     Accessed:                 Mingzhe Du, Luu Anh Tuan, Yue Liu, Yuhao Qing,
+  2025-12-24.                                                  Dong Huang, Xinyi He, Qian Liu, Zejun Ma, and
+                                                               See-kiong Ng. 2025. Afterburner: Reinforcement
+Virginia Braun and Victoria Clarke. 2006. Using the-           learning facilitates self-improving code efficiency
+  matic analysis in psychology. Qualitative Research           optimization. arXiv preprint arXiv:2505.23387.
+  in Psychology, 3(2):77–101.
+                                                             Liam Dugan, Alyssa Hwang, Filip Trhlík, Andrew
+Jifan Chen, Grace Kim, Aniruddh Sriram, Greg Durrett,          Zhu, Josh Magnus Ludan, Hainiu Xu, Daphne Ip-
+   and Eunsol Choi. 2024a. Complex claim verification          polito, and Chris Callison-Burch. 2024. RAID: A
+   with evidence retrieved in the wild. In Proceedings         shared benchmark for robust evaluation of machine-
+   of the 2024 Conference of the North American Chap-          generated text detectors. In Proceedings of the 62nd
+   ter of the Association for Computational Linguistics:       Annual Meeting of the Association for Computational
+   Human Language Technologies (Volume 1: Long                 Linguistics (Volume 1: Long Papers), pages 12463–
+   Papers), pages 3569–3587, Mexico City, Mexico. As-          12492, Bangkok, Thailand. Association for Compu-
+   sociation for Computational Linguistics.                    tational Linguistics.
+Xiusi Chen, Hongzhi Wen, Sreyashi Nag, Chen Luo,             Yu Feng, Phu Mon Htut, Zheng Qi, Wei Xiao, Manuel
+  Qingyu Yin, Ruirui Li, Zheng Li, and Wei Wang.               Mager, Nikolaos Pappas, Kishaloy Halder, Yang Li,
+  2024b. IterAlign: Iterative constitutional alignment         Yassine Benajiba, and Dan Roth. 2025a. Rethinking
+  of large language models. In Proceedings of the 2024         LLM uncertainty: A multi-agent approach to estimat-
+  Conference of the North American Chapter of the              ing black-box model uncertainty. In Findings of the
+  Association for Computational Linguistics: Human             Association for Computational Linguistics: EMNLP
+  Language Technologies (Volume 1: Long Papers),               2025, pages 12349–12375, Suzhou, China. Associa-
+  pages 1423–1433, Mexico City, Mexico. Association            tion for Computational Linguistics.
+  for Computational Linguistics.
+                                                             Yu Feng, Nathaniel Weir, Kaj Bostrom, Sam Bay-
+Zhijia Chen, Lihong He, Arjun Mukherjee, and Eduard
+                                                               less, Darion Cassel, Sapana Chaudhary, Benjamin
+  Dragut. 2024c. Comquest: Large scale user comment
+                                                               Kiesl-Reiter, and Huzefa Rangwala. 2025b. Vericot:
+  crawling and integration. In Companion of the 2024
+                                                               Neuro-symbolic chain-of-thought validation via logi-
+  International Conference on Management of Data,
+                                                               cal consistency checks. Preprint, arXiv:2511.04662.
+  SIGMOD ’24, page 432–435, New York, NY, USA.
+  Association for Computing Machinery.                       Thomas Palmeira Ferraz, Kartik Mehta, Yu-Hsiang Lin,
+Zhijia Chen, Weiyi Meng, and Eduard Dragut. 2022.              Haw-Shiuan Chang, Shereen Oraby, Sijia Liu, Vivek
+  Web record extraction with invariants. Proc. VLDB            Subramanian, Tagyoung Chung, Mohit Bansal, and
+  Endow., 16(4):959–972.                                       Nanyun Peng. 2024. LLM self-correction with De-
+                                                               CRIM: Decompose, critique, and refine for enhanced
+Matheus de Morais Leça, Lucas Valença, Reydne San-             following of instructions with multiple constraints.
+ tos, and Ronnie de Souza Santos. 2025. Applications           In Findings of the Association for Computational
+ and implications of large language models in qualita-         Linguistics: EMNLP 2024, pages 7773–7812, Mi-
+ tive analysis: A new frontier for empirical software          ami, Florida, USA. Association for Computational
+ engineering. In Proceedings of the 2025 IEEE/ACM              Linguistics.
+ International Workshop on Methodological Issues
+ with Empirical Studies in Software Engineering, WS-         Jie Gao, Kenny Tsu Wei Choo, Junming Cao, Roy Ka-
+ ESE ’25, page 36–43. IEEE Press.                               Wei Lee, and Simon Perrault. 2023. Coaicoder: Ex-
+                                                                amining the effectiveness of ai-assisted human-to-
+Shijian Deng, Kai Wang, Tianyu Yang, Harsh Singh,               human collaboration in qualitative analysis. ACM
+  and Yapeng Tian. 2025. Self-improvement in mul-               Trans. Comput.-Hum. Interact., 31(1).
+  timodal large language models: A survey. In Find-
+  ings of the Association for Computational Linguistics:     Jie Gao, Yuchen Guo, Gionnieve Lim, Tianqin Zhang,
+  EMNLP 2025, pages 1987–2006, Suzhou, China. As-               Zheng Zhang, Toby Jia-Jun Li, and Simon Tangi Per-
+  sociation for Computational Linguistics.                      rault. 2024. Collabcoder: A lower-barrier, rigorous
+                                                        15880
+  workflow for inductive collaborative qualitative anal-       2024. Wildbench: Benchmarking llms with chal-
+  ysis with large language models. In Proceedings              lenging tasks from real users in the wild. Preprint,
+  of the 2024 CHI Conference on Human Factors in               arXiv:2406.04770.
+  Computing Systems, CHI ’24, New York, NY, USA.
+  Association for Computing Machinery.                      Chaitanya Malaviya, Subin Lee, Dan Roth, and Mark
+                                                              Yatskar. 2024. What if you said that differently?:
+Jie Gao, Zhiyao Shu, and Shun Yi Yeo. 2025. Mind-             How explanation formats affect human feedback effi-
+   coder: Automated and controllable reasoning chain          cacy and user perception. In Proceedings of the 2024
+   in qualitative analysis. Preprint, arXiv:2501.00775.       Conference of the North American Chapter of the
+                                                              Association for Computational Linguistics: Human
+Elizabeth Garrison, Stephen MacNeil, Donald A. Han-           Language Technologies (Volume 1: Long Papers),
+   tula, Michael West, Eduard Dragut, Matt Tincani,           pages 3046–3065, Mexico City, Mexico. Association
+   and Slobodan Vucetic. 2025. Exploring the chal-            for Computational Linguistics.
+   lenges and assistive technology for autistic job seek-
+   ers across employment pathways. Research in Devel-       Megh Marathe and Kentaro Toyama. 2018. Semi-
+   opmental Disabilities, 167:105155.                        automated coding for qualitative research: A user-
+                                                             centered inquiry and initial prototypes. In Proceed-
+Feijiang Han, Zelo ng Wang, Bowen Wang, Xinxin Liu,          ings of the 2018 CHI Conference on Human Factors
+  Skyler Cheung, Delip Rao, Chris Callison-Burch,            in Computing Systems, CHI ’18, page 1–12, New
+  and Lyle Ungar. 2026. Latex2layout: High-fidelity,         York, NY, USA. Association for Computing Machin-
+  scalable document layout annotation pipeline for lay-      ery.
+  out detection. Proceedings of the AAAI Conference
+  on Artificial Intelligence, 40(37):30907–30915.           Sneha Mondal, Ashish Agrawal, Ritika, Preethi Jyothi,
+                                                              and Aravindan Raghuveer. 2024. DIMSIM: Distilled
+Min Huang. 2024. Beyond One-Dimension: A Study
+                                                              multilingual critics for Indic text simplification. In
+  on Self-Regulated Learning and Its Typological Opti-
+                                                              Findings of the Association for Computational Lin-
+  mization of Chinese Undergraduates with National
+                                                              guistics: ACL 2024, pages 16093–16109, Bangkok,
+  Scholarship. Doctoral dissertation, Huazhong Uni-
+                                                              Thailand. Association for Computational Linguistics.
+  versity of Science and Technology.
+Haydn Thomas Jones, Natalie Maus, Josh Magnus Lu-           David L Morgan. 2025.      Query-based analysis:
+  dan, Maggie Ziyu Huan, Jiaming Liang, Marcelo               A strategy for analyzing qualitative data using
+  Der Torossian Torres, Jiatao Liang, Zachary Ives,           chatgpt.   Qualitative Health Research, page
+  Yoseph Barash, Cesar de la Fuente-Nunez, Jacob R.           10497323251321712.
+  Gardner, and Mark Yatskar. 2025. A dataset for            Sid Nayak, Adelmo Morrison Orozco, Marina Have,
+  distilling knowledge priors from literature for thera-      Jackson Zhang, Vittal Thirumalai, Darren Chen,
+  peutic design. Preprint, arXiv:2508.10899.                  Aditya Kapoor, Eric Robinson, Karthik Gopalakr-
+Fangping Lan, Abdullah Aljebreen, and Eduard Dragut.          ishnan, James Harrison, and 1 others. 2024. Long-
+  2025. UniT: One document, many revisions, too               horizon planning for multi-agent robots in partially
+  many edit intention taxonomies. In Findings of              observable environments. Advances in Neural Infor-
+  the Association for Computational Linguistics: ACL          mation Processing Systems, 37:67929–67967.
+  2025, pages 23005–23024, Vienna, Austria. Associa-
+                                                            Lorelli S. Nowell, Jill M. Norris, Deborah E. White, and
+  tion for Computational Linguistics.
+                                                              Nancy J. Moules. 2017. Thematic analysis: Striving
+V Vien Lee, Stephanie CC van der Lubbe, Lay Hoon              to meet the trustworthiness criteria. International
+  Goh, and Jose Maria Valderas. 2024. Harnessing              Journal of Qualitative Methods, 16(1):1–13.
+  chatgpt for thematic analysis: Are we ready? Journal
+  of Medical Internet Research, 26:e54974.                  Sudipta Paul, Niluthpol Chowdhury Mithun, and
+                                                              Amit K. Roy-Chowdhury. 2022. Text-based tempo-
+Sunzhu Li, Jiale Zhao, Miteto Wei, Huimin Ren,                ral localization of novel events. In Computer Vision –
+  Yang Zhou, Jingwen Yang, Shunyu Liu, Kaike                  ECCV 2022, pages 567–587, Cham. Springer Nature
+  Zhang, and Wei Chen. 2026. Rubrichub: A com-                Switzerland.
+  prehensive and highly discriminative rubric dataset
+  via automated coarse-to-fine generation. Preprint,        Valentina Pyatkin, Saumya Malik, Victoria Graf,
+  arXiv:2601.08430.                                           Hamish Ivison, Shengyi Huang, Pradeep Dasigi,
+                                                              Nathan Lambert, and Hannaneh Hajishirzi. 2025.
+Wenbo Li, Longyin Wen, Xiao Bian, and Siwei Lyu.              Generalizing verifiable instruction following.
+ 2019. Evolvement constrained adversarial learning            Preprint, arXiv:2507.02833.
+ for video style transfer. In Computer Vision – ACCV
+ 2018, pages 232–248, Cham. Springer International          Tingrui Qiao, Caroline Walker, Chris Cunningham, and
+ Publishing.                                                  Yun Sing Koh. 2025. Thematic-lm: A llm-based
+                                                               multi-agent system for large-scale thematic analysis.
+Bill Yuchen Lin, Yuntian Deng, Khyathi Chandu, Faeze           In Proceedings of the ACM on Web Conference 2025,
+   Brahman, Abhilasha Ravichander, Valentina Py-              WWW ’25, page 649–658, New York, NY, USA.
+   atkin, Nouha Dziri, Ronan Le Bras, and Yejin Choi.         Association for Computing Machinery.
+                                                       15881
+Delip Rao and Chris Callison-Burch. 2026a. Au-            Ximing Wen. 2025. Language model meets proto-
+  torubric: Unifying rubric-based llm evaluation.           types: Towards interpretable text classification mod-
+  Preprint, arXiv:2603.00077.                               els through prototypical networks. In Proceedings
+                                                            of the AAAI Conference on Artificial Intelligence,
+Delip Rao and Chris Callison-Burch. 2026b. Bib-             volume 39, pages 29307–29308.
+  tex citation hallucinations in scientific publish-
+  ing agents: Evaluation and mitigation. Preprint,        Ximing Wen and Rezvaneh Rezapour. 2025. A trans-
+  arXiv:2604.03159.                                         former and prototype-based interpretable model for
+                                                            contextual sarcasm detection. arXiv e-prints, pages
+Delip Rao, Eric Wong, and Chris Callison-Burch. 2026.       arXiv–2503.
+  Detecting and correcting reference hallucinations in
+  commercial llms and deep research agents. Preprint,     Ximing Wen, Wenjuan Tan, and Rosina Weber. 2025.
+  arXiv:2604.03173.                                         Gaprotonet: A multi-head graph attention-based pro-
+                                                            totypical network for interpretable text classification.
+Tim Rietz, Peyman Toreini, and Alexander Maedche.           In Proceedings of the 31st International Conference
+  2020. Cody: An interactive machine learning system        on Computational Linguistics, pages 9891–9901.
+  for qualitative coding. In Adjunct Proceedings of
+  the 33rd Annual ACM Symposium on User Interface         M. West, M. Tincani, D. Hantula, and 1 others. 2025.
+  Software and Technology, pages 90–92.                     Applying data science practices to identify character-
+                                                            istics of postsecondary autism support programs from
+Hua Shen, Tiffany Knearem, Reshmi Ghosh, Kenan              their websites. Journal of Autism and Developmental
+  Alkiek, Kundan Krishna, Yachuan Liu, Ziqiao Ma,           Disorders.
+  Savvas Petridis, Yi-Hao Peng, Li Qiwei, Sushrita
+  Rakshit, Chenglei Si, Yutong Xie, Jeffrey P. Bigham,    Qiling Wu, Hyangeun Ji, Yuhyun Park, Sori Kim, Jiayu
+  Frank Bentley, Joyce Chai, Zachary Lipton, Qiaozhu        Yang, and Lei Wang. 2025a. East asian international
+  Mei, Rada Mihalcea, and 5 others. 2025. Towards           doctoral students’ role identity development in the
+  bidirectional human–ai alignment. In Proceedings of       united states: A collaborative autoethnography. Jour-
+  the 39th Conference on Neural Information Process-        nal of International Students, 15(1):61–86.
+  ing Systems (NeurIPS). Position Paper Track.            Tianhao Wu, Weizhe Yuan, Olga Golovneva, Jing Xu,
+                                                            Yuandong Tian, Jiantao Jiao, Jason E Weston, and
+Melanie Subbiah, Akankshya Mishra, Grace Kim, Liyan         Sainbayar Sukhbaatar. 2025b. Meta-rewarding lan-
+ Tang, Greg Durrett, and Kathleen McKeown. 2025.            guage models: Self-improving alignment with LLM-
+  Is the top still spinning? evaluating subjectivity in     as-a-meta-judge. In Proceedings of the 2025 Con-
+  narrative understanding. In Proceedings of the 2025       ference on Empirical Methods in Natural Language
+ Conference on Empirical Methods in Natural Lan-            Processing, pages 11548–11565, Suzhou, China. As-
+  guage Processing, pages 185–203, Suzhou, China.           sociation for Computational Linguistics.
+ Association for Computational Linguistics.
+                                                          Huimin Xu, Seungjun Yi, Terence Lim, Jiawei Xu, An-
+Elsbeth Turcan and Kathy McKeown. 2019. Dread-              drew Well, Carlos Mery, Aidong Zhang, Yuji Zhang,
+  dit: A Reddit dataset for stress analysis in social       Heng Ji, Keshav Pingali, Yan Leng, and Ying Ding.
+  media. In Proceedings of the Tenth International          2025. Tama: A human-ai collaborative thematic anal-
+  Workshop on Health Text Mining and Information            ysis framework using multi-agent llms for clinical
+  Analysis (LOUHI 2019), pages 97–107, Hong Kong.           interviews. Preprint, arXiv:2503.20666.
+  Association for Computational Linguistics.
+                                                          Tianyu Yang, Yuhan Liu, Sobin Alosious, Ethan A.
+Hanlin Wang, Chak Tou Leong, Jian Wang, and Wenjie          Brown, Jason R. Rohr, Tengfei Luo, and Xiangliang
+  Li. 2024. E2 CL: Exploration-based error correction       Zhang. 2025a. Quest2DataAgent: Automating end-
+  learning for embodied agents. In Findings of the          to-end scientific data collection. In Proceedings of
+  Association for Computational Linguistics: EMNLP          the 2025 Conference on Empirical Methods in Nat-
+  2024, pages 7626–7639, Miami, Florida, USA. Asso-         ural Language Processing: System Demonstrations,
+  ciation for Computational Linguistics.                    pages 500–514, Suzhou, China. Association for Com-
+                                                            putational Linguistics.
+Lei Wang and Eduard Dragut. 2024. The overlooked
+  repetitive lengthening form in sentiment analysis. In   Tianyu Yang, Yuhan Liu, Sobin Alosious, Ethan A.
+  Findings of the Association for Computational Lin-        Brown, Jason R. Rohr, Tengfei Luo, and Xiangliang
+  guistics: EMNLP 2024, pages 16225–16238, Miami,           Zhang. 2025b. Quest2DataAgent: Automating end-
+  Florida, USA. Association for Computational Lin-          to-end scientific data collection. In Proceedings of
+  guistics.                                                 the 2025 Conference on Empirical Methods in Nat-
+                                                            ural Language Processing: System Demonstrations,
+Lei Wang, Min Huang, and Eduard Dragut. 2026.               pages 500–514, Suzhou, China. Association for Com-
+  Danceha: A multi-agent framework for document-            putational Linguistics.
+  level aspect-based sentiment analysis. Proceedings
+  of the AAAI Conference on Artificial Intelligence,      Seungjun Yi, Joakim Nguyen, Huimin Xu, Terence Lim,
+  40(35):29714–29722.                                       Andrew Well, Mia Markey, and Ying Ding. 2025.
+                                                     15882
+  Auto-ta: Towards scalable automated thematic analy-     A    Human Annotator Details
+  sis (ta) via multi-agent large language models with
+  reinforcement learning. Preprint, arXiv:2506.23998.     We recruited 6 participants (Table 3) through uni-
+                                                          versity mailing lists and LinkedIn. Two self-
+Li S. Yifei, Allen Chang, Chaitanya Malaviya, and
+  Mark Yatskar. 2025. Researchqa: Evaluating schol-       identified as experts in thematic analysis and
+  arly question answering at scale across 75 fields       four as intermediate practitioners. Participants
+  with survey-mined questions and rubrics. Preprint,      were divided into two groups: 1) Three anno-
+  arXiv:2509.00496.                                       tators participated in the CentaurTA human-in-
+Qi Zhang, Zhijia Chen, Huitong Pan, Cornelia Caragea,     the-loop setting, providing iterative feedback dur-
+  Longin Jan Latecki, and Eduard Dragut. 2024.            ing self-improvement. Each covered two domain
+  SciER: An entity and relation extraction dataset for    datasets based on expertise. No discussion or cross-
+  datasets, methods, and tasks in scientific documents.   communication was allowed in this group to en-
+  In Proceedings of the 2024 Conference on Empiri-
+  cal Methods in Natural Language Processing, pages       sure independent supervision; 2) The remaining
+  13083–13100, Miami, Florida, USA. Association for       three formed an expert panel to curate the verifi-
+  Computational Linguistics.                              able rubric library used for rubric-based evaluation.
+Qi Zhang, Huitong Pan, Zhijia Chen, Longin Jan Late-
+                                                          The panel conducted structured discussions to re-
+  cki, Cornelia Caragea, and Eduard Dragut. 2025a.        fine and validate the rubric constraints, reaching
+  DynClean: Training dynamics-based label cleaning        consensus on the validity and diversity of the final
+  for distantly-supervised named entity recognition.      rubric library, with an agreement score (Cohen’s
+  In Findings of the Association for Computational
+                                                          Kappa) of 0.78. All participants were compensated
+  Linguistics: NAACL 2025, pages 2540–2556, Al-
+  buquerque, New Mexico. Association for Computa-         at USD $20 per hour.
+  tional Linguistics.
+                                                          B   Details of Rubric-based Evaluation
+Qingjie Zhang, Di Wang, Haoting Qian, Yiming Li,
+  Tianwei Zhang, Minlie Huang, Ke Xu, Hewu Li, Liu        We provide more detailed rubric-based evaluation
+  Yan, and Han Qiu. 2025b. Understanding the dark         results for Open Coding and Theme Construction
+  side of LLMs’ intrinsic self-correction. In Proceed-    in Table 4.
+  ings of the 63rd Annual Meeting of the Association
+  for Computational Linguistics (Volume 1: Long Pa-
+  pers), pages 27066–27101, Vienna, Austria. Associa-     C    More Related Work
+  tion for Computational Linguistics.
+                                                          Related efforts in alignment research similarly em-
+Shanshan Zhang, Lihong He, Eduard Dragut, and Slobo-      phasize maintaining human intent across iterative
+  dan Vucetic. 2019. How to invest my time: Lessons       updates. For example, iterative constitutional align-
+  from human-in-the-loop entity extraction. In Pro-       ment operationalizes rule-based guidance as a per-
+  ceedings of the 25th ACM SIGKDD International
+  Conference on Knowledge Discovery & Data Mining,        sistent optimization target (Chen et al., 2024b),
+  KDD ’19, page 2305–2313, New York, NY, USA.             while meta-judge and reward-modeling frame-
+  Association for Computing Machinery.                    works transform human evaluations into reusable
+Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan
+                                                          training signals for continued improvement (Wu
+  Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin,            et al., 2025b). In interactive agent settings, feed-
+  Zhuohan Li, Dacheng Li, Eric Xing, and 1 others.        back loops are further grounded in environmental
+  2023. Judging llm-as-a-judge with mt-bench and          interaction, where agents iteratively plan, act, ver-
+  chatbot arena. Advances in neural information pro-
+                                                          ify, and revise based on observed outcomes (Wang
+  cessing systems, 36:46595–46623.
+                                                          et al., 2024; Nayak et al., 2024). Reinforcement
+Andrew Zhu and Chris Callison-Burch. 2025. Overhear-      learning approaches extend this paradigm by en-
+  ing llm agents: A survey, taxonomy, and roadmap.        abling sustained improvement through measurable
+  Preprint, arXiv:2509.16325.
+                                                          objectives, such as optimizing code efficiency via
+                                                          execution feedback when supervised refinement
+                                                          reaches a plateau (Du et al., 2025).
+
+
+
+
+                                                     15883
+PID   TA Exp.          Years of TA      Domain Expertise                 Position         Human Feedback             Rubric curation
+P1    Expert           10               USRS + ASP                       Professor        Y                          N
+P2    Intermediate     4                USRS + Dreaddit                  PhD student      Y                          N
+P3    Intermediate     3                ASP + Dreaddit                   PhD student      Y                          N
+P4    Expert           7                USRS + Dreaddit                  Professor        N                          Y
+P5    Intermediate     5                USRS + Dreaddit + ASP            PhD student      N                          Y
+P6    Intermediate     4                ASP                              PhD student      N                          Y
+
+                       Table 3: Human annotators’ expertise, roles, and task assignments.
+
+
+
+
+                                                          Code                                Theme
+                Domain     Method   domain
+                                             domain   format   general   Avg     domain   format   general   Avg
+                           Atlas    -        43.39     60.5      59.56   54.48    25.0     50.0     6.25     27.08
+                           MC       GPT-5     80.1    89.18      91.15   86.81   44.83    55.17     76.72    58.91
+                USRS
+                           TA+MC    GPT-5    83.71    97.58      89.92    90.4   42.31    40.38     84.62    55.77
+                           TA       GPT-5    84.0     94.17      92.47   90.21   48.68    69.74     84.21    67.54
+                           Atlas    -        26.09    50.97      52.86   43.31    60.0    60.0      15.0     45.0
+                           MC       GPT-5    65.87    83.92      93.36   81.05   72.92    48.96     53.12    58.33
+                ASP
+                           TA+MC    GPT-5    66.22    91.51      94.44   84.06   66.96    55.36     60.71    61.01
+                           TA       GPT-5    73.99    95.09      94.27   87.78   78.85    69.23     76.92     75.0
+                           Atlas    -        21.51    52.01       29.1   34.21   58.33    62.5      37.5     52.78
+                           MC       GPT-5    89.18    77.26      87.41   84.62   65.28    47.22     45.83    52.78
+                Dreaddit
+                           TA+MC    GPT-5    88.35    85.02      90.78   88.05   64.29    49.11     66.96    60.12
+                           TA       GPT-5    95.24    93.93      87.18   92.12   66.67    70.0      75.0     70.56
+
+
+                Table 4: Rubric-based evaluation for Open Coding and Theme Construction.
+
+
+
+
+                                                              15884
+

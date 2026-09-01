@@ -1,0 +1,1737 @@
+                                        Reflexis: Supporting Reflexivity and Rigor in Collaborative
+                                           Qualitative Analysis through Design for Deliberation
+                                                  Runlong Ye                    Oliver Huang              Patrick Yung Kang Lee
+                                                Computer Science,              Computer Science,              Computer Science,
+                                              University of Toronto           University of Toronto         University of Toronto
+                                            Toronto, Ontario, Canada        Toronto, Ontario, Canada      Toronto, Ontario, Canada
+                                             harryye@cs.toronto.edu          oliver@cs.toronto.edu        patricklee@cs.toronto.edu
+
+                                                 Michael Liut                  Carolina Nobre                Ha-Kyung Kong
+                                        Mathematical and Computational         Computer Science,            School of Information,
+                                                     Sciences,                University of Toronto    Rochester Institute of Technology
+
+
+
+
+arXiv:2601.15445v2 [cs.HC] 4 Feb 2026
+                                        University of Toronto Mississauga   Toronto, Ontario, Canada      Rochester, New York, USA
+                                          Mississauga, Ontario, Canada       cnobre@cs.toronto.edu            hidy.kong@rit.edu
+                                            michael.liut@utoronto.ca
+Figure 1: Reflexis: a collaborative reflexive thematic analysis workspace. Reflexis supports reflexive collaborative thematic
+analysis by weaving researcher reflexivity, methodological transparency, and collaborative interpretation into a single, in-
+tegrated workflow. To support reflexive analysis (1), it grounds the researcher in reflexive practice by prompting them to
+articulate their positionality and offering tools for in-situ reflection during coding. To ensure this process is transparent
+and tangible, the system provides a transparent code evolution (2) via detailed analysis histories and automated code drift
+detection, which promotes more robust and insightful analysis. Finally, the system scaffolds collaborative interpretation
+(3), with positionality-aware prompts and discussion foci that transform interpretive differences during collaboration into
+productive dialogue.
+Abstract                                                                       broader tradition, Reflexive Thematic Analysis (RTA) has become a
+Reflexive Thematic Analysis (RTA) is a critical method for gen-                widely adopted approach within HCI and CSCW because it treats
+erating deep interpretive insights. Yet its core tenets, including             researcher subjectivity not as a bias to be minimized, but as a central
+researcher reflexivity, tangible analytical evolution, and productive          analytic resource. Unlike methods focused on “coding reliability”
+disagreement, are often poorly supported by software tools that                and objective measurement, RTA prioritizes deep, theory-building
+prioritize speed and consensus over interpretive depth. To address             practice grounded in the researcher’s situated judgments [10, 55].
+this gap, we introduce Reflexis, a collaborative workspace that                This interpretive stance is critical for producing impactful findings,
+centers these practices. It supports reflexivity by integrating in-situ        acknowledging that human experience is a complex reality to be
+reflection prompts, makes code evolution transparent and tangible,             understood rather than a simple phenomenon to be measured.
+and scaffolds collaborative interpretation by turning differences                 While RTA theoretically centers the researcher’s positionality
+into productive, positionality-aware dialogue. Results from our                and the evolution of meaning [67], achieving this rigor in practice
+paired-analyst study (𝑁 = 12) indicate that Reflexis encouraged                remains difficult. In current workflows, self-reflexive notes are often
+participants toward more granular reflection and reframed disagree-            disconnected from the data; the evolving nature of codes is rarely
+ments as productive conversations. The evaluation also surfaced                documented with provenance; and collaborator positionalities re-
+key design tensions, including a desire for higher-level, networked            main invisible when interpretations diverge [74].
+memos and more user control over the timing of proactive alerts.                  Compounding this challenge is the rapid growth of tool support
+Reflexis contributes a design framework for tools that prioritize              for qualitative data analysis (QDA) that has largely pulled in the
+rigor and transparency to support deep, collaborative interpretation           opposite direction. While commercial tools like NVivo and ATLAS.ti
+in an age of automation.                                                       facilitate management and prioritize quantitative insights, recent
+                                                                               research systems leveraging Large Language Models (LLMs) have
+CCS Concepts                                                                   prioritized automation, scalability, and convergence. New tools often
+                                                                               act as “auto-coders” to reduce human effort [26, 87] or mediate
+• Human-centered computing → Interactive systems and
+                                                                               discussions to reach rapid consensus [27].
+tools; Interaction techniques; Empirical studies in HCI.
+                                                                                  These prevailing designs implicitly optimize for speed and agree-
+                                                                               ment, often inadvertently shrinking the interpretive space [5]. By
+Keywords
+                                                                               smoothing over friction, they offer limited support for the practices
+Reflexive Thematic Analysis (RTA); Qualitative Data Analysis; Re-              that make RTA rigorous, such as sustained reflexive engagement,
+flexivity; Positionality; Collaborative Analysis; Analytical Prove-            transparency regarding how interpretations change over time, and
+nance; Design for Deliberation; Sensemaking; Human-AI Collabo-                 principled disagreement [39, 72, 75].
+ration; Large Language Models                                                     We address this misalignment with Reflexis, a collaborative
+ACM Reference Format:                                                          workspace designed to embed reflexivity, analytic history, and posi-
+Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina        tionality directly into the analysis loop. Crucially, our goal is not to
+Nobre, and Ha-Kyung Kong. 2026. Reflexis: Supporting Reflexivity and           automate the coding process for speed, nor to enforce inter-coder
+Rigor in Collaborative Qualitative Analysis through Design for Deliberation.   reliability. Instead, we aim to scaffold methodological rigor by de-
+In Proceedings of the 2026 CHI Conference on Human Factors in Computing        signing for deliberation [53]. Reflexis supports this through three
+Systems (CHI ’26), April 13–17, 2026, Barcelona, Spain. ACM, New York, NY,
+                                                                               principal mechanisms: (1) In-situ Reflexivity: Instead of separat-
+USA, 31 pages. https://doi.org/10.1145/3772318.3791275
+                                                                               ing memos from coding, in-situ reflective prompts link researchers’
+                                                                               evolving perspectives to specific data excerpts without disrupting
+1    Introduction
+                                                                               their analytical flow. (2) Transparent Provenance: To counter
+Qualitative research is foundational across disciplines, including             the opacity of evolving concepts, a transparent analysis history
+health, sociology, and education, for generating in-depth interpre-            records the full provenance of every code’s evolution (creations,
+tations of complex human experiences [9, 84]. Building on this                 splits, merges), while a Code Drift Alert surfaces potential inconsis-
+                                                                               tencies for human review. (3) Principled Disagreement: When
+                                                                               interpretations diverge, positionality-aware collaboration and Dis-
+This work is licensed under a Creative Commons Attribution-NonCommercial-      cussion Focus surface these differences as opportunities for deeper
+NoDerivatives 4.0 International License.
+CHI ’26, Barcelona, Spain
+                                                                               theorization rather than errors to be fixed.
+© 2026 Copyright held by the owner/author(s).                                     Consistent with RTA’s interpretivist lens, all AI assistance in
+ACM ISBN 979-8-4007-2278-3/2026/04                                             Reflexis (e.g., detecting drift) is advisory and optional, ensuring
+https://doi.org/10.1145/3772318.3791275
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation           CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+the system supports, rather than supplanting, human interpretation.                           Despite its theoretical clarity, significant challenges arise in
+Guided by this stance, we investigate the effectiveness of Reflexis                        the application and evaluation of RTA within the field of human-
+in support of collaborative RTA via the following research ques-                           computer interaction (HCI). A primary issue is the inconsistent
+tions:                                                                                     reporting of reflexive practices. A recent review has found that most
+  RQ1 (Supporting Reflexive Analysis): How does integrating in-                            HCI papers claiming an RTA approach failed to adequately describe
+        situ prompts support researchers in articulating their ratio-                      the researchers’ positions, leaving readers to infer the interpretive
+        nale and situating reflection within the coding workflow?                          lens through which the data was analyzed [55]. This lack of method-
+  RQ2 (Making Code Evolution Transparent): How does visualiz-                              ological transparency is a critical problem for qualitative research,
+        ing code evolution and flagging drift influence researchers’                       where understanding the perspective of the analyst is paramount
+        perception of rigor and their immediate engagement with                            [58]. A related challenge is positivism creep, where interpretivist
+        code definitions?                                                                  work is judged by criteria from a positivist/quantitative research
+  RQ3 (Scaffolding Collaborative Interpretation): How do positionality-                    paradigm [5, 75]. Reviewers may request justifications for partici-
+        aware scaffolds help research pairs identify and frame inter-                      pant counts, demographic tables, or inter-coder reliability scores,
+        pretive differences during synchronous collaborative work?                         metrics that are misaligned with interpretive validity [8, 59]. This
+   We conducted an evaluation study using Reflexis as a concep-                            pressure can result in “performative” positionality statements that
+tual probe with 12 qualitative researchers (6 pairs). Our findings                         do little to illuminate the research process [74]. This environment
+demonstrate that Reflexis transformed reflexivity from a sum-                              places researchers in a difficult position, as they must advocate for
+mative activity into a granular, interconnected part of the coding                         the value of interpretation while navigating demands for positivist
+workflow. Participants universally valued the system’s ability to cre-                     “rigor” [82], a challenge that is intensified in collaborative team
+ate a transparent, auditable history of code evolution. Furthermore,                       settings where managing reflexivity is inherently more complex
+by automating the discovery and contextualization of interpretive                          [3, 67].
+differences, Reflexis reframed disagreements not as conflicts to
+be resolved, but as structured, productive dialogues grounded in
+researcher positionality.                                                                  2.2      The Role of AI in Qualitative Analysis
+   This paper contributes: (1) A conceptual framework for Design                           The HCI community has historically viewed qualitative analysis
+for Deliberation in Qualitative Analysis, challenging the prevailing                       as resistant to computational solutions, given its labor-intensive
+focus on automation and convergence by articulating how AI can                             nature and its reliance on interpretive rigor over positivist mea-
+be used to scaffold friction, reflexivity, and interpretive diversity. (2)                 surement [39]. Early visions for AI support were framed around
+Reflexis, a collaborative system that operationalizes this approach                        principles of mixed-initiative interaction, where the system would
+within RTA. It introduces novel interaction mechanisms that trans-                         act as a collaborator rather than a replacement for the researcher
+form implicit mental processes of reflection into explicit, tangible                       [2, 35]. Initial attempts focused on semi-automating deductive anal-
+artifacts. (3) Empirical insights from an evaluation study demon-                          ysis, where codes are derived from existing theory. These systems
+strating how deliberative designs shape analytical practice. Our                           often struggled because the small datasets used in qualitative re-
+work illustrates the value of positioning AI as a partner in rigor and                     search provide insufficient training data [51, 54]. With advances in
+deliberation. Our findings suggest that this approach helps teams                          NLP and the advent of LLMs, the focus has broadened to support
+reframe disagreements as opportunities for deeper qualitative in-                          inductive, “bottom-up” analysis, which is more characteristic of an
+sights.                                                                                    interpretivist paradigm [13]. Recent work has explored using LLMs
+                                                                                           for both deductive coding [85] and a wide array of other interpretive
+2 Related Work                                                                             tasks, leading to a rapid expansion of new tools [66, 72].
+                                                                                              This development has populated the design space with a vari-
+2.1 Reflexivity in Qualitative Analysis                                                    ety of systems for human-AI collaboration. Some tools focus on
+Qualitative methods are essential to HCI and CSCW for generating                           making large corpora more manageable by using topic modeling
+deep insights into the sociotechnical contexts of system use, which                        and clustering to help researchers find and curate relevant data
+often fail to be captured by quantitative metrics [55]. Among these,                       subsets for manual analysis [12, 24, 34, 46]. Others provide direct
+thematic analysis (TA) has been increasingly adopted, due to its                           coding assistance by generating code suggestions with rationales
+flexible approach to organizing and describing complex datasets [5].                       [29, 62, 70, 81]. More recent AI/LLM-powered systems emphasize
+A particularly influential form is reflexive thematic analysis (RTA),                      the collaborative dimension of qualitative work, using AI to mediate
+an interpretive method popularized by Braun and Clarke [6, 7, 9].                          discussion between human analysts [26, 27]. Still, other systems
+RTA is a “Big-Q” qualitative method [41]; it operates within an                            focus on pedagogical applications, using AI to aggregate student
+interpretivist paradigm that treats researcher subjectivity not as a                       work and support learning qualitative analysis at scale [64]. Some
+bias to be minimized, but as a core part of the knowledge construc-                        systems even aim to help researchers synthesize insights from their
+tion process, similar to approaches like constructivist grounded                           data [88]. This trend extends to commercial qualitative data analy-
+theory [5, 15]. In RTA, the final analysis is understood to be at                          sis software, which is increasingly integrating similar AI features
+the intersection of the researcher and the data, shaped by the re-                         [72].
+searcher’s positionality, which includes their background, values,                            This rapid pace of tool development, however, often leaves criti-
+and experiences, and grounded in their theoretical assumptions                             cal tensions for reflexive methods like RTA unaddressed. A primary
+and coding practices [9, 13, 19, 83].                                                      concern is that AI assistance can distance researchers from their
+CHI ’26, April 13–17, 2026, Barcelona, Spain                   Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+data, inhibiting the deep immersion and critical questioning that is           they explicitly prioritize rapid decision alignment. This focus on
+foundational to the interpretive process [39]. Using AI to automate            convergence risks missing opportunities to explore the roots of
+interpretation also risks supplanting human agency and the critical,           interpretive disagreement, leaving a critical gap in scaffolding that
+interpretive lens, a significant problem for reflexive analysis that           connects analytical choices directly back to researcher positionality.
+often has a social justice orientation [9]. Furthermore, introducing              Reflexis is designed to address this gap. By providing an in-
+opaque computational systems complicates assessments of method-                terface that automatically visualizes the evolution of codes in the
+ological rigor and creates challenges for establishing appropriate             analytic process and foregrounds the researchers’ positionality, it
+trust and reliance on automation [48, 55]. In response, scholars               structures and encourages essential reflexive conversations that are
+have proposed that instead of seeking consensus, AI tools should               paramount to rigorous interpretive research.
+be designed to highlight ambiguity and disagreement as sites for re-
+flexive engagement [16, 39]. Others have put forth design principles           3       Formative Study
+for ethical LLM integration, calling for tools that enable intentional         Our review of prior work revealed three primary gaps in current
+use in specific subtasks, offer transparency, and account for re-              reflexive practices: inconsistent support for reflection during coding
+searcher positionality [72]. We build on this work by designing and            [5], untracked code evolution [74], and a lack of visibility of the
+evaluating a system that operationalizes these principles, focusing            perspectives of other team members during collaboration [55].
+on an LLM-powered tool that centers researcher reflexivity and                    To investigate these gaps in practice and identify design op-
+supports the communication of analytic rigor.                                  portunities, we conducted a formative study with 58 qualitative
+                                                                               researchers to understand current reflexive practices and identify
+2.3     Collaboration, Reliability and Provenance                              design opportunities for supporting systematic reflexivity in col-
+                                                                               laborative coding environments. The study consisted of a survey
+        in Qualitative Analysis
+                                                                               targeting postgraduate researchers (𝑁 = 55, 𝑆 1 -𝑆 55 1 ), followed by
+Collaborative qualitative analysis involves complex coordination,              semi-structured interviews with experienced RTA practitioners
+requiring strategies to manage teamwork and build shared under-                (𝑁 = 3, 𝐼 1 -𝐼 3 2 ).
+standing, often across physical distances [20, 31, 61, 69]. A key site
+of tension within this process is the concept of reliability, particu-            Survey. We conducted our survey on Prolific, targeting post-
+larly the use of inter-coder reliability (ICR) metrics. The role and           graduate researchers to understand current reflexive practices and
+appropriateness of ICR for validating qualitative conclusions [45]             collaborative challenges in qualitative analysis. The 30-minute pre-
+has become a subject of considerable debate [63]. Many scholars                liminary survey examined how researchers engage in reflexivity
+argue that its positivist roots are fundamentally incompatible with            during coding, track code evolution over time, and navigate differ-
+the interpretive goals of “Big-Q” methods like RTA [41], a senti-              ences in collaborative interpretation. We screened for familiarity
+ment reflected in the low reporting rates of ICR in HCI and CSCW               with TA and prior qualitative analysis experience, retaining 55 valid
+literature [22, 55, 63]. However, an alternative perspective reframes          responses. Participants were compensated at $16/hour (approxi-
+disagreement not as the failure to attain reliability, but as an analyt-       mately $8 for the 30-minute survey). The protocol, consent, and
+ically productive event that signals opportunities for deeper insight          compensation were approved by our university IRB office (protocol
+[89]. From this view, the purpose and utility of reliability metrics           # 49033). Details about survey questions, Prolific screening ques-
+should be re-envisioned. Instead of serving as a definitive measure            tions, and survey completion statistics can be found in Appendix
+of interpretive agreement, they can be used as a diagnostic tool to            A.1.
+spark reflexive conversations about why interpretations differ [63].              Survey responses were analyzed using descriptive statistics for
+    In addition, a key component of managing collaboration and                 Likert-scale questions and thematic coding for open-ended re-
+ensuring methodological rigor is maintaining a transparent history             sponses. The first author conducted the initial analysis, and the
+of how analytical concepts evolve. Prior HCI and information visu-             second author reviewed the findings to ensure reliability. While
+alization communities have explored analytical provenance [60, 68].            the survey confirmed that researchers value reflexive practices and
+While early HCI work visualized collaborative document evolution               recognize their importance for analytical rigor, responses revealed
+[79, 80], visualization research distinguishes between capturing               significant implementation challenges. For example, one respon-
+low-level user actions (interaction provenance) [21, 38] and higher-           dent noted: “my own assumptions can get in the way, I have to keep
+level reasoning processes (insight provenance) [30]. This distinction          checking myself” (𝑆 44 ). These responses suggested that understand-
+is critical for qualitative analysis, as interaction logs alone cannot         ing the subtle workflow barriers preventing systematic reflexivity
+capture the rationale behind interpretive shifts. Research in visual           required deeper exploration than survey methods could provide.
+sensemaking suggests that without explicit scaffolds to track these
+                                                                                  Interviews. To gain a more in-depth understanding of these im-
+shifts, which are termed “reframing” in Data-Frame theory [43],
+                                                                               plementation challenges, we conducted one-hour semi-structured
+analysts often struggle to recall the reasoning behind their earlier
+                                                                               interviews with three experienced RTA practitioners (2 PhD stu-
+decisions [52].
+                                                                               dents, 1 university professor). Participants were invited through the
+    Currently, interpretive methods like RTA lack sufficient support
+                                                                               authors’ professional and academic networks. We employed purpo-
+for tracking the conceptual evolution of analysis, often forcing
+                                                                               sive sampling, a non-probabilistic technique where participants are
+researchers to rely on labor-intensive manual versioning rather than
+automated provenance [74]. While systems like CollabCoder [27]                 1𝑆
+                                                                                    𝑥 : Indicates formative survey participant number 𝑥
+have introduced LLM-driven workflows to streamline collaboration,              2𝐼
+                                                                                    𝑥 : Indicates formative interview participant number 𝑥
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation             CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+deliberately selected based on specific characteristics relevant to                         engage in reflection at their own pace with self-selected reflection
+the research question [65]. We deemed this approach appropriate                             areas, rather than time-based or progress-based triggers.
+because it ensured interviewees possessed the deep RTA expertise
+needed to provide nuanced insights into reflexive practices that                            3.1.2 Challenge 2: Untracked Code Evolution. Although researchers
+may not be evident from survey responses alone. This sampling                               recognized the importance of tracking how codes shift, current
+strategy allowed us to directly verify that all practitioners met our                       approaches were manual and reactive. To manage code drift, re-
+criteria for adequate RTA experience.3                                                      searchers updated definitions (37/55) or split codes (31/55), often
+   All interviews were conducted virtually via Zoom and facilitated                         relying on memory (29/55) to maintain consistency. 𝑆 17 described
+by the first author. Participants received $20 for their time. Inter-                       maintaining a “living codebook,” while 𝑆 3 used a “separate tab for
+views were recorded for analysis. Recorded interviews began with                            the initial code book” to duplicate data.
+participants describing a recent workflow to ground the discus-                                Design Considerations. Participants emphasized the need to con-
+sion in concrete practices. We then explored their approaches to                            trol how code definitions change. 𝐼 2 suggested implementing hier-
+reflexivity, code evolution, and collaborative interpretation. Finally,                     archical role-based visibility, where a “project lead” blinds junior
+participants evaluated early system concepts and wireframes. The                            researchers to specific codes to ensure independent thought. We
+complete interview script is documented in Appendix A.6.1.                                  addressed this by incorporating flexible visibility controls that allow
+   Interview transcripts were analyzed using reflexive thematic                             users to selectively display or hide analysis progress. However, we
+analysis [9]. The first author conducted open coding, identifying                           reasoned that while hiding information could reduce bias, main-
+patterns in how participants described their reflexive practices,                           taining rigor required the ability to audit how those definitions
+code evolution strategies, and collaborative challenges. Preliminary                        shifted over time. Therefore, we prioritized transparent provenance
+codes and themes were discussed in weekly meetings with the                                 (DG2) as the underlying framework, adopting 𝐼 1 ’s suggestion to
+research team, refining interpretations through collaborative sense-                        treat code history as an exportable artifact useful for open science
+making.                                                                                     and pedagogy.
+
+3.1      Challenges Identified from Existing                                                3.1.3 Challenge 3: Inaccessible Collaboration Perspectives. Access-
+         Behaviors                                                                          ing and integrating collaborator positionalities remained a per-
+                                                                                            sistent friction point. While respondents valued understanding a
+Our survey and interview data reveal that researchers actively                              partner’s “disciplinary perspective” (35/55) and “relevant lived ex-
+engage in reflexive practices but struggle with tools that do not sup-                      periences” (37/55), this information was rarely integrated into the
+port the non-linear nature of RTA. Table A.1 maps these observed                            coding interface. 𝑆 34 highlighted how “communication breakdowns”
+behaviors to design goals and system features.                                              occur when trying to ensure consistency while respecting diverse
+3.1.1 Challenge 1: Inconsistent Reflection Support. Our survey re-                          perspectives. Currently, teams rely on informal discussions to sur-
+vealed that qualitative researchers desire deep reflexivity, but im-                        face these lenses, which 𝐼 1 noted led to inconsistent awareness of
+plementation is sporadic. While respondents (40/55) “often” or                              “why” interpretations differ.
+“always” considered how their experience shaped interpretation,                                Design Considerations. Participants proposed specific reflexive
+they lacked integrated tools to capture it. Researchers rated “asking                       interventions, such as “fairness audits” (𝐼 3 ) or “dominant narrative”
+myself guiding questions” as highly helpful, yet currently rely on                          critiques (𝐼 1 ), where researchers explicitly examined how their find-
+disconnected methods like “writing a separate research journal”                             ings fit within or resist the prevailing discourse of the field. We
+(32/55). As 𝑆 44 noted, “my own assumptions can get in the way,” yet                        reasoned that hard-coding these specific theoretical frameworks
+without integrated support, checking these assumptions became a                             might limit the tool’s applicability across different RTA contexts.
+disruption.                                                                                 Instead, we focused on the structural mechanism of “double coding”
+   Design Considerations. To address this fragmentation, partici-                           proposed by 𝐼 3 , which treated conflicting interpretations as valid
+pants suggested distinct alternatives. 𝐼 1 advocated for a “spatial                         and parallel data points rather than errors to be resolved. We aimed
+whiteboarding” interface similar to LiquidText [76] to visually map                         to surface principled disagreement (DG3) by displaying these diver-
+connections, while 𝐼 3 suggested “stage-based checklists” enforced                          gent codes side-by-side with researcher profiles. This facilitated the
+before and after coding sessions. However, we reasoned that spatial                         “why not” analysis (𝐼 3 ), in which users considered why they missed
+tools often separated analysis from the raw text, and stage-based                           a perspective held by their partner.
+checks missed the immediate moment of interpretive decision-
+making. Consequently, we prioritized in-the-moment reflexivity                              3.2     Design Goals
+support (DG1) to keep the raw text visible. We integrated 𝐼 2 ’s sug-                       Drawing from our formative study’s observed challenges and de-
+gestion for a user-initiated reflection, which allowed researchers to                       sign considerations, we formulated three design goals to enhance
+                                                                                            systematic reflexivity while preserving researcher agency:
+3 All three interview participants have completed at least two formal qualitative studies
+as part of their research portfolio, with at least one using reflexive thematic analysis.
+                                                                                               (1) Systematic In-the-Moment Reflexivity Support (DG1):
+Additionally, two of the graduate students have been formally trained in reflexive the-            To address Inconsistent Reflection Support (C1), which arose
+matic analysis through a graduate-level course. The university professor has extensive             from inconsistent manual reflection and fragmented insight
+experience publishing research work in reputable peer-reviewed conferences/journals
+in their research domain, using reflexive thematic analysis as a method. All three                 recording (B1, B2), we aimed to provide structured, in-the-
+participants have different research foci within different sub-disciplines of HCI.                 moment reflexive prompts. This goal aimed to integrate
+CHI ’26, April 13–17, 2026, Barcelona, Spain                          Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+               Challenge (C)               Observed Behavior (B)                            Design Goal (DG)               System Feature
+                                           B1. Manual reflection practices rely on indi-                                   (A) In-situ reflexive
+                                                                                            DG1. Systematic
+               C1. Inconsistent            vidual discipline and memory                                                    exercises
+                                                                                            In-the-Moment
+               Reflection Support          B2. Insight recording happens in separate doc-   Reflexivity Support
+                                           uments disconnected from codes
+                                           B3. Version control documentation is labor-                                     (B) Analytical history
+               C2. Untracked Code          intensive and inconsistent                       DG2. Automated Code
+               Evolution                   B4. Reactive change management relies on re-     Evolution Tracking             (C) Code drift alert
+                                           searcher awareness to trigger documentation
+                                           B5. Information gathering relies on voluntary                                   (D) Positionality-aware
+                                           self-disclosure in meetings                                                     discussion prompts
+               C3. Inaccessible                                                             DG3. Collaborative
+               Collaboration               B6. Structured discussion happens separately     Positionality                  (E) Discussion focus for
+               Perspectives                from actual coding decisions                     Integration                    disagreements
+                                           B7. Proactive reflective prompting occurs in-
+                                           formally and sporadically
+                        Table 1: Mapping from user challenges and behaviors to design goals and system features.
+
+
+
+        reflection seamlessly into the coding workflow, anchoring                        Step 0: Profile and project setup. Alice, a seasoned policy analyst
+        insights to specific data without requiring researchers to                    in municipal government, initiates a project with Bob, a university
+        switch contexts.                                                              researcher specializing in social equity. They begin by completing
+    (2) Automated Code Evolution Tracking (DG2): To address                           brief researcher profiles on Reflexis, communicating their respec-
+        Untracked Code Evolution (C2), originating from labor-intensive               tive disciplinary lenses and lived experiences to ground the system’s
+        documentation (B3) and reactive change management (B4),                       future interactions.
+        our objective was to automatically create a transparent, au-
+        ditable history of code evolution. This includes proactive                       Step 1: Independent RTA Coding with Just-in-Time Reflection.
+        Code Drift Alert to move beyond the reliance on manual                        During independent coding, Alice encounters a city manager’s
+        researcher awareness (B4), making the entire analytical jour-                 quotation on feedback systems. Activating the ReflexiveLens, she
+        ney, including splits, merges, and definition edits, both visible             uses the Positionality prompt to note that her government
+        and rigorous.                                                                 background reveals “a deep-seated institutional fear of failure,” and
+    (3) Collaborative Positionality Integration (DG3): To ad-                         codes it Bureaucratic Hurdles . Bob, coding the same passage
+        dress Inaccessible Collaboration Perspectives (C3), a chal-                   through his academic lens, notes that the system “privileges those
+        lenge stemming from reliance on informal self-disclosure                      with resources,” applying Participation Barrier .
+        (B5), separate discussions (B6), and sporadic prompting (B7),                    Later, as Alice reuses her code for a budget issue, the Code Drift
+        we aimed to make positionality an actionable and visible                      Alert flags a semantic shift from “process” to “finance”. Agreeing
+        part of the analysis by surfacing interpretive differences and                with the alert, she utilizes the Split option to create a new, more
+        scaffolding dialogue around researchers’ unique lenses.
+                                                                                      precise code: Financial Constraints .
+
+                                                                                         Step 2: Team Review Guided by Positionality and Attention Routing.
+4     System Design — Reflexis                                                        Transitioning to the shared workspace, the pair uses the Discussion
+With the design goals in §3.2 (DG1–DG3) in mind, we implemented                       Focus’s Show Diff View to isolate divergent coding. On their
+Reflexis, a web-based collaborative environment for reflexive the-                    first diverging analysis, a Positionality-aware Discussion Prompt
+matic analysis that centers in-situ reflection, records code evo-                     immediately bridges their profiles:
+lution for transparency, and makes positionality actionable. We
+first outline a usage scenario, then detail the core features, the                              Alice’s government lens sees an implementation
+prompt design that operationalizes our reflexive practices, and fi-                            issue, while Bob’s academic lens sees an equity
+nally, technical details. We open-sourced the code for Reflexis at:                            issue. How do these perspectives reveal different
+https://github.com/harryye930/reflexis.
+                                                                                               aspects of the problem?
+                                                                                         This contextualization transforms a coding conflict into a produc-
+4.1     Workflow & Usage Scenario                                                     tive dialogue. Realizing neither code suffices, and after reviewing
+To demonstrate Reflexis’s integrated workflow, we follow two                          the Code-level Analysis History to track down Bob’s prior usage
+analysts, Alice and Bob, as they move from project setup to final                     of that code, they merge their initial attempts into a new code:
+reporting.                                                                             Systemic Exclusion .
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation            CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+   Step 3: Reporting and Transparency. Finally, to write their method-                     potential drift (e.g., broadening in definition or misuse of a code). A
+ology section, they consult the Project-level Analysis History. This                       coder can then choose to refine the definition of the exist-
+visual narrative traces the exact provenance of                                            ing code, split it into a new code , or consciously override
+ Systemic Exclusion , allowing them to export an audit trail that
+                                                                                           the alert and apply the original code . We hypothesize that
+substantiates the rigor and evolution of their collaborative analysis.
+                                                                                           these mechanisms make code evolution inspectable throughout the
+                                                                                           study, reduce misunderstandings in multi-coder teams, and provide
+4.2     Key Features
+                                                                                           concrete materials to promote transparency in the final report. See
+4.2.1 ReflexiveLens: In-situ reflection and situated viewing. To sup-                      Figure 3.
+port DG1, Reflexis promotes and surfaces reflexivity during key
+analytic moments. When a coder applies a code to a text snippet, or                        4.2.3 Scaffolding Collaborative Interpretation. To support DG3, Re-
+reflects on any prior analysis, the coder can use the ReflexiveLens                        flexis makes positionality actionable when collaborators come to-
+panel to add reflexive memos. Drawing from our formative study’s                           gether. For any coded passage, highlights and codes are co-presented,
+findings on inconsistent reflection support (see Section 3.1.1) and                        and the system issues Positionality-Aware Discussion Prompts that
+established reflexive practices (e.g., Probst and Berenson [67]), the                      explicitly connect divergent readings to coders’ stated positionali-
+panel provides a series of pre-populated prompts to help anchor                            ties. Collaborators can discuss not only “what code did you use?”
+the coder’s analysis. These include prompts for:                                           but also “why did this reading make sense to you, given your back-
+   (1) justification of the code just applied ;                                            ground?”, maintaining a principled divergence that advances the
+                                                                                           analysis. Our implementation operationalizes positionality through
+   (2) how coder’s background makes this interpretation                                    concise, structured, self-authored researcher statements. While this
+       salient ;                                                                           can help teams recognize that disagreement is rooted in situated
+   (3) other plausible alternatives .                                                      lenses rather than individual error, it also risks over-asserting these
+                                                                                           links, i.e., implying that a given interpretation is determined by a
+Complementing these structured prompts, a free-form notes sec-                             researcher’s role or identity. We therefore view the prompt as an
+tion is included to capture any emergent insights or unstructured                          optional scaffold that surfaces one possible explanation for disagree-
+reflections that fall outside the provided categories. The interaction                     ment, encouraging further discussion, rather than as a definitive
+is deliberately lightweight and optional, so that reflection occurs                        attribution of why a coder read the data in a particular way.
+“just-in-time,” without interrupting the coding process.                                      The Discussion Focus feature routes user attention toward areas
+   Beyond capturing reflective thoughts, Reflexis provides ways                            of potential interpretive divergence using two coordinated compo-
+to connect them back to the corpus. Users can see an overlay that
+                                                                                           nents. First, a discussion focus icon appears beside individual
+renders reflexive notes directly below the coded excerpts, allow-
+                                                                                           codes that may be too broad (applied to many different contexts)
+ing coders to re-encounter prior rationales as they move through
+                                                                                           or where there is potential disagreement (used in unique ways
+adjacent material and to append follow-up reflections in place. A
+                                                                                           by different coders). Separately, researchers can also toggle the
+reflexive stream aggregates these entries across documents as a time-
+                                                                                            show diff view to display only the data snippets being coded
+ordered, filterable feed (by code or coder), enabling teams to trace
+                                                                                           differently by multiple researchers. Together, these mechanisms
+how interpretations consolidate, shift, or bifurcate over repeated
+                                                                                           help a team to better spend limited meeting time engaging in deeper,
+encounters with the data. By situating reflexive notes alongside
+                                                                                           targeted discussions. By design, the discussion focus centers ana-
+textual evidence, Reflexis treats them as first-class, inspectable
+                                                                                           lytic attention without enforcing convergence; teams may choose
+artifacts. This approach reframes reflexivity from an after-the-fact
+                                                                                           principled divergence if appropriate. All collaborative work is syn-
+supplement to a continuous RTA practice. See Figure 2.
+                                                                                           chronized in real-time, allowing multiple coders to work on the
+4.2.2 Making Code Evolution Transparent and Tangible. To support                           same corpus concurrently. See Figure 4.
+DG2, Reflexis treats the codebook as a living object and records its
+evolution at two levels. At the code level, the system maintains a ver-                    4.3      Prompt Design and LLM Usage
+sioned code-level analysis history including creation , renames ,                          We adopted a narrow, specific role for language models in Reflexis:
+ definition edits , merges , and splits , with each user ac-                               assist reflection and discussion without generating code or suggest-
+tion timestamped and attributed to the user who executed it. This                          ing what to apply. All prompt wordings and safety constraints are
+enables readers to understand not only what changed but also                               provided in Appendix A.2; only function and scope are described
+how the code came to be. At the project level, a global project-level                      here.
+analysis history aggregates events across codes and documents to                              Models are used in four features. A researcher can generate a
+support coordination (i.e., “what changed since our last meeting?”)                        digest of linguistic patterns, positionality effects, and articulated
+and reporting (i.e., “how did the codebook evolve since the begin-                         alternatives with reflexive stream structured summary. This allows
+ning of the project?”). Coders zoom in on the timeline to reveal                           researchers to gain a high-level overview of their team’s analyt-
+details-on-demand, and they can export snapshots for auditing or                           ical approach and helps to surface emergent insights for further
+producing methods and appendices in their final reports.                                   development. For Positionality-Aware Discussion Prompts, short dis-
+   To help researchers engage with this evolution, the LLM-enabled                         cussion prompts are synthesized from the coded context and coders’
+Code Drift Alert monitors each new application of a code against an                        positionality profiles to help collaborators explain why interpreta-
+evolving set of exemplars of the code provided by the users, flagging                      tions may differ. The system does not adjudicate or prescribe one
+CHI ’26, April 13–17, 2026, Barcelona, Spain              Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+
+
+Figure 2: Reflexis: Supporting Reflexive Analysis. (1) Users can easily engage in a just-in-time guided reflection during analysis.
+The reflection process is designed to be lightweight and optional, reducing labor while encouraging reflexivity. All users can
+review reflexive notes directly under the coding workspace, or (2) engage in additional reflection. (3) Users can also access
+reflexive notes for a specific code within the sidebar and filter by unique user, in addition to creating structured summaries.
+
+
+researcher’s choices over another. For Code Drift Alert, the system       4.4      System Implementation
+compares the user-selected candidate corpus with recent exemplars         The frontend was built with Next.js and Tailwind CSS, with the
+from the same code, and flags potential broadening or misuse for          main coding workspace supporting character-precise highlighting
+human review. Finally, Positionality Keywords provide concise, LLM-       and overlapping annotations. Project-level analysis history was
+simplified cues from a coder’s profile and recent memos, shown            visualized using the React Flow library.
+beside their highlights to keep backgrounds salient during discus-           We used Google’s Firebase services for real-time collaboration.
+sion. Reflexis uses OpenAI’s GPT-5 and GPT-5-mini with low to             In particular, the Firestore database was used for real-time synchro-
+medium reasoning effort.                                                  nization, anonymous authentication for easy onboarding and user
+                                                                          identification, and managed hosting for backend deployment. The
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation              CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+
+
+Figure 3: Reflexis: Making Code Evolution Transparent and Tangible. To make the analytical process visible and consistent,
+Reflexis first (1) actively engages users with codes as evolving concepts by monitoring for code drift. When a shift in code
+application is detected, it alerts researchers, prompting a deliberate re-evaluation of the ongoing analysis and encouraging
+reflective practices. To support this reflective process, the system provides a detailed record of the analysis: the (2) code-level
+analysis history records every analytic event, including code creation, application, merges, and splits. Finally, (3) the project-
+level analysis history visualizes analytical provenance, tracing how codes are transformed over time.
+
+
+UI subscribed to shared documents, annotations, and profiles, so up-
+dates appeared instantly across clients without manual refresh. To                                           Count of highlights agreed by at least one other coder
+maintain transparency, every analytic action (apply, edit, rename,                         𝐴𝑔𝑟𝑒𝑒𝑚𝑒𝑛𝑡 =
+                                                                                                              Total count of highlights contributed by all coders
+merge, split) was written to an immutable event log that provides
+history views and exports.                                                                    We used this metric because common alternatives like Cohen’s
+                                                                                           Kappa can be statistically unsound when applied to more than
+4.4.1 Percentage Agreement. The agreement metric for Discussion
+                                                                                           two coders due to the violation of statistical assumptions [56]. We
+Focus is calculated based on percentage agreement, a common
+                                                                                           emphasize that this metric (and its color cue) is used solely to route
+metric in qualitative analysis [57], using the following formula:
+                                                                                           attention to potentially fruitful discussion points, not to optimize
+                                                                                           for high agreement, consistent with our stance that principled
+CHI ’26, April 13–17, 2026, Barcelona, Spain                  Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+
+
+Figure 4: Reflexis: Scaffolding Collaborative Interpretation. To ground collaboration in reflexive practice, researchers first
+complete profiles detailing their background and positionality. When interpretive differences arise during coding, (1) Reflexis
+surfaces them through a mediated discussion prompt that explicitly references the researchers’ stated positionalities, helping
+to contextualize their unique lenses and scaffold constructive disagreement. (2) To help teams manage and prioritize these
+conversations, a Discussion Focus icon is displayed next to each code, providing an at-a-glance overview of agreement levels
+and a detailed breakdown after click-through. Furthermore, (3) researchers can toggle the view to show only data snippets with
+divergent codes, focusing the team’s attention on areas requiring discussion.
+
+
+divergence is often desirable in RTA. Yet, we also note the possibility       5.1      Participants, Setting, and Ethics
+that visual encodings may nudge behavior toward consensus [49].               We recruited 12 participants (𝑃1 -𝑃 12 ) via social media (i.e., LinkedIn,
+                                                                              Twitter) and other public or private Slack workspaces. The inclu-
+                                                                              sion criteria were researchers who are experienced in qualitative
+5    User Evaluation                                                          data analysis and familiar with RTA concepts and practices (i.e.,
+                                                                              reflection, positionality, etc). To ensure a high level of proficiency,
+To evaluate Reflexis and answer our research questions, we ran a
+                                                                              we screened prospective participants by requesting a summary of
+single-condition study to examine how Reflexis supports reflexive
+                                                                              their past experience with RTA. Specifically, we asked candidates
+thematic analysis (RTA) in collaborative settings.
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation                   CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+to detail relevant projects and possible peer-reviewed publications                           Following prior evaluations of AI-supported qualitative coding
+that utilize RTA. Only those demonstrating sufficient expertise (i.e.,                     tools that adopt intensive, single-session designs to study collab-
+who had worked on at least one RTA project prior to the study)                             orative sense-making in depth (e.g., [27, 29]), our study similarly
+were invited to participate in the study.                                                  invites pairs to complete a bounded, collaborative RTA episode
+   The majority of participants (10/12) were graduate students (i.e.,                      with Reflexis. While a 1.5-hour session cannot fully capture a
+master’s, PhD), one participant was a university professor, and an-                        multi-week qualitative analysis practice, it enables us to closely
+other worked as a data analyst. Most of the participants came from                         observe how analysts interact with and reason through Reflexis’s
+an HCI background (10/12), with intersections spanning across NLP,                         reflexivity-oriented features within a realistic, collaborative coding
+visualization, and computing education. The rest of the participants                       session.
+had a more technical background (i.e., software engineers, 2/12).
+On average, participants had 3.75 years of qualitative data analysis                       5.2.1 Reasoning for Not Employing a Baseline Condition. RTA is in-
+experience (Min: 1, Max: 7, Median: 4). All participants described                         tentionally non-prescriptive regarding specific tools or workflows.
+Reflexive Thematic Analysis (RTA) as one of the methods they used                          The method is positioned as an “adventure, not a recipe” as de-
+to analyze qualitative data in the past. Participants reported mainly                      scribed by Braun and Clarke [9], prioritizing theoretical flexibility
+using spreadsheet software (i.e., Microsoft Excel, Google Sheets;                          and a recursive analytical process over rigid, linear steps [6]. Re-
+10/12) and text editors (i.e., Microsoft Word, Google Docs; 8/12)                          flecting this methodological freedom, RTA practitioners commonly
+as part of their past RTA projects, with a handful of participants                         employ a diverse and often bespoke combination of tools. Work-
+choosing QDA software like NVivo (5/12), ATLAS.ti (2/12), and                              flows can rely on physical notes [67], leverage general-purpose
+Dedoose (1/12). Participants did not have a consensus for norms on                         software like Microsoft Word, which is often deemed sufficient
+reporting about their analytical practices or artifacts for the broader                    [18], or incorporate dedicated qualitative analysis software [73]. As
+scientific community. Half of the participants indicated they did                          there is no single, standard RTA toolchain, any attempt to impose
+not share any artifacts, while three indicated they would share                            one as a baseline would create an artificial scenario, confounding
+an end-of-study statement. Participants were asked to share their                          the study with the cognitive overhead of learning a new baseline
+theoretical background and view on the topic of analysis (discussed                        tool, and hindering our ability to yield meaningful insights into
+below) without seeing the actual corpus, and were paired up to                             real-world analytical practice.
+prioritize diverse perspectives, leading to the formation of 6 pairs                          Instead, our study was designed to observe how participants
+(see Appendix A.4).                                                                        integrated Reflexis into their workflows, allowing us to gather
+   All sessions took place remotely. Each session lasted approxi-                          rich, situated insights into its impact on their analytical process.
+mately 1.5-2 hours, and participants received compensation at a                            This approach enables us to evaluate our system on its own terms
+rate of $20/hour upon successful completion. The protocol, con-                            via its ability to support the core principles of reflexive analysis
+sent, and compensation were approved by our university IRB office                          [10].
+(protocol # 49033).
+                                                                                           5.2.2 Analysis Dataset. The analysis corpus used during the evalu-
+                                                                                           ation study was a synthetic, context-faithful set of interview tran-
+                                                                                           scripts derived from a prior CHI paper on “Contestable Camera
+5.2     Study Design                                                                       Cars” [1]. We chose this research topic because the original study
+In this study, participants were instructed to use Reflexis to per-                        employed reflexive thematic analysis, aligning with our methodol-
+form reflexive thematic analysis (RTA) as a pair. Our research goal                        ogy. In addition, the subject of “Contestable Camera Cars” is readily
+was to understand how Reflexis might reshape the deep, interpre-                           understandable and requires minimal domain-specific knowledge,
+tive practices of collaborative qualitative analysis, as opposed to                        making it highly accessible for interpretation. We prompted a large
+measuring efficiency gains. Consequently, a direct comparison to                           language model4 with the reference paper to generate three distinct
+a baseline tool would not effectively serve our research objective.                        interview transcripts that (i) preserved the tone and terminology
+We further explain our reasoning for not employing a standard                              while staying within the civic-technology context; and (ii) echo
+baseline condition in Section 5.2.1.                                                       the themes reported by the original authors. Participants were not
+   Our study protocol on collaborative reflexive analysis followed                         informed that the transcripts were synthetic, and were instructed
+common qualitative guidance emphasizing (i) independent analytic                           to analyze one of the three synthetic transcripts as a pair, in random
+passes, (ii) transparency and evolution of code definitions, and (iii)                     order. This choice preserved ecological validity by retaining content
+negotiated understanding via discussion. In particular, we referred                        and findings from a real study while avoiding privacy concerns
+to the process documented by O’Connor and Joffe [63] (see Figure 3                         and domain prerequisites. The full system prompt is available in
+in the corresponding paper). We randomly assigned one participant                          Appendix A.3.
+as Coder 1 and the other as Coder 2. Coder 1 first provided the
+initial code definitions and completed an initial pass on the pro-
+vided corpus. Coder 2 then coded the same snippets using Coder
+1’s generated code list, but without seeing which codes Coder 1
+                                                                                           4 Given identical system prompts, we compared gemini-2.5-pro (thinking budget:
+had applied to text segments. The pair subsequently reviewed dif-
+                                                                                           32k tokens) and gpt-5 (reasoning effort: high). We collectively elected to use the
+ferences and rationales, mediated by system features that surface                          gemini-2.5-pro outputs, which yielded more realistic, conversational transcripts for
+code overlaps, definition drift, and unmatched assignments.                                our study.
+CHI ’26, April 13–17, 2026, Barcelona, Spain                  Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+5.3     Procedure                                                             quality; as such metrics can inadvertently suppress productive in-
+The study sessions were conducted remotely and followed a struc-              terpretive differences and reflexive engagement [55]. Accordingly,
+tured protocol consisting of four distinct phases: setup and orien-           our measurements were selected to illuminate how interpretations
+tation, independent coding, mediated negotiation, and post-task               evolve and are negotiated, not to compute efficiency or reliability
+reflection. Prior to the start of the session, the moderator loaded the       scores.
+segmented transcript corpus and initialized an empty project within
+                                                                              5.4.1 Qualitative Data. We conducted RTA for qualitative data
+Reflexis. After confirming participant consent and initiating au-
+                                                                              including in-study reflections and interview transcripts [9]. The
+dio and screen recording, the moderator instructed participants on
+                                                                              analysis was led by a graduate student formally trained in qualita-
+the think-aloud protocol and the norms for respectful, reflexive
+                                                                              tive methods, with prior research experience across HCI domains,
+discussion.
+                                                                              including human-centered AI, computing education, and visualiza-
+   The session began with a 15-minute orientation. The moderator
+                                                                              tion. The process was collaborative, involving iterative discussions
+framed the upcoming activity as a typical RTA pass and demon-
+                                                                              on codes and themes with a broader research team that included
+strated the core features of Reflexis. Participants were briefed on
+                                                                              two faculty supervisors and other HCI and visualization researchers.
+the study’s specific collaborative workflow, which required sequen-
+                                                                              As part of our reflexive practice, we continually questioned how
+tial roles (Coder 1 followed by Coder 2) prior to a joint discussion,
+                                                                              our backgrounds might shape our interpretations. For instance, as
+following the process described by O’Connor and Joffe [63].
+                                                                              designers and researchers of interactive systems, we asked: How do
+   Following orientation, participants engaged in an independent
+                                                                              our own writing and feedback-seeking practices influence what we
+coding phase lasting approximately 30 minutes. Coder 1 worked
+                                                                              notice in participants’ accounts? While these reflexive discussions
+first (approx. 15 minutes) to code assigned snippets, creating or
+                                                                              do not eliminate subjectivity, they were essential for ensuring our
+renaming codes as necessary, writing short reflexive notes, and
+                                                                              workflow remained an interpretive and dialogic process.
+refining code definitions. Coder 2 then coded the same snippets
+(approx. 10 minutes) utilizing the code list and definitions devel-           5.4.2 Quantitative Data. To supplement our primary qualitative
+oped by Coder 1. Furthermore, while Coder 2 utilized Coder 1’s                data from interviews and observations, we administered short sur-
+schema, they were blinded to Coder 1’s specific text segment code             veys both before and immediately after the study. The pre-study
+assignments to ensure independent application.                                survey included questions on demographics and individuals’ self-
+   Once independent passes were complete, the pair transitioned               reported reflection practices using their own habitual QDA tools.
+to a 20-minute phase of mediated comparison and discussion. Re-               The post-study survey included Likert-scale items assessing the
+flexis surfaced provisional differences between the coders, such              experience and usability of the tool, as well as questions about the
+as unassigned snippets, definition drifts, or competing codes. The            frequency of reflection using Reflexis. For the frequency question,
+pair reviewed these discrepancies alongside their reflexive notes to          we paired the responses from each participant from the pre-study
+explain their rationales and negotiate updates to code meanings.              survey and post-study survey to examine any differences in analysis
+This phase concluded with a brief, shared reflection on how their re-         practices.
+spective positionalities and tool support influenced their analytical            In designing the Likert items, we constructed a composite in-
+decisions.                                                                    strument designed to capture dimensions specific to collaborative
+   Finally, the session closed with a 20-minute evaluation block              RTA that are not covered by generic standardized questionnaires.
+consisting of a short post-study survey and a semi-structured in-             To ensure construct validity, we adapted items from established
+terview. These instruments were designed to capture participants’             instruments. Specifically, we derived items regarding usability and
+perceptions of the system’s usefulness, its compatibility with exist-         workload (Q20, Q21, Q23) from the System Usability Scale (SUS)
+ing qualitative workflows, and the specific collaboration dynamics            [50] and NASA-TLX [32]; items regarding transparency, agency, and
+enabled by Reflexis.                                                          trust (Q8–12, Q18) from XAI evaluation frameworks [33]; and items
+                                                                              regarding collaboration and safety (Q15–17) from literature on psy-
+                                                                              chological safety [25]. These were combined with domain-specific
+                                                                              process checks (e.g., Q1–7, Q22, Q25–31) derived from Braun and
+5.4     Measures and Analysis
+                                                                              Clarke’s criteria for quality in RTA [10]. We report these scores
+We focused on qualitative feedback and perceived usefulness gath-             descriptively to contextualize the qualitative feedback.
+ered through (i) brief pre/post-study surveys (open-ended items on
+reflexivity, fit with existing workflow, and perceived support), (ii) a       5.4.3 LLM Technical Analysis. While the ultimate utility of an in-
+semi-structured post-study interview, and (iii) in-study interactions         terpretation in RTA is determined by the researcher, we sought to
+(think-aloud comments, on-canvas/reflection notes, and mediated               verify the general quality of the output from LLM-enabled features
+discussion logs). We also captured descriptive traces of the analysis         through a two-stage process: a preliminary quality check during the
+process via screen recording, e.g., codebook edits (merges/splits/re-         pilot study and a post-hoc technical analysis. During the pilot phase,
+names), definition revisions, and disagreement flags, to contextual-          we iteratively tested and refined the system prompts to ensure base-
+ize participants’ narratives.                                                 line coherence. Following the evaluation study, two co-authors
+   We did not measure task time, “accuracy” of any kind (i.e., inter-         performed a post-hoc analysis of the interaction logs, reviewing ev-
+rater reliability, participants’ accuracy against ‘ground truth’), or         ery occurrence of Code Drift Alert (𝑁 = 7) and Positionality-aware
+other aggregate quantitative metrics. In RTA, higher agreement                Discussion Prompt (𝑁 = 18) as they naturally triggered during the
+or faster completion does not necessarily indicate better analytic            study.
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation             CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+   We evaluated these outputs based on relevance, specifically veri-                          Integrating structured, lightweight reflection directly into the
+fying that the content was grounded in the provided context rather                         coding interface via the ReflexiveLens prompted a perceived shift
+than containing hallucinations (e.g., detecting drift when there is                        in participants’ analytical practices, from high-level, delayed habits
+none, or referencing non-existent text segments). Outputs were bi-                         toward more granular, in-situ engagement with their data. To in-
+nary coded as Relevant (logically derived from the available context,                      vestigate this perceived shift, we asked participants to self-report
+code definitions, and researcher background) or Irrelevant (factually                      the frequency of their in-situ reflection for both their typical work-
+disconnected from the input). The two raters achieved perfect con-                         flows and their work during the study. While we acknowledge that
+sensus. We chose relevance over “correctness” or “accuracy” since                          comparing recalled behavior to in-the-moment experience is not a
+in an interpretivist paradigm, whether a shift in meaning consti-                          controlled measure, it provides insight into the participants’ own
+tutes “drift,” or whether a positionality connection is “true” is not an                   sense of their changing practice. As illustrated in Figure 5, this
+objective state for the system to predict, but a subjective judgment                       self-reported data shows a notable trend toward more frequent
+for the analyst themselves [9]. These dynamics are detailed in the                         reflection when using Reflexis.
+qualitative results below.                                                                    This finding aligns with our other qualitative data. During the
+                                                                                           study, participants’ interaction with ReflexiveLens was largely smooth
+5.5     Rationale and Limitations                                                          and frictionless after their initial encounter. A majority of partici-
+A single-condition design privileged depth of interpretive work                            pants also reported that, compared to their typical workflow, the
+over tool-to-tool comparisons. This limits claims about comparative                        tool prompted them to pause and articulate their rationales more
+effectiveness but aligns with RTA’s interpretivist commitments and                         often. Participants commended the system’s novelty in providing a
+avoids incorporating non-standard “baselines” [11, 14], as discussed                       dedicated and contextualized space for reflexivity, although their
+in Section 5.2.1. We partially mitigated the lack of a baseline by                         feedback also highlighted challenges regarding workflow and the
+(a) eliciting participants’ customary tool use and practices, and                          scope of reflection, which we outline below in Section 6.1.3.
+(b) observing disagreement-focused collaboration during the study                          6.1.1 Providing a New, Integrated Space for Situated Reflection. A
+session. Using an LLM-generated dataset from a real-world example                          primary benefit of ReflexiveLens was its ability to address the critical
+preserves the original civic context while minimizing sensitivity                          challenge of disconnected and unorganized reflective workflows.
+risks [78]; however, synthetic data may narrow variability relative                        Participants frequently compared the tool’s integrated nature fa-
+to field data and could subtly steer theme salience.                                       vorably against their current manual methods. 𝑃11 , for example,
+                                                                                           described her typical process of keeping a “side document” for re-
+6 User Study Results                                                                       flections, which she found “really difficult to be going back and forth,
+6.1 Reframing Reflexivity: Reflexis                                                        like, trying to link excerpts” and made her prone to losing context
+                                                                                           over time.
+    Encouraged Granular, In-Situ Reflection                                                   For other participants, the tool provided a dedicated space for a
+    Amidst Workflow Tensions (RQ1)                                                         practice they valued but struggled to incorporate into their existing
+                                                                                           toolchains. As 𝑃4 noted, the inline prompts were particularly useful
+                                                                                           as “otherwise, I wouldn’t really have a place to do it if I’m not using
+                                                                                           specialized tools” (𝑃 4 ). Despite the value of having an integrated
+                                                                                           space, the interaction design sometimes created friction. 𝑃3 felt the
+                                                                                           multi-step workflow of clicking through several screens to log a
+                                                                                           reflection “diverted my attention to the interface, rather than what I
+                                                                                           was thinking of,” and suggested that a more streamlined interaction
+                                                                                           could better support rapid thought capture (𝑃3 ).
+                                                                                           6.1.2 Shifting Reflection from a Broad, Delayed Act to a Deliberate
+                                                                                           Practice. The most novel aspect of ReflexiveLens was its ability
+                                                                                           to facilitate reflection at the snippet level, a significant departure
+                                                                                           from most participants’ existing habits of reflecting broadly on an
+                                                                                           entire interview “at the end of a coding session” (𝑃7 ). For instance,
+                                                                                           we observed 𝑃 7 use the ReflexiveLens prompt immediately after
+                                                                                           applying an ‘emotional response’ code to a passage describing an
+                                                                                           “angry” and “apologetic” resident. In her reflection, she articulated
+                                                                                           a direct link between her coding choice and her positionality as
+                                                                                           a woman. This behavior illustrated how the tool transformed a
+Figure 5: Reflexis: Change in self-reported frequency of                                   typically delayed, high-level task into an immediate, code-specific,
+in-situ reflexivity. The Sankey diagram visualizes how par-                                and deeply personal analytical act.
+ticipants perceived their practice of pausing to write a ratio-                               The tool’s ability to support reflection on specific codes as they
+nale for a code choice, comparing their recalled frequency                                 were applied was considered a valuable improvement. This granu-
+from their typical workflows (“Before”) with their reported                                lar, in-the-moment approach was not just a siloed activity; it also
+frequency during the study using Reflexis (“After”).                                       scaffolded collaborative sensemaking. 𝑃12 recalled how seeing their
+CHI ’26, April 13–17, 2026, Barcelona, Spain                    Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+teammate’s (𝑃11 ) reflexive notes prompted them to “think very hard”            couple Google Doc memos” (𝑃5 ), or tracking changes via the “clunky”
+about their reasoning, thereby encouraging deeper engagement                    edit history in Google Sheets (𝑃6 ). The system’s ability to provide a
+with both the data and their own interpretive process (𝑃12 ).                   visual and integrated history was seen as a significant improvement.
+   These experiences are substantiated by our survey data. A large              𝑃12 , whose team currently tracked changes manually in an Excel
+majority of participants (10 of 12) agreed that the prompts in Re-              sheet, saw it as a powerful automation of a necessary but laborious
+flexis encouraged them to articulate their code rationale. Crucially,           task.
+this deeper reflection was well-integrated into the analytical pro-                Participants identified two high-impact use cases for this new-
+cess, nearly all participants (10 of 12) reported a neutral to positive         found transparency. First, researchers directly connected the feature
+experience with the in-flow prompts, indicating that this new way               to the task of writing up their methodology. 𝑃3 explained that the
+of reflecting did not interrupt their analytical workflow.                      visual graph is a “very useful way to think back and see how different
+                                                                                codes merged or split up,” which would help in reporting the ana-
+6.1.3 Preferences in Reflective Scope: A Desire for Higher-Level,
+                                                                                lytical process. 𝑃4 described the feature as an audit trail for their
+Networked Memos. While the ability to reflect on a granular level
+                                                                                work:
+was highly valued, the tool’s per-passage focus did not perfectly
+align with the workflow of all participants. Some participants (𝑃1 ,                    “I think it’s definitely going to be helpful, for trans-
+𝑃5 , 𝑃 6 , 𝑃9 ) described that their most critical reflections occur at a               parency’s sake. It’s like you have a blockchain or some-
+higher level of abstraction. 𝑃6 found it difficult to be meaningfully                   thing equivalent, so you have like, a universally agreed
+reflexive on isolated passages, noting, “I think of it more in terms of                 upon, history of changes.” (𝑃4 )
+how I apply multiple codes over time.” 𝑃 9 , whose memoing process
+                                                                                   Second, the history was also seen as a crucial tool for teamwork.
+typically happened at the theme-level, expressed a need for features
+                                                                                𝑃9 described it as “insanely useful” for asynchronous teams and for
+that support relational analysis:
+                                                                                getting a “new coder coming into a project up to speed.” 𝑃3 added
+          “if I have two codes and I realize that there’s a contra-             that it would be “a good way to mediate those discussions” with
+           diction here, I want to make a note that connects both               supervisors and collaborators. 𝑃12 emphasized its role in team ac-
+           of those codes together... that ability to kind of network           countability, noting, “we can look back at any point in time and see
+           my thoughts together.” (𝑃9 )                                         what was the decision.”
+    In summary, ReflexiveLens was seen to be effective at introducing
+and scaffolding a more granular, in-the-moment reflective practice,             6.2.2 The Code Drift Alert Sparked Critical Reflection, Highlighting
+which participants reported as novel and useful for preventing                  the Value of Proactive AI Partnership. The Code Drift Alert intro-
+context collapse and promoting discussion. The overall sentiment                duced a novel capability for proactively monitoring analytical con-
+towards the feature was positive, with over half of the participants            sistency. While survey responses indicated that the feature helped
+(8 of 12) deciding they would keep the reflective prompts enabled               many articulate their code’s boundary (7 of 12), the qualitative
+in real projects. The reported challenges with workflow friction                feedback was more divided on its timing and interruptive nature.
+and the expressed desire for features that support higher-level,                   Our technical review of the study logs verified that 100% of the
+relational reflection are key findings that point to the diverse needs          displayed drift alerts were relevant, in that they flagged demonstra-
+of qualitative researchers.                                                     ble linguistic or semantic variations between the original definition
+                                                                                and the new usage. For several participants, the alert was a highly
+6.2     Making Code Evolution Transparent                                       effective intervention. For instance, upon receiving an alert, 𝑃3 was
+        Prompted Deliberate and Critically                                      observed pausing his work. He first noted that the AI’s observation
+        Reflective Analysis (RQ2)                                               was “interesting,” and after a moment of consideration, concluded,
+                                                                                “Actually, I agree.” He then directly incorporated the AI’s suggested
+Making code evolution transparent via the Analysis History was a
+                                                                                wording into his code definition, later reflecting that the interven-
+significant improvement over participants’ current workflows. All
+                                                                                tion gave him a connection “that I had not thought of before.” 𝑃11
+participants found this feature directly supported methodological
+                                                                                also saw it as a critical tool for maintaining rigor over long projects,
+transparency and collaboration. The proactive Code Drift Alert was
+                                                                                especially to counteract the effects of researcher fatigue:
+more polarizing: while it prompted valuable critical reflection on
+code definitions for some, its interruptive nature created friction                     “especially after a certain level of fatigue, you might
+for others.                                                                             just start, kind of, sloppily applying a certain code. And,
+                                                                                        having it kind of flag that... can also make you self-
+6.2.1 The Analysis History Was Universally Embraced as a Mech-
+                                                                                        aware... and also keep you, sort of, more precise in how
+anism for Transparency and Rigor. The Analysis History feature
+                                                                                        you’re selecting codes.” (𝑃11 )
+was met with strong enthusiasm across all participant pairs. This
+positive reception was confirmed in our survey, where 11 of 12                     In contrast, other participants found the proactive, interruptive
+participants agreed that the feature increased the transparency of              nature of the alert to be a point of friction during their focused
+their research process and allowed them to easily see code changes              analytical work. 𝑃9 had a strong negative reaction to the unsolicited
+over time. The feature’s primary value, as described by participants,           pop-up, asking it to “stop interrupting me in the middle of [coding].”
+was its ability to automate and centralize a process that is currently          𝑃2 voiced a similar concern about the timing, suggesting the Code
+manual, fragmented, and tedious. Researchers described that their               Drift Alert’s value might be greater if it functioned as a review tool
+ad-hoc workflows involved “a Google slideshow, my Atlas.ti, and a               that could be invoked at a different stage:
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation               CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+       “It would have been more useful if it showed up at the                              6.3.2 Positionality-Aware Prompt: A Novel Framing for Disagree-
+       end of a document or have it at the end of, like, a coding                          ment with Context-Dependent Utility. The AI-powered Positionality-
+       session, just to review what you’ve coded.” (𝑃2 )                                   Aware Discussion Prompt elicited a more mixed reaction. Partici-
+Despite the mixed feedback on its timing, participants demonstrated                        pants recognized its unique value in fostering methodologically-
+sustained engagement after the alert was shown. This was visible                           grounded reflection, even as they noted practical limitations in its
+even when a participant was taken aback. For instance, after an                            current form.
+alert “took [her] by surprise,” 𝑃2 was observed immediately paus-                             Our technical review affirmed that all generated prompts were
+ing to refine her code’s definition. 𝑃 1 ’s actions further illustrated                    relevant, explicitly referencing the conflicting codes and the users’
+this pattern of deliberate engagement. She described accepting the                         self-authored background and positionality context. Likewise, par-
+alert’s suggestion to create a new code on one occasion, while on                          ticipants found the system generally provided a safe and comfort-
+another, she confidently overrode it.                                                      able environment to express disagreement. This potential was rec-
+                                                                                           ognized immediately by some. Upon first seeing the prompt during
+6.3     Scaffolding Collaborative Interpretation by                                        the study, 𝑃7 offered a spontaneous, in-the-moment analysis of its
+                                                                                           value for supporting an interpretivist paradigm:
+        Focusing and Framing Disagreement (RQ3)
+To understand how our system scaffolds collaborative interpreta-                                   “[The Discussion Prompt] is actually really nice... it does
+tion (RQ3), we analyzed how research pairs engaged with features                                   show that there’s a disagreement, but it shows it in a
+designed to surface and contextualize interpretive differences. The                                way not that, oh, this is the actual ground truth with
+findings showed that the Discussion Focus was seen as a practical                                  interpretivism, we accept that there can be multiple
+enhancement to existing workflows. The Positionality-Aware Discus-                                 truths or multiple realities, I like that this is shaping it
+sion Prompt, although a more context-dependent feature, was rec-                                   as this person has this positionality, and that’s why you
+ognized for its unique potential to foster deeper, methodologically-                               might have different codes.” (𝑃7 )
+grounded reflexive dialogue.                                                                   This sentiment was supported by 𝑃11 , who found the AI prompt
+                                                                                           demonstrated a “strong understanding” of the disagreement and
+6.3.1 Discussion Focus Enhanced Collaborative Workflows by Au-
+                                                                                           provided a “good prompt for that kind of discussion, because after a
+tomating Disagreement Discovery. Participants immediately identi-
+                                                                                           long amount of coding, everything can sort of start blurring together”
+fied the Discussion Focus features as a practical and powerful tool
+                                                                                           (𝑃 11 ).
+for structuring collaboration. This was one of the most highly rated
+                                                                                               Participants also pointed out the limitations of the Discussion
+features in our survey, with 11 of 12 participants agreeing that it
+                                                                                           Prompt, primarily its shortcomings in facilitating synchronous
+helped them notice meaningful disagreements and made it signifi-
+                                                                                           collaboration. We observed pairs bypassing the AI in favor of direct
+cantly easier to start or engage in discussions with collaborators.
+                                                                                           conversation, as they found it to be more convenient. Participants
+This was evident in pairs’ immediate adoption of the feature to
+                                                                                           critiqued the AI’s output as “too long and too generic” (𝑃2 ) and noted
+structure their conversation. For instance, at the start of their dis-
+                                                                                           that it failed to meaningfully incorporate their positionality (𝑃4 ).
+cussion, 𝑃 2 announced, “I just toggled on [the show diff view toggle]...
+                                                                                           The prompt’s value became clearer, however, when participants
+so we’re just gonna focus on that,” while 𝑃11 began by acting on the
+                                                                                           considered asynchronous work. “I think it would be more useful
+discussion status icon’s information: “I’m gonna start with the one
+                                                                                           than. . . when we’re chatting now,” stated 𝑃 1 , highlighting that the
+that says, needs discussion.”
+                                                                                           feature’s utility is highly dependent on the collaborative context.
+   Participants described the feature as “fundamental” to the coding
+process (𝑃12 ) and “very useful, because it kind of just brings out those
+conflicts, very quickly” (𝑃3 ). 𝑃5 contrasted the tool’s efficiency with                   6.4      Overall User Experience
+her current ad-hoc method of keeping a separate list in a Google Doc                       Beyond the findings for specific features, our study revealed a strong
+and then having to “re-find the code, whenever we have a meeting                           positive reception of Reflexis as a complete system, positioning
+to go over code disagreements” (𝑃5 ). The most impactful finding                           it as a significant improvement over participants’ existing quali-
+was that by lowering this barrier, the tool enabled entirely new,                          tative analysis workflows. This was supported by the unanimous
+higher-quality workflows that participants felt were previously out                        agreement from participants on the system’s core principles: every
+of reach due to time constraints:                                                          single participant (12/12) reported feeling “in control of analytic
+       “[An ideal productive discussion] usually doesn’t hap-                              decisions” and agreed the system “supported an iterative research
+       pen, at least for me it hasn’t happened, because we                                 process.”
+       were rushing into reaching a deadline, this flagging of                                Participants frequently attributed this holistic improvement to
+       discussion points could initiate [or] could give you the                            the tool’s integrated nature, which removed the cognitive friction of
+       opportunity that, yeah, let’s discuss it.” (𝑃10 )                                   their current, fragmented workflows. 𝑃7 , for instance, contrasted Re-
+                                                                                           flexis favorably with their “document-heavy” Google Docs method.
+   This sentiment was echoed by 𝑃9 , who confirmed that the feature
+                                                                                           The tool’s ability to facilitate collaboration was a standout benefit,
+would “take you from not discussing these things to discussing them,
+                                                                                           addressing a critical gap in the current software landscape. As 𝑃5
+which will increase the quality of the analysis” (𝑃9 ). By directly
+                                                                                           explained:
+addressing the logistical challenges of manual comparison, the
+feature was seen as a new and useful tool for making collaboration                                 “I would use it. There is no good open, like, free light-
+more efficient and rigorous.                                                                       weight online coding tool that exists. Like, you can use
+CHI ’26, April 13–17, 2026, Barcelona, Spain                  Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+        [other tools], but then you can’t resolve disagreements               by functioning as an analytic scaffold rather than an oracle, sur-
+        easily, between multiple coders.” (𝑃5 )                               facing potential inconsistencies to stimulate, rather than resolve,
+                                                                              researcher deliberation.
+Even when compared to specialized software like NVivo, partici-
+                                                                                 This approach addresses emerging concerns regarding the epis-
+pants praised Reflexis for having a less “clunky” (𝑃12 ) and more
+                                                                              temic risks of over-automating cognitive work. Recent research
+“elegant” (𝑃9 ) interface, making the core coding process “a lot more
+                                                                              indicates that reliance on generative models can lead to the “homog-
+pleasant” (𝑃 6 ).
+                                                                              enization” of creative outputs [44], while AI-generated explanations
+   Of course, the experience was not without limitations. Some
+                                                                              may paradoxically suppress critical thinking and promote overre-
+participants noted the study’s time constraints created a feeling of
+                                                                              liance [42, 47]. In qualitative analysis, where the scientific value is
+pressure, preventing them from the deeper, more time-intensive
+                                                                              derived from the depth of the researcher’s interpretive effort, such
+engagement the tool affords (𝑃9 ). The most common requests for
+                                                                              automation is particularly counterproductive [23, 40]. Reflexis mit-
+improvement were visual, including color-coded highlights and a
+                                                                              igates these risks by casting the AI as a non-prescriptive observer.
+hierarchical codebook to better organize themes (𝑃7, 𝑃11, 𝑃12 ). We
+                                                                              For instance, the Code Drift Alert does not “correct” the researcher
+report the detailed descriptive statistics in Appendix A.5.
+                                                                              but rather flags potential concept drift to force a deliberate choice.
+   Taken together, our findings demonstrate that by thoughtfully
+                                                                              Participants reported that this friction made them “more precise”
+integrating support for reflexivity, transparency, and collaboration,
+                                                                              and “self-aware”(𝑃11 ), illustrating how AI can be designed to deepen,
+computational tools can move beyond simple code management
+                                                                              rather than bypass, intellectual rigor.
+to become scaffolds for a more deliberate and reflexive analytical
+                                                                                 This design pattern, which employs AI to encourage deeper
+process.
+                                                                              immersion of context, surface latent tensions, allow reasoned de-
+                                                                              liberation, and even demand human-led critical inquiry, has broad
+7     Discussion: Designing for Deliberation in                               implications for other domains of interpretive and creative work:
+      Human-AI Systems to Support Human                                       For Scholarly and Creative Writing ⇒ An AI system could act as
+      Collaboration                                                           a developmental editor by tracking the evolution of arguments or
+As AI models increasingly automate complex cognitive tasks, the               character arcs in a long-form document. It would highlight potential
+challenge for HCI is shifting from designing efficient human-AI               inconsistencies or tonal shifts for the author’s review, preserving
+pipelines to a more intentional goal: designing for deliberation.             their narrative authority while augmenting their capacity for self-
+This approach, which builds on calls to treat ambiguity as a design           critique, designed to deepen, rather than bypass, intellectual rigor.
+resource [28] and to create technologies that support reflection [4],         For Design and Engineering ⇒ An AI could juxtapose a designer’s
+prioritizes systems that intentionally support the deep, and often            specifications against their stated goals or established design pat-
+contentious, processes of human interpretation [53]. It stands in             terns. It could then surface tensions, for example, a conflict between
+contrast to an uncritical focus on automation, which risks dimin-             a requirement for “ease of use” and an architectural choice that
+ishing creative originality and suppressing critical thought [44, 47].        adds complexity. This prompts the designer to explicitly rationalize
+   In this paper, we operationalize the concept of design for delib-          trade-offs early in the implementation process.
+eration to address the specific methodological challenges of col-
+laborative reflexive analysis, a practice where interpretive depth
+and methodological rigor are paramount. Through the design and                7.2      Designing for Analytical Provenance to
+evaluation of Reflexis, we demonstrate how computational tools
+                                                                                       Support Resumption and Longer-term Usage
+can scaffold this deliberate practice by surfacing latent tensions and
+maintaining interpretive context across discontinuous workflows.              To ensure the long-term usability of qualitative tools in iterative
+Our findings suggest that this approach offers a viable path for pre-         knowledge work, systems must address the temporal reality of
+serving methodological rigor in the age of automation, specifically           research projects that extend over weeks or months, rather than
+by prioritizing researcher agency, transforming implicit context              single sessions [6]. However, a primary challenge in longitudinal
+into explicit history to support task resumption, and navigating the          qualitative analysis is the cognitive cost of resumption, characterized
+epistemic risks of operationalizing human positionality in compu-             by the difficulty of recovering interpretive details when researchers
+tational systems.                                                             return to analysis after periods of downtime [52].
+                                                                                 To address this, we draw on prior visualization research that
+                                                                              distinguishes between interaction provenance (logs of user events)
+7.1     Augmenting Agency: Shifting from                                      and rationale provenance (the reasoning behind decisions) [68, 86].
+        Automation to Deliberation                                            While interaction logs support reproducibility, they often fail to
+Prevalent paradigms in Human-AI interaction often prioritize the re-          support the cognitive task of resumption, as raw event streams lack
+duction of cognitive load, positioning AI as a tool to automate tasks         the semantic meaning necessary for a researcher to recover their
+and streamline efficiency. However, in the context of qualitative             state of mind weeks later [52, 71].
+inquiry, we argue that this focus on “computational convenience”                 Reflexis is designed to bridge this gap by prioritizing a meaning-
+is misplaced. Our work demonstrates the value of an alternative in-           ful, auditable narrative of conceptual development over an exhaus-
+teraction paradigm: using AI’s analytical capabilities not to replace         tive interaction log. We operationalize this via data-level provenance
+human judgment, but to provoke critical self-awareness during                 – which visualizes the structural evolution of analytic actions (e.g.,
+complex knowledge work. Reflexis operationalizes this approach                splits, merges, renames) [79], augmented by lightweight rationale
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation            CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+provenance – the brief reflections and justifications linked to indi-                      constraint for such future tools: to avoid reductive profiling, they
+vidual snippets. Mirroring narrative scaffolding work that suggests                        must remain tentative and non-prescriptive, surfacing potential
+insight-linked provenance helps analysts act on reflections [37], our                      associations between diverse backgrounds, acting only to stimulate
+findings (RQ2) indicate that combining data-level provenance with                          human deliberation.
+lightweight rationales effectively balance utility and manageability.
+By transforming the codebook from a static list into a living history,
+the system shows potential as an external memory scaffold and is                           8     Limitations
+“a very useful way to think back.” This allows researchers to combat                       Our study and system have several limitations that bound our
+the “drift” and fatigue inherent in longitudinal work [63]. While                          claims. First, the evaluation involved 12 experienced qualitative
+longitudinal deployment is necessary to confirm long-term adop-                            researchers working in pairs within a single, time-limited session
+tion, this immediate utility suggests that provenance views within                         on a synthetic dataset. This setting let us observe rich, situated use
+Reflexis can facilitate re-immersion and transparent reporting,                            of Reflexis and provided interaction-level insights into reflexivity
+without the overhead of manual journaling.                                                 features, but it did not capture the non-linear, longitudinal dynam-
+                                                                                           ics of real projects that unfold over months, nor the influence of
+                                                                                           institutional constraints, shifting research questions, or evolving
+7.3     Navigating Epistemic Risks in                                                      team relationships. As such, our findings speak to initial use and
+        Operationalizing Positionality                                                     perceived affordances rather than long-term change in practice.
+Expertise in knowledge work is informed by a rich context of prior                            Second, we did not study larger teams or strong power asym-
+experiences, theoretical commitments, and rationales. While most                           metries. While Reflexis technically supports multi-party collabo-
+systems capture the outputs of an action (e.g., codes applied, deci-                       ration, we do not yet know how features like Discussion Focus or
+sions made), the interpretive context shaping those actions often                          positionality-aware prompts play out when three or more interpre-
+remains implicit and computationally inaccessible. Reflexis op-                            tive lenses, organizational hierarchies, or disciplinary differences
+erationalizes this context by treating positionality as active data                        are in tension.
+to anchor discussion prompts and surfaces the analyst’s internal                              Finally, our operationalization of positionality is necessarily par-
+stance [23].                                                                               tial. Reflexis operationalizes positionality as brief, self-authored
+   However, translating complex human positionality into com-                              profiles that are summarized into prompts. This makes positionality
+putational prompts introduces consequential epistemic risks. As                            computationally tractable but risks flattening complex, intersec-
+highlighted by the inherent brevity of user profiles, there is a ten-                      tional, and evolving positions into relatively stable descriptors. We
+sion between making positionality computationally tractable and                            did not systematically examine potential harms or discomfort this
+preserving the nuance of a researcher’s entire lived experience. As                        might create for marginalized researchers or in sensitive domains,
+we move toward systems that model user perspectives, there is                              so we interpret our results as evidence of both promise and risk
+a danger of algorithmic essentialism, which reduces a researcher                           rather than as validation of positionality-aware prompting as a
+to a set of flat characteristics or stereotypes. Large language mod-                       general best practice.
+els, which rely on probabilistic correlations, may inadvertently
+generate reductive or essentializing attributions (e.g., suggesting
+a researcher’s interpretation is solely defined by a single demo-                          9     Future Work
+graphic trait rather than their holistic expertise). This further risks                    Several directions follow from this work. First, we plan to con-
+reifying stereotypes or entrenching assumptions of how people                              duct longitudinal deployments of Reflexis with teams using the
+with certain identities or perspectives interpret data, undermining                        system throughout the lifecycle of research projects. Such stud-
+the researcher’s authority and contextual information.                                     ies can examine how reflexive streams, provenance views, and
+   To mitigate this, we argue that systems must be designed to                             positionality-focused collaboration are adapted, incorporated, or
+operationalize positionality as inspiration, not diagnosis. In Reflexis,                   abandoned over time, and whether they ultimately reshape how
+the prompts are framed as tentative conversation starters rather                           findings are constructed and reported.
+than declarative truths. As mentioned by our study participant, this                           Second, we aim to co-design alternative ways of representing po-
+interaction design shifts the epistemic burden back to the human;                          sitionality in collaborative tools. Rather than a single static profile
+the system provides a heuristic spark to disrupt pre-existing per-                         per researcher, teams might work with evolving or context-specific
+spectives, but the researcher retains the agency to interact, reject,                      positionality traces, shared team-level statements, or prompts that
+or recontextualize that connection.                                                        explicitly invite critique of the system’s own attributions. We are
+   Operationalizing and surfacing user perspectives in this way                            particularly interested in partnering with researchers from marginal-
+enables systems to facilitate more subtle interactions in high-stakes                      ized communities and with teams operating under pronounced
+tasks, such as academic peer review. Despite showing signs of en-                          power asymmetries to understand when positionality-aware prompts
+hancing peer review quality [77], current research primarily focuses                       are helpful, when they are risky, and what forms of control, consent,
+on efficiency [17, 36]. But a system that models the reviewer’s per-                       and redress are needed.
+spective could address the challenge of interpretive diversity. For a                          Third, we see opportunities to extend Reflexis along infrastruc-
+meta-reviewer, such a system could contextualize conflicting assess-                       tural lines, including support for locally hosted language models
+ments by highlighting how reviewers’ differing theoretical lenses                          and configuration options that let teams selectively enable or dis-
+shaped their critiques. However, our findings suggest a critical                           able LLM-powered features. More broadly, we hope to develop
+CHI ’26, April 13–17, 2026, Barcelona, Spain                                Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+design guidelines and evaluative frameworks for “designing for                                   thematic analysis. International Journal of social research methodology 19, 6 (2016),
+deliberation” in interpretive human–AI systems.                                                  739–743.
+                                                                                             [9] Virginia Braun and Victoria Clarke. 2019. Reflecting on reflexive thematic analysis.
+                                                                                                 Qualitative Research in Sport, Exercise and Health 11, 4 (2019), 589–597. doi:10.1080/
+10     Conclusion                                                                                2159676X.2019.1628806 arXiv:https://doi.org/10.1080/2159676X.2019.1628806
+                                                                                            [10] Virginia Braun and Victoria Clarke. 2021. One size fits all? What counts
+This paper introduces Reflexis, a collaborative workspace that                                   as quality practice in (reflexive) thematic analysis? Qualitative Research
+                                                                                                 in Psychology 18, 3 (2021), 328–352.           doi:10.1080/14780887.2020.1769238
+deeply embeds researcher reflexivity, code evolution, and princi-                                arXiv:https://doi.org/10.1080/14780887.2020.1769238
+pled disagreement into the analytical workflow. Through a paired-                           [11] Virginia Braun and Victoria Clarke. 2023. Toward good practice in thematic
+analyst study with 12 qualitative researchers, we showed how                                     analysis: Avoiding common problems and be (com) ing a knowing researcher.
+                                                                                                 International journal of transgender health 24, 1 (2023), 1–6.
+integrating in-situ reflexive streams, analytical provenance, and                           [12] Paul Bucci, Leo Foord-Kelcey, Patrick Yung Kang Lee, Alamjeet Singh, and Ivan
+disagreement-centered collaboration can encourage a more gran-                                   Beschastnikh. 2024. Crystallizing Schemas with Teleoscope: Thematic Curation
+ular, deliberate, and methodologically transparent practice than                                 of Large Text Corpora. arXiv preprint arXiv:2402.06124 (2024).
+                                                                                            [13] David Byrne. 2022. A worked example of Braun and Clarke’s approach to reflexive
+is supported by many current toolsets and workflows. Our find-                                   thematic analysis. Quality & Quantity 56, 3 (2022), 1391–1412. doi:10.1007/s11135-
+ings exemplify how AI can scaffold reflexive and dialogic practices.                             021-01182-y
+                                                                                            [14] Lara Carminati. 2018. Generalizability in qualitative research: A tale of two
+At the same time, the study surfaces important risks and limits                                  traditions. Qualitative health research 28, 13 (2018), 2094–2101.
+of operationalizing positionality in tools, while effective prompts                         [15] Kathy Charmaz. 2006. Constructing grounded theory: A practical guide through
+can anchor productive dialogue, generic or misaligned framings                                   qualitative analysis. sage.
+                                                                                            [16] Nan-Chen Chen, Margaret Drouhard, Rafal Kocielnik, Jina Suh, and Cecilia R.
+risk flattening complex identities and underplaying reflexive work.                              Aragon. 2018. Using Machine Learning to Support Qualitative Coding in Social
+We offer Reflexis as a design probe towards the challenges of po-                                Science: Shifting the Focus to Ambiguity. ACM Trans. Interact. Intell. Syst. 8, 2,
+sitionality in collaborative qualitative analysis. By intentionally                              Article 9 (June 2018), 20 pages. doi:10.1145/3185515
+                                                                                            [17] Shiping Chen, Duncan Brumby, and Anna Cox. 2025. Envisioning the Future
+designing for deliberation rather than efficiency, our work con-                                 of Peer Review: Investigating LLM-Assisted Reviewing Using ChatGPT as a
+tributes a principled approach to building human-AI systems for                                  Case Study. In Proceedings of the 4th Annual Symposium on Human-Computer
+                                                                                                 Interaction for Work (CHIWORK ’25). Association for Computing Machinery, New
+interpretive knowledge work. The insights from Reflexis can guide                                York, NY, USA, Article 8, 18 pages. doi:10.1145/3729176.3729196
+the future tools for thought that honor and augment, rather than                            [18] Samuel O Clarke, Wendy C Coates, and Jaime Jordan. 2021. A practical guide for
+automate, the deep, personal processes of human sensemaking and                                  conducting qualitative research in medical education: Part 3—Using software for
+                                                                                                 qualitative analysis. AEM education and training 5, 4 (2021), e10644.
+knowledge-seeking.                                                                          [19] Christopher S Collins and Carrie M Stockton. 2018. The central role of theory
+                                                                                                 in qualitative research. International journal of qualitative methods 17, 1 (2018),
+                                                                                                 1609406918797475.
+Acknowledgments                                                                             [20] Flora Cornish, Alex Gillespie, and Tania Zittoun. 2014. Collaborative analysis of
+We extend a heartfelt thanks to our study participants, without                                  qualitative data. The SAGE handbook of qualitative data analysis (2014), 79–93.
+                                                                                            [21] Zach Cutler, Kiran Gadhave, and Alexander Lex. 2020. Trrack: A library for
+whom this work would not have been possible.                                                     provenance-tracking in web-based visualizations. In 2020 IEEE Visualization
+   We acknowledge and thank the support of the Natural Sciences                                  Conference (VIS). IEEE, 116–120.
+                                                                                            [22] Jessica Díaz, Jorge Pérez, Carolina Gallardo, and Ángel González-Prieto. 2023.
+and Engineering Research Council of Canada (NSERC), [funding                                     Applying inter-rater reliability and agreement in collaborative grounded theory
+reference number RGPIN-2024-04348 and RGPIN-2024-06005]. This                                    studies in software engineering. Journal of Systems and Software 195 (2023),
+work was also supported by the National Science Foundation under                                 111520.
+                                                                                            [23] Paul Dourish. 2014. Reading and Interpreting Ethnography. Springer New York,
+Award No. 2402428.                                                                               New York, NY, 1–23. doi:10.1007/978-1-4939-0378-8_1
+                                                                                            [24] Moritz Dück, Steffen Holter, Robin Shing Moon Chan, Rita Sevastjanova, and
+                                                                                                 Mennatallah El-Assady. 2025. Finding Needles in Document Haystacks: Aug-
+References                                                                                       menting Serendipitous Claim Retrieval Workflows. In Proceedings of the 2025
+ [1] Kars Alfrink, Ianus Keller, Neelke Doorn, and Gerd Kortuem. 2023. Contestable               CHI Conference on Human Factors in Computing Systems (CHI ’25). Associa-
+     Camera Cars: A Speculative Design Exploration of Public AI That Is Open and                 tion for Computing Machinery, New York, NY, USA, Article 1003, 17 pages.
+     Responsive to Dispute. In Proceedings of the 2023 CHI Conference on Human                   doi:10.1145/3706598.3713715
+     Factors in Computing Systems (CHI ’23). Association for Computing Machinery,           [25] Amy Edmondson. 1999. Psychological Safety and Learning Behavior in Work
+     New York, NY, USA, Article 8, 16 pages. doi:10.1145/3544548.3580984                         Teams Amy Edmondson. Administrative Science Quarterly 44, 2 (1999), 350–383.
+ [2] James E Allen, Curry I Guinn, and Eric Horvtz. 1999. Mixed-initiative interaction.     [26] Jie Gao, Kenny Tsu Wei Choo, Junming Cao, Roy Ka-Wei Lee, and Simon Perrault.
+     IEEE Intelligent Systems and their Applications 14, 5 (1999), 14–23.                        2023. CoAIcoder: Examining the Effectiveness of AI-assisted Human-to-Human
+ [3] Christine A Barry, Nicky Britten, Nick Barber, Colin Bradley, and Fiona Stevenson.          Collaboration in Qualitative Analysis. ACM Trans. Comput.-Hum. Interact. 31, 1,
+     1999. Using reflexivity to optimize teamwork in qualitative research. Qualitative           Article 6 (Nov. 2023), 38 pages. doi:10.1145/3617362
+     health research 9, 1 (1999), 26–44.                                                    [27] Jie Gao, Yuchen Guo, Gionnieve Lim, Tianqin Zhang, Zheng Zhang, Toby Jia-Jun
+ [4] Eric P.S. Baumer. 2015. Reflective Informatics: Conceptual Dimensions for Design-           Li, and Simon Tangi Perrault. 2024. CollabCoder: A Lower-barrier, Rigorous
+     ing Technologies of Reflection. In Proceedings of the 33rd Annual ACM Conference            Workflow for Inductive Collaborative Qualitative Analysis with Large Language
+     on Human Factors in Computing Systems (CHI ’15). Association for Computing                  Models. In Proceedings of the 2024 CHI Conference on Human Factors in Computing
+     Machinery, New York, NY, USA, 585–594. doi:10.1145/2702123.2702234                          Systems (CHI ’24). Association for Computing Machinery, New York, NY, USA,
+ [5] Robert Bowman, Camille Nadal, Kellie Morrissey, Anja Thieme, and Gavin Do-                  Article 11, 29 pages. doi:10.1145/3613904.3642002
+     herty. 2023. Using Thematic Analysis in Healthcare HCI at CHI: A Scoping               [28] William W. Gaver, Jacob Beaver, and Steve Benford. 2003. Ambiguity as a resource
+     Review. In Proceedings of the 2023 CHI Conference on Human Factors in Computing             for design. In Proceedings of the SIGCHI Conference on Human Factors in Computing
+     Systems (CHI ’23). Association for Computing Machinery, New York, NY, USA,                  Systems (CHI ’03). Association for Computing Machinery, New York, NY, USA,
+     Article 491, 18 pages. doi:10.1145/3544548.3581203                                          233–240. doi:10.1145/642611.642653
+ [6] Virginia Braun and Victoria Clarke. 2006.                            Using the-        [29] Simret Araya Gebreegziabher, Zheng Zhang, Xiaohang Tang, Yihao Meng, Elena L.
+     matic analysis in psychology.                   Qualitative Research in Psy-                Glassman, and Toby Jia-Jun Li. 2023. PaTAT: Human-AI Collaborative Qualitative
+     chology 3, 2 (2006), 77–101.                     doi:10.1191/1478088706qp063oa              Coding with Explainable Interactive Rule Synthesis. In Proceedings of the 2023
+     arXiv:https://www.tandfonline.com/doi/pdf/10.1191/1478088706qp063oa                         CHI Conference on Human Factors in Computing Systems (CHI ’23). Association
+ [7] Virginia Braun and Victoria Clarke. 2013. Successful qualitative research: A                for Computing Machinery, New York, NY, USA, Article 362, 19 pages. doi:10.
+     practical guide for beginners. (2013).                                                      1145/3544548.3581352
+ [8] Virginia Braun and Victoria Clarke. 2016. (Mis) conceptualising themes, thematic
+     analysis, and other problems with Fugard and Potts’(2015) sample-size tool for
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation                      CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+[30] David Gotz and Michelle X Zhou. 2009. Characterizing users’ visual analytic                doi:10.1145/1753846.1754195
+     activity for insight provenance. Information Visualization 8, 1 (2009), 42–55.        [50] James R Lewis. 2018. The system usability scale: past, present, and future. Inter-
+[31] Wendy A Hall, Bonita Long, Nicole Bermbach, Sharalyn Jordan, and Kathryn Pat-              national Journal of Human–Computer Interaction 34, 7 (2018), 577–590.
+     terson. 2005. Qualitative teamwork issues and strategies: Coordination through        [51] Jasy Suet Yan Liew, Nancy McCracken, Shichun Zhou, and Kevin Crowston. 2014.
+     mutual adjustment. Qualitative Health Research 15, 3 (2005), 394–410.                      Optimizing features in active machine learning for complex qualitative content
+[32] Sandra G Hart. 2006. NASA-task load index (NASA-TLX); 20 years later. In                   analysis. In Proceedings of the ACL 2014 Workshop on Language Technologies and
+     Proceedings of the human factors and ergonomics society annual meeting, Vol. 50.           Computational Social Science. 44–48.
+     Sage publications Sage CA: Los Angeles, CA, 904–908.                                  [52] Heather Richter Lipford, Felesia Stukes, Wenwen Dou, Matthew E Hawkins, and
+[33] Robert R Hoffman, Shane T Mueller, Gary Klein, and Jordan Litman. 2023. Mea-               Remco Chang. 2010. Helping users recall their reasoning process. In 2010 IEEE
+     sures for explainable AI: Explanation goodness, user satisfaction, mental models,          Symposium on Visual Analytics Science and Technology. IEEE, 187–194.
+     curiosity, trust, and human-AI performance. Frontiers in Computer Science 5           [53] Shuai Ma, Qiaoyi Chen, Xinru Wang, Chengbo Zheng, Zhenhui Peng, Ming
+     (2023), 1096257.                                                                           Yin, and Xiaojuan Ma. 2025. Towards Human-AI Deliberation: Design and
+[34] Matt-Heun Hong, Lauren A. Marsh, Jessica L. Feuston, Janet Ruppert, Jed R.                 Evaluation of LLM-Empowered Deliberative AI for AI-Assisted Decision-Making.
+     Brubaker, and Danielle Albers Szafir. 2022. Scholastic: Graphical Human-AI                 In Proceedings of the 2025 CHI Conference on Human Factors in Computing Systems
+     Collaboration for Inductive and Interpretive Text Analysis. In Proceedings of the          (CHI ’25). Association for Computing Machinery, New York, NY, USA, Article
+     35th Annual ACM Symposium on User Interface Software and Technology (UIST ’22).            261, 23 pages. doi:10.1145/3706598.3713423
+     Association for Computing Machinery, New York, NY, USA, Article 30, 12 pages.         [54] Megh Marathe and Kentaro Toyama. 2018. Semi-Automated Coding for Qual-
+     doi:10.1145/3526113.3545681                                                                itative Research: A User-Centered Inquiry and Initial Prototypes. In Proceed-
+[35] Eric Horvitz. 1999. Principles of mixed-initiative user interfaces. In Proceedings         ings of the 2018 CHI Conference on Human Factors in Computing Systems
+     of the SIGCHI Conference on Human Factors in Computing Systems (CHI ’99).                  (CHI ’18). Association for Computing Machinery, New York, NY, USA, 1–12.
+     Association for Computing Machinery, New York, NY, USA, 159–166. doi:10.                   doi:10.1145/3173574.3173922
+     1145/302979.303030                                                                    [55] Nora McDonald, Sarita Schoenebeck, and Andrea Forte. 2019. Reliability and
+[36] Eftekhar Hossain, Sanjeev Kumar Sinha, Naman Bansal, Alex Knipper, Souvika                 Inter-rater Reliability in Qualitative Research: Norms and Guidelines for CSCW
+     Sarkar, John Salvador, Yash Mahajan, Sri Guttikonda, Mousumi Akter, Md Mahadi              and HCI Practice. Proc. ACM Hum.-Comput. Interact. 3, CSCW, Article 72 (Nov.
+     Hassan, et al. 2024. LLMs as Meta-Reviewers’ Assistants: A Case Study. arXiv               2019), 23 pages. doi:10.1145/3359174
+     preprint arXiv:2402.15589 (2024).                                                     [56] Mary L McHugh. 2012. Interrater reliability: the kappa statistic. Biochemia
+[37] Oliver Huang, Muhammad Fatir, Steven Luo, Sangho Suh, Hari Subramonyam,                    medica 22, 3 (2012), 276–282.
+     and Carolina Nobre. 2026. Narrative Scaffolding: A Narrative-First Framework          [57] Matthew B Miles and A Michael Huberman. 1994. Qualitative data analysis: An
+     for Data-Driven Sensemaking. In Proceedings of the 31th International Conference           expanded sourcebook. sage.
+     on Intelligent User Interfaces (IUI ’26). Association for Computing Machinery, New    [58] Andrew Moravcsik. 2014. Transparency: The revolution in qualitative research.
+     York, NY, USA, 29 pages. doi:10.48550/arXiv.2512.18920                                     PS: Political Science & Politics 47, 1 (2014), 48–53.
+[38] Oliver Huang and Carolina Nobre. 2025. ViStruct: Simulating Expert-Like Rea-          [59] Helen Noble and Joanna Smith. 2015. Issues of validity and reliability in qualitative
+     soning Through Task Decomposition and Visual Attention Cues. arXiv preprint                research. Evidence-based nursing 18, 2 (2015), 34–35.
+     arXiv:2506.21762 (2025).                                                              [60] Chris North, Remco Chang, Alex Endert, Wenwen Dou, Richard May, Bill Pike,
+[39] Jialun Aaron Jiang, Kandrea Wade, Casey Fiesler, and Jed R. Brubaker. 2021. Sup-           and Glenn Fink. 2011. Analytic provenance: process+interaction+insight. In CHI
+     porting Serendipity: Opportunities and Challenges for Human-AI Collaboration               ’11 Extended Abstracts on Human Factors in Computing Systems (Vancouver, BC,
+     in Qualitative Analysis. Proc. ACM Hum.-Comput. Interact. 5, CSCW1, Article 94             Canada) (CHI EA ’11). Association for Computing Machinery, New York, NY,
+     (April 2021), 23 pages. doi:10.1145/3449168                                                USA, 33–36. doi:10.1145/1979742.1979570
+[40] Tanisha Jowsey, Virginia Braun, Victoria Clarke, Deborah Lupton, and Michelle         [61] Gary M Olson and Judith S Olson. 2000. Distance matters. Human–computer
+     Fine. 2025. We reject the use of generative artificial intelligence for reflexive          interaction 15, 2-3 (2000), 139–178.
+     qualitative research. Qualitative Inquiry (2025), 10778004251401851.                  [62] Cassandra Overney, Belén Saldías, Dimitra Dimitrakopoulou, and Deb Roy. 2024.
+[41] Louise H Kidder and Michelle Fine. 1987. Qualitative and quantitative methods:             SenseMate: An Accessible and Beginner-Friendly Human-AI Platform for Qualita-
+     When stories converge. New directions for program evaluation 1987, 35 (1987),              tive Data Analysis. In Proceedings of the 29th International Conference on Intelligent
+     57–75.                                                                                     User Interfaces (IUI ’24). Association for Computing Machinery, New York, NY,
+[42] Sunnie S. Y. Kim, Jennifer Wortman Vaughan, Q. Vera Liao, Tania Lombrozo, and              USA, 922–939. doi:10.1145/3640543.3645194
+     Olga Russakovsky. 2025. Fostering Appropriate Reliance on Large Language              [63] Cliodhna O’Connor and Helene Joffe. 2020. Intercoder reliability in qualitative
+     Models: The Role of Explanations, Sources, and Inconsistencies. In Proceedings             research: debates and practical guidelines. International journal of qualitative
+     of the 2025 CHI Conference on Human Factors in Computing Systems (CHI ’25).                methods 19 (2020), 1609406919899220.
+     Association for Computing Machinery, New York, NY, USA, Article 420, 19 pages.        [64] Dustin Palea, Giridhar Vadhul, and David T Lee. 2024. Annota: Peer-based
+     doi:10.1145/3706598.3714020                                                                AI Hints Towards Learning Qualitative Coding at Scale. In Proceedings of the
+[43] Gary Klein, Jennifer K Phillips, Erica L Rall, and Deborah A Peluso. 2007. A               29th International Conference on Intelligent User Interfaces (IUI ’24). Association
+     data–frame theory of sensemaking. In Expertise out of context. Psychology Press,           for Computing Machinery, New York, NY, USA, 455–470. doi:10.1145/3640543.
+     118–160.                                                                                   3645168
+[44] Harsh Kumar, Jonathan Vincentius, Ewan Jordan, and Ashton Anderson. 2025.             [65] Lawrence A Palinkas, Sarah M Horwitz, Carla A Green, Jennifer P Wisdom,
+     Human Creativity in the Age of LLMs: Randomized Experiments on Divergent                   Naihua Duan, and Kimberly Hoagwood. 2015. Purposeful sampling for quali-
+     and Convergent Thinking. In Proceedings of the 2025 CHI Conference on Human                tative data collection and analysis in mixed method implementation research.
+     Factors in Computing Systems (CHI ’25). Association for Computing Machinery,               Administration and policy in mental health and mental health services research 42,
+     New York, NY, USA, Article 23, 18 pages. doi:10.1145/3706598.3714198                       5 (2015), 533–544.
+[45] Karen S Kurasaki. 2000. Intercoder reliability for validating conclusions drawn       [66] Rock Yuren Pang, Hope Schroeder, Kynnedy Simone Smith, Solon Barocas, Ziang
+     from open-ended interview data. Field methods 12, 3 (2000), 179–194.                       Xiao, Emily Tseng, and Danielle Bragg. 2025. Understanding the LLM-ification
+[46] Michelle S. Lam, Janice Teoh, James A. Landay, Jeffrey Heer, and Michael S.                of CHI: Unpacking the Impact of LLMs at CHI through a Systematic Literature
+     Bernstein. 2024. Concept Induction: Analyzing Unstructured Text with High-                 Review. In Proceedings of the 2025 CHI Conference on Human Factors in Computing
+     Level Concepts Using LLooM. In Proceedings of the 2024 CHI Conference on Human             Systems (CHI ’25). Association for Computing Machinery, New York, NY, USA,
+     Factors in Computing Systems (CHI ’24). Association for Computing Machinery,               Article 456, 20 pages. doi:10.1145/3706598.3713726
+     New York, NY, USA, Article 766, 28 pages. doi:10.1145/3613904.3642830                 [67] Barbara Probst and Laura Berenson. 2014. The double arrow: How qualitative
+[47] Hao-Ping (Hank) Lee, Advait Sarkar, Lev Tankelevitch, Ian Drosos, Sean Rintel,             social work researchers use reflexivity. Qualitative social work 13, 6 (2014),
+     Richard Banks, and Nicholas Wilson. 2025. The Impact of Generative AI on                   813–827.
+     Critical Thinking: Self-Reported Reductions in Cognitive Effort and Confidence        [68] Eric D Ragan, Alex Endert, Jibonananda Sanyal, and Jian Chen. 2015. Characteriz-
+     Effects From a Survey of Knowledge Workers. In Proceedings of the 2025 CHI                 ing provenance in visualization and data analysis: an organizational framework of
+     Conference on Human Factors in Computing Systems (CHI ’25). Association for                provenance types and purposes. IEEE transactions on visualization and computer
+     Computing Machinery, New York, NY, USA, Article 1121, 22 pages. doi:10.1145/               graphics 22, 1 (2015), 31–40.
+     3706598.3713778                                                                       [69] K Andrew R Richards and Michael A Hemphill. 2018. A practical guide to
+[48] John D Lee and Katrina A See. 2004. Trust in automation: Designing for appro-              collaborative qualitative data analysis. Journal of Teaching in Physical education
+     priate reliance. Human factors 46, 1 (2004), 50–80.                                        37, 2 (2018), 225–231.
+[49] Gilly Leshed, Dan Cosley, Jeffrey T. Hancock, and Geri Gay. 2010. Visualizing         [70] Tim Rietz and Alexander Maedche. 2021. Cody: An AI-Based System to
+     language use in team conversations: designing through theory, experiments,                 Semi-Automate Coding for Qualitative Research. In Proceedings of the 2021
+     and iterations. In CHI ’10 Extended Abstracts on Human Factors in Computing                CHI Conference on Human Factors in Computing Systems (CHI ’21). Associa-
+     Systems. Association for Computing Machinery, New York, NY, USA, 4567–4582.                tion for Computing Machinery, New York, NY, USA, Article 394, 14 pages.
+CHI ’26, April 13–17, 2026, Barcelona, Spain                                  Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+     doi:10.1145/3411764.3445591                                                                   (CHI ’18). Association for Computing Machinery, New York, NY, USA, 1–11.
+[71] Adam Rule, Ian Drosos, Aurélien Tabard, and James D. Hollan. 2018. Aiding                     doi:10.1145/3173574.3173733
+     Collaborative Reuse of Computational Notebooks with Annotated Cell Folding.
+     Proc. ACM Hum.-Comput. Interact. 2, CSCW, Article 150 (Nov. 2018), 12 pages.
+     doi:10.1145/3274419
+[72] Hope Schroeder, Marianne Aubin Le Quéré, Casey Randazzo, David Mimno, and
+     Sarita Schoenebeck. 2025. Large Language Models in Qualitative Research: Uses,
+     Tensions, and Intentions. In Proceedings of the 2025 CHI Conference on Human
+     Factors in Computing Systems (CHI ’25). Association for Computing Machinery,
+     New York, NY, USA, Article 481, 17 pages. doi:10.1145/3706598.3713120
+[73] Christina Silver and Ann Lewins. 2014. Using software in qualitative research: A
+     step-by-step guide. (2014).
+[74] Aneesha Singh, Martin Johannes Dechant, Dilisha Patel, Ewan Soubutts, Giulia
+     Barbareschi, Amid Ayobi, and Nikki Newhouse. 2025. Exploring Positionality
+     in HCI: Perspectives, Trends, and Challenges. In Proceedings of the 2025 CHI
+     Conference on Human Factors in Computing Systems (CHI ’25). Association for
+     Computing Machinery, New York, NY, USA, Article 451, 18 pages. doi:10.1145/
+     3706598.3713280
+[75] Robert Soden, Austin Toombs, and Michaelanne Thomas. 2024. Evaluating
+     Interpretive Research in HCI. Interactions 31, 1 (Jan. 2024), 38–42. doi:10.1145/
+     3633200
+[76] Craig S. Tashman and W. Keith Edwards. 2011. LiquidText: a flexible, multitouch
+     environment to support active reading. In Proceedings of the SIGCHI Conference
+     on Human Factors in Computing Systems (CHI ’11). Association for Computing
+     Machinery, New York, NY, USA, 3285–3294. doi:10.1145/1978942.1979430
+[77] Nitya Thakkar, Mert Yuksekgonul, Jake Silberg, Animesh Garg, Nanyun Peng,
+     Fei Sha, Rose Yu, Carl Vondrick, and James Zou. 2025. Can llm feedback enhance
+     review quality? a randomized study of 20k reviews at iclr 2025. arXiv preprint
+     arXiv:2504.09737 (2025).
+[78] Alexander C Tsai, Brandon A Kohrt, Lynn T Matthews, Theresa S Betancourt,
+     Jooyoung K Lee, Andrew V Papachristos, Sheri D Weiser, and Shari L Dworkin.
+     2016. Promises and pitfalls of data sharing in qualitative research. Social Science
+     & Medicine 169 (2016), 191–198.
+[79] Fernanda B. Viégas, Martin Wattenberg, and Kushal Dave. 2004. Studying co-
+     operation and conflict between authors with history flow visualizations. In
+     Proceedings of the SIGCHI Conference on Human Factors in Computing Systems
+     (CHI ’04). Association for Computing Machinery, New York, NY, USA, 575–582.
+     doi:10.1145/985692.985765
+[80] Dakuo Wang, Judith S. Olson, Jingwen Zhang, Trung Nguyen, and Gary M.
+     Olson. 2015. DocuViz: Visualizing Collaborative Writing. In Proceedings of the
+     33rd Annual ACM Conference on Human Factors in Computing Systems (CHI
+     ’15). Association for Computing Machinery, New York, NY, USA, 1865–1874.
+     doi:10.1145/2702123.2702517
+[81] Qile Wang, Moath Erqsous, Kenneth E. Barner, and Matthew Louis Mauriello.
+     2025. LATA: A Pilot Study on LLM-Assisted Thematic Analysis of Online Social
+     Network Data Generation Experiences. Proc. ACM Hum.-Comput. Interact. 9, 2,
+     Article CSCW124 (May 2025), 28 pages. doi:10.1145/3711022
+[82] Daphne C Watkins. 2017. Rapid and rigorous qualitative data analysis: The
+     “RADaR” technique for applied research. International Journal of Qualitative
+     Methods 16, 1 (2017), 1609406917712131.
+[83] David Wicks. 2017. The coding manual for qualitative researchers. Qualitative
+     research in organizations and management: an international journal 12, 2 (2017),
+     169–170.
+[84] Carla Willig and Wendy Stainton Rogers. 2017. The SAGE handbook of qualitative
+     research in psychology. Sage.
+[85] Ziang Xiao, Xingdi Yuan, Q. Vera Liao, Rania Abdelghani, and Pierre-Yves
+     Oudeyer. 2023. Supporting Qualitative Analysis with Large Language Mod-
+     els: Combining Codebook with GPT-3 for Deductive Coding. In Companion
+     Proceedings of the 28th International Conference on Intelligent User Interfaces (IUI
+     ’23 Companion). Association for Computing Machinery, New York, NY, USA,
+     75–78. doi:10.1145/3581754.3584136
+[86] Kai Xu, Alvitta Ottley, Conny Walchshofer, Marc Streit, Remco Chang, and John
+     Wenskovitch. 2020. Survey on the analysis of user interactions and visualization
+     provenance. In Computer Graphics Forum, Vol. 39. Wiley Online Library, 757–783.
+[87] Runlong Ye, Patrick Lee, Matthew Varona, Oliver Huang, and Carolina Nobre.
+     2025. ScholarMate: A Mixed-Initiative Tool for Qualitative Knowledge Work and
+     Information Sensemaking. In Adjunct Proceedings of the 4th Annual Symposium
+     on Human-Computer Interaction for Work (CHIWORK ’25 Adjunct). Association
+     for Computing Machinery, New York, NY, USA, Article 7, 7 pages. doi:10.1145/
+     3707640.3731913
+[88] Bhada Yun, Dana Feng, Ace S. Chen, Afshin Nikzad, and Niloufar Salehi. 2025.
+     Generative AI in Knowledge Work: Design Implications for Data Navigation and
+     Decision-Making. In Proceedings of the 2025 CHI Conference on Human Factors in
+     Computing Systems (CHI ’25). Association for Computing Machinery, New York,
+     NY, USA, Article 634, 19 pages. doi:10.1145/3706598.3713337
+[89] Himanshu Zade, Margaret Drouhard, Bonnie Chinh, Lu Gan, and Cecilia
+     Aragon. 2018. Conceptualizing Disagreement in Qualitative Coding. In Pro-
+     ceedings of the 2018 CHI Conference on Human Factors in Computing Systems
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation   CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+A Appendix
+A.1 Formative Study (Prolific Survey)
+Prolific participant pool filtering criteria: Highest education level completed: Graduate degree (MA/MSc/MPhil/other), Doctorate degree
+(PhD/other).
+   Prolific screening questions verified that participants had
+   (1) completed at least one thematic analysis project
+   (2) familiarity with thematic analysis methodology
+   (3) a minimum of 2 years of qualitative analysis experience
+   The survey was structured in four sections:
+   (1) background and experience (8 questions)
+   (2) reflexive practices during coding (12 questions using 5-point Likert scales)
+   (3) code evolution tracking strategies (7 questions combining multiple choice and open-ended responses)
+   (4) collaborative interpretation challenges (9 questions, including ranking and free-text).
+   Survey response statistics: Approved (55), Returned (13, including 2 survey participants who have completed the survey but manually
+returned due to exceptionally low effort showed), Screened out (12), Timed-out (1). Median survey completion time 00:27:39.
+CHI ’26, April 13–17, 2026, Barcelona, Spain           Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+A.2      LLM System prompt used in Reflexis
+Code Drift Alert
+You are a sharp - eyed assistant for reflexive qualitative researchers . Your task is to spot ' conceptual drift ' and flag
+it with a brief , scannable alert .
+
+Conceptual drift is when a new passage stretches or shifts a code ' s meaning beyond its current definition and applied
+examples .
+
+Your response must be extremely concise . The goal is to provide a quick " heads - up " to the researcher , not a detailed
+analysis . Use plain language and get straight to the point . When drift is detected , your explanation should clearly and
+simply contrast the original concept with the new one .
+
+-----
+
+Current definition : $ { codeDefinition }
+
+Existing passages coded with $ { codeName }:
+$ { examplesText }
+
+NEW PASSAGE ( selected portion ) : $ { newPassage } , which is situated within the bigger context $ { context }.
+
+Does this new passage represent conceptual drift ?
+
+Respond in JSON format .
+- " drift_detected ": boolean
+- " explanation ": A single , concise sentence contrasting the original focus with the new usage . If no drift , state that
+the usage is consistent .
+- " suggested_definition ": A revised definition if drift is detected , otherwise null .
+
+response_format :
+{
+  " type ":" json_schema " ,
+  " json_schema ":{
+     " name ":" conceptual_drift " ,
+     " schema ":{
+        " type ":" object " ,
+        " properties ":{
+           " drift_detected ":{
+              " type ":" boolean " ,
+              " description ":" Indicates if conceptual drift was detected "
+           },
+           " explanation ":{
+              " type ":" string " ,
+              " description ":" Brief explanation of the drift or why no drift was detected "
+           },
+           " suggested_definition ":{
+              " type ":" string " ,
+              " description ":" Revised definition if drift detected , otherwise null "
+           }
+        },
+        " required ":[
+           " drift_detected " ,
+           " explanation "
+        ],
+        " additionalProperties ": false
+     }
+  }
+}
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation   CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+Positionality-Aware Discussion Prompt
+You are an expert facilitator for reflexive qualitative research teams . Your task is to generate brief , engaging "
+Conversation Starters " when researchers code the same text differently , possibly due to different interpretations and
+backgrounds .
+
+Your output must :
+1. ** Be extremely concise .** The goal is to spark a live conversation , not to be read at length .
+2. ** Ask a direct question .** Do not provide a pre - packaged analysis . Your job is to help the researchers discover the
+insight themselves .
+3. ** Frame the difference in interpretation and background as a valuable tension ** , not a problem to be solved .
+4. ** Use plain , conversational language .** Avoid academic jargon .
+5. ** Directly address the researchers ** by their first names to make it personal .
+6. Generate a ** short , memorable title ** that captures the essence of the coding difference .
+
+-----
+
+Generate a " Conversation Starter " for qualitative researchers who coded the same text differently .
+
+FULL CONTEXT : ${ context }
+
+CODED TEXT ( selected portion ) : $ { codedText }
+$ { documentTitle }
+
+RESEARCHERS AND CODES :
+$ { researcherDescriptions }
+
+CODE DEFINITIONS :
+$ { codeDefinitionsText }
+
+Based on the information above , generate a title and a prompt . The prompt should be a single , direct question .
+- The ** Title ** should be a short phrase capturing the tension ( e . g . , " Process vs . Price ") .
+- The ** Prompt ** should be a single , curious question that encourages the researchers to reflect on their perspectives .
+Address them by their first names .
+
+
+response_format :
+{
+  " type ":" json_schema " ,
+  " json_schema ":{
+     " name ":" discussion_prompt " ,
+     " schema ":{
+        " type ":" object " ,
+        " properties ":{
+           " prompt ":{
+              " type ":" string " ,
+              " description ":" The generated discussion prompt "
+           },
+           " title ":{
+              " type ":" string " ,
+              " description ":" A brief title for the insight opportunity "
+           }
+        },
+        " required ":[
+           " prompt ",
+           " title "
+        ],
+        " additionalProperties ": false
+     }
+  }
+}
+CHI ’26, April 13–17, 2026, Barcelona, Spain                  Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+Reflexive Stream Structured Summary
+You are a reflexive research coach . Your purpose is to act as a mirror , helping researchers see the patterns in their
+own thinking based on their reflexive notes .
+
+Your task is not to judge their analysis , but to synthesize their entries into concise observations and thought -
+provoking questions . The goal is to deepen their self - awareness as an instrument of their research as a team .
+
+Analyze the notes across these dimensions :
+1. ** Linguistic Patterns :** How they use language to justify interpretations .
+2. ** Positionality Narrative :** The story they tell about their own background and biases .
+3. ** Alternative Thinking :** The ways they do ( or don ' t ) challenge their own conclusions .
+
+The tone should be supportive , curious , and collaborative . Address the team instead of individuals and frame your
+outputs as " Reflective Starting Points .
+
+-----
+
+Please analyze the following reflexive responses from a reflexive qualitative research team :
+
+JUSTIFICATION RESPONSES ( What specific language led to coding decisions ) :
+$ { justificationResponses . map (...) }
+
+POSITIONALITY RESPONSES ( Personal / professional experiences influencing interpretation ) :
+$ { positionalityResponses . map (...) }
+
+ALTERNATIVE FRAMING RESPONSES ( Different possible interpretations ) :
+$ { alternativeResponses . map (...) }
+
+OTHER NOTES :
+$ { notes . map (...) }
+
+Please generate a set of " Reflective Summary ". For each category , provide a concise one - sentence finding and a follow - up
+ reflective question to prompt deeper thought . Address the researchers directly as 'you ' or ' your team '.
+
+
+response_format :
+{
+  " type ":" json_schema " ,
+  " json_schema ":{
+     " name ":" reflexive_summary " ,
+     " schema ":{
+        " type ":" object " ,
+        " properties ":{
+           " linguisticPatterns ":{
+              " type ":" string " ,
+              " description ":" A one - sentence   observation about language patterns for this particular code ."
+           },
+           " positionalityNarrative ":{
+              " type ":" string " ,
+              " description ":" A one - sentence   synthesis of the team ' s positionality on this particular code ."
+           },
+           " alternativeThinkingPatterns ":{
+              " type ":" string " ,
+              " description ":" A one - sentence   observation on how alternatives are generated ."
+           },
+           " notes ":{
+              " type ":" string " ,
+              " description ":" A one - sentence   summary of additional notes and context provided by researchers ."
+           }
+        },
+        " required ":[
+           " linguisticPatterns " ,
+           " positionalityNarrative " ,
+           " alternativeThinkingPatterns " ,
+           " notes "
+        ],
+        " additionalProperties ": false
+     }
+  }
+}
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation   CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+Positionality Keywords
+You are an assistant that produces concise , semicolon - separated keyword summaries of a researcher ' s background and
+positionality for collaborative qualitative analysis tools .
+
+-----
+
+Summarize the following research background filled out by researcher into a compact list of 1 -12 keywords / short phrases
+separated by semicolons + space (; ) .
+Only return the keywords line , no extra words , labels , or quotes . Keep each keyword under 3 -5 words . Prioritize items
+like : discipline , methods , theoretical lenses , domain expertise , populations / contexts , positionality / identity factors ,
+likely biases , and analytic style .
+
+Number of keywords should be proportional to the length and complexity of the research background user provided , less
+provided context should result in fewer than usual keywords .
+
+$ { userName }
+Question : Brief History of Qualitative Data Analysis ?
+User data : ${ parsed . qualitativeHistory }
+
+Question : How Background May Affect Interpretation ?
+User data : ${ parsed . backgroundExperience }
+
+Question : Initial View of the Data ?
+User data : ${ parsed . initialDataView }
+
+
+response_format :
+{
+  " type ":" json_schema " ,
+  " json_schema ":{
+     " name ":" research_background_keywords " ,
+     " schema ":{
+        " type ":" object " ,
+        " properties ":{
+           " keywords ":{
+              " type ":" string " ,
+              " description ":" Semicolon - separated keywords that summarize the research background ."
+           }
+        },
+        " required ":[
+           " keywords "
+        ],
+        " additionalProperties ": false
+     }
+  }
+}
+
+
+A.3      System prompt used to generate user study synthetic dataset
+< insert PDF of paper " Contestable Camera Cars : A Speculative Design Exploration of Public AI That Is Open and Responsive
+  to Dispute ">
+
+I am now conducting an interview study , and asking participants to perform a simplified Reflexive Thematic Analysis . I
+need to generate a dataset because there ' s no available data online . Can you carefully examine the paper candidate ,
+where the author applied RTA within a very specific setting , and I want to use the paper provided as a source to create
+an RTA dataset using the information provided by the paper ( i . e . , perspective , different views , context ...) .
+
+Carefully read the provided paper , and generate " realistic " interview transcripts that fit the narrative of the paper
+for realistic , easy to grasp ( by participants with different backgrounds , and insights do not require specialized
+knowledge ) , verbal , just like a spoken conversation , but don ' t make it too obvious , as we will want participants to
+conduct RTA
+
+The transcript should be realistic , back and forth , and use verbal English . You want each transcript to contain a subset
+ of themes , just like anyone would say multiple things they noticed .
+
+Carefully think and create a narrative before returning your final answer .
+CHI ’26, April 13–17, 2026, Barcelona, Spain                         Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+A.4      User Study Participant Demographics
+
+                 Group #      ID      Current Role          Primary Domain               Experience (Years)       Full RTA Comfort Level (1-7)
+                              P1      Assistant Professor   HCI                          5                        4
+                 1
+                              P2      PhD Student           HCI + NLP                    4                        4
+                              P3      PhD Student           HCI                          5                        7
+                 2
+                              P4      PhD Student           HCI                          2                        4
+                              P5      PhD Student           HCI                          4                        4
+                 3
+                              P6      PhD Student           HCI + Info. Vis.             2                        3
+                              P7      PhD Student           HCI + Comp. Ed.              4                        4
+                 4
+                              P8      Data Analyst          Data Allocation/Engineer     7                        7
+                              P9      PhD Graduate          HCI                          5                        4
+                 5
+                              P10     PhD Student           HCI                          4                        3
+                              P11     MSc Student           HCI                          2                        3
+                 6
+                              P12     Data Analyst          Software Engineering         1                        4
+Table 2: User Study Participant Demographics. Participants rated their comfort level with RTA on a 7-point Likert scale, ranging
+from 1 (Extremely uncomfortable) to 7 (Extremely comfortable).
+
+
+
+
+                 Group #       ID     RTA Experience (simplified)                             View on Topic of Analysis (simplified)
+                               P1     Grad course; collaborative application                  HCI, User-centered, Fairness
+                 1
+                               P2     Four projects; varied data types                        Immigrant, System-distrust, Cautious
+                               P3     Published research                                      AI-skeptic, Citizen-focused, Socially-critical
+                 2
+                               P4     Coursework familiarity; partial application             Lived experience, Pro-transparency, Balanced
+                               P5     PhD course; one project                                 Urban planning, Nuanced, Anti-luddism
+                 3
+                               P6     Applied to literature & interviews                      Urbanist, Anti-surveillance, Policy-first
+                               P7     Applied to student perspectives                         Interpretivist, Critical, Reflexive
+                 4
+                               P8     Coursework & independent training                       Black American, Equity-focused, Data-informed
+                               P9     Master’s course; five studies                           Skeptical, Accuracy-focused, Pro-supervision
+                 5
+                               P10    PhD research; multiple methods (interviews, diaries)    International, Socio-cultural, Chatbot researcher
+                               P11    Initial phase reflexive coding                          HCI/Healthcare, Immigrant-lens, Fairness-focused
+                 6
+                               P12    Applied to dementia transcripts                         Dementia-informed, Accessibility-focused, Pro-AI
+                             Table 3: User Study Participant RTA Experience and View on Topic of Analysis [1].
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation   CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+
+
+                      Figure 6: User Study Survey Question: What tool do you usually use for qualitative analysis?
+
+
+
+   Participants who selected Others in Figure 6 have shared they also use “QualCoder”, “printed quotes and table” “LiquidText”, “DiscoverText”,
+“Python for extracting codes from google doc comments”.
+
+
+
+
+                     Figure 7: User Study Survey Question: What obstacles have you faced when trying to do RTA?
+
+
+
+   Participant who selected Others in Figure 7 have shared another obstacle they face is “Not having audio and quotes in the same place”.
+CHI ’26, April 13–17, 2026, Barcelona, Spain        Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+
+
+Figure 8: User Study Survey Question: In your past qualitative analysis projects, what artifacts have you created to support
+reflexivity and collaboration?
+
+
+
+
+Figure 9: User Study Survey Question: In your past qualitative analysis projects, what artifacts have you shared with anyone
+outside of your research team?
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation          CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+A.5      User Study Quantitative Survey Results
+
+                                  Table 4: Aggregated Analysis of Likert Scale Questions with Categorization
+
+                      Q#      Question Text                                                                        Mean     Median         SD
+                      Supporting Reflexive Analysis (RQ1)
+                        ReflexiveLens
+                      Q1     Timely in-flow reflection                                                             3.67        4.00       1.30
+                      Q2     Articulate code rationale                                                             3.58        4.00       1.24
+                      Q3     Connect positionality to decisions                                                    3.42        3.50       1.44
+                      Q4     Consider alternative interpretations                                                  3.75        4.00       1.29
+                      Q5     Re-read data more carefully                                                           3.67        3.50       0.98
+                      Q6     Felt immersed in data                                                                 3.50        3.50       1.17
+                      Q7     Would keep reflection prompts on                                                      3.58        4.00       1.08
+                      Transparent Code Evolution (RQ2)
+                        Analysis History
+                      Q8   Easily see code changes over time                                                       4.17        4.50       1.03
+                      Q9   Increased transparency of research process                                              4.50        5.00       0.80
+                        Code Drift Alert
+                      Q10 Surfaced potential meaningful shifts...                                                  3.75        3.50       1.22
+                      Q11 Improved the quality of our analysis                                                     3.50        3.50       1.38
+                      Q12 Helped me articulate code boundary...                                                    3.67        4.00       1.30
+                      Scaffolding Collaborative Interpretation (RQ3)
+                        Positionality-aware Discussion Prompt
+                      Q13 Reframe disagreement focus                                                               3.83        4.00       1.11
+                      Q14 Understand collaborator’s positionality                                                  3.75        4.50       1.60
+                      Q15 Felt safe expressing divergent interpretation                                            3.83        4.00       1.03
+                        Discussion Focus
+                      Q16 Notice meaningful disagreement                                                           4.25        4.50       0.97
+                      Q17 Easy to start/engage in discussion                                                       4.33        4.00       0.65
+                      Agency
+                      Q18 Felt in control of analytic decisions                                                    4.17        4.00       0.83
+                      Q19 Support iterative research process                                                       4.50        4.50       0.52
+                      Usability
+                      Q20 Easy to learn                                                                            4.00        4.00       1.04
+                      Q21 Easy to use                                                                              4.25        4.00       0.75
+                      Q22 Follow RTA practices                                                                     4.08        4.00       1.00
+                      Q23 Require less mental effort                                                               2.92        2.50       1.51
+                      Q24 Would use on real projects                                                               4.42        4.50       0.67
+                      Compare to Existing Workflow
+                      Q25 Pause to articulate rationales                                                           3.75        4.00       0.97
+                      Q26 Linking coding to positionality                                                          3.25        3.00       1.54
+                      Q27 Consider alternative interpretations                                                     3.67        4.00       1.15
+                      Q28 Re-read context before coding                                                            3.50        3.00       0.90
+                      Q29 Revisit earlier excerpts                                                                 3.42        3.00       1.00
+                      Q30 Discuss disagreements productively                                                       3.75        4.00       0.87
+                      Q31 Revise code definition or split/merge codes                                              4.00        4.00       0.74
+CHI ’26, April 13–17, 2026, Barcelona, Spain                 Runlong Ye, Oliver Huang, Patrick Yung Kang Lee, Michael Liut, Carolina Nobre, and Ha-Kyung Kong
+
+
+A.6      Interview Guide/Script
+A.6.1 Formative Study. “Thank you for participating in our study. Today, we’d like to discuss your experiences with qualitative data analysis.
+Specifically, we’re interested in your coding practices, how you reflect on your interpretations, and how you collaborate with others.
+   This session will be recorded for analysis purposes, and all data will be anonymized. Please know that there are no right or wrong answers;
+we are genuinely interested in your personal experiences and thought processes.
+   Do you have any questions before we begin? Do we have your consent to start recording?”
+
+II. Main Interview Questions
+   Part 1: The ReflexiveLens.
+     1. To start, could you recall your most recent or memorable qualitative data analysis project? Please briefly describe its setting, context,
+        and the process you followed.
+     2. Can you walk me through a time when you intentionally reflected on your own interpretation while you were coding?
+        • What triggered that reflection?
+        • Are there specific moments in the coding process where reflection feels especially necessary (e.g., when applying a new code, when
+          you’re unsure, when generating themes)?
+     3. Do you ask yourself certain kinds of questions to guide your interpretation of the data?
+        • If so, could you share an example?
+        • Do you typically document those thoughts, for instance, in a memo or a research journal?
+     4. In your own words, what specific actions or practices do you believe are essential for making a thematic analysis truly reflexive?
+     5. Now, let’s imagine a qualitative analysis tool designed to support reflection. Do you think it would be more helpful if such a tool
+        provided reflective prompts proactively (e.g., when it detects a pattern or a shift in your coding) or reactively (e.g., only when you
+        explicitly ask for help or seem stuck)?
+        • Can you imagine a situation where a proactive prompt would be particularly useful?
+        • What kind of signal or moment might make a proactive prompt feel helpful rather than intrusive? (e.g., applying a single code
+          many times, switching between codes frequently, coding passages that seem very different with the same code).
+        • Conversely, are there situations where prompts would feel distracting?
+        • Ideally, who should be in control of when these prompts appear—you or the system?
+     6. [Show Concept 1: Reflective Prompts Interface] I’d like to show you a concept from a system we’re exploring. It’s designed to offer
+        prompts during coding.
+        • Looking at these examples, what kinds of prompts would be most meaningful or helpful for you in your own work?
+   Part 2: Evolving Code Definitions.
+     1. Can you recall a time when a code you created ended up meaning something different as the project went on?
+        • How did that shift occur? Was it gradual, or was there a specific moment of realization?
+     2. Have you ever realized a code was being overused or applied too broadly?
+        • What triggered that realization?
+     3. Could you describe situations that might lead you to split a single code into multiple codes, or to merge separate codes into one?
+     4. How important is it for you to document these kinds of shifts in your codes? Why or why not?
+     5. Would it be helpful for a tool to alert you when a code’s meaning or application seems to be drifting over time?
+     6. [Show Concept 2: Code Evolution Tracker Interface] Here’s a related concept—a system that tracks how a code’s usage evolves and
+        visualizes its history (e.g., splits, merges, renames).
+        • How could you imagine using a feature like this? (e.g., for personal reflection, for team communication, for transparency in a final
+           report?)
+        • In what ways might a feature like this not work for your process?
+   Part 3: Positionality-Aware Collaboration.
+     1. Can you share an example of a time when you and a collaborator applied different codes to the same passage of data?
+        • From your perspective, what was each person seeing in the data?
+        • How did you and your collaborator approach that difference in interpretation?
+     2. Thinking about your past projects, how has your own positionality (e.g., your background, profession, life experiences) shaped how
+        you interpret data?
+        • Could you provide a specific example?
+     3. When trying to understand a collaborator’s interpretation, what kind of information is most helpful to you?
+     4. In your collaborative projects, do you typically aim for absolute consistency in coding across team members? Why or why not?
+     5. Do you feel that interpretive disagreements between collaborators should be resolved to find a single consensus, or explored as a
+        source of richer insight?
+Reflexis: Supporting Reflexivity and Rigor in Collaborative Qualitative Analysis through Design for Deliberation   CHI ’26, April 13–17, 2026, Barcelona, Spain
+
+
+        • Can you share a moment where exploring a disagreement was especially productive?
+        • Can you share a moment where a disagreement was especially frustrating?
+III. Conclusion
+     1. Is there anything else we haven’t talked about that you think is important for understanding how qualitative researchers make sense
+        of their data?
+
+   “Thank you so much for your time and for sharing your valuable insights. This has been incredibly helpful for our research.”
+A.6.2    User Study Interview.
+   0. Warm-up & Initial Impressions (~45s).
+     • What were your immediate impressions when using the tool? What led to those impressions?
+     • How was the experience different from or similar to what you currently use or expected?
+     • Did any part of the process feel particularly mentally demanding?
+       – Probe: Was it a particular feature or a specific step in the workflow?
+
+
+   1. ReflexiveLens Feature (~2 min). [Participants are shown a screenshot of the ReflexiveLens feature.]
+     • Were there any moments where you chose to use the reflection features before applying a code to a passage? Could you tell us more
+       about that?
+       – Why did you choose to reflect rather than immediately applying a code?
+       – How did these in-place reflections help you engage with the data or consider your positionality as a researcher?
+       – Did being able to reflect before coding help you manage cognitive load or the pressure of coding?
+     • If you found this feature useful, have you done something similar in your past work? If so, how did you do it before?
+   2. Code History Feature (~2 min). [Participants are shown a screenshot of the Code History timeline.]
+     • Did you use, or could you see yourself using, the code development timelines?
+       – In what ways might this history help you as a researcher while you are developing codes?
+       – How could a feature like this help you communicate with your research team?
+       – Could this code history be useful when reporting your analysis results? Why?
+     • If you found this feature useful, is tracking code history something you’ve done before? How?
+   3. Positionality-Aware Collaboration Feature (~2 min). [Participants are shown a screenshot of the disagreement resolution interface.]
+     • When you encountered a disagreement, how useful was it to see the reflection prompts and the positionality of your collaborator?
+       – Did this information change how you interpreted the data or their coding choice?
+       – How would you have approached this conversation with your collaborator?
+     • If you found this feature useful, how have you navigated these kinds of interpretive differences in the past?
+   4. Living Concepts & Code Drift Alerts (~2 min). [Participants are shown a screenshot of the Code Drift Alert.]
+     • Were there any moments when the code drift alert appeared? How did that make you feel?
+        – Did the alert seem to intervene at an accurate or helpful moment?
+        – What was your reaction when you saw the alert?
+     • Can you describe a time the drift alert surfaced a potential shift in how you were using a code? How accurate was it, and what did
+        you do next?
+        – Did this feature support the idea that codes are constructed and evolve, rather than simply being “found”?
+     • If you found this feature useful, have you ever tried to monitor for code drift before? How?
+   5. Discussion Focus Feature (~2 min). [Participants are shown a screenshot of the Discussion Focus Icon and Show Diff View Toggle.]
+     • How useful was it to see and set the discussion status for different disagreements? How did it guide your focus?
+       – How does this compare to your usual process for discussing coding differences with collaborators?
+     • Compared to how you normally prioritize disagreements, what felt better or worse about this approach?
+     • Did the Discussion Focus feature facilitate more targeted discussions, or did it feel like a metric that contradicts the reflexive nature of
+       the process?
+     • If you found this useful, how have you prioritized discussion topics with collaborators in the past?
+   6. Overall Workflow & Concluding Thoughts (~2 min).
+     • Overall, could you see yourself using a system like this, or specific features from it, for your future qualitative analysis work? Why or
+       why not?
+

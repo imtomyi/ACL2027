@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-direction-j-browser-feedback-v1.json",
+  "title": "Browser Direction H feedback linked to an exact Direction J rating and timing receipt",
+  "description": "Runnable browser-v1 sidecar. model_feedback reuses Direction H's existing structure exactly, while output_locations are interpreted as JSON Pointers from the root of the exact Direction J evaluator item.",
+  "type": "object",
+  "required": [
+    "feedback_version",
+    "feedback_id",
+    "bridge_id",
+    "instrument_version",
+    "assignment_id",
+    "item_id",
+    "pointer_base",
+    "rating_key",
+    "timing_receipt_sha256",
+    "feedback_status",
+    "model_feedback",
+    "created_at_utc"
+  ],
+  "properties": {
+    "feedback_version": {"const": "direction-h-direction-j-browser-feedback-v1"},
+    "feedback_id": {"type": "string", "pattern": "^DHJBF_[a-f0-9]{16}$"},
+    "bridge_id": {"const": "direction-h-direction-j-synthetic-qualification-v1"},
+    "instrument_version": {"const": "direction-h-direction-j-browser-v1"},
+    "assignment_id": {"type": "string", "pattern": "^DJA_[a-f0-9]{16}$"},
+    "item_id": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"},
+    "pointer_base": {"const": "direction-j-evaluator-item-root"},
+    "rating_key": {
+      "type": "object",
+      "required": [
+        "rating_schema_version",
+        "rating_record_sha256",
+        "actor_id",
+        "rating_repetition",
+        "item_id",
+        "packet_id",
+        "output_id"
+      ],
+      "properties": {
+        "rating_schema_version": {"const": "direction-j-shared-rating-v1"},
+        "rating_record_sha256": {"$ref": "#/$defs/sha256"},
+        "actor_id": {"const": "charlie"},
+        "rating_repetition": {"const": 1},
+        "item_id": {"type": "string", "pattern": "^DJI_[a-f0-9]{16}$"},
+        "packet_id": {"type": "string", "minLength": 1, "maxLength": 160},
+        "output_id": {"type": "string", "minLength": 1, "maxLength": 160}
+      },
+      "additionalProperties": false
+    },
+    "timing_receipt_sha256": {"$ref": "#/$defs/sha256"},
+    "feedback_status": {
+      "enum": ["no_change", "actionable_revision", "reject_or_regenerate", "human_escalation"]
+    },
+    "model_feedback": {
+      "$ref": "https://warrantroute.local/schemas/direction-h-feedback-record-v1.json#/$defs/modelFeedback"
+    },
+    "created_at_utc": {"type": "string", "format": "date-time"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"feedback_status": {"const": "no_change"}}, "required": ["feedback_status"]},
+      "then": {"properties": {"model_feedback": {"properties": {"findings": {"maxItems": 0}}}}}
+    },
+    {
+      "if": {
+        "properties": {"feedback_status": {"enum": ["actionable_revision", "reject_or_regenerate"]}},
+        "required": ["feedback_status"]
+      },
+      "then": {"properties": {"model_feedback": {"properties": {"findings": {"minItems": 1}}}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "additionalProperties": false
+}

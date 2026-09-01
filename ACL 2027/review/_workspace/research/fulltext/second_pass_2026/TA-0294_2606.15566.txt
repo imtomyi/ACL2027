@@ -1,0 +1,902 @@
+                                             LLM-Assisted Stance Detection in Scientific Discourse: A Test Case in
+                                                                Bayesian Cognitive Science
+
+                                              Eyup Engin Kucuk*                         Tarik Kelestemur                Ömer Dağlar Tanrikulu
+                                          University of New Hampshire                 Independent Researcher           University of New Hampshire
+                                           Department of Psychology                                                     Department of Psychology
+
+
+
+                                                                Abstract                               a theoretically meaningful stance, frame, or com-
+                                                                                                       mitment that the author does not explicitly name.
+                                              Qualitative coding is central to social science,
+
+
+
+
+arXiv:2606.15566v1 [cs.CL] 14 Jun 2026
+                                                                                                       LLMs offer a possible route past this constraint,
+                                              but expert annotation is difficult to scale. LLMs
+                                              offer a possible extension, yet require care-
+                                                                                                       and recent work has evaluated them as annotators
+                                              ful validation when the target construct is in-          for political text, qualitative coding, content anal-
+                                              terpretive, theoretically loaded, and only indi-         ysis, and scalar constructs (Gilardi et al., 2023;
+                                              rectly expressed. We study this problem in a             Törnberg, 2024; Chew et al., 2023; Dunivin, 2024,
+                                              difficult case: detecting whether authors treat          2025; Licht et al., 2025; Than et al., 2025; Ziems
+                                              Bayesian models as descriptions of mental and            et al., 2024). The central problem is how to know
+                                              neural mechanisms (realism) or as useful math-           whether model outputs are reliable enough to sup-
+                                              ematical tools (instrumentalism). Our method
+                                                                                                       port qualitative inference: apparent agreement can
+                                              combines a theory-driven codebook, expert-
+                                              coded reference annotations, a diagnostic-gated          be produced by shallow shortcuts such as default-
+                                              prompt-optimization search yielding a shared             ing to a frequent class or avoiding fine-grained
+                                              zero-shot prompt for three frontier LLMs (GPT-           scale use, and the question is sharper when the con-
+                                              5.1, Claude Sonnet 4.6, Gemini 3 Pro Preview),           struct is theoretical and not surface-realized in any
+                                              and multi-rater reliability analysis. The final          single phrase.
+                                              prompt achieved a held-out combined reliabil-               We examine this problem in Bayesian cognitive
+                                              ity score of 0.76 (harmonic mean of ICC =
+                                                                                                       science, where authors often make claims relevant
+                                              0.79 and α = 0.74), with all diagnostics sat-
+                                              isfied. Deployed on 6,858 quotes from 210
+                                                                                                       to the realism–instrumentalism distinction with-
+                                              articles, the three LLMs reached substantial             out naming either position. Some passages treat
+                                              quote-level agreement (ICC = 0.80; α = 0.76;             Bayesian models as useful predictive tools; others
+                                              combined = 0.78) and near-perfect article-level          imply that Bayesian computations correspond to
+                                              rank stability (r = 0.96–0.97 across rater pairs).       mental or neural mechanisms. These distinctions
+                                              The corpus was predominantly weakly real-                are philosophically deep (Jones and Love, 2011;
+                                              ist, but article-level stances were rarely uni-          Bowers and Davis, 2012; Griffiths et al., 2012),
+                                              form: only 1.4% of articles used a single band,
+                                                                                                       often hedged, and domain-dependent.
+                                              while 59.5% spanned four or more. Low-
+                                              level perception/motor articles scored 8.8 Re-              This paper makes three contributions. (1) We
+                                              alism points higher than high-level cognition            contribute a stance-detection method in qualita-
+                                              articles (p<.001, d=0.60), quantifying a long-           tive analysis employing an automated, diagnostic-
+                                              held qualitative intuition. We present this as           aware prompt-optimization loop that delivers a de-
+                                              an expert-led case study; the framework is in-           ployable annotation prompt. (2) We showcase how
+                                              tended to generalize to similar theoretically de-        to apply the autoresearch method to social science
+                                              manding tasks, not to all qualitative analysis.1
+                                                                                                       research in order to optimize a single shared prompt
+                                         1    Introduction                                             across three heterogeneous frontier LLMs, treat-
+                                                                                                       ing the prompt as a common annotation protocol
+                                         Qualitative coding is central to social science, but          rather than per-model tuning. (3) We contribute a
+                                         its interpretive depth limits scale. This is espe-            codebook design pattern for operationalizing the-
+                                         cially true when the target is not a surface topic but        oretically complex and indirectly expressed social
+                                             * Corresponding author: eyup.kucuk@unh.edu.               science concepts through the example use case of a
+                                            1
+                                              Code, data, and reference annotations: https://github.   working codebook for realism vs. instrumentalism
+                                         com/EyupEK/autoresearch_bayes                                 in Bayesian cognitive science.
+  The framework’s components (theory-driven               (documents, authors, subfields), per-item agree-
+codebook architecture, diagnostic-aware prompt            ment can understate or overstate the agreement
+optimization, and shared-prompt multi-rater con-          that actually matters. We complement quote-level
+vergence) are designed to be portable to similar          α with article-level rank stability via cross-rater
+theoretically demanding qualitative coding tasks,         correlations of per-article random intercepts from
+though the specific codebook and prompt must be           per-rater linear mixed-effects models. Stance de-
+adapted to each new construct; cross-domain vali-         tection has traditionally focused on expressed posi-
+dation is intended future work.                           tions toward named targets (Burnham, 2025); here
+                                                          the “target” is itself a philosophical position the
+2   Related Work                                          author rarely names.
+LLM-as-annotator for computational social sci-            Realism and instrumentalism in Bayesian cogni-
+ence. A growing literature evaluates frontier             tive science. Whether Bayesian models describe
+LLMs as text annotators for social-science tasks.         what minds and brains actually do, or are useful
+Gilardi et al. (2023) report that GPT-3.5 matches         mathematical idealizations, has been argued explic-
+or exceeds crowdworker accuracy on five English-          itly in the field (Danks, 2008; Jones and Love, 2011;
+language political and content-moderation tasks;          Bowers and Davis, 2012; Griffiths et al., 2012;
+Törnberg (2024) extend this to ideological classifi-      Rescorla, 2023, 2025). Two recent positions di-
+cation. Ziems et al. (2024) provide the largest evalu-    rectly shape our annotation design: Williams and
+ation to date (13 LLMs on 25 CSS benchmarks) and          Drayson (2023) argue the realism–instrumentalism
+conclude that zero-shot LLMs reach fair agreement         dichotomy is misleading when treated as a forced
+with humans on classification, though they fail to        choice between mechanistic and black-box mod-
+match fine-tuned models. Recent work flags sub-           elling, and Rescorla (2023, 2025) emphasize that
+stantial variability across tasks, prompts, models,       both are graded stances, since a researcher can
+and re-runs (Kristensen-McLachlan et al., 2025),          be realist about some aspects of the framework
+with Camuffo et al. (2026) cataloguing five dis-          while instrumentalist about others. Our codebook
+tinct sources of variance in LLM annotation (con-         accommodates this graded view via complemen-
+struct specification, interface effects, model pref-      tary continuous scales constrained to sum to 100,
+erences, output extraction, and system-level aggre-       paired with ordinal bands; where the philosophical
+gation) and arguing for variance-aware protocols          literature works with hand-picked quotations, we
+rather than ad hoc deployment. Closer to our set-         operationalize this construct at corpus scale.
+ting, Chew et al. (2023); Dunivin (2024, 2025);
+Than et al. (2025); Gao et al. (2024); Meng et al.        3     Dataset and Codebook
+(2024) have studied codebook-based or theory-
+                                                          3.1    Codebook
+driven LLM workflows in qualitative coding; our
+task, detecting an implicit philosophy of science         The codebook defines complementary Realism
+stance, sits at the harder end of this literature (Si-    and Instrumentalism scores constrained to sum to
+mons et al., 2026) because the construct is not           100, each on a seven-band ordinal scale. Realism
+surface-realized in any single phrase.                    bands span Anti-Realist (0–10), Weak Realist (11–
+                                                          27), Realism-Sceptical (28–44), Agnostic (45–55),
+Reliability and stance detection. On the evalua-          Leaning Realist (56–72), Moderately Realist (73–
+tion side, our reliability analysis builds on the long-   89), and Strong Realism (90–100); Instrumental-
+standing literature on intraclass correlation (Shrout     ism mirrors these ranges as the complementary pair.
+and Fleiss, 1979), Krippendorff’s α for ordinal an-       Within each assigned band, raters choose the mid-
+notations (Krippendorff, 2011), and significance          point or midpoint ±4 or ±8 to register the strength
+testing in NLP (Koehn, 2004; Berg-Kirkpatrick             of the band-defining cues. Each band combines a
+et al., 2012; Dror et al., 2018). Recent work has         semantic definition with linguistic-criteria tags for
+begun separating signal from systematic noise in          Subject (e.g., model / agent / mechanism), Claim
+annotator disagreement (Ivey et al., 2025); we con-       Target (function / mapping / mechanism), Modal-
+tribute a complementary angle by decomposing              ity (neutral / hedged / strong / as-if), and Evidence
+reliability across analytical grain sizes. Standard       Link (none / inferred / conceptual / direct), enabling
+metrics summarize agreement at the item level, but        both interpretability and automated validation of
+when downstream analyses operate on aggregates            the model’s chosen tags against codebook-allowed
+                                                       revise on reject
+
+
+
+                        251 expert-coded              Autoresearch                                    GPT-5.1, Claude,       Multi-level
+  Theory-driven                                                                     Final shared
+                             quotes                   prompt search                                   Gemini annotate        reliability +
+    codebook                                                                      zero-shot prompt
+                           (151 / 50 / 50)        (propose → score → gate)                             6,858 quotes        corpus analysis
+
+Figure 1: Study workflow. Purple: expert-defined inputs. Orange: automated prompt optimization (detailed in
+Figure 3). Green: deployment and multi-level reliability analysis.
+
+
+Quote                                    What it claims                   3.3   Deployment Corpus
+“These results provide stronger ev-      Treats Bayesian uncer-           The deployment corpus was assembled in three
+ idence for the hypothesis that the      tainty as a property of          stages. (i) Article selection. We searched the
+ brain computes with sensory un-         neural computation.
+ certainty.”                                                              APA PsycInfo database with keywords relevant
+                                                                          to Bayesian modeling in cognitive science and
+“In short, hierarchical Bayesian ap-     Treats Bayesian model-
+ proaches demand our accounts of         ing as a methodological          collected 225 candidate articles spanning 1983–
+ cognition become deeper and bet-        framework constraining           2025. (ii) Quote extraction. For each article, three
+ ter integrated.”                        cognitive theorizing.            frontier LLMs (GPT-5.2 (OpenAI, 2025b), Claude
+“These considerations, which con-        Identifies a gap between         Opus 4.6 (Anthropic, 2026a), Gemini 3 Pro Pre-
+ cern all Bayesian models of psy-        formal Bayesian descrip-         view (Google DeepMind, 2025), the heavier-tier
+ chophysical data, highlight the         tion and biological mech-
+ gap between normative descrip-          anism.                           variants used only for corpus construction) received
+ tions and their biological imple-                                        the 251 expert-extracted quotes and 15 articles as
+ mentation.”
+                                                                          in-context examples, and were prompted to extract
+                                                                          assumption-bearing quotes from the article’s full
+Table 1: Example assumption-bearing quotes. Each
+makes an implicit or explicit claim about what Bayesian                   text. The same three models voted on each article’s
+modeling accomplishes for cognitive explanation, mak-                     topical relevance; articles receiving 0/3 or 1/3 votes
+ing it codable on the Realism/Instrumentalism scales.                     were dropped, leaving 210 articles. (iii) Fidelity
+                                                                          check. Extracted quotes were verified against the
+                                                                          source PDF by a string-matching script; quotes de-
+tags per band. The full Realism scale, including                          tected as hallucinated or paraphrased were dropped.
+per-band Upper-Band and Lower-Band specifica-                             A manual audit of a uniform 70-quote sample found
+tions for each axis, is reproduced in Appendix A                          zero fidelity errors. The final deployment corpus
+(Figure 5); the Instrumentalism scale mirrors this                        contains 6,858 verified assumption-bearing quotes
+structure.                                                                from 210 articles. The final-annotation stage (§4)
+3.2     Reference Annotations                                             uses the lighter-tier variants within the same three
+                                                                          providers (GPT-5.1 (OpenAI, 2025a), Claude Son-
+One domain expert read 15 articles in Bayesian
+                                                                          net 4.6 (Anthropic, 2026c), and Gemini 3 Pro Pre-
+cognitive science and extracted 251 assumption-
+                                                                          view, the same as in construction) so that the head-
+bearing quotes, passages making an implicit or
+                                                                          line reliability reflects the cheaper, more widely
+explicit claim about Bayesian modeling as an ex-
+                                                                          deployable model within each provider; the heavier
+planation, description, or prediction of a behavioral,
+                                                                          variants in the construction stage were chosen be-
+functional, cognitive, or neural capacity (Table 1).
+                                                                          cause corpus construction is a one-time pass rather
+The same expert annotated each quote with the
+                                                                          than an iterated optimization loop.
+codebook. The 251 quotes were partitioned into a
+fixed 151 / 50 / 50 tuning / development / held-out                       4     Method
+validation split. We call the first partition a tuning
+set because no model parameters are updated; it is                        Figure 1 summarizes the study workflow: a theory-
+used only to evaluate candidate prompts. These la-                        driven codebook and expert-coded reference anno-
+bels are expert-coded reference annotations rather                        tations feed an autoresearch prompt-optimization
+than multi-expert adjudicated ground truth.                               loop (detailed in Figure 3), yielding a final shared
+                                                                          zero-shot prompt that is deployed to three fron-
+                                                                          tier LLMs for annotation and multi-level reliability
+                                                                          analysis.
+                      (a) Earlier prompt (combined = 0.81)             (b) Final accepted prompt (combined = 0.74)
+                                      99%              n = 149                                             n = 20,559
+               100
+                80
+
+% of records
+                60                                                                         52%
+                40
+                                                                                 22%                17%
+                20
+                                                                         7%                                    2%
+                             1%                1%
+                 0
+                     -8      -4      midpt     +4       +8               -8      -4      midpt     +4          +8
+                            Within-band score offset                            Within-band score offset
+ Figure 2: Within-band score-offset distributions pooled across the three raters, restricted to the codebook-allowed
+ positions {−8, −4, 0, +4, +8}. (a) An earlier prompt (combined = 0.81) assigned 99% of records to band midpoints.
+ (b) The final accepted prompt uses all five offset positions, demonstrating real within-band scale use.
+
+
+  4.1           Prompt Development                               4.2    Optimization Metric and Diagnostics
+ Prompt development adapted the autoresearch                     The autoresearch loop requires a scalar optimiza-
+ agent paradigm (Karpathy, 2026): an agent pro-                  tion target, but qualitative coding has no objec-
+ poses modifications, runs experiments, and accepts              tive validation score. We constructed one from
+ only successful changes (Figure 3a). While au-                  our two primary reliability metrics, ICC(2,1) on
+ tomated prompt optimization itself is well estab-               the continuous Realism/Instrumentalism scores and
+ lished (e.g., Pryzant et al., 2023; Khattab et al.,             Krippendorff’s α on the ordinal band labels, com-
+ 2024), our use of an agent-driven loop gated by                 bined via the harmonic mean to penalise edits that
+ both a reliability metric and diagnostic checks fol-            improve one at the expense of the other. Across
+ lows the autoresearch design. We implemented                    21 within-version edit deltas (Appendix D), ICC
+ this in Claude Code (Opus 4.7) (Anthropic, 2026b)               and α moved together on 76% of edits and traded
+ as the optimization agent (not one of the final an-             off on 24% (Pearson r between ∆ICC and ∆α
+ notation raters), and ran more than fifty prompt-               = 0.79), so the two metrics are correlated enough
+ optimization attempts across twelve versioned                   to combine while the trade-off cases justify the
+ rounds. Within a version, prompt changes were                   harmonic-mean penalty. Multi-objective enforce-
+ made only against the tuning split; the selected                ment is handled separately by the diagnostic gates
+ prompt was then evaluated on development (3                     below; Fleiss’ κ on band labels and within-band
+ seeds) and held-out test (2–3 seeds) splits (Fig-               residual ICC (ICC(2,1) on within-band score off-
+ ure 3b; full per-version trajectory in Appendix D).             sets r = s − mb , computed on quotes where rater
+ These repeated rounds constitute internal validation            and reference agree on band b and averaged over
+ under low-label constraints, not a fully external               scales then raters) were also logged as side-effect
+ benchmark.                                                      checks.
+    We intentionally optimized one shared annota-                   The checks were failure-driven rather than pre-
+ tion prompt rather than separate prompts for each               registered. In an earlier version, the held-out com-
+ model, treating the prompt as a common coding                   bined score reached 0.8068 but models showed
+ protocol so agreement reflects convergence under                near-universal midpoint behavior, agreeing by as-
+ shared instructions rather than model-specific tun-             signing most quotes to band midpoints rather than
+ ing. The final prompt is zero-shot and codebook-                using the within-band score (Figure 2). This short-
+ guided; a worked-example variant was tested dur-                cut motivated the development of diagnostic gates
+ ing development but rejected because it failed the              below.
+ acceptance criteria and increased diagnostic viola-
+                                                                 Diagnostic gates. A candidate prompt edit was
+ tions.
+                                                                 accepted only if it passed all four gates, each evalu-
+                                                                 ated against the current best prompt’s value (prior)
+                                                                 on the same tuning split:
+        (a) Autoresearch loop within one version                                 (b) Phase progression and version transition
+
+                               Best current                                                          Phase 1
+                               prompt Pn                                                         tuning iter loop
+                                                                                                    (panel a)
+                                                                   dev gap too large                        best Pn
+                            Agent proposes
+                           modification Pn+1                                                         Phase 2
+                                                                                                  dev validation
+                                                                                                 (n=50, 3 seeds)
+                               Run Pn+1 on                                                                  generalization OK
+                           tuning split (n=151)
+                                                                                                    Phase 3
+                                                                                                  held-out test
+                                                                                                (n=50, 2–3 seeds)                  new chat
+            Validity gates:
+            • ∆ combined_metric > 0                                                                         final report
+            • off_midpoint ≥ prior −0.02                                                           Expert audit
+            • residual_ICC ≥ max(prior −0.02,                                                     inspect sample
+            −0.05)                                                                             classifications, audit
+            • gate_persistent ≤ prior +1                                                       prompt, revise gates
+
+                                              accept (Pn+1 →Pn )                                            revised instructions
+         reject (revert)
+                                  pass?                                                           Version N +1
+                                                                                                (new chat session,
+                                                                                                baselined on N ’s
+                         Exit Phase 1 when:                                                     accepted prompt)
+          soft plateau (3 consecutive rejects), hard plateau
+              (5 iters w/o ∆ combined), or budget cap
+
+
+Figure 3: Autoresearch optimization process. (a) Within-version loop: a prompt edit is accepted only if it improves
+the combined metric and passes all four validity gates. (b) Phase progression: the Phase-1 prompt is validated on
+dev and held-out test, with an expert audit between versions revising the agent’s gates before the next version begins.
+
+
+   • Combined metric: ∆ combined > 0 — the                                 band, and it referenced approximate band frequen-
+     candidate must improve the harmonic-mean                              cies that mirrored the expected corpus distribution.
+     score.                                                                Both biases inflate apparent reliability by making
+   • Off-midpoint: off_midpoint_pct ≥ prior −                              the prompt anticipate the answer, and bias corpus-
+     0.02 — the fraction of continuous scores not                          level findings in the direction the prompt encodes.
+     at the band midpoint may drop at most 2                               We removed both in a deliberate de-leaking step
+     points; explicit guard against the midpoint-                          (the v12 baseline in Table 2, which scored ∼0.04
+     collapse pattern in Figure 2.                                         combined points below its un-de-leaked predeces-
+                                                                           sor); a prompt encoding the expected distribution
+   • Within-band            residual         ICC:                          cannot test the construct, so all headline results are
+     residual_ICC ≥ max(prior − 0.02, −0.05)                               computed under the de-leaked prompt.
+     — within-band continuous agreement may
+     drop at most 2 points from the prior, with an                         Expert oversight. The loop runs autonomously
+     absolute floor at −0.05.                                              within a session, but the broader optimization is
+                                                                           expert-led: between sessions the expert inspected
+   • Persistent        coherence         failures:                         sample classifications, audited the prompt for circu-
+     gate_persistent_fails ≤ prior + 1 —                                   lar cues, and revised the agent’s gates when system-
+     records failing the structural coherence                              atic issues were detected (Figure 3b). Both task-
+     checks (schema, score–band consistency,                               specific gates reported here (midpoint-collapse,
+     allowed tags per band) after auto-correction                          de-leaking) were expert-discovered, because each
+     may increase by at most one across the                                problem inflated rather than degraded the headline
+     151-quote tuning split.                                               metric.
+The gates are one-sided floors that prevent metric-                        4.3         Raters and Deployment
+validity regressions without constraining legitimate
+improvements; other coding tasks would require                             The final deployment used three independent LLM
+different diagnostics.                                                     raters: GPT-5.1, Claude Sonnet 4.6, and Gem-
+   A second class of diagnostic concerns construct                         ini 3 Pro Preview. Each model returned struc-
+validity. Earlier prompt versions leaked the ex-                           tured JSON with band labels, continuous scores,
+pected distributional answer back into the model:                          language-criteria tags, distinguishing-criteria cita-
+the prompt specified Weak Realist as the default                           tions, and a one-sentence justification. A coher-
+ence gate checked schema validity, score–band            Iter.   Variant                Decision          Score
+consistency, label-slot alignment, allowed tags per         1    baseline (de-leaked)   —                 0.768
+band, and bullet-verbatim citation format; records          2    wr_rs_boundary         ACCEPT            0.791
+that failed gate checks after auto-correction were          3    asif_rs                reject            0.789
+flagged for review but not dropped from the anal-           4    mr_entry               reject            0.775
+                                                            5    worked_examples        reject; plateau   0.774
+ysis. We computed ICC(2,1), Krippendorff’s α
+(ordinal), Fleiss’ κ, pairwise band agreement, and
+                                                       Table 2: Final prompt-search ablation (v12) on the tun-
+per-rater article-level random-effects models.         ing split. The single accepted change (bold) clarified
+Reproducibility. The three LLMs were accessed          the Weak-Realist vs. Realism-Sceptical boundary by
+                                                       routing “describing/applying the model” cases to Weak
+via their providers’ commercial batch APIs (Ope-
+                                                       Realist; three subsequent revisions failed to clear the
+nAI, Anthropic, Google) under each provider’s          diagnostic gates and were reverted.
+standard terms of service for research use; parame-
+ter counts are not published by the providers, and
+no local GPU compute was used. Total API us-           dependent. Pairwise exact agreement was 78.4%,
+age across all stages (autoresearch loop, corpus       and 88.4% of pairwise comparisons were either
+construction, and final deployment) was approxi-       exact or within one adjacent band, indicating that
+mately 150 million tokens, run predominantly in        most disagreement is local rather than categorical.
+batch mode. Statistical analyses were implemented      Pairwise rates were similar across model pairs (Ta-
+in Python using statsmodels (mixed-effects mod-        ble 3), suggesting broad convergence under the
+els), scipy (inference), and NumPy/pandas (data        shared prompt.
+handling). Code, codebook, and reference annota-          Reliability is band-dependent: on the dominant
+tions will be released in the project repository.      Weak Realist and Moderately Realist categories
+                                                       (n = 5,911), continuous-score ICC = 0.83 and α =
+5     Results                                          0.78; on the conceptual middle (Realism-Sceptical,
+                                                       Agnostic, Leaning Realist; n = 859) the same
+5.1    Prompt Search and Held-Out Validation
+                                                       statistics drop to 0.14 and 0.16; on the rare extreme
+The final prompt search began from a human-            bands (n = 88) raters agree on the continuous
+developed baseline that already incorporated earlier   score (ICC = 0.94) but split on the band boundary
+codebook and prompt revisions, including a delib-      (α = 0.30). The middle-band weakness reflects
+erate de-leaking step that removed band-frequency      substantive interpretive difficulty: hedged or am-
+claims and default-band cues to avoid circular vali-   biguous passages where the codebook’s promotion
+dation (Section 4.2). Table 2 summarizes the final     triggers are designed to fire but the cue itself is
+ablation: accepted changes were retained; rejected     borderline (§5.4); we read this as the kind of dis-
+changes were reverted before the next attempt.         agreement human coders would also produce on
+   The accepted prompt reached a development-set       the same material, although our single-expert ref-
+combined score of 0.812 (sd = 0.013; tuning–dev        erence annotations do not let us verify that claim
+gap = 0.021, mean of three seeds). On the held-out     (§7). Collapsing the seven bands to a three-tier
+test split (mean of two seeds), it reached 0.763 (sd   scheme (extremes / middle / dominant), all three
+= 0.014), with ICC = 0.79, α = 0.74, and Fleiss’ κ     raters land in the same tier 75.2% of the time and at
+= 0.57. The dev–test gap (0.049) is consistent with    least two of three do 99.8% of the time (PABAK =
+small-sample variance on a 50-quote partition; all     0.75 on the 3-tier collapse). A permutation test that
+diagnostics were satisfied.                            shuffles band labels within each rater (200 reps)
+5.2    Inter-Model Agreement on the                    places the null ICC at 0.000 ± 0.014 and the null α
+       Deployment Corpus                               at 0.000 ± 0.015; the observed values sit more than
+                                                       50 standard deviations above the null. Appendix B
+On the 6,858 quotes annotated by all three LLMs,       reports the full per-band confusion, the 3-tier con-
+multi-rater agreement was substantial: ICC = 0.799     fusion matrix, and the permutation distribution.
+[95% CI: 0.780, 0.818], α = 0.762 [0.736, 0.787],
+Fleiss’ κ = 0.579 [0.559, 0.597], and combined
+score = 0.780. Confidence intervals are article-
+clustered bootstrap estimates (200 resamples), re-
+flecting that quotes within an article are not in-
+                 (a) r = 0.972                               (b) r = 0.967                          (c) r = 0.963
+         40
+                                                     40                                     40
+         30                                          30                                     30
+         20                                          20                                     20
+Claude   10                                 Gemini   10                            Gemini   10
+          0                                           0                                      0
+         10                                          10                                     10
+
+                  0       20           40                    0       20      40                     0      20       40
+                      ChatGPT                                    ChatGPT                                Claude
+Figure 4: Article-level Pearson correlations between rater pairs of per-article random intercepts. Each point is one of
+210 articles; dashed line is identity. Article-level agreement (r = 0.96–0.97) is substantially higher than quote-level
+(α = 0.76): the three LLMs converge on ranking articles even where they disagree on individual quotes.
+
+
+     Pair                  Exact (%)          Within-1 (%)        ration is recovering a genuine article-level signal.
+     GPT-5.1 vs. Claude         78.1                 88.2         The divergence between the 0.76 quote-level α and
+     GPT-5.1 vs. Gemini         78.0                 87.5         the 0.96+ article-level rank stability is itself a find-
+     Claude vs. Gemini          79.0                 89.3         ing: agreement at the grain that matches the down-
+                                                                  stream inference (the article, for corpus-mapping
+Table 3: Pairwise band-agreement percentages. Within-             uses) recovers what a single-grain summary ob-
+1 counts exact or adjacent-band agreement on the 7-band           scures.
+Realism scale.
+                                                                     The corpus was overall weakly realist with an
+                                                                  instrumentalist tilt: Weak Realist covered 67.9%
+ 5.3     Article-Level Reliability and Model                      of quotes and was the modal band for 81.0% of
+         Differences                                              articles; Moderately Realist was second (18.3% of
+At the quote level, the three models were not inter-              quotes, 17.6% of articles). Yet articles were rarely
+changeable: relative to GPT-5.1, Claude scored                    single-stance: only 3 of 210 (1.4%) used a single
+Realism lower by 4.56 points and Gemini by                        band, while 125 (59.5%) spanned four or more, so
+4.14. These are systematic calibration shifts, not                the field is weakly committed in central tendency
+disagreement about which articles are more re-                    but internally heterogeneous within papers.
+alist. The shifts have band-specific signatures:                     The corpus also reveals a structural difference
+Claude over-applies Realism-Sceptical (1.8× cor-                  between subfields: per-article mean Realism scores
+pus mean), Gemini over-applies Strong Realism                     are 8.8 points higher in low-level perception/motor
+(1.8×) and Leaning Realist (1.4×), and GPT-                       articles than in high-level cognition articles (39.2
+5.1 over-uses Agnostic (2.0×), characterising the                 vs. 30.4 on the 0–100 Realism scale; n = 115
+per-model “temperaments” that emerge under the                    vs. n = 95; Welch’s t = 4.38, p < .001; Co-
+shared prompt.                                                    hen’s d = 0.60 on per-article means, d = 0.30
+   To separate calibration from article-level order-              on the underlying quote-level distribution). An
+ing, we fit per-rater mixed-effects models on the                 LMM with rater fixed effect and article random
+Realism score with article as random intercept and                intercept gives an equivalent +8.81-point coeffi-
+extracted each rater’s per-article random intercepts.             cient (95% CI [4.76, 12.86], p < .001); the effect is
+Cross-rater Pearson correlations of these intercept               rater-independent (leave-one-rater-out coefficients
+estimates ranged from 0.963 to 0.972 (Figure 4);                  in [+8.5, +9.0], all p < .001; Appendix C). This
+Spearman ρ from 0.908 to 0.948; Kendall’s τ from                  quantifies a long-held qualitative intuition that low-
+0.752 to 0.814 with bootstrap 95% CIs above 0.70                  level cognition researchers commit more strongly
+for all pairs. An independent crossed-effects model               to mechanistic interpretation of Bayesian models
+(quotes nested in articles, raters crossed) attributes            than high-level cognition researchers, and illus-
+32.0% of total score variance to article and only                 trates how reliable corpus-scale annotation can sup-
+0.9% to rater, confirming that the per-rater sepa-                ply empirical evidence for previously hand-asserted
+claims.                                                   The codebook design pattern that supports this
+                                                       convergence (complementary continuous scales
+5.4    Where the Raters Disagree                       constrained to sum to 100, ordinal bands with
+The 17.4% of quotes where raters span more than        within-band scoring positions, and explicit promo-
+one band typically share recognizable structural       tion triggers making boundary decisions auditable)
+features. Table 4 shows three illustrative cases,      addresses several known pitfalls of operationaliz-
+each representing a distinct disagreement pattern.     ing philosophically complex constructs in one inte-
+   These cases share a common structure: each con-     grated structure; it is a synthesis assembled for one
+tains a cue that the codebook’s promotion triggers     demanding case rather than a universal template.
+are designed to disambiguate, but where the cue           Beyond the methodology, the substantive pic-
+itself is borderline. Pattern 1 splits between MECH-   ture of Bayesian cognitive science illustrates what
+subject promotion and Agnostic neutrality. Pattern     reliable corpus-scale annotation can recover: a
+2 splits between an evaluative-stance reading and a    field weakly committed in central tendency (mostly
+direct MECH+STRONG reading. Pattern 3 splits           Weak Realist), internally heterogeneous within pa-
+on whether the hedged framing counts as AS-IF          pers (67.8% of Realism-score variance within ar-
+(Weak Realist) or as a directional implementation      ticles; 59.5% of articles span four or more bands),
+hint (Leaning Realist). Disagreement is therefore      and structurally divided between subfields (low-
+structured around codebook-anticipated boundaries      level perception and motor articles score 8.8 Real-
+rather than random.                                    ism points higher than high-level cognition articles,
+                                                       p < .001, d = 0.60 on per-article means). Recov-
+6     Discussion                                       ering this long-held but previously hand-asserted
+The paper demonstrates that frontier LLMs can          intuition with quantitative evidence is itself an in-
+support theoretically demanding qualitative cod-       dication that the method served the question. Fu-
+ing when the construct is operationalized through      ture work will adapt the codebook architecture,
+an auditable codebook, validated against expert        the diagnostic-gate design, and the shared-prompt
+reference annotations, and gated by task-specific      multi-rater protocol to other theoretically demand-
+diagnostics that catch failure modes the headline      ing qualitative coding tasks, ideally with multi-
+metric cannot.                                         expert reference annotations to support stronger
+   The diagnostic-aware autoresearch loop deliv-       validity claims.
+ered a deployable prompt at a fraction of manual
+                                                       7   Limitations
+cost, but the two gates that prevented the com-
+bined metric from being gamed (off-midpoint, anti-     The deployment corpus covers a single subdomain
+circularity de-leaking) were both expert-discovered    (Bayesian cognitive science, 210 articles, 6,858
+between sessions, which is why we frame the            quotes spanning 1983–2025), and the codebook
+framework as a tool that extends rather than re-       was developed for this domain. The 210-article
+places expert judgment.                                corpus is a snapshot of the field rather than an ex-
+   The shared-prompt protocol across three             haustive sample (many additional Bayesian cogni-
+providers produced substantial convergence un-         tive science articles exist outside our APA PsycInfo
+der a common codebook while preserving distinct        keyword search), so corpus-level findings describe
+calibration “temperaments” (Claude tilts toward        this snapshot rather than the field as a whole.
+Realism-Sceptical, Gemini toward Strong Realism,          Within each provider, we used a mid-tier rather
+GPT-5.1 toward Agnostic). This convergence is          than top-tier model variant primarily for budget
+most decisive at the article level, where the quote-   reasons (e.g., Claude Sonnet rather than Opus) and
+level α of 0.76 rises to article-level rank correla-   did not systematically compare reliability across
+tions of 0.96–0.97 (Kendall’s τ = 0.75–0.81 on         model sizes within a provider; whether larger vari-
+the same random intercepts), with an independent       ants would shift the headline reliability is an open
+crossed-effects model attributing 32% of total vari-   question.
+ance to article and only 0.9% to rater; reporting         Expert-coded reference annotations are available
+agreement at the grain that matches the downstream     for 251 quotes from one domain expert because ad-
+inference recovers what a single-grain summary ob-     ditional domain experts trained on this codebook
+scures.                                                were not available within the project’s resource and
+Pattern                     Quote                                                             GPT-5.1   Claude     Gemini
+Future-work mechanism      “Future studies are necessary to examine whether and how the       MR (77)   LR (60)   Agn (50)
+                            two counteracting systems are implemented in the brain. . . ”
+Formal object as mental “. . . neurons ‘must represent probability distributions’ and ‘must   MR (85)   RS (36)   MR (81)
+state                    be able’ to implement Bayesian inference.”
+Hedged interpretation      “The success of this Bayesian formalization may be interpreted     WR (23)   LR (64)   WR (15)
+                            as an optimal adaptation of our perceptual system. . . ”
+
+Table 4: Three high-disagreement quotes. WR = Weak Realist, RS = Realism-Sceptical, Agn = Agnostic, LR =
+Leaning Realist, MR = Moderately Realist; parentheticals are within-band scores.
+
+
+timeline constraints. We use the 251 quotes as an in-            of the paper’s methodological contribution rather
+ternal validation set rather than a multi-expert adju-           than an undisclosed authoring tool. We addition-
+dicated benchmark, and we cannot estimate human–                 ally used Claude (Opus 4.7) as a writing assistant
+human reliability from this single-coder pool. As                for drafting and revising the manuscript, and as a
+a complementary content check beyond the met-                    coding assistant for implementing the Python analy-
+ric numbers, the same expert manually audited a                  sis scripts (statsmodels, scipy, NumPy/pandas).
+100-classification sample drawn from the deploy-                 The statistical computations themselves are deter-
+ment corpus for both formal coherence (schema,                   ministic and performed by these standard libraries;
+score–band consistency) and content fidelity (band               all numerical results were verified by the author
+assignment justified by the quote); the audit found              against the raw data, and all scientific claims, anal-
+no systematic departures from the codebook.                      yses, and interpretations are the author’s own.
+   The deployment corpus is itself shaped by LLM-
+assisted quote extraction and topical-relevance vot-
+ing (§3.3); we did not run a rule-based extraction               References
+sensitivity check, a comparison against fine-tuned               Anthropic. 2026a. Claude opus 4.6 system card. Tech-
+classifiers, or chain-of-thought / chain-of-stance                 nical report, Anthropic.
+prompting variants beyond the rejected worked-                   Anthropic. 2026b. Claude opus 4.7 system card. Tech-
+examples diagnostic, and we did not run a pinned                   nical report, Anthropic.
+drift audit across API updates.                                  Anthropic. 2026c. System card: Claude sonnet 4.6.
+   High inter-model agreement may partly reflect                   Technical report, Anthropic.
+shared training-data biases rather than fully inde-
+                                                                 Taylor Berg-Kirkpatrick, David Burkett, and Dan Klein.
+pendent evidence; the three models are not three                   2012. An empirical investigation of statistical sig-
+independent expert coders. We mitigate this by                     nificance in NLP. In Proceedings of the 2012 Joint
+requiring the codebook to drive the classification,                Conference on Empirical Methods in Natural Lan-
+reporting model-specific calibration shifts, and re-               guage Processing and Computational Natural Lan-
+                                                                   guage Learning (EMNLP-CoNLL), pages 995–1005,
+porting agreement at multiple grain sizes, but the                 Jeju Island, Korea.
+concern cannot be fully resolved without external
+human comparison. The methodology gate flagged                   Jeffrey S. Bowers and Colin J. Davis. 2012. Bayesian
+                                                                    just-so stories in psychology and neuroscience. Psy-
+but retained 1,292 records (6.3% of classifications)                chological Bulletin, 138(3):389–414.
+on a flag-don’t-drop principle; metric sensitivity
+to this choice was small (<0.01 in headline re-                  Michael Burnham. 2025. Stance detection: A practical
+                                                                   guide to classifying political beliefs in text. Political
+liability). The codebook and diagnostic-gate de-                   Science Research and Methods, 13(3):611–628.
+sign could be adapted to detect stance on contested
+non-science topics (e.g., political ideology), where             Arnaldo Camuffo, Alfonso Gambardella, Saeid Kazemi,
+                                                                   Jakub Malachowski, and Abhinav Pandey. 2026.
+automated stance classification at scale raises gov-               Variance-aware LLM annotation for strategy re-
+ernance concerns that the present technical scope                  search: Sources, diagnostics, and a protocol for reli-
+does not address.                                                  able measurement. arXiv preprint arXiv:2601.02370.
+
+Use of AI assistants. The autoresearch prompt-                   Robert Chew, John Bollenbacher, Michael Wenger, Jes-
+                                                                   sica Speer, and Annice Kim. 2023. LLM-assisted
+optimization agent (§4) was implemented in                         content analysis: Using large language models to sup-
+Claude Code using Claude Opus 4.7; this is part                    port deductive coding. Preprint, arXiv:2306.14924.
+David Danks. 2008. Rational analyses, instrumental-         Philipp Koehn. 2004. Statistical significance tests for
+  ism, and implementations. In Nick Chater and Mike           machine translation evaluation. In Proceedings of
+  Oaksford, editors, The Probabilistic Mind: Prospects        the 2004 Conference on Empirical Methods in Natu-
+  for Bayesian Cognitive Science, pages 59–75. Oxford         ral Language Processing (EMNLP), pages 388–395,
+  University Press, Oxford.                                   Barcelona, Spain.
+Rotem Dror, Gili Baumer, Segev Shlomov, and Roi             Klaus Krippendorff. 2011. Computing Krippendorff’s
+  Reichart. 2018. The Hitchhiker’s guide to testing           alpha-reliability. Technical report, University of
+  statistical significance in natural language process-       Pennsylvania, Annenberg School for Communica-
+  ing. In Proceedings of the 56th Annual Meeting of           tion.
+  the Association for Computational Linguistics (ACL),
+  pages 1383–1392, Melbourne, Australia.                    Ross Deans Kristensen-McLachlan, Miceal Canavan,
+                                                              Marton Kardos, Mia Jacobsen, and Lene Aarøe. 2025.
+Zackary Okun Dunivin. 2024. Scalable qualitative              Are chatbots reliable text annotators? sometimes.
+  coding with LLMs: Chain-of-thought reasoning                PNAS Nexus, 4(4):pgaf069.
+  matches human performance in some hermeneutic
+  tasks. Preprint, arXiv:2401.15170.                        Hauke Licht, Rupak Sarkar, Patrick Y. Wu, Pranav Goel,
+                                                              Niklas Stoehr, Elliott Ash, and Alexander Miserlis
+Zackary Okun Dunivin. 2025. Scaling hermeneutics: A           Hoyle. 2025. Measuring scalar constructs in social
+  guide to qualitative coding with LLMs for reflexive         science with LLMs. In Proceedings of the 2025 Con-
+  content analysis. EPJ Data Science, 14(1):28.               ference on Empirical Methods in Natural Language
+                                                              Processing.
+Jie Gao, Yuchen Guo, Gionnieve Lim, Tianqin Zhang,
+   Zheng Zhang, Toby Jia-Jun Li, and Simon Tangi Per-       Han Meng, Yitian Yang, Wayne Fu, Jungup Lee, Yunan
+   rault. 2024. CollabCoder: A lower-barrier, rigorous        Li, and Yi-Chieh Lee. 2024. Exploring the human-
+   workflow for inductive collaborative qualitative anal-     LLM synergy in advancing theory-driven qualitative
+   ysis with large language models. In Proceedings            analysis. Preprint, arXiv:2405.05758.
+   of the 2024 CHI Conference on Human Factors in
+   Computing Systems.                                       OpenAI. 2025a. GPT-5.1 instant and GPT-5.1 thinking
+                                                              system card addendum. Technical report, OpenAI.
+Fabrizio Gilardi, Meysam Alizadeh, and Maël Kubli.
+  2023. ChatGPT outperforms crowd workers for               OpenAI. 2025b. Update to GPT-5 system card: GPT-
+  text-annotation tasks. Proceedings of the National          5.2. Technical report, OpenAI.
+  Academy of Sciences, 120(30):e2305016120.
+                                                            Reid Pryzant, Dan Iter, Jerry Li, Yin Tat Lee, Chen-
+Google DeepMind. 2025. Frontier safety framework              guang Zhu, and Michael Zeng. 2023. Automatic
+  report: Gemini 3 Pro. Technical report, Google Deep-        prompt optimization with “gradient descent” and
+  Mind. Version 2.                                            beam search. In Proceedings of the 2023 Confer-
+                                                              ence on Empirical Methods in Natural Language
+Thomas L. Griffiths, Edward Vul, and Adam N. Sanborn.         Processing.
+  2012. Bridging levels of analysis for probabilistic
+  models of cognition. Current Directions in Psycho-        Michael Rescorla. 2023. Neural implementation of (ap-
+  logical Science, 21(4):263–268.                             proximate) Bayesian inference. In Tony Cheng, Ry-
+                                                              oji Sato, and Jakob Hohwy, editors, Expected Experi-
+Jonathan Ivey, Susan Gauch, and David Jurgens. 2025.          ences: The Predictive Mind in an Uncertain World,
+  NUTMEG: Separating signal from noise in annotator           pages 197–239. Routledge, London.
+  disagreement. In Proceedings of the 2025 Confer-
+  ence on Empirical Methods in Natural Language Pro-        Michael Rescorla. 2025. Bayesian Models of the Mind.
+  cessing (EMNLP), pages 2874–2887, Suzhou, China.            Cambridge University Press, Cambridge.
+
+Matt Jones and Bradley C. Love. 2011. Bayesian fun-         Patrick E. Shrout and Joseph L. Fleiss. 1979. Intra-
+ damentalism or enlightenment? on the explanatory             class correlations: Uses in assessing rater reliability.
+ status and theoretical contributions of bayesian mod-        Psychological Bulletin, 86(2):420–428.
+ els of cognition. Behavioral and Brain Sciences,
+ 34(4):169–188.                                             Arno Simons, Michael Zichert, and Adrian Wüthrich.
+                                                              2026. Large language models for history, philos-
+Andrej Karpathy. 2026. autoresearch. https://                 ophy, and sociology of science: Interpretive uses,
+  github.com/karpathy/autoresearch.                           methodological challenges, and critical perspectives.
+                                                              Studies in History and Philosophy of Science Part A,
+Omar Khattab, Arnav Singhvi, Paridhi Maheshwari,              117:102151.
+ Zhiyuan Zhang, Keshav Santhanam, Saiful Haq,
+ Ashutosh Sharma, Thomas T. Joshi, Hanna Moazam,            Nga Than, Leanne Fan, Tina Law, Laura K. Nelson,
+ Heather Miller, Matei Zaharia, and Christopher Potts.        and Leslie McCall. 2025. Updating “the future of
+ 2024. DSPy: Compiling declarative language model             coding”: Qualitative coding with generative large
+ calls into state-of-the-art pipelines. In International      language models. Sociological Methods & Research,
+ Conference on Learning Representations.                      54(3):849–888.
+Petter Törnberg. 2024. Large language models out-
+  perform expert coders and supervised classifiers at
+  annotating political social media messages. Social
+  Science Computer Review. First published online
+  September 22, 2024.
+Danielle Williams and Zoe Drayson. 2023. Realism and
+  instrumentalism in Bayesian cognitive science. In
+  Tony Cheng, Ryoji Sato, and Jakob Hohwy, editors,
+  Expected Experiences: The Predictive Mind in an
+  Uncertain World. Routledge, London.
+Caleb Ziems, William Held, Omar Shaikh, Jiaao Chen,
+  Zhehao Zhang, and Diyi Yang. 2024. Can large lan-
+  guage models transform computational social sci-
+  ence? Computational Linguistics, 50(1):237–291.
+A     Codebook and Annotation Prompts                  A.2   Codebook: Realism Scale
+This appendix shows the codebook architecture          Figure 5 reproduces the Realism scale of the code-
+(Sec. A.1) with the full Realism scale reproduced      book, defining all seven Realism bands. Each band
+in Figure 5 (Sec. A.2), the per-quote user-prompt      specifies a numeric scoring range, a Conceptual
+template (Sec. A.3), and the procedural component      Definition, Distinguishing Criteria bullets, and four
+of the system prompt (Sec. A.4). The codebook          Language Criteria specifications (Subject, Claim
+component of the system prompt comprises seven         Target, Modality, Evidence Link) with Upper-Band
+Realism bands and seven complementary Instru-          and Lower-Band specifications used during the cue-
+mentalism bands; Figure 5 shows the Realism scale,     audit scoring step (Section 4). The complementary
+with the Instrumentalism scale mirroring the same      Instrumentalism scale mirrors this structure: each
+structure (full codebook in the project repository).   Realism band is paired with an Instrumentalism
+The 251 reference annotations, the full deployment     band whose midpoint sums to 100, with the same
+classifications, and the analysis code will be re-     four-axis Language Criteria specification per band.
+leased at the project repository upon acceptance.      The full codebook (both scales) is available in the
+                                                       project repository.
+A.1    Codebook Architecture
+                                                       A.3   Per-Quote User Prompt Template
+The codebook is organized as two complementary
+ordinal scales, Realism and Instrumentalism. Each      For each quote, the user-prompt wrapper around
+scale has seven bands with explicit numeric ranges:    the quote text was as follows. The OpenAI (GPT-
+                                                       5.1) and Anthropic (Claude Sonnet 4.6) rater paths
+       Realism band         Range    Midpoint          used the standard template; the Gemini (Gemini
+       Anti-Realist           0–10      5              3 Pro Preview) path used a variant that asks the
+       Weak Realist          11–27     19
+       Realism-Sceptical     28–44     36              model to echo the quote_id in its JSON output, be-
+       Agnostic              45–55     50              cause Gemini’s batch API stopped echoing request-
+       Leaning Realist      56–72      64              metadata in responses during the deployment win-
+       Moderately Realist   73–89      81
+       Strong Realism       90–100     95              dow.
+
+   Each Realism band has a complementary Instru-       Standard template (OpenAI, Anthropic):
+mentalism band whose midpoint sums to 100 (e.g.,
+                                                        Quote ID: {quote_id}
+Moderately Realist (81) pairs with Weak Instru-
+mentalist (19)). Within each band, raters choose        Classify the following quote:
+one of five score positions: midpoint, midpoint ±4,     "{quote}"
+or midpoint ±8.
+   Each band is specified along four classifi-
+                                                       Gemini template:
+cation axes: Subject (canonical tags: MODEL,
+AGENT, MECH, MIXED); Claim Target (FUNC, BEH,           Quote ID: {quote_id}
+MAP, MECH); Modality (NEUTRAL, HEDGED, STRONG,
+                                                        REQUIRED: your JSON response MUST include the
+AS-IF); and Evidence Link (NONE, INFERRED,              ,→  field
+CONC, DIRECT). Bands provide separate Upper-            "quote_id": {quote_id} (any position in the
+                                                        ,→ JSON object is
+Band and Lower-Band tag specifications for each
+                                                        fine, but it must be present).
+axis, used during cue-audit scoring (Section 4).
+   Five Realism bands are reached by promo-             Classify the following quote:
+tion triggers, explicit rule patterns that fire when    "{quote}"
+a recognizable cue is present. For example,
+Realism-Sceptical requires one of three triggers:       Reminder before you respond: include
+                                                        ,→  "quote_id": {quote_id}
+a mapping claim without mechanism, a Bayesian           in your JSON output, this is how we link the
+account framed as an alternative to a posited           ,→  response back
+                                                        to the right quote.
+mechanism, or a Bayesian formal object directly
+equated with an agent’s mental state. Promo-
+tion triggers are checked first; if none fires, the    A.4 Procedural Component of System Prompt
+band is read off a band matrix using the quote’s       The system prompt sent to each LLM was the con-
+Subject/Target/Modality/Evidence-Link profile.         catenation of (i) the procedural component shown
+Figure 5: The seven-band Realism scale of the codebook. Columns: the four classification axes (Subject, Claim
+Target, Modality, Evidence Link) plus Distinguishing Criteria. Rows: the seven Realism bands. Each cell gives
+Upper-Band and Lower-Band specifications used during cue-audit scoring. The complementary Instrumentalism
+scale (not shown) mirrors this structure; the two scores per quote sum to 100. Full codebook in the project repository.
+
+
+below (the contents of task.md) and (ii) the code-
+                                                                ## The four classification axes
+book component (the contents of codebook.md;
+                                                                 S = Subject, T = Claim Target, M = Modality, L = Evidence
+Realism scale shown in Figure 5).                               ,→   Link, and
+                                                                 their canonical tags are defined in codebook.md (Language
+ ## Task                                                        ,→ Criteria).
+
+ You classify quotes about Bayesian cognitive science along     ## Band-selection logic
+,→   two scales:
+ Realism and Instrumentalism. For each scale, pick one of       ### Band triggers (apply first)
+,→ seven ordinal                                                [Six promotion triggers, one per band reached by trigger:
+ bands and assign a continuous score within the band's range.     Realism-Sceptical (Triggers A/B/C), Leaning Realist,
+,→ Use only the                                                  ,→ Moderately Realist,
+ codebook's Conceptual Definitions, Distinguishing Criteria,      Strong Realism, Anti-Realist, Agnostic.]
+,→ and Language
+ Criteria. Do not introduce categories the codebook does not     ### Band matrix (apply after the promotion-trigger check)
+,→ define.                                                       [10-row matrix mapping Subject x Target x Modality patterns
+                                                                ,→ to candidate
+ The two scores must sum to 100. Each score must lie inside       Realism bands.]
+,→   its band's
+ numeric range.                                                  ### Boundary-case rules
+                                                                 - Behavioral match is not a mechanistic claim.
+ The codebook (codebook.md) is the authoritative spec for        - Climb to Leaning Realist or higher only when the quote
+,→   axis tags,                                                 ,→ says something
+ per-band Language Criteria, and Distinguishing Criteria.          about what is happening inside the brain/mind.
+,→ This file                                                     - Realism-Sceptical requires Trigger A, B, or C.
+ (task.md) covers only the procedure: band selection,            - Describing or applying the model is Weak Realist, not R-S.
+,→ scoring, pairing,
+                                                                 - Moderately Realist requires MECH subject + a direct
+ and output format.                                             ,→ internal-state
+                                                                   assertion.
+ ## Scales and bands                                             - Anti-Realist requires an explicit disclaimer.
+
+ [7-row table of Realism bands paired with complementary        ## Per-band scoring rubric
+,→   Instrumentalism
+  bands; reproduced in Appendix A.1.]                            For the assigned band, mark each of the four axes (S/T/M/L)
+                                                                ,→   as
+ Pairing. The two scales are complementary: pick the Realism     Lower-leaning, Upper-leaning, Neutral, or Conflicting using
+,→   band from                                                  ,→ the band's
+ the quote's cues, then take its paired Instrumentalism band     Language Criteria. Apply a count rule that maps {Upper count,
+,→ from the                                                     ,→ Lower
+ table above.
+ count} to {midpoint, midpoint +/- 4, midpoint +/- 8}, capped   dominant practical positions (Weak Realist, Mod-
+,→   at the
+ band's numeric range.                                          erately Realist), the three middle uncertainty bands
+ ## Classification procedure
+                                                                (Realism-Sceptical, Agnostic, Leaning Realist),
+                                                                and the two polar extremes (Anti-Realist, Strong
+ 1. Pick the Realism band using triggers + band matrix +
+,→   boundary rules.                                            Realism). Restricting to quotes whose fused (rater-
+ 2. Score the Realism band using the cue audit (count rule
+,→ above).                                                      median) band falls in each group:
+ 3. Pick the Instrumentalism band as the complementary pair.
+ 4. Consistency check: realism_score + instrumentalism_score     Group                         n     ICC         α      κ
+,→ == 100;
+    nudges mirror across scales.                                 Dominant (WR, MR)      5,911       0.833    0.780   0.634
+ ## Output discipline                                            Middle (RS, Ag, LR)      859       0.143    0.158   0.121
+                                                                 Extremes (AR, SR)         88       0.938    0.295   0.041
+ The response must be a single JSON object with exactly
+,→   eleven keys, in                                               The dominant group’s strong reliability and the
+ fixed order, with no prose before { or after }:
+                                                                middle group’s weakness are both substantive find-
+ {
+      "input_quote": "",                                        ings: the codebook resolves typical practical posi-
+      "predicted_realism_band_label": "Weak Realist",
+      "predicted_instrumentalism_band_label": "Moderately
+                                                                tions cleanly but does not fully separate the three
+     ,→ Instrumentalist",                                       middle uncertainty bands. The extreme group’s
+      "predicted_realism_d_c": "<verbatim Distinguishing
+     ,→ Criteria bullet>",                                      split pattern (high score ICC, low band κ) reflects
+      "predicted_instrumentalism_d_c": "<verbatim
+     ,→ Distinguishing Criteria bullet>",                       raters agreeing on the continuous extremity of the
+      "predicted_realism_lc_code": "S: <tag>\nT: <tag>\nM:
+     ,→ <tag>\nL: <tag>",
+                                                                position while disagreeing on which side of the
+      "predicted_instrumentalism_lc_code": "S: <tag>\nT:        band boundary it sits, which is a continuous-vs-
+     ,→ <tag>\nM: <tag>\nL: <tag>",
+      "predicted_realism_score": 23,                            categorical artifact rather than a substantive dis-
+      "predicted_instrumentalism_score": 77,
+      "general_justification": "One short sentence tying the    agreement and justifies our use of ICC on the con-
+     ,→ quote to the band.",
+      "consistency_check": "TRUE"
+                                                                tinuous scores as the primary reliability metric.
+ }
+                                                                Three-tier collapse. Collapsing the seven bands
+ Field rules (full constraints in the repository version of
+,→ task.md):                                                    to three super-bands (extremes / middle / domi-
+ - input_quote: empty string; the harness fills it in.
+ - band labels: exactly one of the seven labels for the
+                                                                nant), all three raters land in the same super-band
+,→ relevant scale.                                              on 75.2% of quotes; at least two of three agree on
+ - d_c: a character-for-character copy of one bullet from the
+,→ assigned                                                     99.8%. On this 3-band collapse, Krippendorff’s α
+   band's Distinguishing Criteria list.
+ - lc_code: four lines, one canonical tag per axis with a       = 0.346, Fleiss’ κ = 0.353, and PABAK = 0.751.
+,→ brief cue.
+ - scores: must lie inside band range and equal {midpoint,
+                                                                The gap between κ = 0.35 and PABAK = 0.75 re-
+,→ +/-4, +/-8};                                                 flects the heavy prevalence of “dominant” (86% of
+   sum to exactly 100.
+ - general_justification: one sentence <= 25 words.             quotes), which inflates the chance-agreement term
+ - consistency_check: "TRUE" or "FALSE".
+                                                                in κ but is corrected by PABAK.
+ Total output should fit under 500 tokens.                         The aggregate 3×3 super-band confusion matrix
+                                                                (rater pair counts, summed across the three pairs)
+The verbatim version of task.md (with full tables               localises the disagreement to the middle-dominant
+for the band-pairing scale, the promotion triggers,             boundary:
+and the band matrix, and full field-rule text) is in                                   extr.       mid.      dom.
+the project repository.
+                                                                          extremes     256            43       491
+                                                                          middle        43         2,368     2,885
+B    Reliability Robustness Checks                                        dominant     491         2,885    31,686
+This appendix reports additional diagnostics that                  The dominant cell shows where raters agree
+evaluate the headline reliability in §5.2 against               (31,686 pair-agreements on “dominant”). The
+known confounds: band-frequency stratification,                 largest off-diagonal cell is middle↔dominant
+prevalence inflation, boundary-band disagreement                (2,885 pair disagreements): when a quote is in the
+structure, and chance baselines. All numbers are                middle uncertainty zone for any rater, another rater
+computed on the full 6,858-quote deployment cor-                frequently reads it as dominant practical position.
+pus annotated by all three raters.
+                                                                Per-band misclassification distance. Mean
+Stratification by conceptual band group. The                    |∆band| per band (averaged across the three rater
+seven bands have a natural conceptual grouping                  pairs) shows where on the 7-band scale disagree-
+on the underlying Realism dimension: the two                    ment concentrates:
+    Band                 n assignments      mean |∆b|     text (0.60) is the same difference standardised by
+    Anti-Realist                    112            1.00   the between-article SD.
+    Weak Realist                 27,472            0.25
+    Realism-Sceptical             1,730            0.93   Cluster bootstrap. We resampled articles with
+    Agnostic                      1,048            1.50   replacement (2,000 reps) and within each sampled
+    Leaning Realist               2,518            1.21   article resampled its quote-rater rows with replace-
+    Moderately Realist            7,590            0.59
+    Strong Realism                  678            0.82   ment. The cluster-bootstrap mean of ∆M is +8.44
+                                                          with 95% percentile CI [4.21, 12.60].
+  Weak Realist is the most reliable band (mean
+band-distance 0.25); Agnostic and Leaning Realist         Leave-one-rater-out. Refitting the LMM with
+are the least reliable (1.50 and 1.21), consistent        each rater dropped in turn:
+with the stratified analysis above.                                 Dropped      coef   95% CI
+Permutation null. We permuted band labels                           GPT-5.1    +9.05    [4.88, 13.22]
+within each rater 200 times and recomputed re-                      Claude     +8.46    [4.38, 12.53]
+                                                                    Gemini     +8.91    [4.95, 12.87]
+liability metrics, holding marginal distributions
+fixed. The null mean ICC was +0.000 with                    All three p-values are < 10−4 . The effect is
+95% bounds [−0.014, +0.013]; null α was −0.000            consistent across specifications and is not driven
+with [−0.015, +0.014]; null κ was −0.002 with             by any single rater.
+[−0.011, +0.006]. The observed values (ICC =
+0.799, α = 0.762, κ = 0.579) sit more than 50 stan-       D   Autoresearch Loop Trajectory
+dard deviations above the null distribution, ruling       Figure 6 plots the held-out test trajectory of the
+out chance.                                               autoresearch loop across the twelve versions that
+                                                          preceded the final accepted prompt. Panel (a)
+C    Subfield-Finding Robustness
+                                                          shows the combined metric; panel (b) shows the off-
+This appendix reports the alternative specifications      midpoint percentage (mean across raters), which
+used to verify the +8.8-point low-level vs. high-         was first measured at v8 and operationalised as a
+level Realism difference reported in §5.3. All tests      metric-validity gate at v9.
+were run on the full 6,858-quote × 3-rater deploy-           Two methodologically important transitions are
+ment data restricted to articles whose High/Low           visible. v5 (combined = 0.81) achieved its high
+field is Low-Level (115 articles, 3,706 quote-rater       agreement through near-universal midpoint scor-
+rows per rater) or High-Level (95 articles, 3,152         ing (98% of continuous scores at the assigned
+rows per rater).                                          band’s midpoint), the construct-validity artifact
+                                                          shown in Figure 2. v9 introduced the three metric-
+Linear mixed model. With rater as fixed effect
+                                                          validity gates (residual ICC, off-midpoint percent-
+and article as random intercept (realism_score ∼
+                                                          age, calibration) described in §4.2; combined
+high_low + rater + (1 | article_id)), the Low-
+                                                          dropped because the loop began penalising mid-
+Level vs. High-Level coefficient is +8.81 (SE =
+                                                          point pinning, but off-midpoint percentage rose
+2.07, 95% CI [4.76, 12.86], p = 2.0×10−5 ). Rater
+                                                          from ∼10% to 56%. v12 applied the de-leak step
+fixed effects relative to GPT-5.1 are −4.56 (Claude,
+                                                          (removed the “default = Weak Realist” instruction
+p < 10−22 ) and −4.14 (Gemini, p < 10−22 ); the
+                                                          and the band-frequency priors) and accepted the
+article-level random-effect variance is 216.5.
+                                                          wr_rs_boundary edit, yielding the final test com-
+Per-rater Welch’s t. Run separately per rater on          bined = 0.763 with off-midpoint = 53.7%.
+the quote-level scores:                                      Three model-tier changes are not visible in the
+                                                          figure but affect interpretation. v1 used a mid-tier
+    Rater       ∆M           t      d     95% CI
+                                                          lineup (GPT-5.1 + Claude Haiku + Gemini 3 Flash);
+    GPT-5.1    +7.95     12.39   0.30     [6.69, 9.21]    v3 and later use the frontier lineup reported in §4
+    Claude     +9.06     14.97   0.36     [7.87, 10.24]
+    Gemini     +8.13     12.06   0.29     [6.81, 9.45]    (Claude Sonnet 4.6, GPT-5.1, Gemini 3.0 Pro). v11
+                                                          upgraded Gemini to 3.1 Pro Preview. v4 has no
+   All three p-values are < 10−32 . The quote-level       held-out test row and is omitted; its prompt was
+d is the small-to-medium effect that absorbs within-      validated via the v5 baseline run.
+article noise; the per-article d reported in the main
+                                    (a) Combined metric (held-out test)                                                                 (b) Off-midpoint percentage
+                           0.95            midpoint-collapsed (98%                                                                                     first gate-pass
+                                                                                                                                                       (v9: 56%)
+
+
+
+
+                                                                                           % scores off band midpoint
+                                           of scores at band midpoint)                                                  80
+
+
+
+
+test-set combined metric
+                           0.90
+                                                                                de-leak;                                60
+                           0.85                                          final accepted
+
+                           0.80
+                                                                                                                        40   midpoint collapse
+                                                                                                                             (v1--v7: 0--3% off-mid)
+                           0.75
+                                                                                                                        20
+                           0.70                             gates added
+                           0.65                                                                                          0
+                                  v1 v3 v5 v6 v7 v8 v9 v10 v11 v12                                                           v1 v3 v5 v6 v7 v8 v9 v10 v11 v12
+                                           autoresearch version                                                                              autoresearch version
+    Figure 6: Autoresearch loop trajectory across twelve versions. (a) Held-out test combined metric per version (best
+    accepted prompt; v9–v12 are 2–3-seed means). The headline figure declines from v5 (0.81, midpoint-collapsed) to
+    v12 (0.76, methodologically honest); the dotted red line marks the v5 peak. (b) Off-midpoint percentage, fraction of
+    continuous scores not equal to the assigned band’s midpoint, averaged across the three raters; computed directly
+    from each version’s held-out classifications. All pre-v8 prompts cluster near 0–3%, v8’s mandatory cue audit lifted
+    this to 10%, and v9 onward operationalise off-midpoint as a validity gate. v1 used a mid-tier model lineup; v3
+    onward use the frontier lineup reported in §4.
+

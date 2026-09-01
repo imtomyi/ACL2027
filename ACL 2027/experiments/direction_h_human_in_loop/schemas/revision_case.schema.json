@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-revision-case-v1.json",
+  "title": "Direction H frozen revision case",
+  "description": "Coordinator record for one active self-revision arm. Only model_input is presented to the revision model; it excludes item truth, condition labels, ratings, confidence, review time, and rater identity.",
+  "type": "object",
+  "required": [
+    "revision_case_version",
+    "revision_case_id",
+    "paired_case_group_id",
+    "repeat_index",
+    "task_id",
+    "packet_id",
+    "output_id",
+    "freeze_id",
+    "feedback_arm",
+    "feedback_record_id",
+    "model_input",
+    "model_input_sha256",
+    "allocation_record_sha256",
+    "contains_target_truth",
+    "contains_rater_identity",
+    "created_at_utc"
+  ],
+  "properties": {
+    "revision_case_version": {"const": "direction-h-revision-case-v1"},
+    "revision_case_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "paired_case_group_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "repeat_index": {"type": "integer", "minimum": 1},
+    "task_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "packet_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "output_id": {
+      "description": "Identifier of the unchanged starting output, shared across both paired arms.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "freeze_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "feedback_arm": {
+      "enum": [
+        "no_feedback",
+        "charlie_feedback",
+        "independent_human_feedback"
+      ]
+    },
+    "feedback_record_id": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "model_input": {"$ref": "#/$defs/modelInput"},
+    "model_input_sha256": {"$ref": "#/$defs/sha256"},
+    "allocation_record_sha256": {"$ref": "#/$defs/sha256"},
+    "contains_target_truth": {"const": false},
+    "contains_rater_identity": {"const": false},
+    "created_at_utc": {"type": "string", "format": "date-time"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"feedback_arm": {"const": "no_feedback"}},
+        "required": ["feedback_arm"]
+      },
+      "then": {
+        "properties": {
+          "feedback_record_id": {"type": "null"},
+          "model_input": {
+            "properties": {"reviewer_feedback": {"type": "null"}}
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "feedback_record_id": {"type": "string", "minLength": 1},
+          "model_input": {
+            "properties": {
+              "reviewer_feedback": {
+                "$ref": "https://warrantroute.local/schemas/direction-h-feedback-record-v1.json#/$defs/modelFeedback"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "modelInput": {
+      "type": "object",
+      "required": [
+        "input_version",
+        "blinded_case_id",
+        "analytic_contract_version",
+        "evidence_packet",
+        "original_output",
+        "reviewer_feedback"
+      ],
+      "properties": {
+        "input_version": {"const": "direction-h-revision-input-v1"},
+        "blinded_case_id": {"type": "string", "minLength": 1, "maxLength": 160},
+        "analytic_contract_version": {"const": "qc-analytic-contract-v1"},
+        "evidence_packet": {
+          "$ref": "https://warrantroute.local/schemas/direction-h-pilot-item-v1.json#/$defs/evidencePacket"
+        },
+        "original_output": {
+          "$ref": "https://warrantroute.local/schemas/qualitative-output-v1.json"
+        },
+        "reviewer_feedback": {
+          "oneOf": [
+            {
+              "$ref": "https://warrantroute.local/schemas/direction-h-feedback-record-v1.json#/$defs/modelFeedback"
+            },
+            {"type": "null"}
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

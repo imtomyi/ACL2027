@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-direction-j-browser-comprehension-record-v1.json",
+  "title": "Coordinator-scored Charlie comprehension record for the browser queue",
+  "type": "object",
+  "required": [
+    "record_version",
+    "record_status",
+    "actor_id",
+    "tutorial_version",
+    "tutorial_packet_sha256",
+    "response_received_at_utc",
+    "scored_at_utc",
+    "scored_by_actor_id",
+    "scorer_is_charlie",
+    "attempts",
+    "final_status"
+  ],
+  "properties": {
+    "record_version": {"const": "direction-h-direction-j-browser-comprehension-record-v1"},
+    "record_status": {"enum": ["template_incomplete", "scored"]},
+    "actor_id": {"const": "charlie"},
+    "tutorial_version": {"const": "direction-h-direction-j-browser-tutorial-v1"},
+    "tutorial_packet_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "response_received_at_utc": {"type": ["string", "null"], "format": "date-time"},
+    "scored_at_utc": {"type": ["string", "null"], "format": "date-time"},
+    "scored_by_actor_id": {"type": ["string", "null"], "minLength": 1, "maxLength": 160, "not": {"const": "charlie"}},
+    "scorer_is_charlie": {"type": ["boolean", "null"]},
+    "attempts": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["attempt", "responses", "correct_count", "required_correct", "passed", "remediation_completed"],
+        "properties": {
+          "attempt": {"type": "integer", "minimum": 1, "maximum": 2},
+          "responses": {
+            "type": "object",
+            "required": ["TQ1", "TQ2"],
+            "properties": {
+              "TQ1": {"enum": ["A", "B", "C"]},
+              "TQ2": {"enum": ["A", "B", "C"]}
+            },
+            "additionalProperties": false
+          },
+          "correct_count": {"type": "integer", "minimum": 0, "maximum": 2},
+          "required_correct": {"const": 2},
+          "passed": {"type": "boolean"},
+          "remediation_completed": {"type": "boolean"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "final_status": {
+      "type": ["string", "null"],
+      "enum": ["passed", "passed_after_retraining", "failed", null]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"record_status": {"const": "scored"}}, "required": ["record_status"]},
+      "then": {
+        "properties": {
+          "tutorial_packet_sha256": {"type": "string"},
+          "response_received_at_utc": {"type": "string"},
+          "scored_at_utc": {"type": "string"},
+          "scored_by_actor_id": {"type": "string", "not": {"const": "charlie"}},
+          "scorer_is_charlie": {"const": false},
+          "attempts": {"minItems": 1},
+          "final_status": {"enum": ["passed", "passed_after_retraining", "failed"]}
+        }
+      },
+      "else": {
+        "properties": {
+          "tutorial_packet_sha256": {"type": "null"},
+          "response_received_at_utc": {"type": "null"},
+          "scored_at_utc": {"type": "null"},
+          "scored_by_actor_id": {"type": "null"},
+          "scorer_is_charlie": {"type": "null"},
+          "attempts": {"maxItems": 0},
+          "final_status": {"type": "null"}
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

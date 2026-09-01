@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-repair-assessment-v1.json",
+  "title": "Direction H blinded repair assessment",
+  "description": "Independent component-level judgment of a blind revision. This record intentionally omits feedback arm, feedback author, revision-model identity, and planted-condition label.",
+  "type": "object",
+  "required": [
+    "repair_assessment_version",
+    "assessment_id",
+    "assessment_stage",
+    "rater_id",
+    "evaluator_group",
+    "evaluation_role",
+    "task_id",
+    "packet_id",
+    "starting_output_id",
+    "blinded_revision_id",
+    "target_assessment_reference_id",
+    "assessed_at_utc",
+    "target_defect_repaired",
+    "accurate_relevant_material_preserved",
+    "collateral_error_present",
+    "successful_repair_without_collateral_error",
+    "cannot_judge",
+    "collateral_error_flags",
+    "collateral_findings",
+    "confidence",
+    "disposition",
+    "review_seconds",
+    "rationale"
+  ],
+  "properties": {
+    "repair_assessment_version": {"const": "direction-h-repair-assessment-v1"},
+    "assessment_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "assessment_stage": {"enum": ["independent_initial", "adjudicated"]},
+    "rater_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "evaluator_group": {
+      "enum": [
+        "researcher",
+        "qualitative_methods_expert",
+        "domain_expert",
+        "dual_expertise"
+      ]
+    },
+    "evaluation_role": {
+      "enum": ["development", "in_domain_audit", "cross_domain_confirmatory"]
+    },
+    "task_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "packet_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "starting_output_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "blinded_revision_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "target_assessment_reference_id": {
+      "description": "Identifier for a coordinator-prepared, arm-blind assessment criterion; not the private manipulation map itself.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "assessed_at_utc": {"type": "string", "format": "date-time"},
+    "target_defect_repaired": {"type": ["boolean", "null"]},
+    "accurate_relevant_material_preserved": {"type": ["boolean", "null"]},
+    "collateral_error_present": {"type": ["boolean", "null"]},
+    "successful_repair_without_collateral_error": {"type": ["boolean", "null"]},
+    "cannot_judge": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "target_defect_repaired",
+          "accurate_relevant_material_preserved",
+          "collateral_error_present"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "collateral_error_flags": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/collateralFlag"},
+      "uniqueItems": true
+    },
+    "collateral_findings": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {"$ref": "#/$defs/collateralFinding"}
+    },
+    "confidence": {"type": "integer", "minimum": 1, "maximum": 5},
+    "disposition": {
+      "enum": ["accept_revision", "revise_again", "reject_revision", "escalate"]
+    },
+    "review_seconds": {"type": "number", "minimum": 0},
+    "rationale": {"type": "string", "minLength": 1, "maxLength": 5000}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"target_defect_repaired": {"type": "null"}}},
+      "then": {
+        "properties": {
+          "cannot_judge": {"contains": {"const": "target_defect_repaired"}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cannot_judge": {"contains": {"const": "target_defect_repaired"}}
+        }
+      },
+      "then": {"properties": {"target_defect_repaired": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"accurate_relevant_material_preserved": {"type": "null"}}},
+      "then": {
+        "properties": {
+          "cannot_judge": {
+            "contains": {"const": "accurate_relevant_material_preserved"}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cannot_judge": {
+            "contains": {"const": "accurate_relevant_material_preserved"}
+          }
+        }
+      },
+      "then": {
+        "properties": {"accurate_relevant_material_preserved": {"type": "null"}}
+      }
+    },
+    {
+      "if": {"properties": {"collateral_error_present": {"type": "null"}}},
+      "then": {
+        "properties": {
+          "cannot_judge": {"contains": {"const": "collateral_error_present"}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cannot_judge": {"contains": {"const": "collateral_error_present"}}
+        }
+      },
+      "then": {"properties": {"collateral_error_present": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"collateral_error_present": {"const": true}}},
+      "then": {
+        "properties": {
+          "collateral_error_flags": {"minItems": 1},
+          "collateral_findings": {"minItems": 1}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"collateral_error_present": {"enum": [false, null]}}
+      },
+      "then": {
+        "properties": {
+          "collateral_error_flags": {"maxItems": 0},
+          "collateral_findings": {"maxItems": 0}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "target_defect_repaired": {"const": true},
+          "accurate_relevant_material_preserved": {"const": true},
+          "collateral_error_present": {"const": false}
+        },
+        "required": [
+          "target_defect_repaired",
+          "accurate_relevant_material_preserved",
+          "collateral_error_present"
+        ]
+      },
+      "then": {
+        "properties": {
+          "successful_repair_without_collateral_error": {"const": true}
+        }
+      },
+      "else": {
+        "if": {
+          "anyOf": [
+            {"properties": {"target_defect_repaired": {"const": false}}},
+            {
+              "properties": {
+                "accurate_relevant_material_preserved": {"const": false}
+              }
+            },
+            {"properties": {"collateral_error_present": {"const": true}}}
+          ]
+        },
+        "then": {
+          "properties": {
+            "successful_repair_without_collateral_error": {"const": false}
+          }
+        },
+        "else": {
+          "properties": {
+            "successful_repair_without_collateral_error": {"type": "null"}
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "collateralFlag": {
+      "enum": [
+        "new_unsupported_claim",
+        "new_omission",
+        "new_distortion",
+        "new_wrong_attribution",
+        "new_quote_integrity_error",
+        "other"
+      ]
+    },
+    "collateralFinding": {
+      "type": "object",
+      "required": [
+        "collateral_flag",
+        "revision_output_locations",
+        "evidence_excerpt_ids",
+        "description"
+      ],
+      "properties": {
+        "collateral_flag": {"$ref": "#/$defs/collateralFlag"},
+        "revision_output_locations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {"type": "string", "pattern": "^/", "maxLength": 500},
+          "uniqueItems": true
+        },
+        "evidence_excerpt_ids": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {"type": "string", "minLength": 1, "maxLength": 160},
+          "uniqueItems": true
+        },
+        "description": {"type": "string", "minLength": 1, "maxLength": 3000}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

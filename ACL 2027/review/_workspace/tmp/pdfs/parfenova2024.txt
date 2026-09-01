@@ -1,0 +1,525 @@
+              Automating Qualitative Data Analysis with Large Language Models
+
+                 Angelina Parfenova                     Alexander Denzler                         Juergen Pfeffer
+                Lucerne University of          Lucerne University of                      Technical University of Munich
+              Applied Sciences and Arts      Applied Sciences and Arts                      juergen.pfeffer@tum.de
+            Technical University of Munich alexander.denzler@hslu.ch
+            angelina.parfenova@hslu.ch
+
+
+
+                                Abstract                               Given these challenges, there’s a growing interest
+                                                                       in automating or simplifying the text analysis pro-
+              This PhD proposal aims to investigate ways
+                                                                       cess to make it less labor-intensive.
+              of automating qualitative data analysis, specifi-
+              cally the thematic coding of texts. Despite ex-             While there has been some progress in automat-
+              isting methods vastly covered in literature, they        ing the analysis of interview data, using techniques
+              mainly use Topic Modeling and other quantita-            like Topic Modeling (Parfenova, 2024; Leeson
+              tive approaches which are far from resembling            et al., 2019) and Wordnet hierarchies (Guetterman
+              a human’s analysis outcome. This proposal                et al., 2018), these approaches mainly highlight
+              examines the limitations of current research             keywords already present in the text. They don’t
+              in the field. It proposes a novel methodology
+                                                                       generate the nuanced "ideas" and "thoughts" that
+              based on Large Language Models to tackle au-
+              tomated coding and make it as close as possible          come to mind upon reading it. Therefore the main
+              to the results of human researchers. This paper          goal of this research is to automate the coding pro-
+              covers studies already done in this field and            cedure of qualitative data (mainly interviews) to
+              their limitations, existing software, the prob-          make the result of analysis as close as possible to
+              lem of duplicating the researcher bias, and the          human researchers’ results.
+              proposed methodology.                                       In this proposal, we explore existing approaches
+        1     Introduction                                             for analyzing interview data and suggest a new
+                                                                       method for automating the full coding procedure.
+        Qualitative research is an important asset in vari-            The aim is to develop a model that can analyze
+        ous fields such as marketing, media studies, social            interviews minimizing the variability and biases
+        science, psychology, and medical research (Avjyan,             that can be introduced by human researchers. Fu-
+        2005; Brennen, 2021; Mohajan et al., 2018; Lee-                ture work will involve producing software that can
+        son et al., 2019). It stands out from quantitative             assist organizations and researchers in managing
+        methods in its ability to go deeper into research              and interpreting large volumes of textual data effi-
+        questions and capture individual experiences. How-             ciently.
+        ever, it doesn’t have the straightforward statistics or
+        clear answers often found in quantitative research.            2     Related Work
+        This makes it harder to draw conclusions and prove
+        hypotheses when dealing with a vast collection of              Before covering existing approaches and software
+        unstructured text documents (Bumbuc, 2016).                    dedicated to qualitative analysis, we need to ex-
+           The primary way to analyze data in qualitative              plore how the coding is done by professional hu-
+        research involves open coding, a process that re-              man coders.
+        quires meticulously reading through texts to pin-
+                                                                       2.1    Current coding practice
+        point significant thoughts, ideas, attitudes, and top-
+        ics (Glaser and Strauss, 2017). Following this, ax-            Each statement or significant segment of dialogue
+        ial coding helps identify how these codes interre-             within an interview is assigned a "code" that sum-
+        late and groups them into broader categories (Sal-             marizes its main idea. Depending on the researcher
+        dana, 2016). This method is time-consuming, often              it can be represented as a word or even a phrase, the
+        stretching over weeks (Alshenqeeti, 2014), as it               main goal is to encapsulate the key message of the
+        demands intensive manual effort and professional               citation (Miles and Huberman, 1994). Once coded,
+        expertise to analyze a large number of documents.              these segments are then organized into broader cat-
+                                                                    83
+                                                                    1
+Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 4: Student Research Workshop), pages 83–91
+                                   August 11-16, 2024 ©2024 Association for Computational Linguistics
+egories that reflect the underlying patterns and rela-        review prior studies that focused on qualitative data
+tionships within the dataset. Categories are higher-          analysis using computational methods. Several
+order classifications that codes are grouped into.            papers have addressed this topic; let us provide a
+These categories emerge from the data and help in             brief overview of these works.
+developing a theory that is grounded in the data
+itself (Glaser and Strauss, 2017). In practice, if            2.3   Existing approaches
+codes are allowed to be either a word or a phrase,            The first approach covered vastly in literature is
+categories are mostly one or two words (colloca-              topic modeling and word-to-vector conversion fol-
+tion).                                                        lowed by a comparison of this NLP technique
+   Describing the process in simpler terms, first,            with an open coding procedure. If the revealed
+we summarize the main idea of each citation in the            topic/code was similar in meaning to one revealed
+interview. Then, we start grouping them into bigger           by the researcher, it was considered to be extracted
+categories. This means looking at all the little ideas        properly (Leeson et al., 2019). In this research
+we’ve found and seeing how they fit together into             Topic modeling, specifically LDA, was conducted
+larger themes. We ask questions like, "Do these               for each question and resulted in ten keywords
+codes share something in common?" or "Are they                with weights that represented the highlighted top-
+talking about the same bigger idea?" This helps us            ics. This technique was good in covering topics dis-
+organize our findings better (Parfenova, 2024). We            covered in the transcripts, however, the keywords
+visualize it in the Figure 1.                                 extracted were not close enough semantically to
+   These categories and codes themselves are then             the results of expert coders.
+organized into a concept map, similar to a mind                  Another recent approach was to create a Topic
+map, the example of which is portrayed in Figure              Modeling alike model that combines BERT embed-
+2 (note: it is only the part of the graph based on            dings with HDBSCAN clustering to create clusters
+citations we wrote above). This graph helps in                of keywords and then visualize them in the form
+visualizing the whole narrative of the interviews             of a graph as social scientists do with a concept
+conducted.                                                    map (Parfenova, 2024). The example of keywords
+                                                              extracted from the same set of interviews used as
+2.2 Coder qualification and expertise                         examples above is illustrated in Figure 3. The ad-
+The coders responsible for this task are typically            vantage of this method is drawing the concept map
+trained researchers or analysts with a background             that consists of keywords and links between them
+in qualitative methods. They possess an under-                based on co-occurrence in the topic, however, it
+standing of the research aims and are skilled in              doesn’t generate ideas/thoughts based on the con-
+identifying the nuanced meanings within the text.             text of a citation but extracts words that already
+It is their expertise that allows them to discern the         exist in a text. That way it is a completely different
+subtleties in dialogue and assign appropriate codes           procedure rather than ’coding’.
+that reflect the core message of the segment (Miles              Other works (Guetterman et al., 2018; Wei et al.,
+and Huberman, 1994).                                          2015) have used WordNet to find the closeness
+   Inter-coder reliability is essential to guarantee          between words and compose their semantic hierar-
+the credibility of qualitative data coding—it creates         chy. For example, “based on edge distance between
+consensus among various coders in their applica-              appropriate synsets in this tree-like structure, one
+tion of codes. Usually, it involves pilot sessions            could consider that exercise and workout are very
+where several researchers initially code a subset of          similar (an edge distance of 0), exercise and yoga
+data, and then an agreement on codes is achieved              are quite similar (an edge distance of 1), whereas
+through discussion and comparison of coded seg-               exercise and straining are even less similar (an edge
+ments. Thus, researchers try to avoid individual              distance of 2)”. Other similarity metrics were also
+bias by voting system, basically agreeing which               used, such as Leacock and Chodorow similarity
+code is better for this particular segment. The               (Leacock, 1998) and Wu-Palmer similarity (Wu
+degree of coder agreement is quantified through               and Palmer, 1994). This method was also suc-
+statistical measures like Cohen’s Kappa or Krip-              cessful in the identification of codes. However, a
+pendorff’s Alpha (Krippendorff, 2018).                        significant limitation of this approach is its reliance
+   Although there are extensive descriptions of the           on WordNet, which is not actively maintained, of-
+methods used in analyzing texts, it is crucial to             fers limited lexical coverage, and does not scale
+                                                         84
+                                                         2
+Figure 1: Coding process (Davydova, 2024). The text (in this case interview transcript) is being split into paragraphs.
+The main idea/thought of a paragraph is extracted and becomes a "code" (open coding). Then, this list of codes is
+grouped into higher-level topics (axial coding).
+
+
+                                                               Labeling with LLM In the field of computa-
+                                                               tional social science (CSS), the annotation of doc-
+                                                               uments is a foundational step in analyzing social
+                                                               phenomena. Traditionally, this process has been
+                                                               both time-consuming and labor-intensive, often re-
+                                                               quiring manual labeling of large corpora. LLMs
+                                                               have made this task easier by enabling researchers
+                                                               to annotate documents at scale. However, despite
+                                                               the efficiency of LLMs, their annotations are not
+                                                               without flaws and often exhibit biases and imper-
+                                                               fections. To overcome these issues, a novel algo-
+                                                               rithm has been introduced, emphasizing design-
+                                                               based supervised learning (DSL) (Egami et al.,
+                                                               2024). The DSL estimator combines imperfect
+                                                               LLM-generated labels with a limited set of high-
+    Figure 2: Example of graph (Davydova, 2024)
+                                                               quality, gold-standard labels, which are created by
+                                                               experts in social science thoroughly annotating a
+without considerable human effort for updates. Fur-            representative sample of documents. The DSL al-
+thermore, this method has been primarily applied to            gorithm then combines these accurate labels with
+structured interviews with specific, directed ques-            the larger set of imperfect LLMs. It does this by ad-
+tions, which are not typically the interviews that             justing the LLM labels based on discrepancies with
+present the most analytical challenge or demand                the gold standard, resulting in improved ’pseudo-
+the most time.                                                 outcomes’. These are then used in statistical analy-
+                                                               ses, ensuring results that are both robust, due to the
+2.3.1 Approaches Based on Large Language                       expert input, and scalable, thanks to the automation
+      Models (LLMs)                                            provided by LLMs.
+With the emergence of Large Language Models                       Another study shifts the focus into trying to ex-
+(LLMs) such as GPT variants, there has been a                  periment with variations in prompts and batch sizes
+paradigm shift in how we approach text analysis                to improve the quality of hate-speech labeling (Mat-
+and labeling. The ability of LLMs to understand                ter et al., 2024). Utilizing manual annotation as a
+and generate human-like text has opened new av-                benchmark, GPT-3.5 and GPT-4 models were fine-
+enues in various fields, including computational               tuned to detect nuances in violent speech. The
+social science (CSS) and content moderation. This              results showed that the best GPT-4 model achieved
+section explores using LLMs in the context of doc-             Cohen’s Kappa scores of 0.54 and 0.62 when com-
+ument annotation, relation extraction, and concept             pared to two human coders, respectively, indicating
+linking, providing insight into the challenges pre-            a moderate to substantial agreement. Weighted and
+sented by current research.                                    macro F1 scores further supported the model’s re-
+                                                          85
+                                                          3
+             Figure 3: Keywords extracted using Topic Modeling and their possible interpretation
+
+
+liability. These findings suggest that while LLMs            labeling these relationships within concept maps
+like GPT-4 show promise in automating content                varies; some researchers annotate the connections
+moderation, their annotations when benchmarked               between codes explicitly, while others do not, due
+against manual coding, reveal some discrepancies             to the lack of a standardized approach. The pros
+that require further adjustment.                             of labeling are that it can clarify the nature of re-
+                                                             lationships and facilitate a deeper understanding
+2.3.2 Deductive and Inductive Coding in                      of complex interactions within the data. On the
+      Qualitative Research                                   other hand, the cons include the potential for sub-
+Coding in qualitative research can be categorized            jectivity and the added layer of analysis that could
+into deductive and inductive methods. Deductive              complicate the interpretation of data.
+coding uses a pre-established codebook applied to
+the data, while inductive coding generates codes                Currently, the detection of relationships often re-
+directly from the data itself.                               lies on Large Language Models (LLMs) (Loureiro
+   Some studies, such as (Xiao et al., 2023) and             et al., 2023; Trajanoska et al., 2023; Bratanic, 2022;
+(Spinoso-Di Piano et al., 2023), have explored au-           Yao et al., 2023; Pan et al., 2023), which, despite
+tomatic code generation using NLP methods, pri-              their growing sophistication, still face challenges
+marily focusing on deductive coding where labels             such as the accurate identification of relations in
+are predefined. In contrast, our approach employs            documents covering diverse topics (Friedman et al.,
+an inductive coding process based on "grounded               2022; Feder et al., 2022). The lack of universally
+theory" (Glaser and Strauss, 2017), allowing knowl-          accepted link types further complicates the task,
+edge to emerge from the data. Preliminary knowl-             as this can lead to ambiguity and inconsistent find-
+edge is utilized only during categorization, with            ings across different studies (Picco et al., 2023;
+initial coding being entirely inductive.                     Cabot and Navigli, 2021). Additionally, extract-
+   Our proposed method is ideal for inductive cod-           ing an exhaustive list of entities can create overly
+ing, aiming to identify patterns and themes organ-           complex networks that make analysis even more
+ically. Acknowledging the computational meth-                complicated rather than reveal significant patterns.
+ods supporting deductive coding, future research
+could investigate hybrid methods that combine both              Given these considerations, it is worth discussing
+inductive and deductive elements, combining the              whether labeling relationships in knowledge extrac-
+strengths of each approach.                                  tion is necessary or if an unlabeled graph is enough
+                                                             for sociological research. The answer may not be
+2.4 Relation extraction and concept linking                  absolute; the decision to label relationships should
+In the domain of natural language processing, the            be guided by the specific research objectives and
+task of relation extraction and concept linking is           the nature of the data being analyzed. Further re-
+crucial for transforming unstructured text into a            search is required to develop more standardized
+structured form that highlights the relationships be-        methods for relation extraction that could benefit
+tween entities. In social science, the practice of           the social sciences and other disciplines.
+                                                        86
+                                                        4
+2.4.1 Existing softwares                                             rating? What preliminary knowledge are they
+Qualitative researchers often turn to specialized                    using while deriving categories from codes?
+software like Atlas.ti1 , Dedoose2 , and MAXQDA3                  2. How can we identify codes and group them
+for manual coding, which facilitates text analysis                   into meaningful categories using LLMs?
+by allowing for efficient tagging and categoriza-
+tion within a user-friendly environment. However,                 3. If the researcher is biased while analyzing
+these tools do not fundamentally alter the nature                    interviews, is there a way to replicate this bias
+of the analysis process but rather provide a digital                 to make the model work like a real human
+convenience for traditional workflows.                               researcher?
+   The challenge thus remains to create an inno-
+                                                                 It is important to note that the concept map de-
+vative, accessible tool that not only simplifies the
+                                                              scribed in previous sections is the last step after the
+coding process but also enhances the analytical ca-
+                                                              ones mentioned above. As its nature lies in rela-
+pabilities of researchers, enabling them to extract
+                                                              tionship extraction and information visualization, it
+deeper insights from qualitative data without the
+                                                              is considered to be the next separate research topic.
+need for advanced programming skills.
+                                                              Thus, it will not be covered in the proposed method-
+2.4.2 Discussion                                              ology for this proposal, though it was important to
+                                                              describe it as the concluding part of qualitative data
+Integrating AI into qualitative data analysis
+                                                              analysis.
+presents a promising approach to overcoming the
+                                                                 The accomplishment of these research goals will
+limitations of human coding, such as subjective
+                                                              help to systematically organize data, which can
+bias (Bumbuc, 2016), agreement challenges be-
+                                                              be massive and complex, into understandable and
+tween individual coders (Krippendorff, 2018), and
+                                                              manageable themes. This enables researchers to
+the time-consuming nature of manual coding (Sal-
+                                                              identify patterns and insights that are not immedi-
+dana, 2016). Human coders, while better under-
+                                                              ately apparent, thus adding depth to the research
+standing the nuances of sentences they code, often
+                                                              findings.
+struggle with consistency and objectivity, leading
+                                                                 Exploring the domain knowledge of social sci-
+to variability in data interpretation (Saldana, 2016).
+                                                              entists can significantly improve the accuracy of
+AI, with its capacity for rapid data processing and
+                                                              automated models. This knowledge can lead to the
+application of standardized coding rules, offers a
+                                                              creation of algorithms that are more aligned with
+solution to these challenges by ensuring a more
+                                                              human cognition, which is especially important
+uniform and efficient analysis (Bengio et al., 2013),
+                                                              when analyzing nuanced human communication.
+allowing to deal with larger amounts of data. Thus,
+                                                                 While bias is typically something to be mini-
+the development of a model capable of imitating the
+                                                              mized, understanding it can be useful, particularly
+human coding process, at the same time overcom-
+                                                              in developing AI that can replicate human-like un-
+ing the abovementioned challenges, could serve
+                                                              derstanding. It’s important to recognize that com-
+not only as a supporting solution for human coders
+                                                              plete objectivity is unattainable, and acknowledg-
+but as a standard itself.
+                                                              ing bias allows for a more reflexive approach to
+                                                              data analysis.
+3       Research Proposal
+This PhD proposal seeks to explore the ways of au-            4     Proposed Approach
+tomating the analysis of quantitative data, mainly            The proposed methodology follows the cognitive
+interview transcripts. The main goal is to test the           process of a social scientist who typically keeps
+proposed approach on different sets of interviews             in mind the study’s framework during thematic
+and compare it with expert coding. Next, we out-              analysis. As described in section 2.1 on Current
+line the main research questions:                             coding practice, thematic analysis is a two-step
+                                                              process consisting of open and axial coding. The
+    1. How do social scientists code interviews and           first step involves summarizing each citation’s main
+       ensure consistency of coding while collabo-            idea/thought, and the second consists of categoriz-
+    1
+      https://atlasti.com/ Accessed: 12.12.2023
+                                                              ing all ideas into higher-order categories (Fig.1).
+    2
+      https://www.dedoose.com/ Accessed: 12.12.2023           According to existing manuals, the open coding
+    3
+      https://www.maxqda.com/ Accessed: 12.12.2023            phase doesn’t involve preliminary knowledge of
+                                                         87
+                                                         5
+the research topic (Glaser and Strauss, 2017), while         there may be complications, but some minor ones.",
+axial coding heavily relies on it (Miles and Huber-          code: Habitus)
+man, 1994). The next sections describe how each
+stage of the coding process can be automated.
+                                                             4.2    Axial Coding: Categorization
+4.1 Open Coding: summarization
+                                                             Following the open coding phase, the LLM cate-
+The methodology’s initial phase consists of sum-
+                                                             gorizes the generated codes into thematic groups.
+marizing a sentence’s main idea, however with so-
+                                                             This process is driven by a set of contextual
+cial scientist professional bias. That’s why the
+                                                             prompts derived from the research itself, designed
+first stage of automating the process involves fine-
+                                                             to generate meaningful categories by the model.
+tuning several LLMs on the dataset with profes-
+                                                             Examples of such contexts involve mentioning the
+sionally extracted codes by human experts. Models
+                                                             goal of the research, hypotheses, interview guide,
+will be finetuned using PEFT (Parameter Efficient
+                                                             theoretical framework, etc. Everything that might
+Finetuning) Low-Rank Adaptation (LoRA) (Hu
+                                                             help with giving categorization more context.
+et al., 2021) to reduce the number of parameters
+that need to be tuned to around 1%. The fine-tuning             The LLM processes the input codes C and the
+quality is subsequently evaluated using the BERT             research context Q to produce a set of thematic
+score (Zhang et al., 2019), and ROUGE score (Lin,            categories K. The evaluation includes assessing
+2004).                                                       how well the codes from diverse prompts such
+   LLMs are tested with a variety of open coding             as “Do these codes share something in common?”
+prompts that range from explicit instructions to             and “Group these codes into meaningful categories.”
+more nuanced requests that mimic the considera-              converge into coherent groups that reflect the un-
+tions of a social scientist:                                 derlying themes of the dataset. The number of
+                                                             categories extracted is not predefined and can vary
+   • Explicit Instruction: Summarize the main                as well as it varies among human researchers.
+     idea/thought of a sentence.                               If we take a look at Fig.1 we see several extracted
+   • Informal Request: Can you tell me what the              categories from the set of open codes. However,
+     main idea of this sentence is in just a few             the choice of categories usually depends on the
+     words?                                                  individual researcher and might vary. That’s why
+                                                             there is no certain way to internally evaluate the
+   • Expert Angle: From the perspective of a social
+                                                             quality of categorization. At this stage, it will be
+     scientist, summarize the following sentence
+                                                             necessary to perform an expert evaluation which is
+     as you would in thematic coding.
+                                                             described in detail in the Evaluation section.
+   • Impersonalization: If you were a social scien-
+     tist, what code would you give to this citation?
+   • Detailed Explanation: Explain in a couple of
+                                                             5     Dataset
+     words the primary thought expressed in the
+     following text.                                         For the fine-tuning of the Large Language Model
+                                                             (LLM), we propose utilizing a curated dataset com-
+   • Simplified Task: What’s the gist of this sen-
+                                                             prising coded interview citations collected from
+     tence?
+                                                             social scientists, both academic researchers and
+   LoRA will be subsequently compared to prompt-             students doing qualitative research in social sci-
+engineering giving several examples of coded sen-            ence. An illustrative example, as demonstrated in
+tences and asked to code the same way the rest of            Figure 4, presents data in a citation-label format.
+the dataset. One of our hypotheses is that PEFT              For instance, a citation si such as "Well since it’s
+will result in higher BERT scores than prompt-               a smartphone, it’s usually always with me," would
+ing because some codes from social scientists are            be associated with a label li denoted as "mobility".
+highly domain-specific (e.g. citation from the train-          A potential challenge is the limited size of the
+ing data: " If a woman comes in, you can see from            dataset. However, recent studies, such as those by
+her that she doesn’t drink alcohol and she doesn’t           (Zhou et al., 2023), have shown that LLMs can still
+have bad habits, both when interviewed and on                perform exceptionally well even when fine-tuned
+further follow-up, and the pregnancy is going well,          with a minimal dataset.
+                                                        88
+                                                        6
+                 Figure 4: Dataset
+                                                                Figure 5: Coders consensus and individual biases
+
+6   Evaluation
+The testing of the model will be based on compari-
+son with experts. We will employ Krippendorff’s
+Alpha to evaluate the reliability and consistency
+of the coding provided by our model compared to
+expert coders. This statistical measure is ideal for
+assessing the agreement among multiple coders on
+qualitative data.
+   Our approach involves constructing a contin-
+gency table where each row represents an inter-
+view citation and each column a coder (our AI                   Figure 6: Comparing individual biases and LLM
+model and human experts). The codes assigned to
+each citation by different coders are filled in this
+table. We will then calculate the observed disagree-        quantify their deviation from the Golden Stan-
+ment among coders for each item and sum these               dard. In parallel, we will calculate the bias
+to get the total observed disagreement. Expected            score for the language model (B(LLM )), reflect-
+disagreement, which is the disagreement expected            ing its divergence from the GoldenStandard.
+by chance, will also be computed based on the               Our objective is articulated through the task of
+distribution of each code.                                  minimizing the difference between the model’s
+   The Alpha value is calculated using the formula          bias and the Golden Standard, formalized
+α = 1 − ObservedDisagreement                                as minDif f (LLM3 , GoldenStandard), thereby
+            ExpectedDisagreement . A higher Alpha
+value (close to 1) indicates a higher agreement             striving to align the model’s output with the unbi-
+among the coders, suggesting that our model’s cod-          ased consensus code.
+ing aligns well with human experts. This method
+                                                            7    Limitations
+will provide a robust quantitative measure of the
+coding reliability of our AI model in qualitative           In this section, we will discuss the limitations of
+data analysis.                                              our current research as well as the challenges posed.
+   We extend our testing framework by evaluating            One of the primary concerns is the issues associated
+potential bias in the coding process. This involves         with concept extraction and ontology building. Ac-
+comparing the coding consistency of our language            curately selecting codes is inherently challenging,
+model and a Golden Standard established by expert           as the process relies on nuanced human knowledge.
+consensus.                                                  It raises a question: how can we develop a model
+   The example of the evaluation framework is il-           sophisticated enough to replicate these complex
+lustrated in Figures 5-6. The Golden Standard               human cognitive tasks?
+codes emerge from a discussion process among                   Another issue is that language is intricate. Peo-
+human coders (c1, c2, c3) to identify the most              ple have their unique way of speaking, and they
+appropriate codes. To effectively incorporate a             often communicate more than what they explicitly
+bias evaluation, we propose to compute bias scores          say. Our model strives to comprehend and code
+for each human coder, B(c1), B(c2), B(c3), to               what people express, but it might not be able to do
+                                                       89
+                                                       7
+so as accurately as humans. It may miss some of                  In this proposal we have addressed the potential
+the implicit nuances in language that we naturally            for replicating the bias inherent in human coding,
+understand.                                                   recognizing that this aspect of qualitative analysis
+   One major concern is that our dataset is rela-             can be both a challenge and an opportunity. By
+tively small. Since we are using a limited number             understanding and potentially simulating these bi-
+of examples to fine-tune our model, there is a possi-         ases, we can approach the human-like analytical
+bility that it may not perform as well as we expect.          capabilities that are currently the domain of expe-
+This could result in it being less effective in coding        rienced researchers. The use of a curated dataset
+new interviews, as it hasn’t had sufficient exposure          for fine-tuning the LLMs, along with the develop-
+during training.                                              ment of an algorithmic framework will be the first
+   Additionally, the extraction of relationships              step in constructing an actual tool that facilitates
+presents its own set of difficulties. Training an             qualitative analysis.
+algorithm to navigate them poses a significant chal-             Future work will focus on the practical imple-
+lenge, further complicated by the diverse strategies          mentation of the proposed methodologies, includ-
+individual coders reach a consensus. The question             ing the fine-tuning of LLMs with the constructed
+of whether there exists a universal approach or if            dataset and the validation of the coding process
+coders are utilizing various, possibly conflicting,           against standard qualitative analysis. Additionally,
+techniques is yet to be answered.                             we will explore the integration of multiple LLMs to
+   Furthermore, the unclear nature of large lan-              simulate the collaborative nature of human coding
+guage models (LLMs) introduces additional com-                teams. The end goal is the creation of user-friendly
+plexity. These models often act as "black boxes,"             software that embodies the strengths of both man-
+making it challenging to discern the rationale be-            ual and AI-assisted analysis, involving all stages of
+hind their outputs. This obscurity necessitates the           qualitative analysis from open coding to the con-
+exploration of explainable AI, a significant area of          struction of a concept map.
+research aimed at making AI’s decision-making
+processes more transparent. Our project might
+encounter similar difficulties, interfering with our          References
+ability to fully understand and explain the model’s           H. Alshenqeeti. 2014. Interviewing as a data collec-
+behavior and decisions.                                         tion method: A critical review. English Linguistics
+                                                                Research, 3:39–45.
+8   Ethics Statement
+                                                              E.G. Avjyan. 2005. Asynchronous on-line focus group:
+This research ensures data privacy by anonymiz-                 technology and procedures of conducting. Southern
+ing all interview data and obtaining informed con-              Russian Journal of Social Sciences, (1):116–129.
+sent, in compliance with data protection regula-              Yoshua Bengio, Aaron Courville, and Pascal Vincent.
+tions. While the goal is to enhance and assist hu-              2013. Representation learning: A review and new
+man researchers, potential displacement effects are             perspectives. IEEE transactions on pattern analysis
+considered, striving to support rather than replace             and machine intelligence, 35(8):1798–1828.
+them. Efforts are made to mitigate biases in the              Tomaz Bratanic. 2022. From text to a knowledge graph:
+LLMs, maintain fairness, and ensure transparency                The information extraction pipeline. Neo4j Blog.
+in the models’ decision-making processes. Addi-                 Accessed: 2023-13-11.
+tionally, computational resources are optimized to
+minimize environmental impact.                                Bonnie S Brennen. 2021. Qualitative research methods
+                                                                for media studies. routledge.
+9   Conclusion and future work                                Ştefania Bumbuc. 2016. About subjectivity in qualita-
+                                                                  tive data interpretation. In International Conference
+In conclusion, this proposal outlines a comprehen-               Knowledge-Based Organization, volume 22, pages
+sive framework for automating the extraction of                  419–424.
+information from qualitative research. By using the
+advanced capabilities of Large Language Models                Pere-Lluís Huguet Cabot and Roberto Navigli. 2021.
+                                                                Rebel: Relation extraction by end-to-end language
+(LLMs) and integrating them with the expertise of               generation. In Findings of the Association for Com-
+social scientists, we aim to significantly reduce the           putational Linguistics: EMNLP 2021, pages 2370–
+time and effort required in the coding process.                 2381.
+                                                         90
+                                                         8
+Alexandra Davydova. 2024. Thesis: The integration of            Matthew B Miles and A Michael Huberman. 1994.
+  voice assistants in domestic interaction scenarios.            Qualitative data analysis: An expanded sourcebook.
+                                                                 sage.
+Naoki Egami, Musashi Hinck, Brandon M. Stewart,
+  and Hanying Wei. 2024. Using imperfect surrogates             Haradhan Kumar Mohajan et al. 2018. Qualitative re-
+  for downstream inference: Design-based supervised               search methodology in social sciences and related
+  learning for social science applications of large lan-          subjects. Journal of economic development, environ-
+  guage models.                                                   ment and people, 7(1):23–48.
+                                                                Shirui Pan, Linhao Luo, Yufei Wang, Chen Chen, Ji-
+Amir Feder, Katherine A. Keith, Emaad Manzoor, Reid               apu Wang, and Xindong Wu. 2023. Unifying large
+ Pryzant, Dhanya Sridhar, Zach Wood-Doughty, Jacob                language models and knowledge graphs: A roadmap.
+ Eisenstein, Justin Grimmer, Roi Reichart, Margaret E.
+ Roberts, Brandon M. Stewart, Victor Veitch, and Diyi           Angelina Parfenova. 2024. Automating the information
+ Yang. 2022. Causal inference in natural language                 extraction from semi-structured interview transcripts.
+ processing: Estimation, prediction, interpretation and           In Companion Proceedings of the ACM on Web Con-
+ beyond.                                                          ference 2024, WWW ’24. ACM.
+
+Scott Friedman, Ian Magnusson, Vasanth Sarathy, and             Gabriele Picco, Marcos Martínez Galindo, Alberto
+  Sonja Schmer-Galunder. 2022. From unstructured                  Purpura, Leopold Fuchs, Vanessa López, and
+  text to causal knowledge graphs: A transformer-                 Hoang Thanh Lam. 2023. Zshot: An open-source
+  based approach.                                                 framework for zero-shot named entity recognition
+                                                                  and relation extraction.
+Barney Glaser and Anselm Strauss. 2017. Discovery of            J. Saldana. 2016. The Coding Manual for Qualitative
+  grounded theory: Strategies for qualitative research.            Researchers, 3rd edition. Sage, Los Angeles, CA.
+  Routledge.
+                                                                Cesare Spinoso-Di Piano, Samira Rahimi, and Jackie
+T.C. Guetterman, T. Chang, M. Dejonckheere, T. Basu,              Cheung. 2023. Qualitative code suggestion: A
+  E. Scruggs, and V.G.V. Vydishwaran. 2018. Aug-                  human-centric approach to qualitative coding. In
+  menting qualitative text analysis with natural lan-             Findings of the Association for Computational Lin-
+  guage processing: Methodological study. J. Med.                 guistics: EMNLP 2023, pages 14887–14909, Singa-
+  Internet Res., 20.                                              pore. Association for Computational Linguistics.
+
+Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan               Milena Trajanoska, Riste Stojanov, and Dimitar Tra-
+  Allen-Zhu, Yuanzhi Li, Shean Wang, and Weizhu                   janov. 2023. Enhancing knowledge graph construc-
+  Chen. 2021. Lora: Low-rank adaptation of large                  tion using large language models.
+  language models. CoRR, abs/2106.09685.                        Tingting Wei, Yonghe Lu, Huiyou Chang, Qiang Zhou,
+                                                                  and Xianyu Bao. 2015. A semantic approach for text
+Klaus Krippendorff. 2018. Content analysis: An intro-             clustering using wordnet and lexical chains. Expert
+  duction to its methodology. Sage publications.                  Syst. Appl., 42(4):2264–2275.
+Claudia Leacock. 1998. Combining local context                  Zhibiao Wu and Martha Palmer. 1994. Verb seman-
+  and wordnet similarity for word sense identification.           tics and lexical selection. arXiv preprint cmp-
+  WordNet: A Lexical Reference System and its Appli-              lg/9406033.
+  cation, pages 265–283.
+                                                                Ziang Xiao, Xingdi Yuan, Q. Vera Liao, Rania Ab-
+W. Leeson, A. Resnick, D. Alexander, and J. Rovers.               delghani, and Pierre-Yves Oudeyer. 2023. Support-
+  2019. Natural language processing (nlp) in qualita-             ing qualitative analysis with large language models:
+  tive public health research: a proof of concept study.          Combining codebook with gpt-3 for deductive cod-
+  International Journal of Qualitative Methods, 18.               ing. In 28th International Conference on Intelligent
+                                                                  User Interfaces, IUI ’23. ACM.
+Chin-Yew Lin. 2004. ROUGE: A package for auto-                  Liang Yao, Jiazhen Peng, Chengsheng Mao, and Yuan
+  matic evaluation of summaries. In Text Summariza-               Luo. 2023. Exploring large language models for
+  tion Branches Out, pages 74–81, Barcelona, Spain.               knowledge graph completion.
+  Association for Computational Linguistics.
+                                                                Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q.
+Manuel V. Loureiro, Steven Derby, and Tri Kurniawan               Weinberger, and Yoav Artzi. 2019. Bertscore:
+ Wijaya. 2023. Topics as entity clusters: Entity-based            Evaluating text generation with BERT. CoRR,
+ topics from language models and graph neural net-                abs/1904.09675.
+ works.
+                                                                Chunting Zhou, Pengfei Liu, Puxin Xu, Srini Iyer, Jiao
+                                                                  Sun, Yuning Mao, Xuezhe Ma, Avia Efrat, Ping Yu,
+Daniel Matter, Miriam Schirmer, Nir Grinberg, and Jür-
+                                                                  Lili Yu, Susan Zhang, Gargi Ghosh, Mike Lewis,
+  gen Pfeffer. 2024. Close to human-level agreement:
+                                                                  Luke Zettlemoyer, and Omer Levy. 2023. Lima: Less
+  Tracing journeys of violent speech in incel posts with
+                                                                  is more for alignment.
+  gpt-4-enhanced annotations.
+                                                           91
+                                                           9
+

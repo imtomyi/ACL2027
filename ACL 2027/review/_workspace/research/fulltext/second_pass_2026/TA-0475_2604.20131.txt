@@ -1,0 +1,1170 @@
+                                              Whose Story Gets Told? Positionality and Bias in LLM Summaries
+                                                                     of Life Narratives
+                                             Melanie Subbiah1 and Haaris Mian2 and Nicholas Deas1 and Ananya Mayukha3 ,
+
+                                                                     Dan P. McAdams3 and Kathleen McKeown1
+                                                                1
+                                                                Department of Computer Science, Columbia University
+                                                 2
+                                                     Department of Applied Physics and Applied Mathematics, Columbia University
+                                                                3
+                                                                  Department of Psychology, Northwestern University
+                                                                              Correspondence: m.subbiah@columbia.edu
+
+                                                               Abstract                               real people. For this reason, psychology and so-
+                                                                                                      cial science research focused on human experience
+                                             Increasingly, studies are exploring using Large
+
+
+
+
+arXiv:2604.20131v1 [cs.CL] 22 Apr 2026
+                                             Language Models (LLMs) for accelerated or
+                                                                                                      generally relies on researchers having a close re-
+                                             scaled qualitative analysis of text data. While          lationship with and deep understanding of the text
+                                             we can compare LLM accuracy against human                under study. However, such manual analysis limits
+                                             labels directly for deductive coding, or label-          the scale of studies as a researcher has limited time
+                                             ing text, it is more challenging to judge the            and attention to absorb large quantities of text.
+                                             ethics and effectiveness of using LLMs in ab-               We work with psychologists to study how, if
+                                             stractive methods such as inductive thematic             LLMs were to be used to scale the amount of
+                                             analysis. We collaborate with psychologists to
+                                                                                                      text analyzed in a study, they might influence the
+                                             study the abstractive claims LLMs make about
+                                             human life stories, asking, how does using an            conclusions derived by the study. We focus on a
+                                             LLM as an interpreter of meaning affect the              dataset of interviews with study participants about
+                                             conclusions and perspectives of a study? We              their life stories, designed to study how people
+                                             propose a summarization-based pipeline for               form narrative identities over their lifetimes. In
+                                             surfacing biases in perspective-taking an LLM            these interviews, participants discuss deeply per-
+                                             might employ in interpreting these life stories.         sonal and emotionally charged issues, like racial
+                                             We demonstrate that our pipeline can identify            and sexual violence, family trauma and addiction,
+                                             both race and gender bias with the potential
+                                             for representational harm. Finally, we encour-
+                                                                                                      and falling in love and finding joy. How they ex-
+                                             age the use of this analysis in future studies           press and relate to these experiences is as impor-
+                                             involving LLM-based interpretation of study              tant as what they experience.These interviews are,
+                                             participants’ written text or transcribed speech         therefore, a fruitful context to study LLM interpre-
+                                             to characterize a positionality portrait for the         tation of human experiences. Errors in interpreta-
+                                             study.                                                   tion here can be severe. For example, in one inter-
+                                                                                                      view, a man discusses his early academic success
+                                         1   Introduction
+                                                                                                      and then progression into addiction connected to
+                                         Large Language Models (LLMs) are frequently                  family factors, but an LLM summary removes this
+                                         used as a tool for summarizing and extracting                initial transition and states simply that the man’s
+                                         key themes and takeaways from long documents.                entire life has revolved around addiction, thereby
+                                         When used in this way, the aim is often to re-               eliminating the contextual factors that are impor-
+                                         place engagement with the full document, giving              tant for understanding this man’s story.
+                                         the LLM considerable power to direct the mean-                  As this example illustrates, in forming abstrac-
+                                         ing users derive from the text. In extreme cases,            tive or thematic conclusions, there are always
+                                         a model can alter meaning entirely with hallucina-           choices involved around inclusion and wording
+                                         tions, or restrict interpretation to flattened carica-       of details, whether these choices are made by a
+                                         tures of individuals. There is, therefore, an ethical        person or computational model. Social scientists
+                                         imperative to examine what perspective and fram-             recognize the subjectivity involved with qualita-
+                                         ing these models bring to abstractive or thematic            tive methods through the idea of positionality, an
+                                         summarization. This concern is amplified in qual-            awareness of how the researcher’s background and
+                                         itative research involving human self-expression,            life experiences relative to the study participants’
+                                         where bias in summarization or thematic analysis             may affect the interpretation of meaning (Stel-
+                                         can misrepresent the experiences and thoughts of             tenpohl et al., 2023; Ledgerwood et al., 2022; Ja-
+
+                                                                                                  1
+Example Positionality Statement Excerpt: …our analysis comes at                     tive analysis based on implicit and explicit
+a time of increased attention to racial justice following highly
+publicized violence against Black lives, the resurgence of the Black                demographic conditioning.
+Lives Matter movement, and the widespread reckoning with the
+persistence of racism across time. Researchers' individual experiences
+                                                                                  3. Our pipeline successfully uncovers both
+also shaped their interpretations of participants' stories. Experiences              common LLM biases as well as less common
+shaping the Qirst author's perspective included being a Southeast Asian
+(Indian) American woman in her late twenties, having parents who are
+                                                                                     ones, such as stereotypes against male emo-
+immigrants, and working at a nonproQit where she organized                           tional expression.
+community dialogues centered around race... Experiences shaping the
+fourth author's perspective include being a white man in his late 60s
+who grew up in a segregated midwestern city, where race relations
+                                                                              2     Background
+were fraught, as well as engaging in previous research and writing
+about narrative identity among Black Americans in midlife.                    Our collaborators in psychology focus on adult
+                                                                              development and how experiences and themes in
+Figure 1: Excerpt from a positionality statement from                         people’s lives affect psychological outcomes and
+Mayukha et al. (2025). We ask, how does LLM use fit                           markers of well-being. Their research often uses
+into a statement like this?
+                                                                              inductive thematic analysis, a type of qualitative
+                                                                              research that looks for themes across many docu-
+cobson and Mustafa, 2019). As such, research pa-                              ments (Riger and Sigurvinsdottir, 2016), and sum-
+pers often include a statement of positionality indi-                         marizes how individual examples support these
+cating how the authors’ identities and experiences                            themes. Typically, this qualitative work is done
+may influence the meaning they have found in the                              by researchers carefully transcribing, reading, and
+study (see an example in Figure 1). Since LLMs                                coding (similar to annotating) potentially hun-
+do not have identities and experiences, their ef-                             dreds of pages of text to identify thematic patterns.
+fect on a study’s positionality cannot easily be ex-                             Technology is already incorporated in this pro-
+pressed in a statement. We instead propose what a                             cess through the use of software to organize text
+positionality portrait could look like for an LLM.                            data and track annotations. More research has
+   Using quantitative methods alongside expert                                been done recently on using modern NLP methods
+evaluation from psychologists, we analyze the                                 to automatically code text once researchers have
+“default” framing that LLMs use when summariz-                                developed a codebook (deductive coding) as this
+ing the life story interviews, as well as potential                           is similar to other popular text classification prob-
+biases in the meaning conveyed. For example, one                              lems in NLP (Chew et al., 2023; Tai et al., 2024;
+Black interviewee describes growing up in Black                               Xiao et al., 2023). However, we aim to explore
+communities with limited exposure to positive in-                             how the use of abstractive methods in developing
+teractions with white people. An LLM summary                                  a sense of themes from the text may influence the
+of this section interprets the experience as demon-                           creation of meaning (Dai et al., 2023; De Paoli,
+strating a “hatred for white people,” which mis-                              2024). We develop our methods using a psychol-
+represents the interviewee. Awareness of blind                                ogy dataset of interviews with over one hundred
+spots—and active mitigation of them—is crucial                                participants about their life stories.
+to preventing representational harm, such as mis-
+                                                                              Life Stories Dataset We access a research-only
+representing or erasing individuals’ experiences.
+                                                                              dataset from psychology that is not publicly avail-
+   The key features of our work are:
+                                                                              able online, and therefore unseen by LLMs. The
+  1. We work with psychologists as evaluators                                 dataset consists of 163 interviews with Ameri-
+     and with long, nuanced, and narrative-form                               cans in the Foley Longitudinal Study of Adult-
+     life story interviews unseen by LLMs.                                    hood (FLSA) (McAdams, 2008). The design of
+  2. We propose a quantitative pipeline for identi-                           the study focuses on how adults construct narra-
+     fying a positionality portrait for LLM-based                             tive identities over a lifetime and how aspects of
+     analysis of this data.1                                                  these narratives connect to their well-being. In-
+Our key findings are that:                                                    terviews were conducted each year for nine years,
+                                                                              between 2008-2017.
+  1. Summarization can be used to test bias in ab-
+                                                                                 Interviewees are asked many questions about
+     stractive analysis in LLMs.
+                                                                              their life stories, values, and key scenes in their
+  2. We observe shifts in how models make                                     lives. To protect the privacy of study participants,
+     choices about content and themes for abstrac-                            we cannot publish long excerpts of the interviews
+   1
+       We release the pipeline code on GitHub.                                or the data itself, but those who are interested can
+
+                                                                          2
+Human-written summary: The interviewee describes the chapters of her life story. She titles the irst chapter, “The Formative Years”, and describes her early childhood. She feels she had a
+“very happy childhood”, and in particular remembers holiday celebrations feeling like they lasted many weeks. She remembers learning about sexual intercourse from her friends, and feeling
+unnerved and disbelieving, especially in contrast with her education at the time in a Catholic school. Overall, she felt she had a middle-class or lower middle-class childhood where she had
+everything she needed, not everything she wanted, and that gave her structure in her life. Next, she moves onto a chapter she calls, “The High School Years." She was initially upset because all her
+friends were going to a different school, but her mother wanted her to attend a nearby Catholic girls school. She ended up having a great experience, appreciating the single-gender environment,
+and leaving with “pride in who [she] was." In school, she was “very, very good” at shorthand and “it came easily to [her]." The next chapter she labels, “Finding Myself." She had seen her parents
+struggle inancially growing up and she and her siblings had tried to help out. She had two brothers, but they both had severe health issues. Given these factors, she initially decided to become an
+administrative assistant to prioritize making money. She found it jarring to enter the working world and during the training for her irst position, she felt so overwhelmed that she didn’t take the
+job. This overwhelm ate away at her but eventually she realized, “you just take one day at a time, kind of like baby steps”, and she was able to take a position at another company and advance her
+career. She moves next into the chapter of “Motherhood”, which she describes as the highlight of her life. She met her husband through work and they dated for several years, broke up at one
+point and eventually got back together and got engaged. She left her job when she became pregnant with her irst child. She says she left her job because “at that time,… you basically stayed
+home and raised your kids." She then continues to the next chapter of “Years I Was Raising my Children” – she had three children who are all now adults. They are the “light of [her] life,” and she
+feels “there's nothing more important than you can do in your life” than raising your children. Now that her children are adults, she feels it’s her turn in life and she wants to “spread [her] wings
+and ly a little bit more." While raising her children though, she felt she had the “luxury of being able to stay home with them” because her husband worked two full-time jobs. She describes
+herself as happily married and inserts a chapter on her husband, crying through most of her description of him. She says “he’s always been there for [her]” and is “such a good guy." Finally, she
+ends with the last chapter: “The Awakening." She feels excited about “so many new things” happening for her and is enjoying being a grandmother. She is re lecting on her own mother, who is the
+“big boss” and “has aged beautifully." She hopes to be an inspiration for her children and grandchildren in the same way her mother has been for her.
+
+ Llama-8B: The narrator has shared a detailed and heartfelt account of her life story, which spans from her childhood to the present day. Born in the 1950s, she had a happy and relatively
+ simple childhood, illed with family gatherings and a strong sense of community. She attended a Catholic school, where she faced challenges in learning about the facts of life, but eventually
+ thrived in the supportive environment. After graduating from high school, she worked in various administrative roles, including as a secretary at [CORPORATION], where she excelled and
+ eventually became a top performer. She later left her job to raise her three children, whom she considers the highlight of her life, and was grateful to have the opportunity to devote herself to
+ their upbringing. Her husband, a ire ighter, was a supportive partner throughout their 34-year marriage. Now in her 50s, she is enjoying her role as a grandmother, with two grandchildren and,
+ soon, a new addition of triplets. She is excited about this new chapter of her life and is eager to pursue new experiences and interests, including ballroom dancing and academic endeavors.
+ THEMES: Family, Hard Work, Determination, Gratitude, Resilience, Personal Growth, Simplicity, Contentment
+
+
+
+
+Figure 2: A sample human-written summary (top) for the life chapters portion of an interview in the life stories
+dataset, followed by an LLM-generated summary with themes for the same story (bottom).
+
+
+contact the FLSA dataset creators for potential op-                                                    LLMs to simulate polling results or debates from
+portunities to work with the data2 . We analyze
+    f   f        f              f   f                                                              f
+                                                                                                       certain demographics or perspectives (Namikoshi
+                                                                                                              f                     f                        f
+
+
+
+
+the life chapters section of year one interviews. In                                                   et al., 2024; Jansen et al., 2023; Tjuatja et al.,
+brief, this section asks participants:                                                                 2024; Taubenfeld et al., 2024). Other work is crit-
+            Think about your life as if it were a book                                                 ical of the bias and simplifications inherent in us-
+            or novel, describe briefly what the main                                                   ing LLMs to simulate perspectives (Cheng et al.,
+            chapters in the book might be, and pro-                                                    2023a,b; Gupta et al., 2024; Agnew et al., 2024).
+            vide an overall plot summary of your                                                       In psychology, the consideration of positionality
+            story, going chapter by chapter.                                                           in research has entered the field relatively recently
+                                                                                                       (Steltenpohl et al., 2023; Ledgerwood et al., 2022;
+An example of the type of content discussed in
+                                                                                                       Jacobson and Mustafa, 2019), although it has been
+the life chapters portion is shown in Figure 2.
+                                                                                                       advocated for by some over decades (Josselson,
+Details on parsing the interviews into individual
+                                                                                                       2006). The concept has deeper historical roots
+question responses are described in Appendix A.
+                                                                                                       in the fields of anthropology and sociology (Be-
+Removal of interviews for which we could not au-
+                                                                                                       har, 2022; Hertz, 1996; Finlay, 1998; Harding,
+tomatically parse the life chapters section resulted
+                                                                                                       1991). Computational studies have begun to look
+in 154 interviews to analyze. The life chapters
+                                                                                                       at comparisons of LLM-based thematic analysis
+section consists of 3,497 words on average and
+                                                                                                       to human analysis (Dai et al., 2023; De Paoli,
+34 interviewer-respondent exchanges with respon-
+                                                                                                       2024; Deiner et al., 2024; De Paoli and Mathis,
+dents speaking 3,045 of the words on average.
+                                                                                                       2025; Misgav et al., 2025), but they focus on
+   Along with the interviews, participants self-
+                                                                                                       end results rather than positionality. Ibrahim and
+report their demographic information. We study
+                                                                                                       Voyer (2026) advocate for this type of work but do
+gender and race in particular. The study partic-
+                                                                                                       not propose a general technical approach like we
+ipants are 36% men and 64% women, and 57%
+                                                                                                       do, which can ground discussion in pre-analysis
+white and 43% Black.3
+                                                                                                       checklists like ARC (Prahl, 2026).
+3       Related Work
+                                                                                                       4          Methods
+In computer science, some work has looked at
+                                                                                                       Our goal is to produce a pipeline that can generate
+characterizing the views most often expressed by
+                                                                                                       a positionality portrait for a given LLM with re-
+language models (Santurkar et al., 2023; Scher-
+                                                                                                       spect to open-ended interpretation of our dataset.
+rer et al., 2024; Durmus et al., 2023), or using
+                                                                                                       In interpreting human experience, capturing the
+    2
+      We accessed the data through arriving at an agreement                                            wording, emotional framing, psychological states,
+around data privacy and use, including only using open-                                                and themes are all important. A summary is an ef-
+source models run on secure hardware.
+    3
+      Three participants identified as “interracial" or “other"                                        fective method of communicating open-ended un-
+for race, but we remove them from the study.                                                           derstanding of a document, so we use analysis of
+
+                                                                                                 3
+LLM summaries as the basis of our pipeline.
+    We consider a corpus of documents D. For a                                                                 Summary s
+
+document d ∈ D, an LLM can be prompted to pro-
+duce a structured summary of d consisting of gen-                                                              Themes t:
+
+erated text s and a set of generated themes t. An                                     LLM
+                                                                   Document d       Summarizer
+LLM induces a distribution p(s, t|d), and we con-                                                                  …
+                                                              + demographics c
+sider sampling summaries ŝd , t̂d ∼ p(s, t|d) (see
+Figure 3). Each ŝd , t̂d can be considered an ab-           Figure 3: We ask an LLM to produce a structured
+straction of d, making choices about content, style,         summary including a list of identified themes from the
+and meaning from the perspective of the LLM. We              source document. We additionally compare a setting
+can expose these choices through comparing as-               where we intentionally expose the document writer’s
+                                                             demographic details in the prompt.                            + demographics d
+pects of content, style, and meaning between ŝd , t̂d
+and d. Since we are sampling summaries from a
+distribution of possible outputs, we sample a set of
+                                                             ROUGE The ROUGE-1 and ROUGE-L scores
+summaries Ŝd , T̂d to approximate the distribution.
+                                                             (Lin, 2004) are word overlap metrics using words
+    We consider the set of demographics C for all
+                                                             in the original form they appear.
+the writers or transcribed speakers of documents in
+D. In our case, C = {Black woman, Black man,                 BERTScore The BERTScore (Zhang et al.,
+white woman, white man}. The writer or tran-                 2020) is a learned metric for semantic similarity
+scribed speaker for a document d identifies with             based on embeddings from a BERT-style model.
+some demographic c ∈ C, so we consider Dc as                    Since these metrics were designed for compar-
+the subset of documents D written by people with             ing a summary against a reference summary as op-
+demographics c. Each ŝd for d ∈ Dc may be im-               posed to the original document, we use the preci-
+plicitly conditioned on some aspects of c through            sion variant of the scores, rather than recall or F1.
+what can be inferred from the writing of d. We                  We note that other standard metrics could be
+can study this effect by comparing how the shift in          used here by future work, but we consider this set
+wording and framing between d and ŝd may differ             for reasonable coverage and efficiency. For ex-
+for d ∈ Dc1 and d ∈ Dc2 for some c1 , c2 ∈ C.                ample, a lower ROUGE score for a demographic
+    We can assess the explicit influence of a spe-           group indicates the summary is using less similar
+cific demographic c ∈ C through intentionally ex-            wording to the interviewee’s own self-expression,
+posing c to the LLM in the summarization prompt              and a lower BERTScore indicates more seman-
+and examining the shift between p(s, t|d, ∅) (with           tic differences. In evaluating different metrics,
+no exposed demographic) and p(s, t|d, c) (with               we found that often task-specific finetuned LLMs
+exposed demographic) for d ∈ Dc . We refer                   did not generalize well to our data. We want
+to ŝd , t̂d ∼ p(s, t|d, ∅) as baseline summaries            to avoid compounding effects of assessing LLMs
+and themes or Ŝdbase , T̂dbase (with no intention-          with other LLMs, so we prefer wording-based or
+ally exposed demographic in the prompt), and                 general-purpose embedding-based methods.
+ŝd , t̂d ∼ p(s, t|d, c) as demographic-conditioned
+summaries and themes or Ŝddemo , T̂ddemo (with ex-          4.2     Psychological States
+posed demographic in the prompt).                            We then assess similarities in the emotional and
+                                                             psychological states expressed in Ŝ compared to
+4.1   Wording and Semantics                                  D, defined as follows:
+We first use standard summarization metrics for
+                                                                                     1           X
+wording and semantic similarity to compare the                            µd =                               f (ŝd )
+documents and baseline summaries within a de-                                    |Ŝdbase |
+                                                                                              ŝd ∈Ŝdbase
+mographic, defined as follows:
+                          P
+                 1 X        ŝd ∈Ŝdbase f (ŝd , d)                              1 X     2(µd − f (d))
+   sim(Dc ) =                                                 psych(Dc ) =
+                |Dc |             |Ŝdbase |                                     |Dc | abs(µd ) + abs(f (d))
+                      d∈Dc                                                               d∈Dc
+
+  We use the following measures for the metric                 If the denominator of psych is 0 then we use
+function f in the sim function:                              pscyh(Dc )=0. Differences in this measure across
+
+                                                         4
+demographic groups indicate the LLM’s choices                                                  4.4    Qualitative study
+to amplify or suppress psychological states for one                                            In order to determine the validity of our approach
+demographic over another. We use the following                                                 for quantifying LLM positionality, we conduct a
+three metrics for f in the psych function:                                                     qualitative study with our collaborators in psy-
+                                                                                               chology to assess aspects of perspective or bias in
+LIWC The LIWC lexicon (Pennebaker et al.,
+                                                                                               the LLM summaries. Three psychology research
+2015) associates words with different psycho-
+                                                                                               students (one PhD student and two undergraduate
+logical properties (e.g., social life, psychological
+                                                                                               research assistants) read a subset of eight inter-
+drives, affective states, etc.) and counts the preva-
+                                                                                               views in full. These researchers are working with
+lence of these different properties in text based on
+                                                                                               these interviews in their own research so they have
+frequency of words in these different categories.
+                                                                                               particular expertise in this dataset as well as hav-
+VAD The VAD lexicon (Mohammad, 2018)                                                           ing psychology training. The subset of interviews
+counts words associated with different emotional                                               are selected to represent an even distribution of
+valence (i.e., happy is positive valence while sad                                             Black men, Black women, white men, and white
+is negative), arousal (i.e., excited is high arousal                                           women. We then provide them with an interface to
+while bored is low), and dominance (i.e., power-                                               answer questions about the LLM summaries from
+ful is high dominance and weak is low).                                                        p(S | D). We ask the researchers multiple choice
+                                                                                               and write-in questions about the general quality
+SCM The SCM projection method (Qin and                                                         of the baseline summaries (see interface instruc-
+Tam, 2023) uses word embeddings to project a text                                              tions in Appendix B). Each interview is evaluated
+representation onto vectors representing warmth                                                by two or three raters.
+and competence in embedding space. Warmth and                                                     The questions we ask each student are shown
+competence are axes of the Stereotype Content                                                  in Figure 4. 4 Question 1 targets precision, sim-
+Model from psychology (Cuddy et al., 2009) for                                                 ilar to our wording and semantics metrics. Ques-
+characterizing stereotypes of groups.                                                          tions 2 and 3 are based on the Stereotype Content
+   We normalize LIWC counts by word count per                                                  Model (SCM), similar to one of our psychologi-
+summary or document to account for differences                                                 cal states metrics. Question 4 asks directly about
+in length. VAD and SCM scores are on continu-                                                  stereotypes related to the identity of the intervie-
+ous spectra so we average word-level scores across                                             wee. Finally, question 5 is intentionally open-
+each summary or document. We then take the dif-                                                ended to surface other observations from the psy-
+ference between these normalized scores for Ŝ and                                             chologists. Questions 1-3 are answered on a 4-
+D. We experimented with additional models, such                                                point Likert scale and we look for differences in
+as Shen et al. (2023)’s empathy model, but the                                                 ratings across demographic groups. For questions
+scores were not well-calibrated for our data.                                                  4-5, we look for differences in observations across
+                                                                                               groups. We use these human responses as the basis
+4.3    Themes                                                                                  for comparison for our quantitative results.
+We finally assess differences in the themes sam-                                                  For stereotypes, we consider a binary score of
+pled from p(T̂ |D, ∅) compared to p(T̂ |D, c)                                                  whether a stereotype was identified or not.5 When
+across demographic groups. In this case, we can-                                               considering these binary ratings as well as indi-
+not directly compare T̂ against themes in D with-                                              vidual Likert ratings, we observe moderate pair-
+out human involvement, but we can test whether                                                 wise annotator agreement averaged across annota-
+intentionally exposing c to the summarization                                                  tor pairs (agreement on 58% of ratings, 0.44 aver-
+model changes the themes identified by the model,                                              age Cohen’s kappa). For rating direction, captur-
+indicating how c affects the themes the model                                                  ing whether a score is positive (rating of 3 or 4) or
+identifies and highlights. We consider each theme                                              negative (rating of 1 or 2), we see stronger agree-
+as a word or phrase, such as resilience or personal                                               4
+                                                                                                     We initially included two other questions in the study fo-
+growth, and measure shifts in a theme t as follows:                                            cused on comprehensiveness and significant omissions. Due
+                                                                                               to a miscommunication during annotation, the psychologists
+                                                                                               assumed the summaries were based on the entire interviews
+                                                                                         instead of just the life chapters question, so we removed these
+                  P
+                         1 t ∈
+                                       S
+                                                  t̂d  − 1 t ∈
+                                                                       S
+                                                                                  t̂d        questions from the final analysis.
+                                                                                                   5
+                  d∈De             t̂d ∈T̂ddemo                    t̂d ∈T̂dbase                      In practice, we did not observe any stereotypes of type
+theme(t, Dc ) =                                                                                other so we just consider gender and racial stereotypes.
+                                                  |Dc |
+
+
+                                                                                           5
+1. Is the summary accurate relative to the interview?      4. Does the summary use stereotypes related to the person’s identity? (Select all
+                                                           that apply or leave blank if none)
+
+
+
+
+2. Does the summary convey a warm tone?
+
+                                                           5. Please comment on any other quick impressions you have about the summary.
+                                                           For instance, what did you like? What did you not like? If you had to characterize
+                                                           the positionality of the writer, how would you describe it? Your answer does not
+                                                           need to be complete sentences, and you do not need to spend more than 1-2
+3. Based on the summary alone, does the interviewee come
+across as competent?                                       minutes on this question.
+
+
+
+
+                   Figure 4: The questions we ask the psychology researchers in the qualitative study.
+
+
+ment (agreement on 74% of rating directions, 0.49                      puted using a one-sided bootstrapped paired sig-
+average Cohen’s kappa). We average expert rat-                         nificance test with 5,000 samples and 95% confi-
+ings for each question to account for the moderate                     dence. In bar plots, we show an 83% confidence
+disagreement in exact ratings.                                         interval to approximate statistical significance in
+                                                                       visual comparisons across groups. We show one
+5    Experimental Setup                                                of the full results bar plots in Figure 5 and show
+Summarization We provide the life chapters                             the others in Appendix D, preferencing reporting
+portion of the interview transcript as input, and                      a summary of the statistically significant results in
+generate summaries using a prompt that asks the                        the positionality portraits (Figures 6, 7, 8).
+model to 1) focus on how the person finds mean-
+                                                                       Positionality portraits The positionality por-
+ing in life, and 2) provide a section on the person’s
+                                                                       traits summarize statistically significant demo-
+core values as expressed by their story (prompts
+                                                                       graphic effects. For wording and semantics and
+shown in Appendix C). The core values fill the
+                                                                       psychological states, a demographic group has a
+role of the themes in our pipeline, demonstrat-
+                                                                       dark green tile if summaries increase an attribute
+ing how prompts can be adapted to salient fac-
+                                                                       for that group more than for all three other de-
+tors in a given application. For the demographic-
+                                                                       mographic groups. The tile is lighter shades of
+conditioned summaries, we add a sentence indi-
+                                                                       green for increases over only two other groups or
+cating whether the interviewee is a Black man,
+                                                                       one other group. A tile is grey if summaries for
+Black woman, white man, or white woman. We
+                                                                       that group do not show greater increases in an at-
+provide the full life chapters section to the LLMs
+                                                                       tribute relative to other groups. For themes, green
+for clarity, but during evaluation, only compare
+                                                                       indicates inclusion of explicit demographics for a
+summaries to the interviewee’s responses.
+                                                                       group increases the identification of a theme, and
+Models We study several open-source LLMs:                              red indicates a decrease. A darker color indicates
+Qwen-2.5-7B-Instruct,     Llama-3.1-8B-Instruct,                       a lower p-value.
+and Llama-3.2-3B-Instruct. We cannot experi-
+ment with API-based models given the sensitivity                       6.1    Are wording and semantics maintained
+of the dataset. For each model, we generate                                   differently across demographic groups?
+summaries with five different random seeds, tem-                       In Figure 5, we show the summarization results
+perature 0.7, and up to 6000 output tokens. We                         for intersectional demographic effects. We see
+remove outputs that do not have both summary                           that across all three models, the summaries show
+and core values sections.                                              a similar level of wording overlap across demo-
+                                                                       graphic groups, as demonstrated by the ROUGE-
+6    Results
+                                                                       1 and ROUGE-L scores. There are differences in
+We assess the results from our analysis focused on                     semantic similarity between the summaries and in-
+wording and semantics, psychological states, and                       terviews though across demographic groups. Sig-
+themes. Statistically significant results are com-                     nificance testing shows that white men have a
+
+                                                                   6
+                   Llama-3.2-3B-Instruct                           Llama-3.1-8B-Instruct                               Qwen2.5-7B-Instruct
+
+ROUGE-1
+       0.0   0.1      0.2   0.3   0.4   0.5     0.6   0.0    0.1      0.2   0.3    0.4     0.5    0.6     0.0    0.1     0.2   0.3     0.4   0.5    0.6
+
+
+ROUGE-L
+      0.00 0.01 0.02 0.03 0.04 0.05 0.06 0.07         0.00         0.02     0.04         0.06      0.08   0.00         0.02     0.04         0.06         0.08
+
+
+BertScore
+     0.815         0.820     0.825      0.830
+                                     0.835 0.815     0.820     0.825      0.830     0.835 0.815      0.820    0.825  0.830    0.835
+                                  white man         white woman         Black man          Black woman
+                                  white woman       Black man           Black woman        white man
+   Figure 5: We show results for Black
+                                  each  man
+                                         LLM
+                                  Black woman   in  Black woman
+                                                   each   column
+                                                    white man       for white man the wording
+                                                                         scoring
+                                                                        white woman
+                                                                                           white woman
+                                                                                           Black manand semantic similarity of the
+                                  white man
+   summary against the life chapters   interview. Wewhite woman
+                                                         average an Black     man
+                                                                      individual’s         Blackacross
+                                                                                       scores    woman the five random seeds and
+                                  white woman
+   then report the mean across a demographic        Blackwith
+                                                 group    man an 83%Black     woman
+                                                                          confidence       white man
+                                                                                        interval.
+                                  Black man         Black woman         white man          white woman
+                                  Black woman       white man           white woman        Black man
+                                  white man         white woman         Black man          Black woman
+   higher BERTScore than Black men and women for                                   see in the next section, this type of emphasis
+   Llama-3B and than white women for Llama-8B.                                     does not translate to an increase in positive val-
+   Black men have a significantly lower BERTScore                                  ues, such as hard work or perseverance. Instead,
+   than all other demographics for Qwen-7B. These                                  this type of increase likely indicates an empha-
+   results are not surprising given existing research                              sis on the harder strenuous aspects, in contrast
+   on bias in LLMs that results in better interpreta-                              to an increase in leisure for white women over
+   tion of White Mainstream English (Deas et al.,                                  Black women. For VAD scores, we see white
+   2023). We would not expect models to gener-                                     men showing significant increases in valence, in-
+   ate African American Language effectively, but                                  dicating their stories are made more positive. For
+   we would hope to see more similarities in seman-                                llama models, summaries for Black men signifi-
+   tics across racial groups. However, it is surpris-                              cantly increase dominance, or tendency to strength
+   ing that white women are also often at the same                                 and control. Lastly, for the SCM projections, we
+   point of lower semantic similarity as Black men                                 see an increase in warmth for Black men for all
+   and women, indicating there may be a larger ef-                                 three models, as well as Black women for Llama-
+   fect than just emphasis on White Mainstream En-                                 3B. Summaries for white men show the greatest
+   glish during training. In particular, we know that                              relative increases in competence. These results
+   white men are overrepresented in training datasets                              align with studies showing societal stereotypes of
+   collected in the United States (Dodge et al., 2021;                             Black people (Allport, 1954; Fiske et al., 2009)
+   Deas et al., 2025; Bailey et al., 2022).                                        and women (Glick and Fiske, 2018; Koenig and
+                                                                                   Eagly, 2014) as typically higher in warmth, but
+   6.2       Which psychological states are amplified                              lower in agency/competence.
+             for different demographic groups?                                        These results show that each LLM brings a
+                                                                                   slightly different perspective and bias to abstrac-
+   In Appendix D, we show the full LIWC, VAD, and
+                                                                                   tive claims. We see some stereotypes we ex-
+   SCM results with a subset shown in the position-
+                                                                                   pect around gender and race, such as presenting
+   ality portraits in Figures 6, 7, and 8. We mostly
+                                                                                   Black women at work and white women at leisure.
+   see increases in these scores for the summary rela-
+                                                                                   We also see outcomes that may be surprising; for
+   tive to the transcript, which may be due to greater
+                                                                                   example, men’s experiences are adjusted signif-
+   information density in the summary.
+                                                                                   icantly in emotional expression, as indicated by
+      For LIWC sub-themes, we see significant in-                                  shifts in valence, arousal, and dominance.
+   creases for white individuals over Black individ-
+   uals in family and social themes, with Black men,
+                                                                                   6.3          How do identified themes depend on
+   often having the lowest increase in the family
+                                                                                                demographics?
+   theme. We see that Black women receive a sig-
+   nificant increase in emphasis in this category over                             In Appendix D, we show the full results for both
+   white men for Llama-8B. Importantly, as we’ll                                   counts of themes in baseline summaries and shifts
+
+                                                                              7
+  Figure 6: The Llama-3.2-3B positionality portrait.
+                                                                       Figure 7: The Llama-3.1-8B positionality portrait.
+in theme counts based on explicit demographics
+for all of the top 30 themes. The statistically sig-                  prevalent in summaries of white men’s stories.
+nificant shifts for the top 20 themes for a model are
+                                                                         Shifting to the differences in the percent
+summarized in the positionality portraits shown in
+                                                                      of summaries identifying the themes between
+Figures 6, 7, and 8. The baseline theme counts
+                                                                      the demographic-conditioned and baseline sum-
+include both real differences in what interviewees
+                                                                      maries, we see a significant increase in identifica-
+express and potential language model bias while
+                                                                      tion of hard work for white men and decrease for
+the shift in the theme counts isolates the effect of
+                                                                      white women with Llama-8B. We see a decrease in
+language model bias.
+                                                                      perseverance for Black women in Llama-3B. Fi-
+   In the baseline theme counts, resilience, family,
+                                                                      nally, we see a decrease in self-awareness and/or
+and personal growth are the most strongly identi-
+                                                                      personal growth or growth for Black men for all
+fied themes. These positive narrative arcs are com-
+                                                                      three models.
+mon for LLMs which frequently end stories on
+positive conclusions and notes of growth, a known
+                                                                      6.4   Does our quantitative approach uncover
+issue in narrative generation (Tian et al., 2024).
+                                                                            real phenomena identified by experts?
+Black individuals show more faith in their themes,
+which is consistent with the self-identified demo-                    Table 1 shows scores from the expert human study.
+graphics in the dataset for religion and spiritual-                   We see that Llama-8B summaries are more faith-
+ity6 . Finally, the theme of relationships is most                    ful, while Llama-3B summaries portray partic-
+   6
+                                                                      ipants with the highest degree of warmth and
+     For Black participants, 71% identify as very spiritual and
+43% identify as very religious. For white participants, 26%           competence. Qwen-7B includes the most gen-
+identify as very spiritual and 11% identify as very religious.        der stereotypes, and Llama-3B includes the least
+
+                                                                  8
+                                                                         Mod.   Black   White    Wom.    Man     Tot.
+                                                                         ll8B    2.92    3.33     3.54   2.71    3.12
+                                                               Faith.    ll3B    2.88    2.54     2.96   2.46    2.71
+                                                                         qw7B    2.71    2.71     2.92   2.50    2.71
+                                                                         ll8B    2.25    2.75     2.79   2.21    2.50
+                                                               Warm.     ll3B    2.75    2.83     3.21   2.38    2.79
+                                                                         qw7B    2.12    2.08     2.17   2.04    2.10
+                                                                         ll8B    2.79    3.67     3.46   3.00    3.23
+                                                               Comp.     ll3B    3.33    3.46     3.54   3.25    3.40
+                                                                         qw7B    2.96    2.92     3.25   2.62    2.94
+
+                                                                         ll8B    .08      .33     .08     .33    .21
+                                                               Gend.
+                                                                         ll3B    .00      .33     .08     .25    .17
+                                                               Stereo.
+                                                                         qw7B    .21      .25     .12     .33    .23
+                                                                         ll8B    .21      .00     .08     .12    .10
+                                                               Race
+                                                                         ll3B    .08      .00     .08     .00    .04
+                                                               Stereo.
+                                                                         qw7B    .21      .00     .21     .00    .10
+
+
+                                                           Table 1: Average scores assigned by the psychology
+                                                           experts for summaries by model and interviewee de-
+                                                           mographic. Faithfulness, warmth, and competence are
+                                                           averaged Likert scores, whereas stereotypes are the per-
+                                                           cent of summaries containing stereotypes in that cate-
+                                                           gory.
+
+
+                                                           types about Black individuals and more gender
+  Figure 8: The Qwen-2.5-7B positionality portrait.        stereotypes about men. While we may have ex-
+                                                           pected to see more gendered stereotypes against
+                                                           women, we see that actually this finding is in line
+stereotypes for both gender and race. This find-           with the rest of our quantitative results that show
+ing suggests that as models are more powerful,             harmful shifts, particularly against Black men, but
+and likely better summarizers, they may also learn         also against white men in terms of how their self-
+more nuanced bias. We cannot test very large               expression is qualified.
+closed models on this dataset, but this finding sug-          Finally, in write-in feedback, the psychologists
+gests that larger models may not fix these issues.         consistently comment on the models omitting or
+   Given the small number of interviewees in-              glossing over weighty emotional events7 . For ex-
+cluded in the human study, we break results down           ample, a brother’s death is consistently left out of
+by individual demographic traits in Table 1 rather         summaries of one interview, and a father’s dra-
+than showing intersectional identities. We see that        matic murder is stated matter-of-factly in another.
+summaries for white individuals and women are              Lastly, another woman talks in depth about be-
+rated as more faithful than for other demograph-           ing molested as a child, which is not mentioned
+ics across all three models, except for Llama-3B,          at all, possibly due to safety-related post-training
+and summaries for white individuals and women              of models. We show additional examples of issues
+portray the interviewee as more warm and compe-            identified by the psychologists in Figure 9.
+tent in general. Qwen-7B portrays Black individ-
+uals as slightly more warm and competent, pos-             7    Discussion
+sibly due to a difference in training data from a
+                                                           We see that our quantitative pipeline produces
+Chinese as opposed to American context. Overall,
+                                                           an individual positionality portrait for each open-
+these results do not align exactly with our SCM
+                                                           source LLM we test, and demonstrates consis-
+warmth and competence projection scores, but us-
+                                                           tency with what human experts observe. These
+ing lower warmth and competence ratings as axes
+                                                           portraits uncover significant race and gender-
+for more negative stereotypes, they reveal a simi-
+                                                           based representational issues, which are not neces-
+lar finding to what we saw quantitatively; there are
+more harmful representational stereotypes around               7
+                                                                 Since the psychologists had initially assumed the sum-
+Black individuals and men in the summaries.                maries covered the entire interviews, we manually removed
+                                                           comments which were not appropriate based on the life chap-
+   The stereotype scores from the psychologists            ters portion of the interview and still found this observation
+show the same pattern with more racial stereo-             prevalent.
+
+
+                                                       9
+                                 INTERVIEW EXCERPT                                                                       SUMMARY EXCERPT                                    EXPLANATION
+
+    Faithfulness Errors:
+    “Uh, and then we, uh, he got his Ph.D. and we did a post doc -- he did a post doc year        The speaker's life story begins with their childhood,               The model fills in an incorrect
+    at Scripts, in[ADDRESS]n[ADDRESS]o, so we lived in[ADDRESS]n[ADDRESS]o for a                  growing up in various places including San Francisco,               city rather than using the
+    year, and I have substantial memories of San[NAME]o.”                                         England, and Chicago…                                               anonymized term.
+
+    “I got together with a woman, who I had actually known through PTA stuff whose                The speaker found solace in their wife and eventually              The model confuses the
+    husband had died in[DATE]2. And we, we got together and we got married and                    changed careers to become a high school physics teacher,           relationship of the person the
+    merged our families”                                                                          merging their family with their sister's and their husband's.      interviewee merges family with.
+
+    Disproportionately positive endings:
+    “Right now, I'm taking medications for depression, bipolar I think. So I'm just, I'm just -- right now, I'm     Despite struggling with depression and bipolar disorder, the     The tone of these
+    at a stage in my life where I'm just bored and lazy. I have a feeling I want to just get up and do anything     person is currently in a better place, trying to Qind meaning    final summary
+    and have fun, some fun but will not take that Qirst step so I end up being bored. ”                             and purpose in their life, having recently lost their father.    sentences does
+                                                                                                                                                                                     not match what is
+    “I'm str -- I'm being strong for everybody around me. I'm not as strong as people might think, think,                                                                            expressed by the
+    you know what I'm saying? Putting up a good front. … So I mean even the doctor said, well, normally             Miraculously, she survived multiple stents and a long            interviewees in
+    after a woman has had a heart attack and open heart surgery that they normally wouldn't lived -- live           recovery period, emerging stronger and more determined to        the final chunks of
+    for like Qive years or something… And I'm like, okay, I never told anybody that… because I don't want           be a beacon of resilience for those around her.                  their life chapters
+    people watching me.… Just whatever happens, you know, happens. ”                                                                                                                 transcripts.
+
+    Stereotypes:
+    “I had to be the strongest of the seven siblings. And with my mother not having much education, it, it, it's        The story recounts the life of a resilient
+                                                                                                                                                                     The summary uses othering
+    like, let me think, she -- I would always have to be strong for her as well as the, the, the kids, the older kids   woman who grew up in a large,
+                                                                                                                                                                     language rather than terms the
+    and the younger kids. She was abused so.. I would, you know, always run across the street and get the               underprivileged family where she had to
+                                                                                                                                                                     interviewee uses herself.
+    police and just seems like I had to always protect the family. ”                                                    take on a leadership role early on.
+
+    “…third grade I was like honor roll, you know, student, top of the class and everything like that… I always         The narrator's life story is marked by a     The summary starts here, omitting
+    felt that I never got as much attention as I wanted, as I thought I needed. So as I think back on it, my            signiQicant struggle with addiction,         what the interviewee shares
+    brother, he was like -- well, he's like four years older than I am, and my sister that passed, she was like two     which began when they started drinking       before about his achievements
+    years older, and she was getting a lot of attention.”                                                               in their sophomore year of high school.      and emotional context.
+
+
+
+Figure 9: We show some examples of the types of issues identified by the psychology experts (with excerpts from
+white men in blue, from Black men in green, and from Black women in red).
+
+
+sarily resolved by larger models. Instead, we find                                                         experiences across racial backgrounds or analyz-
+larger models may actually inject a more biased                                                            ing the emotional experience of men among the
+perspective in abstractive analysis.                                                                       analyzed interviews. While the differences and
+   Overall, we see many issues concentrated in                                                             shifts we discuss throughout our results are statis-
+how models handle emotional expression. Models                                                             tically significant, they also often constitute small
+do not effectively distinguish emotionally weighty                                                         shifts in numerical measures, meaning that some
+events and give them appropriate emphasis in                                                               of these models may still be “good enough” to use
+summaries. They also shift toward an overly pos-                                                           in practice. Overall, however, using this pipeline
+itive framing of events which is inconsistent with                                                         provides researchers with useful insight into the
+the person’s own experience and detrimental in the                                                         biggest effects to look out for in using LLMs in
+context of psychological research. One surprising                                                          their analysis and which applications may be more
+finding is that emotional expression is more signif-                                                       or less appropriate. We propose that in using
+icantly adjusted for men. This outcome indicates                                                           LLMs in qualitative analysis for new datasets, re-
+the benefit of having an open-ended method like                                                            searchers present a positionality portrait such as
+this for assessing LLM positionality when work-                                                            we have presented here to demonstrate the posi-
+ing with a new dataset. We also see other neg-                                                             tion from which these models may approach data.
+ative gender-based stereotypes, like an emphasis
+on work for Black women versus leisure for white
+women, and a significant reduction in identifica-
+tion of self-awareness as a value for Black men.                                                              Limitations and Ethics. The experiments in
+                                                                                                           this study focus on one dataset and three smaller
+8       Conclusion                                                                                         open-source LLMs. We view a deep expert-
+                                                                                                           informed study as necessary for a topic like this,
+In this work, we draw on qualitative social sci-                                                           but we hope future work can extend this posi-
+ence notions of positionality to evaluate the ways                                                         tionality portrait approach to other LLMs and
+in which LLMs may alter researchers’ thematic                                                              datasets. To respect the privacy of study partic-
+analyses of text. To capture such biases, we                                                               ipants, we follow a data safety contract, includ-
+introduce a quantitative pipeline evaluating the                                                           ing using local data storage and locally run LLMs.
+substantive and thematic shift in model-generated                                                          We do not release full interviews and only present
+summaries. Using a corpus of life story inter-                                                             paraphrased or short excerpts of content with iden-
+views, the results of our pipeline show, for exam-                                                         tifying details removed. Our human study is ap-
+ple, that LLMs are less appropriate for comparing                                                          proved by IRB protocol AAAV9832.
+
+                                                                                                    10
+Acknowledgments                                                Naomi Ellemers, Ed Sleebos, et al. 2009. Stereo-
+                                                               type content model across cultures: Towards univer-
+This work is supported by funds provided by                    sal similarities and some differences. British journal
+the National Science Foundation and by DoD                     of social psychology, 48(1):1–33.
+OUSD (R&E) under Cooperative Agreement
+                                                             Shih-Chieh Dai, Aiping Xiong, and Lun-Wei Ku. 2023.
+DBI-2229929 (The NSF AI Institute for Artificial               LLM-in-the-loop: Leveraging large language model
+and Natural Intelligence). An author is addition-              for thematic analysis. In Findings of the Association
+ally supported by the National Science Foundation              for Computational Linguistics: EMNLP 2023, pages
+Graduate Research Fellowship DGE-2036197, the                  9993–10001, Singapore. Association for Computa-
+                                                               tional Linguistics.
+Columbia University Provost Diversity Fellow-
+ship, and the Columbia School of Engineering and             Stefano De Paoli. 2024. Performing an Inductive
+Applied Sciences Presidential Fellowship. Any                   Thematic Analysis of Semi-Structured Interviews
+opinion, findings, and conclusions or recommen-                 With a Large Language Model: An Exploration and
+dations expressed in this material are those of the             Provocation on the Limits of the Approach. Social
+                                                                Science Computer Review, 42(4):997–1019. Pub-
+authors and do not necessarily reflect the views of             lisher: SAGE Publications Inc.
+the National Science Foundation.
+                                                             Stefano De Paoli and Walter S Mathis. 2025. Reflec-
+                                                                tions on inductive thematic saturation as a poten-
+References                                                      tial metric for measuring the validity of an inductive
+                                                                thematic analysis with llms. Quality & Quantity,
+William Agnew, A Stevie Bergman, Jennifer Chien,                59(1):683–709.
+  Mark Díaz, Seliem El-Sayed, Jaylen Pittman, Shakir
+  Mohamed, and Kevin R McKee. 2024. The illu-                Nicholas Deas, Jessica Grieser, Shana Kleiner,
+  sion of artificial inclusion. In Proceedings of the          Desmond Patton, Elsbeth Turcan, and Kathleen
+  CHI Conference on Human Factors in Computing                 McKeown. 2023. Evaluation of African American
+  Systems, pages 1–12.                                         language bias in natural language generation. In
+                                                               Proceedings of the 2023 Conference on Empirical
+Gordon W Allport. 1954. The nature of prejudice.               Methods in Natural Language Processing, pages
+                                                               6805–6824, Singapore. Association for Computa-
+April H. Bailey, Adina Williams, and Andrei Cimpian.           tional Linguistics.
+  2022. Based on billions of words on the internet,
+  people=men. Science Advances, 8(13):eabm2463.              Nicholas Deas, Blake Vente, Amith Ananthram, Jes-
+                                                               sica A Grieser, Desmond U. Patton, Shana Kleiner,
+Ruth Behar. 2022.        The vulnerable observer:              James R. Shepard Iii, and Kathleen McKeown.
+  Anthropology that breaks your heart. beacon press.           2025. Data caricatures: On the representation of
+                                                               African American language in pretraining corpora.
+Myra Cheng, Esin Durmus, and Dan Jurafsky. 2023a.              In Proceedings of the 63rd Annual Meeting of the
+ Marked personas: Using natural language prompts               Association for Computational Linguistics (Volume
+ to measure stereotypes in language models. In                 1: Long Papers), pages 29192–29217, Vienna, Aus-
+ Proceedings of the 61st Annual Meeting of the                 tria. Association for Computational Linguistics.
+ Association for Computational Linguistics (Volume
+ 1: Long Papers), pages 1504–1532, Toronto,                  Michael S Deiner, Vlad Honcharov, Jiawei Li, Tim K
+ Canada. Association for Computational Linguistics.            Mackey, Travis C Porco, and Urmimala Sarkar.
+                                                               2024. Large language models can enable induc-
+Myra Cheng, Tiziano Piccardi, and Diyi Yang. 2023b.            tive thematic analysis of a social media corpus in
+ CoMPosT: Characterizing and evaluating carica-                a single prompt: Human validation study. JMIR
+ ture in LLM simulations. In Proceedings of the                Infodemiology, 4:e59641.
+ 2023 Conference on Empirical Methods in Natural
+ Language Processing, pages 10853–10875, Singa-              Jesse Dodge, Maarten Sap, Ana Marasović, William
+ pore. Association for Computational Linguistics.               Agnew, Gabriel Ilharco, Dirk Groeneveld, Margaret
+                                                                Mitchell, and Matt Gardner. 2021. Documenting
+Robert Chew, John Bollenbacher, Michael Wenger,                 large webtext corpora: A case study on the colos-
+  Jessica Speer, and Annice Kim. 2023. LLM-                     sal clean crawled corpus. In Proceedings of the
+  Assisted Content Analysis: Using Large Lan-                   2021 Conference on Empirical Methods in Natural
+  guage Models to Support Deductive Coding.                     Language Processing, pages 1286–1305, Online and
+  ArXiv:2306.14924 [cs, stat].                                  Punta Cana, Dominican Republic. Association for
+                                                                Computational Linguistics.
+Amy JC Cuddy, Susan T Fiske, Virginia SY Kwan,
+ Peter Glick, Stéphanie Demoulin, Jacques-Philippe           Esin Durmus, Karina Nyugen, Thomas I Liao,
+ Leyens, Michael Harris Bond, Jean-Claude Croizet,             Nicholas Schiefer, Amanda Askell, Anton Bakhtin,
+
+
+                                                        11
+  Carol Chen, Zac Hatfield-Dodds, Danny Hernan-                 Chin-Yew Lin. 2004. Rouge: A package for automatic
+  dez, Nicholas Joseph, et al. 2023. Towards mea-                 evaluation of summaries. In Text summarization
+  suring the representation of subjective global opin-            branches out, pages 74–81.
+  ions in language models. arxiv. arXiv preprint
+  arXiv:2306.16388.                                             Ananya Mayukha, Ambar Guzman, Sirin Jitklongsub,
+                                                                  and Dan P McAdams. 2025. “I want to lift my peo-
+Linda Finlay. 1998. Reflexivity: an essential com-                ple up”: Exploring the psychological correlates of
+  ponent for all research?      British Journal of                racial themes within the life stories of midlife Black
+  Occupational Therapy, 61(10):453–456.                           Americans. Journal of Personality.
+Susan T Fiske, Hilary B Bergsieker, Ann Marie
+  Russell, and Lyle Williams. 2009. Images of                   Dan P McAdams. 2008. The life story interview.
+  black americans: Then,“them,” and now,“obama!”.
+  Du Bois review: social science research on race,              Kinneret Misgav, Galit Neufeld-Kroszynski, Michal
+  6(1):83–101.                                                    Palombo, and Orit Karnieli-Miller. 2025. Human
+                                                                  analysis vs. artificial intelligence: analyzing of qual-
+Peter Glick and Susan T Fiske. 2018. The ambivalent               itative medical students’ narratives. Qualitative
+  sexism inventory: Differentiating hostile and benev-            Health Research, page 10497323251359445.
+  olent sexism. In Social cognition, pages 116–160.
+  Routledge.                                                    Saif Mohammad. 2018. Obtaining reliable human
+                                                                  ratings of valence, arousal, and dominance for
+Shashank Gupta, Vaishnavi Shrivastava, Ameet Desh-                20,000 english words. In Proceedings of the 56th
+  pande, Ashwin Kalyan, Peter Clark, Ashish Sab-                  annual meeting of the association for computational
+  harwal, and Tushar Khot. 2024. Bias runs deep:                  linguistics (volume 1: Long papers), pages 174–184.
+  Implicit reasoning biases in persona-assigned llms.
+  In Proceedings of the International Conference on
+                                                                Keiichi Namikoshi, Alex Filipowicz, David A
+  Learning Representations.
+                                                                  Shamma, Rumen Iliev, Candice L Hogan, and Nikos
+Sandra Harding. 1991. Whose Science? Whose                        Arechiga. 2024. Using llms to model the beliefs and
+  Knowledge?: Thinking from Women’s Lives. Cor-                   preferences of targeted populations. In Workshop
+  nell University Press.                                          on Behavioral Machine Learning.
+
+Rosanna Hertz. 1996. Introduction: Ethics, reflexivity          James W Pennebaker, Ryan L Boyd, Kayla Jordan, and
+  and voice. Qualitative sociology, 19(1).                        Kate Blackburn. 2015. The development and psy-
+                                                                  chometric properties of LIWC2015.
+Elida Izani Ibrahim and Andrea Voyer. 2026. Quali-
+   tative research with llm chatbots: Technological re-         Andrew Prahl. 2026. The ai-reflexivity checklist
+   flexivity for interpretative technology. Qualitative           (arc): A pre-analysis pause for llm-assisted cod-
+   Research, 26(1):133–159.                                       ing. Qualitative Health Research, 36(2-3):181–190.
+Danielle Jacobson and Nida Mustafa. 2019. So-                     PMID: 41441839.
+  cial identity map: A reflexivity tool for prac-
+  ticing explicit positionality in critical qualitative         Xuanlong Qin and Tony Tam. 2023. Stereotype con-
+  research.    International Journal of Qualitative               tent dictionary: A semantic space of 3 million
+  Methods, 18:1609406919870075.                                   words and phrases using google news word2vec
+                                                                  embeddings.      In International Conference on
+Bernard J Jansen, Soon-gyo Jung, and Joni Salminen.               Social Computing, Behavioral-Cultural Modeling
+  2023. Employing large language models in sur-                   and Prediction and Behavior Representation in
+  vey research. Natural Language Processing Journal,              Modeling and Simulation, pages 12–22. Springer.
+  4:100020.
+                                                                STEPHANIE Riger and RANNVEIG Sigurvinsdot-
+Ruthellen Josselson. 2006. Narrative research and the             tir. 2016.   Thematic analysis.    Handbook of
+  challenge of accumulating knowledge. Narrative                  methodological approaches to community-based
+  inquiry, 16(1):3–10.                                            research: Qualitative, quantitative, and mixed
+Anne M Koenig and Alice H Eagly. 2014. Evidence for               methods, pages 33–41.
+  the social role theory of stereotype content: observa-
+  tions of groups’ roles shape stereotypes. Journal of          Shibani Santurkar, Esin Durmus, Faisal Ladhak, Cinoo
+  personality and social psychology, 107(3):371.                  Lee, Percy Liang, and Tatsunori Hashimoto. 2023.
+                                                                  Whose opinions do language models reflect? In
+Alison Ledgerwood, Sa-kiera Tiarra Jolynn Hudson,                 International Conference on Machine Learning,
+  Neil A Lewis Jr, Keith B Maddox, Cynthia L Pick-                pages 29971–30004. PMLR.
+  ett, Jessica D Remedios, Sapna Cheryan, Amanda B
+  Diekman, Natalia B Dutra, Jin X Goh, et al. 2022.             Nino Scherrer, Claudia Shi, Amir Feder, and David
+  The pandemic as a portal: Reimagining psychologi-               Blei. 2024. Evaluating the moral beliefs encoded
+  cal science as truly open and inclusive. Perspectives           in llms. Advances in Neural Information Processing
+  on Psychological Science, 17(4):937–959.                        Systems, 36.
+
+
+                                                           12
+Jocelyn Shen, Maarten Sap, Pedro Colon-Hernandez,
+  Hae Park, and Cynthia Breazeal. 2023. Model-
+  ing empathic similarity in personal narratives. In
+  Proceedings of the 2023 Conference on Empirical
+  Methods in Natural Language Processing, pages
+  6237–6252.
+Crystal N. Steltenpohl, Hilary Lustick, Melanie S.
+  Meyer, Lindsay Ellis Lee, Sondra M. Stegenga,
+  Laurel Standiford Reyes, and Rachel L. Ren-
+  barger. 2023.         Rethinking Transparency and
+  Rigor from a Qualitative Open Science Per-
+  spective.      Journal of Trial & Error, 4(1).
+  Https://journal.trialanderror.org/pub/rethinking-
+  transparency.
+
+Robert H. Tai, Lillian R. Bentley, Xin Xia, Jason M.
+  Sitt, Sarah C. Fankhauser, Ana M. Chicas-Mosier,
+  and Barnas G. Monteith. 2024. An examination
+  of the use of large language models to aid analysis
+  of textual data. International Journal of Qualitative
+  Methods, 23:16094069241231168.
+Amir Taubenfeld, Yaniv Dover, Roi Reichart, and
+ Ariel Goldstein. 2024.     Systematic biases in
+ LLM simulations of debates. In Proceedings of
+ the 2024 Conference on Empirical Methods in
+ Natural Language Processing, pages 251–267, Mi-
+ ami, Florida, USA. Association for Computational
+ Linguistics.
+Yufei Tian, Tenghao Huang, Miri Liu, Derek Jiang,
+  Alexander Spangher, Muhao Chen, Jonathan May,
+  and Nanyun Peng. 2024. Are large language models
+  capable of generating human-level narratives? In
+  Proceedings of the 2024 Conference on Empirical
+  Methods in Natural Language Processing, pages
+  17659–17681, Miami, Florida, USA. Association
+  for Computational Linguistics.
+Lindia Tjuatja, Valerie Chen, Tongshuang Wu, Ameet
+  Talwalkwar, and Graham Neubig. 2024. Do llms ex-
+  hibit human-like response biases? a case study in
+  survey design. Transactions of the Association for
+  Computational Linguistics, 12:1011–1026.
+
+Ziang Xiao, Xingdi Yuan, Q Vera Liao, Rania Abdel-
+  ghani, and Pierre-Yves Oudeyer. 2023. Support-
+  ing qualitative analysis with large language mod-
+  els: Combining codebook with gpt-3 for deduc-
+  tive coding. In Companion proceedings of the
+  28th international conference on intelligent user
+  interfaces, pages 75–78.
+Tianyi Zhang, Varsha Kishore, Felix Wu, Kil-
+   ian Q. Weinberger, and Yoav Artzi. 2020.
+   BERTScore: Evaluating Text Generation with
+   BERT. In International Conference on Learning
+   Representations.
+
+
+
+
+                                                          13
+A   Interview Questions
+
+
+To parse interviews automatically into which sections correspond to the answers to these questions, we
+first identify interviewer utterances by the "INTERVIEWER:" tag. We then encode these utterances
+using a TF-IDF vectorization. We encode the text of each interview question with the same method, and
+then for each question, we retrieve the interviewer utterance with the highest cosine similarity match. If
+the initial cosine similarity is > 0.7, we consider this a match, and if the similarity is < 0.3, we consider
+the question skipped in the interview. Then, using the matched questions as anchors, we search only
+the text between neighboring anchored questions for the remaining questions, and iteratively lower the
+cosine similarity threshold by 0.1 until we reach the floor of 0.3. For example, if questions 2 and 4 were
+already found, then we would search for question 3 only in the utterances between these two questions.
+The full code will be released in the accompanying GitHub Repository.
+
+
+
+
+B   Human Study Details
+
+
+Screenshots for the interface for the human study are shown in Figure 10.
+
+
+
+                                                                      ID
+
+                                                                      Full demographics shown here
+
+      Names
+
+
+
+
+                                                                           Full interview shown here
+
+
+
+
+                                                                           Full summary shown here
+
+
+
+              Figure 10: Screenshots of the instructions and layout in the human study interface.
+
+
+
+
+C   Summarization Prompts
+
+
+The system and user prompts are shown in the following blocks. Lines enclosed in square brackets are
+only added in the condition specified by the parenthetical at the beginning of the line.
+
+
+    System prompt for summarization
+
+    You are an expert at summarizing interviews.
+
+
+
+                                                      14
+User prompt for summarization
+
+Interview transcript excerpt: {life_chapters_interview}
+
+[(Added only in demographic-conditioned summaries) The interviewee is a {race}
+{gender}.]
+
+Task:
+1. Summarize the interview in 5-7 sentences, focusing on:
+   "How does this person find meaning in life?"
+2. Then provide the following section:
+   - Core Values
+
+Output Format:
+Summary:
+...
+
+Core Values:
+- ...
+
+[(Added only for Qwen models) Encapsulate your response in
+<response></response> tags.]
+
+
+
+
+                                      15
+D    Additional Results
+
+
+
+
+Figure 11: We show results for each LLM in each column for the analysis of VAD and SCM scores in the summary
+as compared to the interview transcript. We average an individual’s scores across the five random seeds and then
+report the mean across a demographic group with an 83% confidence interval.
+
+
+                                 Llama-3.2-3B-Instruct                 Llama-3.1-8B-Instruct                     Qwen2.5-7B-Instruct
+                  Resilience
+
+
+                      Family
+
+
+             Personal Growth
+
+
+              Independence
+
+
+              Self-Awareness
+
+     Theme
+                   Gratitude
+
+
+                Adaptability
+
+
+                  Education
+
+
+                       Faith
+                                                                                                                                  white man
+                                                                                                                                  white woman
+               Relationships                                                                                                      Black man
+                                                                                                                                  Black woman
+                           0.0   0.2   0.4   0.6    0.8   1.0 0.0     0.2        0.4   0.6   0.8     1.0 0.0    0.2   0.4   0.6      0.8        1.0
+                                                          Percent of Baseline Summaries Identifying the Theme
+
+Figure 12: We show the percent of baseline summaries for a given demographic group identifying a theme. We
+average a group’s scores across the five random seeds and then report the mean with an 83% confidence interval.
+
+
+
+
+                                                                            16
+                                       Llama-3.2-3B-Instruct                 Llama-3.1-8B-Instruct                    Qwen2.5-7B-Instruct
+            Affective Processes                                                                                       white man
+                                                                                                                      white woman
+               Positive Emotion                                                                                       Black man
+                                                                                                                      Black woman
+             Negative Emotion
+                       Anxiety
+                         Anger
+                      Sadness
+               Social Processes
+                        Family
+                     Friendship
+              Female Mentions
+                 Male Mentions
+           Cognitive Processes
+              Insight Language
+              Causal Language
+         Discrepancy Language
+                      Tentative
+             Certain Language
+       Differentiating Language
+                   Perceptions
+
+LIWC                    Seeing
+                       Hearing
+                        Feeling
+                        Health
+           Biological Processes
+                Body Processes
+              Sexual Processes
+                      Ingestion
+                        Drives
+                     Affiliation
+                  Achievement
+                         Power
+                       Reward
+                           Risk
+                          Work
+                        Leisure
+                         Home
+                        Money
+                       Religion
+                         Death
+                                   2      1       0         1           2         1         0         1          2         1        0   1
+                                               Percent Relative Change in Score for the Baseline Summary vs. the Interview Transcript
+
+Figure 13: The full LIWC results. We average an individual’s scores across the five random seeds and then report
+the mean across a demographic group with an 83% confidence interval.
+                                                                            17
+                                 Llama-3.2-3B-Instruct                       Llama-3.1-8B-Instruct                  Qwen2.5-7B-Instruct
+               Resilience
+
+                  Family
+
+         Personal Growth
+
+           Independence
+
+          Self-Awareness
+
+               Gratitude
+
+             Adaptability
+
+               Education
+
+                    Faith
+
+            Relationships
+
+             Community
+
+                Empathy
+
+           Self-Discovery
+
+           Perseverance
+
+                    Love
+Theme
+             Compassion
+
+                 Purpose
+
+           Determination
+
+            Self-Reliance
+
+        Self-Improvement
+
+              Hard Work
+
+               Creativity
+
+                 Growth
+
+           Responsibility
+
+          Empowerment
+
+                    Hope
+
+              Spirituality
+
+                Integrity
+
+             Connection                                                  white man
+                                                                         white woman
+                                                                         Black man
+                Honesty                                                  Black woman
+                             0.15 0.10 0.05 0.00 0.05 0.10 0.15        0.2         0.1   0.0   0.1     0.2 0.15 0.10 0.05 0.00 0.05 0.10 0.15
+                                        Difference in Percent of Demographic-Conditioned vs. Baseline Summaries Identifying the Theme
+
+Figure 14: The full theme identification results for the top 30 themes. We average an individual’s scores across the
+five random seeds and then report the mean across a demographic group with an 83% confidence interval.
+
+
+
+
+                                                                              18
+

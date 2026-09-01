@@ -1,0 +1,1082 @@
+                                         QualiGPT: GPT as an easy-to-use tool for qualitative coding
+
+                                         HE ZHANG, College of Information Sciences and Technology, Penn State University, USA
+                                         CHUHAO WU, College of Information Sciences and Technology, Penn State University, USA
+                                         JINGYI XIE, College of Information Sciences and Technology, Penn State University, USA
+                                         CHANMIN KIM, College of Education, Penn State University, USA
+                                         JOHN M. CARROLL∗ , College of Information Sciences and Technology, Penn State University, USA
+
+
+
+
+arXiv:2310.07061v1 [cs.HC] 10 Oct 2023
+                                         Fig. 1. Overview of the qualitative analysis toolkit, QualiGPT. The user interface of QualiGPT is displayed on the left. On
+                                         the right side, the usage flow and design logic of QualiGPT are presented.
+
+                                         Qualitative research delves deeply into individual complex perspectives on technology and various phenomena. However, a meticulous
+                                         analysis of qualitative data often requires a significant amount of time, especially during the crucial coding stage. Although there is
+                                         software specifically designed for qualitative evaluation, many of these platforms fall short in terms of automatic coding, intuitive
+                                         usability, and cost-effectiveness. With the rise of Large Language Models (LLMs) such as GPT-3 and its successors, we are at the
+                                         forefront of a transformative era for enhancing qualitative analysis. In this paper, we introduce QualiGPT, a specialized tool designed
+                                         after considering challenges associated with ChatGPT and qualitative analysis. It harnesses the capabilities of the Generative Pretrained
+                                         Transformer (GPT) and its API for thematic analysis of qualitative data. By comparing traditional manual coding with QualiGPT’s
+                                         analysis on both simulated and actual datasets, we verify that QualiGPT not only refines the qualitative analysis process but also
+                                         elevates its transparency, credibility, and accessibility. Notably, compared to existing analytical platforms, QualiGPT stands out with
+                                         its intuitive design, significantly reducing the learning curve and operational barriers for users.
+
+                                         CCS Concepts: • Human-centered computing → HCI design and evaluation methods; Collaborative and social computing;
+                                         Interactive systems and tools; Interaction techniques.
+
+                                         Additional Key Words and Phrases: ChatGPT, toolkit design, large language models, prompt engineering, qualitative analysis, analytical
+                                         evaluation, api application
+
+
+                                         1   INTRODUCTION
+                                         Qualitative research provides a unique perspective into individuals’ comprehension, attitudes, and insights regarding
+                                         technology, phenomena, and specific topics. Over time, an increasing number of researchers have acknowledged
+                                         ∗ Corresponding author.
+
+                                                                                                             1
+                                                                                                           Zhang and Wu, et al.
+
+
+the significance of qualitative methodologies across diverse fields. However, while these methods are indispensable,
+analyzing qualitative data can be labor-intensive [40], especially with extensive and complex datasets. Moreover, the
+task of coding qualitative data not only demands significant effort but also poses challenges related to understanding
+context and ensuring consistency. Coding, arguably the most crucial task in qualitative analysis, is both a beloved and
+challenging aspect for analysts. Continuously optimizing methods for processing qualitative data remains a common
+goal among these professionals. As the production of qualitative data continues to surge, there is an escalating demand
+for innovative techniques to streamline and enhance the thematic analysis process [4].
+   To address these challenges, researchers have ventured into the development and utilization of qualitative analysis
+software. These tools employ computer-assisted collaborative efforts to simplify data management and enhance
+efficiency [23]. While such software has indeed streamlined the coding process and improved the quality of coding to
+some extent, existing platforms like Nvivo1 and atlas.ti2 still have limitations in terms of performance and operational
+complexity, failing to fully meet the needs of researchers [5, 34].
+   In addition to the high subscription costs, learning to use these software tools for qualitative data analysis is not
+straightforward. Early-career researchers or analysts often find themselves investing a significant amount of time
+in understanding how to accomplish their target tasks within these environments and navigating the multifaceted
+UI interfaces [29]. However, many of these features are designed to cater to specific needs. In other words, not all
+functionalities within the software are utilized frequently by analysts, leading to increased learning overheads. As
+described by Ragavan et al. [69], analysts not only have to be concerned about their primary tasks at hand but also
+bear the additional learning costs associated with the tools (software) they choose. Therefore, the development of a
+more user-friendly tool to reduce the workload of analysts in their primary workflows becomes especially crucial.
+Starting from 2022, with the emergence of GPT-3, researchers began to widely recognize the immense potential of Large
+Language Models (LLMs) in various domains. The subsequent releases of GPT-3.5 and GPT-4, were perceived by many
+as heralding a comprehensive technological revolution. The advent of large-scale language models seemed to offer a new
+avenue of possibilities. It was during this time that we were inspired to ponder whether it might be feasible to leverage
+LLMs to assist in qualitative analysis, aiming to enhance both efficiency and performance. To achieve this objective, we
+approached it from a practical standpoint, selecting one of the most popular LLM applications developed by OpenAI,
+ChatGPT and its API, as our research platform to bolster the universality of our research contributions. We drew
+inspiration from the recent work of Zhang et al. [84] on enhancing qualitative analysis using ChatGPT, emphasizing
+the importance of prompts and by extending some of the future work they had highlighted.
+   In summary, this study first categorizes and summarizes the typical issues encountered when using ChatGPT,
+identifying four major categories that encompass eight common types of erroneous ChatGPT responses. Concurrently,
+we compiled concerns from previous studies wherein analysts expressed reservations about employing ChatGPT for
+qualitative analysis tasks, as well as the challenges ChatGPT faces in such contexts. With these issues and challenges in
+mind, we introduced QualiGPT: a user-friendly integrated tool built on API and prompt design, specifically tailored for
+thematic analysis of qualitative data.
+   We deployed QualiGPT on both simulated and real datasets and compared its performance to manual coding. The
+results show that this tool effectively addresses the challenges inherent in the traditional qualitative data coding process.
+It streamlines the qualitative analysis workflow, reduces costs associated with processing qualitative data, and alleviates
+concerns regarding transparency and credibility in using ChatGPT for qualitative analysis. Additionally, due to its
+1 https://lumivero.com/products/nvivo/
+2 https://atlasti.com/
+
+                                                             2
+QualiGPT: GPT as an easy-to-use tool for qualitative coding
+
+
+integrated design and API implementation, QualiGPT offers marked improvements in usability, user-friendliness,
+privacy protection, and performance over the web version of ChatGPT. When compared to conventional software,
+QualiGPT provides a more insightful user interface, significantly lowering the learning and usage costs for researchers.
+
+
+2     BACKGROUND AND RELATED WORK
+2.1    Thematic Analysis of Qualitative Data
+Thematic analysis is a method used to encode qualitative data gathered from various sources, such as interviews, focus
+groups, social platforms, or field research. Its primary objective is to identify patterns or themes that aptly describe
+and organize the observed data or interpret various facets of a phenomenon [7, 9]. This technique has been applied in
+diverse fields, including psychology [8, 80], sociology [31], education [51, 82], and health and well-being [10, 17, 20].
+    Two primary approaches to thematic analysis have emerged in existing literature, each offering distinct perspectives
+on theme identification [8, 9]. The inductive approach emphasizes deriving meaning directly from the data, free from
+the constraints of prior knowledge or pre-existing theories [25, 74]. In contrast, the deductive approach leverages
+existing theories or frameworks to pinpoint specific themes of interest [9, 25, 55].
+    In our research, we concentrated on the inductive, data-driven thematic analysis approach. We have developed a
+toolkit allowing researchers to automatically analyze qualitative data using LLMs.
+    Braun and Clarke’s 6-phase coding framework [8, 18] is widely adopted in thematic analysis, regardless of the specific
+approach taken [9]. This framework delineates a process that starts with data familiarization. It then progresses to code
+generation, combines codes into themes, reviews those themes, determines their significance, and finally culminates in
+the preparation of the final report. Inherently iterative, this framework often compels researchers to revisit earlier steps
+when faced with new data or emerging themes that necessitate further exploration. Such an approach can yield more
+nuanced and thorough thematic outcomes.
+    Thematic analysis serves as a potent tool for qualitative data, yet its application is not devoid of challenges inherent
+to the intricacies of qualitative research [40].
+    First, the challenge of “researcher subjectivity” arises. Each researcher brings their unique biases to data interpretation,
+which can lead to the emergence of diverse themes from the same dataset [65]. This variability introduces replicability
+concerns [11, 52]. Consequently, it’s crucial to uphold transparency and credibility of the results [14] and to detail the
+interpretive process comprehensively.
+    Second, the resource-intensive nature of thematic analysis stands as a considerable challenge, especially when dealing
+with extensive datasets [14, 32]. Recognizing patterns and themes demands deep engagement, necessitating significant
+time and effort, extending beyond mere data coding [71].
+    Third, questions of generalizability come to the fore [43]. While thematic analysis offers profound insights into a
+specific context, extrapolating these insights to varying contexts can be restrictive, thereby limiting the generalizability
+of outcomes.
+    Fourth, the caliber of the collected data forms the bedrock of thematic analysis’ robustness [12]. The emergence of
+significant and relevant themes hinges on the depth and accuracy of the data. Shortcomings in data collection can
+undermine the validity and richness of the themes derived.
+    This study explores the extent to which AI’s integration into thematic analysis can address some of these challenges.
+Specifically, we examine how AI can provide efficient resource management, tackling the “resource-intensive” nature of
+thematic analysis.
+                                                               3
+                                                                                                         Zhang and Wu, et al.
+
+
+2.2   Prompt Engineering
+Prompt engineering is the deliberate design and optimization of instructions, or “prompts”, aimed at enhancing the
+performance and accuracy of LLMs when generating outputs [62, 83]. This strategy is crucial as the type and specificity
+of prompts provided to LLMs can significantly shape their responses.
+  ChatGPT by OpenAI, developed within the Generative Pretrained Transformer (GPT) framework, underscores
+the importance of prompt engineering [26]. Renowned for its expertise in diverse language tasks, such as producing
+human-like text, content generation, sentence completion, and in-depth essay or report writing [3, 6, 44, 46], ChatGPT
+is not immune to errors. It may yield outputs that seem nonsensical or incorrect, particularly when faced with unclear
+or ambiguous prompts [36, 68].
+  The value of prompt engineering gains further emphasis from studies revealing improved outcomes when LLMs
+like ChatGPT receive meticulously crafted prompts. Techniques such as few-shot learning [85], chain-of-thought
+methods [77], and role-playing scenarios [27] have demonstrated considerable efficacy. However, the performance of
+ChatGPT, even when paired with refined prompt engineering, can differ based on the domain in question. Mastery in
+domain-specific knowledge is pivotal for honing the model’s efficacy [73, 76]. Thus, practitioners are encouraged to
+weigh the specific application context carefully during prompt engineering [37]. For areas like qualitative analysis,
+employing an iterative methodology—consistently adapting and evaluating diverse prompt engineering strategies—may
+be instrumental in harnessing the full potential of ChatGPT.
+
+
+
+
+2.3   Computer-Assisted Qualitative Data Analysis
+With the increasing amount of qualitative data being generated, Computer-Assisted Qualitative Data Analysis (CAQDA)
+has been playing a critical role in qualitative research. Over the past decades, a large number of CAQDA applications
+and software has emerged to help researchers organize, manage, and analyze data. The history of CAQDA can be
+traced back to the introduction of computers in the 1980s [57], and Weitzman and Miles [78] have categorized 24
+software programs available at that time into 5 types. Chandra and Shang [15], Sánchez-Gómez et al. [70] provide
+detailed introduction of contemporary CAQDA software and highlight that the choice of program must consider the
+nature of data, type of coding, and other factors during the research. CAQDA software nowadays offer a wide range of
+functionalities such as processing data from multiple media channels (text, picture, audio, and video), visualizing the
+analysis results through automatic plotting of data, and quickly generating predefined and customized reports [56].
+Some applications such as Dedoose focuses on facilitating collaborative QDA by enabling real-time data exchange
+among multiple researchers [38]. While the capabilities vary greatly among applications, more advanced functionalities
+often comes at the cost of a high subscription fee [61] that potentially deter researchers away. As a result, some free and
+open source alternatives have been developed to support the growing need of qualitative research, such as Taguette
+[59] and RQDA [16], although their functionalities tend to be more basic than commercial products. Another problem
+with CAQDA software is their user experience and learnability. Paulus et al. [54] find that initial encounters can be
+intimidating for novices, yet with proper guidance researchers can effectively integrate these tools. Still, studies on the
+interface design of CAQDA are rather limited and a comparison of both commercial and open source applications is
+necessary for designing better tools.
+
+
+                                                             4
+QualiGPT: GPT as an easy-to-use tool for qualitative coding
+
+
+2.4     AI in Qualitative Research
+The combination of artificial intelligence (AI) and qualitative research has begun to redefine how researchers approach
+qualitative data and analysis [35, 81]. Technologies, especially AI algorithms, provide potential for improved efficiency
+in analyzing large datasets, a task that traditionally requires substantial time and resources when conducted by human
+analysts. In fact, in earlier years, researchers have been using computers or technologies to assist in qualitative
+studies [19, 72, 78].
+    AI can be used to gather and organize qualitative data from various sources, like social media platforms, online
+forums, and digital archives. This not only saves time and resources but can also uncover a wider range of data points
+that might be overlooked in manual collection [24]. Also, AI-powered transcription services can transcribe audio
+and video data into text format quickly and accurately. Typically, transcription and encoding in qualitative research
+present the biggest challenges for researchers, often consuming a lot of time. However, a good assistant tool allows
+researchers to focus more on analysis rather than on data preparation [47]. AI models can provide initial analysis of
+textual data by summarizing content, identifying key themes, sentiments, or trends, and even insightful advice and
+generating questions that can help guide further research [21, 42, 45, 63, 66]. By comparing AI findings with human
+analysis, researchers can increase the validity and reliability of their findings [30]. With AI’s ability to process data
+rapidly, researchers can conduct real-time analysis during data collection, helping them adjust their research approach
+as needed based on preliminary findings [53]. The advent of automated qualitative analysis techniques has enabled
+qualitative researchers to analyze volumes of data that would be difficult to analyze manually [79], and the rise of LLMs
+may further enhance the efficiency of analysis.
+    Despite the impressive capabilities of AI, machine learning (ML), and LLMs, the complex nature of qualitative analysis
+presents unique challenges that these technologies are still learning to navigate [33].
+
+
+3     COMPARISON OF EXISTING QUALITATIVE ANALYSIS SOFTWARE
+In this section, we compare the capabilities of QualiGPT with widely used qualitative analysis software tools, including
+NVivo3 , Atlas.ti4 , MAXQDA5 , and Dedoose6 . These tools aid in the organization, coding, and analysis of qualitative
+data.
+
+
+3.1     User Interface - Cost of Learning
+We compared the user interfaces of three mainstream qualitative analysis software solutions with QualiGPT, as shown
+in Fig. 2. It’s evident that these commercial software solutions offer a plethora of features, providing users with a wide
+range of choices. However, this is a double-edged sword. A complex user interface increases the learning curve for
+users. Typically, users need to undergo extensive training to proficiently use these commercial tools. Moreover, intricate
+interaction logic can make the analysis process lengthy and prone to errors due to improper operations (using features
+in the wrong sequence or manner). In contrast, QualiGPT offers a streamlined operational approach, as depicted in
+Fig. 1, significantly reducing the potential for errors and time costs due to unfamiliarity with the software.
+
+
+
+3 https://lumivero.com/products/nvivo/
+4 https://atlasti.com/
+5 https://www.maxqda.com/
+6 https://www.dedoose.com/
+
+
+                                                              5
+                                                                                                           Zhang and Wu, et al.
+
+
+
+
+Fig. 2. Software User Interface Comparison. The top-left showcases Nvivo 14, the top-right displays Atlas.ti, the bottom-left
+features MAXQDA, and the bottom-right presents QualiGPT.
+
+
+
+
+                                                              6
+QualiGPT: GPT as an easy-to-use tool for qualitative coding
+
+
+3.2    Collaborative Coding
+Both NVivo and Atlas.ti allow researchers to work on separate parts of a project and later merge their work, with
+cloud services enabling more synchronized collaboration. MAXQDA also facilitates teamwork by allowing independent
+coding which can be merged and compared for consistency. Being cloud-based platform, Dedoose inherently excels in
+real-time collaboration, enabling multiple users to simultaneously access, code, and analyze data.
+   In contrast, ChatGPT does not inherently support collaborative coding and lacks built-in features for multiple users to
+collaborate in real-time or asynchronously. However, QualiGPT, as a tool, surpasses mainstream commercial qualitative
+analysis software in terms of learning curve and coding speed. This allows researchers to quickly code using this tool,
+saving more time for protocol coding and subsequent analysis. Furthermore, we propose the concept of using QualiGPT
+as a co-researcher. This implies that qualitative analysts can consider it as an additional independent coder, engaging in
+discussions with QualiGPT to gain deeper insights.
+
+3.3    Natural Language Processing Capabilities
+Traditional tools such as NVivo, Atlas.ti, MAXQDA, and Dedoose, are designed primarily for manual qualitative data
+coding and analysis. They incorporate some basic Natural Language Processing (NLP) features, such as text search,
+word frequency analysis, and auto-coding based on keyword recognition.
+   NVivo, for example, offers features like text sentiment analysis and automated insights which utilize underlying NLP
+principles. Atlas.ti and MAXQDA focus more on manual coding but provide powerful text search and retrieval features.
+Dedoose, being cloud-based, emphasizes ease of use and collaboration but has limited advanced NLP functionalities
+compared to dedicated NLP models.
+   In contrast, ChatGPT stands out primarily as an advanced application based on LLMs. It’s designed to understand
+and generate text at a near-human level. It can process and respond to prompts dynamically, and its strength lies in
+generating coherent, contextually relevant text based on extensive training data.
+
+3.4    Licensing and Pricing
+Licensing and pricing structures among qualitative software tools and AI models exhibit certain commonalities.
+Traditional qualitative tools like NVivo, Atlas.ti, and MAXQDA offer both perpetual and subscription-based licenses,
+with varied pricing tiers to accommodate students, academics, and commercial users. As of October 2023, the pricing
+for NVivo 14 for commercial user purposes is $2,038.00, and for students, the subscription cost is $118 every 12 months.
+Atlas.ti charges $666 annually for a single desktop commercial user, while the lowest pricing for student desktop software
+is $51 every 6 months. In addition, for other features like advanced collaboration, commercial software typically has
+additional subscription fees, such as the NVivo Collaboration Cloud subscription which costs $499.00. Cloud-based
+platform, Dedoose, predominantly operates on subscription models, adjusting prices based on usage limits, project
+count, or data storage needs. Similarly, the standard version of ChatGPT is free for registered users, while the premium
+version (using GPT-4’s ChatGPT Plus) is available on a monthly subscription basis at $20/month7 . For the API, OpenAI
+charges based on usage volume (with GPT-3.5 Turbo priced at a minimum of $0.0015 per 1K tokens, and GPT-4 priced at
+a minimum of $0.03 per 1K tokens8 ). Currently, the ’Moore’s Law’ of LLMs, known as scaling laws [41], is beginning to
+take effect. As model sizes, dataset dimensions, and computational capabilities increase, the performance of the models
+is expected to improve. Concurrently, the cost of invoking the GPT API may also become more affordable [48].
+7 https://openai.com/blog/chatgpt-plus
+8 https://openai.com/pricing
+
+                                                              7
+                                                                                                         Zhang and Wu, et al.
+
+
+4     OVERALL MOTIVATION AND DESIGN CONSIDERATIONS OF QUALIGPT
+Our initial motivation stemmed from the real experiences of researchers. As described in the introduction, currently,
+applying LLMs qualitative analysis may help alleviate the burden on researchers. Based on practical experiences
+and prior literature, we identified the shortcomings and typical errors of using ChatGPT. This further reinforced our
+conviction to design an integrated tool.
+    By leveraging techniques proposed by researchers for using ChatGPT in qualitative task analysis, we tested and
+refined these techniques on the web version of ChatGPT. We integrated the solutions into our toolkit, serving as
+resources and prior knowledge for the development of QualiGPT. Specifically, the design considerations encompass two
+main parts: the first pertains to the common concerns of qualitative analysts about applying ChatGPT to qualitative
+analysis tasks, as introduced in Section 4.1. The second pertains to some of the current shortcomings of the web version
+of ChatGPT, as discussed in Section 4.2.
+
+4.1     Common Challenges and Concerns of Qualitative Analysis and the Use of ChatGPT in the Qualitative
+        Analysis Process
+In the study by Zhang et al. [84], they pinpointed several challenges of incorporating LLMs into the qualitative data
+analysis process through in-depth interviews with qualitative researchers. We revisited these challenges and further
+contemplated how to address them by designing an integrated tool.
+
+4.1.1 Lack of Transparency. One of the primary concerns that deter qualitative researchers from embracing analysis
+methods or auxiliary tools like ChatGPT is the issue of transparency in data processing [22]. This mirrors a common
+challenge faced by many artificial intelligence technologies, often referred to as the ’black box’ problem [2]. Most users
+of LLM applications remain in the dark about how their requests are processed and fulfilled. Even the developers of
+LLMs can find it challenging to discern the intricacies within complex neural network training. The transparency issue
+with ChatGPT is essentially a reflection of concerns about the interpretability of artificial intelligence. However, while
+researchers express concerns about interpretability, in many cases, the high performance offered by these technologies
+and applications has brought irreplaceable value to research work or everyday life. Therefore, enhancing transparency
+and interpretability when collaborating with such technologies becomes paramount [13]. Fortunately, as an interactive
+AI application, ChatGPT allows us, from a user’s perspective, to indirectly influence its behavior. While we can’t directly
+control model parameters and architecture, we can guide ChatGPT to self-explain by improving the quality of prompt
+engineering. Specifically, when applying ChatGPT to qualitative data analysis, we address this issue by designing more
+explicit prompts, prompting ChatGPT to provide more interpretable responses. For the coding of qualitative data, the
+codes should be derived from the actual qualitative data. Thus, when researchers can inspect the results, it undoubtedly
+boosts their confidence. Therefore, requiring ChatGPT to reference the original data for its analysis results is essential,
+and this can be achieved through prompt design.
+
+4.1.2    Consistency Issues of ChatGPT. ChatGPT has been reported to exhibit some consistency issues in its outputs.
+
+        • Consistency issues: The consistency of ChatGPT’s outputs is highly dependent on the input prompts; different
+          phrasings can lead to varied answers. Therefore, unified, highly usable, and standardized prompts are crucial
+          for ChatGPT to effectively complete tasks.
+        • Lack of understanding context: One of the reasons for the inconsistency in ChatGPT’s outputs is its memory
+          issues in multi-turn dialogues. While ChatGPT’s conversational capability is acknowledged as an advantage
+                                                             8
+QualiGPT: GPT as an easy-to-use tool for qualitative coding
+
+
+         by users, in multi-turn dialogues, ChatGPT may "forget" previous inputs and outputs, leading to inconsistent
+         or contradictory subsequent outputs. Especially when users input multiple, complex prompts consecutively,
+         ChatGPT is more likely to consider different prompts in isolation rather than analyzing them in the context
+         of the conversation. Thus, precise prompts and consolidating multiple requirements into a single prompt can
+         enhance the performance of ChatGPT’s responses.
+      • Broad or vague responses: To avoid providing incorrect answers, ChatGPT might produce overly broad or
+         vague responses. This issue can typically be mitigated by refining the quality of prompts. However, evaluating
+         the performance of this issue in qualitative research is challenging, as it often requires comprehensive manual
+         coding, which contradicts the original intent of our tool design. Therefore, we revisited the needs of researchers
+         and ultimately positioned the tool to assist in the coding work of qualitative data tasks. This allows researchers to
+         gain initial insights from the results and draw inspiration for subsequent research, serving as a method to reduce
+         the preliminary workload and benefit researchers. Frankly, this preliminary work (coding) still constitutes one
+         of the most labor-intensive portions of the entire qualitative analysis process.
+      • Lack of Fixed Perspective and Absence of Reproducibility: ChatGPT generates answers based on its
+         training data, but it’s challenging to assert its subjectivity, meaning it doesn’t think like humans. ChatGPT
+         doesn’t have fixed ”beliefs” or ”views”, which can lead it to express contradictory opinions on certain matters.
+         Simply put, the responses generated by ChatGPT can vary each time. However, ChatGPT can still offer insights
+         by ”reading” the data. Previous research has shown that using ChatGPT for analysis during the qualitative
+         data coding phase can provide insights similar to those of researchers. These insights can inspire qualitative
+         researchers and enhance their understanding of the qualitative data. To address the issue of reproducibility,
+         setting more precise and highly formatted prompts can effectively reduce the randomness in the format of
+         ChatGPT’s output responses. In the qualitative data coding process, regarding the randomness of ChatGPT’s
+         generated content, users can mitigate this by having ChatGPT generate a broader range of themes, providing
+         more flexible redundancy in subsequent target theme selections
+
+
+4.1.3 Designing Prompts is Difficult and Time-consuming. An increasing number of users are intrigued by the potential
+capabilities of large language model applications, such as ChatGPT. However, crafting appropriate prompts is not a
+straightforward task. Currently, the internet is replete with tutorials and methods on how to use prompts. The quality
+of these resources varies widely, and there hasn’t been a standardized rule for prompt design established within the user
+community. While ChatGPT’s conversational interaction mode and openness to input content allow users to interact
+with it using almost any prompt, this approach is not ideal for formal research. The prompt design framework proposed
+by Zhang et al. [84] for qualitative analysis tasks has greatly facilitated the use of ChatGPT for standardized tasks.
+Prompts designed based on this framework define the format of input data and expected output results, the methods for
+data processing and analysis, and considerations for the interpretability and significance of the output results. They
+also incorporate additional designs (such as role-playing and friendly dialogue) to enhance the quality of ChatGPT’s
+outputs. However, we found that while this prompt design framework offers valuable insights, it still requires users to
+craft their prompts. Even though users can easily design prompts step-by-step based on the framework, it remains
+time-consuming. Therefore, we adopted a similar prompt design approach and stored the designed prompts as presets
+integrated into QualiGPT. This allows users to quickly invoke preset prompts based on their specific needs, significantly
+reducing the workload in the prompt design phase and enhancing user interaction through an intuitive visual interface.
+
+                                                              9
+                                                                                                                                 Zhang and Wu, et al.
+
+
+4.1.4 Challenges in Understanding ChatGPT’s Responses: The time taken to read, understand, and evaluate ChatGPT’s
+results is not necessarily shorter than the original workflow. This is understandable, as users still need to comprehend
+the content provided by ChatGPT through reading. If this content is voluminous and disorganized, understanding it
+might be as challenging as the coding process for the original data, which contradicts our initial intent of leveraging
+ChatGPT to enhance the efficiency of qualitative analysis. On one hand, formatted content with high readability can
+improve reading efficiency, so we can design prompts to standardize ChatGPT’s outputs. On the other hand, adopting
+appropriate strategies to prioritize reading sequences can help individuals quickly grasp more common or crucial
+concepts.
+
+4.1.5 Data Privacy and Security: In today’s digital age, concerns about information security, particularly data privacy,
+affect virtually everyone to varying degrees. When using large language model applications to process research data,
+a primary concern for researchers is the potential leakage of sensitive information. Historically, the impact of data
+breaches can be catastrophic [1]. While researchers, corporations, and governmental bodies in relevant fields continue to
+explore and refine methods to protect user data privacy, such as the GDPR [75] and various encryption techniques [64],
+it’s equally vital to consider how ordinary users or non-specialists can enhance their privacy protection online. The
+efforts we can make individually might be limited, so it becomes crucial to strengthen data privacy protection using
+publicly available information and methods. To this end, we reviewed OpenAI’s policies 9 related to privacy 10 . The
+findings indicate that, for ChatGPT as a non-API consumer application, data submitted by users can be used to improve
+the model. However, for the API service, the data is not used for model training. Given this, trusting the service based
+on its policies and public information, it’s evident that using the API service is a better choice from a data security
+perspective [49].
+
+4.2    ChatGPT Initial Performance Test
+Beyond the issues mentioned before, in this study, we also conducted real-world testing on the web version of ChatGPT.
+We extracted a small subset of data (1,000 entries from a public Discord channel) from a real-world social media dataset.
+After removing sensitive information, we tested it using the web versions of ChatGPT-3.5 and ChatGPT-4. The tests
+aimed to assess whether ChatGPT could return correct results, produce content in a standardized format, and ensure
+the accuracy of the content. The results revealed that when using detailed and formatted prompts to instruct ChatGPT
+to perform specific, refined tasks, there was minimal performance difference between ChatGPT-3.5 and ChatGPT-4.
+This aligns with the findings of Zhang et al. [84] Given the current pricing structure of OpenAI 11 , we believe that using
+GPT-3.5 offers a better cost-benefit ratio.
+
+4.3    Typical Errors: Bad Responds from ChatGPT
+We also summarized typical errors, examples, and potential solutions of responds from ChatGPT encountered during
+the testing process, as shown in Table 1. These primarily include (1) network errors, (2) incorrect handling of data, (3)
+Violation of policy, and (4) Out of limits. It’s worth noting that these errors are not exclusive to using ChatGPT for
+qualitative analysis tasks and have a certain universality.
+
+9 https://openai.com/security. Accessed October 7, 2023.
+10 https://openai.com/enterprise-privacy. Accessed October 7, 2023.
+11 https://openai.com/pricing. As of October 7, 2023, the cost of invoking the GPT-4 model for every 1K tokens via the API is more than 10 times higher
+than that of invoking GPT-3.5 Turbo.
+                                                                          10
+QualiGPT: GPT as an easy-to-use tool for qualitative coding
+
+
+                                                                                                                               Example
+ Error Message in ChatGPT             Error Type            Error Descriptions                 Example of Input                   of            R*                  Solution
+                                                                                                                            Error Output
+                                       Network                                                                                  Return
+ "Network errors"                                             Network errors                      Any input                                     Y    Refresh and regenerate
+                                      connection                                                                            error message
+ "Something went wrong.
+ If this issue persists please         Network                                                                                  Return
+                                                           Not processed errors                   Any input                                     Y    Refresh and regenerate
+ contact us through our help          connection                                                                            error message
+ center at help.openai.com"
+                                                                                                "Because I’m a
+ "This content may violate                                                                  **13 YEAR OLD KID**                                          Clarify the prompt
+                                       Violation        This is because ChatGPT
+ our content policy. If you                                                                and I was live on twitch                                        so that ChatGPT
+                                        of policy,     detects/mistakenly believes
+ believe this to be in error,                                                                yesterday then all of              Return               understands that this is
+                                       because of        that the input contains                                                                Y
+ please submit your feedback                                                              a sudden some perverted,          error message                 not a request, but
+                                     the forbidden      information that violates
+ — your input will aid our                                                               creepy pedophile just joins                                  something that needs
+                                          word             the content policy.
+ research in this area."                                                                     my stream and starts                                            to be analyzed.
+                                                                                            to sexually harass me"
+ "The message you submitted
+                                                      Out of the maximum number                                                                            Input the content
+ was too long, please reload                                                                                                    Return
+                                     Out of limits    of tokens that can be entered     Over 4096 tokens per entry                              Y             into ChatGPT
+ the conversation and submit                                                                                                error message
+                                                            in a single entry.                                                                          in separate sections.
+ something shorter."
+                                                          System crashes due to         New content was inputted
+ "Only one message at a time.
+                                                            network latency               when ChatGPT had not
+ Please allow any other
+                                                           or frequent inputs.          provided a complete output              Return                      Wait for a while
+ responses to complete               Out of limits                                                                                              Y
+                                                         ChatGPT does not allow            (either because it was           error message                    and regenerate
+ before sending another
+                                                             multi-threading              still in progress or had
+ message, or wait one minute."
+                                                            per chat window.            stopped generating early)."
+                                                                                                                                                         Clarify the prompt
+ "I’m sorry, but I won’t be able                           Because the request is
+                                       Violation                                                                                                           so that ChatGPT
+ to assist with that request"                               beyond ChatGPT’s
+                                       of policy,                                           Content: "Help me send                                   understands that this is
+ or                                                       capabilities or involves                                      Return error message    N
+                                      because it’s                                               some spam."                                              not a request, but
+ "I’m sorry, but I can’t assist                            actions that ChatGPT
+                                      out of scope                                                                                                    something that needs
+ with that request."                                   is not permitted to perform.
+                                                                                                                                                             to be analyzed.
+                                                                                                "1. Content one
+ Incorrect amount of content           Incorrect                                                                             "1. Result one                  Add a few data
+                                                        Mismatch in the amount                  2. Content two
+ requested for output identified       handling                                                                              2. Result two"     N          that have already
+                                                       of input and output content             3. Content three"
+ through manual review                  of data                                                                             *end of output*                       been input
+                                                                                                 *end of input*
+                                                            ChatGPT’s output
+ Formatting errors in output           Incorrect                                                                                                             Add a few data
+                                                          format does not match               Prompt: "The output           "The output is
+ content identified through            handling                                                                                                 N          that have already
+                                                             the requirements               should be numeric only"       not numeric only"
+ manual review                          of data                                                                                                                   been input
+                                                           of the given prompts
+                                                                                               Prompt: "What is
+                                                                                               the central theme
+ Output errors detected through                              ChatGPT’s failure                  of the sentence."                                      As much as possible,
+ manual review                                                 to consider or                                                                           maintain the format
+                                       Incorrect
+ - e.g., misinformation                                       fully understand             Content: "Don’t rely on              "Yes,                  and limit the number
+                                       handling                                                                                                 N
+ or misundertanding.                                         the requirements                  the email address,          you’re correct..."            of entries at a time,
+                                        of data
+ (No prompting                                           of the prompts produced           it can easily be spoofed.                                        while reiterating
+ requirements performed)                                  incorrect information               Hover over the link                                               the prompts.
+                                                                                             of the survey and see
+                                                                                              where it directs to."
+ * Whether the output will be returned in the form of system messages with a red exclamation mark and red border.
+ ’Y’ signifies that the output will only contain system messages with a red exclamation mark and red border.
+ ’N’ implies that, despite the output contradicting the expected result, it will still return as a normal interactive result.
+                            Table 1. Examples of typical errors during ChatGPT interactions and potential solutions
+
+
+
+
+5    DESIGN OF QUALIGPT
+To further benefit qualitative researchers, address the challenges presented in Section 3, and overcome the limitations of
+using ChatGPT on the web interface, we introduce QualiGPT. It’s a meticulously crafted, integrated qualitative analysis
+tool based on prompt engineering and API. This tool features a user-friendly visual interface and is designed to be easily
+used even by those with no programming experience. Fig. 1 presents the user interface and usage flow of QualiGPT.
+    Fig. 3, Fig. 4, and Fig. 5 display the user interaction graphical interface of QualiGPT and the functionality of each
+component. Specifically, Figure 3 elaborates on the interactive features within QualiGPT (highlighted by red and
+                                                                                       11
+                                                                                                             Zhang and Wu, et al.
+
+
+purple boxes), while Fig. 4 provides examples and explanations of the correct feedback after interaction in QualiGPT
+(highlighted by light green boxes). Fig. 5, on the other hand, focuses on the non-interactive features in QualiGPT (such
+as hints and status, highlighted by light blue boxes).
+  In the following sections of this chapter, we will delve into the functionalities, advantages, and design considerations
+of QualiGPT.
+
+
+
+
+Fig. 3. User Manual for QualiGPT (A Qualitative Analysis Toolkit) - Interactive Features. QualiGPT offers a total of 13
+interactive features that users can select, click, or input text into. The functionalities enclosed by the red boxes are related
+to invoking the API, while the interactive features shown in the purple boxes do not involve API calls.
+
+
+
+                                                               12
+QualiGPT: GPT as an easy-to-use tool for qualitative coding
+
+
+
+
+Fig. 4. User Manual for QualiGPT (A Qualitative Analysis Toolkit) - Examples and Explanations of Correct Feedback for
+Certain Interactive Features.
+
+
+
+5.1    Principle of the Tool
+The design of QualiGPT closely follows the user-centric principle. Recognizing researchers’ challenges in conducting
+qualitative analysis and the novices’ difficulties in interacting with ChatGPT, QualiGPT bridges the gaps by seamless
+integrating the OpenAI API and data processing libraries into the backend. Users only need provide their API key to
+harness the power of GPT from a user-friendly interface that requires minimal technical expertise. QualiGPT is also
+designed keeping users’ privacy concerns at the forefront. By allowing individuals to have direct control over their API
+connections, the tool ensures that data exchanges are secure and the records will be erased at the end of the session.
+   Qualitative data comes in various shapes and sizes. Understanding this, QualiGPT’s design principle also emphasizes
+flexibility. The tool can process an array of textual data formats. Moreover, the platform’s capability to accept and
+use user-provided parameters like role labels and conversation descriptions ensures that the analysis is in accordance
+with the nature of the dataset. QualiGPT’s dynamic prompt generation mechanism, grounded in relevant literature
+                                                              13
+                                                                                                         Zhang and Wu, et al.
+
+
+
+
+Fig. 5. User Manual for QualiGPT (A Qualitative Analysis Toolkit) - Non-Interactive Features. The main interface of
+QualiGPT includes three status and hint bars. Function ”A” represents a hint bar for the API connection status, indicating
+whether the API is currently connected successfully. Function ”B” serves as a preview window, providing an overview of
+relevant operation feedback, content submitted to the API, and the response results after invoking the API. The content
+of the txt file exported by Feature 11, as shown in Fig. 3, is similar to the content in this preview window. Function ”C”,
+known as the information box, allows users to preview the prompts currently selected for submission to the API. The
+content displayed in this section will change based on the selections of Features 6-9 in Fig. 3.
+
+
+
+and research, synthesizes the user-provided information with established qualitative research principles. The end goal
+of qualitative analysis is not just insights into the data, but findings that can be understood, shared, and acted upon.
+Aligning with this objective, QualiGPT’s design ensures that the results are presented in a easily transferable format.
+From clearly demarcated themes and descriptions to direct quotes and participant counts, the results encapsulate the
+essence of qualitative research findings. Furthermore, with export options available, the tool underscores its commitment
+to practicality and user convenience. The details of each functionality are illustrated in the following sections.
+
+5.2   Components and Architecture
+5.2.1 API Connection. QualiGPT operates by harnessing the OpenAI API to access the capabilities of GPT. Users
+need to setup their own API accounts with OpenAI and provide the key to QualiGPT (①, ②). Using API enables a
+                                                            14
+QualiGPT: GPT as an easy-to-use tool for qualitative coding
+
+
+more tailored input and output format compared to the ChatGPT interface. Combining API and the power of Python
+programming in the backend, QualiGPT is able to access a vast range of libraries for processing the text data. A notable
+advantage of QualiGPT over the traditional ChatGPT interface is its capacity to address the input length restriction. It
+sidesteps the 4096-token limitation by batching data, ensuring that larger amounts of information are segmented and
+processed effectively. API also offers better data control for its users. It empowers individuals to better oversee data
+privacy issues, giving them greater confidence in the safety and security of their data exchanges. Therefore, with its
+integration of the OpenAI API and Python, QualiGPT presents a more advanced, flexible, and user-centric approach to
+leveraging the impressive capabilities of GPT.
+
+5.2.2 User Input and Data Formatting. Currently, QualiGPT is designed for the processing of textual data. The platform
+provides an array of supported file formats for data submission. Among these formats are Word files, .txt files, and
+spreadsheet files such as .csv and .xlsx (③). Users can select a local dataset in any of the aforementioned formats and
+once the submission is successfully completed, they will an automated system prompt (④). This notification serves
+as a confirmation that the dataset has been accepted and is now primed for analysis. It’s important to note that the
+input data, to be optimally processed, should come with labels which serve the purpose of differentiating between
+various participants within a conversation or discussion. To enhance the accuracy of data processing, users should also
+submit header meanings (⑤). Specifically, users can assign distinct roles during dialogue, such as an interviewer and
+an interviewee, to help GPT make sense of the data. Users are also encouraged to provide a descriptive overview of
+the conversation’s content to contextualize the data. All the user-provided inputs, from role labels to descriptions, are
+integrated into a sequence of prompts. These prompts will guide GPT, enabling it to perform qualitative data analysis
+that is both insightful and tailored to the specific needs and nuances of the dataset.
+
+5.2.3 Prompt Generation. QualiGPT’s primary purpose is to automatically generate effective prompts, which direct
+GPT towards executing nuanced qualitative analysis on the datasets uploaded by users. This essential process of prompt
+generation is deeply rooted in relevant literature and insights drawn from the Zhang et al.’s prior research findings [84].
+Specifically, four fundamental components will be generated for each dataset. First is the “Description of the Task’s
+Background”, offering context and foundational understanding of the data. This is followed by a clear ’Description of
+the Task,’ defining the type of taks and the role of GPT. The third facet is a comprehensive ’Description of how the task
+will be processed,’ mapping out the precise analytical actions to be undertaken by GPT, and lastly, a ’Description of the
+Expected Output Contents/Results’ that sets a clear benchmark for anticipated outcomes and format requirements.
+These vital components will be based on the User Input, as outlined in the last section.
+   To enhance the quality of analysis, QualiGPT also offers a series of options for users to further customize the basic
+prompts and meet divser user needs. For example, activating the role-playing feature (⑥) allows GPT to wear the hat of
+field experts, analyzing the data through a specialized lens of seasoned researchers. Similarly, users have the autonomy
+to select specific data types: Interviews, Focus Groups, or Social Media Posts (⑦). This selection enables GPT to adhere
+to the customs and best practices associated with each dataset type during the analytic process. Additionally, the
+authors’ previous research indicates that GPT tends to dive deeply into nuance during qualitative analysis, which may
+compromise the conciseness of the results. Therefore, QualiGPT allows users to determine the number of key themes to
+be extracted from the data (⑧), ensuring the qualitative analysis’s output is neither too sparse nor overwhelmingly
+detailed. Finally, QualiGPT includes an optional field where users can input additional prompts (⑨). These user-generated
+instructions are incorporated into the basic prompt generation framework, ensuring that the analysis aligns closely
+                                                              15
+                                                                                                        Zhang and Wu, et al.
+
+
+with user expectations and objectives. Once users have configured all prompt options and click the submit button (⑩),
+the processed text data and generated prompts will be sent to GPT via API for further analysis.
+    In QualiGPT, the prompts used are categorized into three main types: "fixed prompts", "dynamic prompts", and
+"user-choice-based prompts". Fixed prompts refer to the presets within the code, while dynamic prompts are defined by
+users, serving as one-time inputs based on their personalized requirements. User-choice-based prompts fall in between,
+implying that the program has set predetermined options, and users can decide whether or how to utilize these prompts
+according to their needs. The relationship between these prompts is illustrated in Fig. 6.
+
+
+
+
+                          Fig. 6. Types, Categories, and Relationships of Prompts in QualiGPT
+
+
+
+5.2.4 Analysis Results. The prompts generated by QualiGPT guide GPT to execute a qualitative analysis on the submitted
+dataset, ensuring a rigorous and insightful analytic process. In addition, they guide GPT to present its results in a
+streamlined, coherent format, tailored for user-friendly interpretation and data exports. Specifically, QualiGPT organizes
+the results into a tabular format that encapsulates thematic findings. Each table features four columns for ‘Themes’
+which represent the overarching patterns or topics within the data. Following that is the ‘Description’, illustrating
+the nuances and depths of these themes. To give a clearer context, the table also includes ‘Quotes’ linked to each
+theme, showcasing direct excerpts from the dataset that support or explain the theme. Moreover, a ‘Participant Count’
+associated with each theme is presented, offering a quantitative insight into the theme’s prevalence or significance.
+QualiGPT provides users with a practical tool to export these findings in a csv file format. This facilitates further
+analysis, sharing, or integration with other tools or databases. Additionally, for those keen on preserving the entire
+analytical journey, from the raw dataset, the constructed prompts, to the derived findings, QualiGPT offers an option to
+encapsulate all these elements into a singular txt file, ensuring comprehensive documentation and easy recall.
+
+6   ANALYSIS AND VERIFICATION
+To demonstrate the performance of QualiGPT, we applied it to both simulated data and real datasets. By comparing
+the topics returned by QualiGPT with manually coded results, we showcased the powerful potential of QualiGPT in
+qualitative data coding tasks.
+                                                            16
+QualiGPT: GPT as an easy-to-use tool for qualitative coding
+
+
+6.1    Case Study One - Tested on a Simulated Dataset
+In this case study, we asked ChatGPT to generate a simulated focus group dataset centered around the theme of
+"transitioning to remote work". The dataset contains a total of 9,309 words, with an average length of about 27 words
+per feedback. Among them are 6 medium-length responses (with an average length of about 112 words) and 2 long
+responses (with an average length of about 391 words). This simulated dataset provides a detailed account of various
+participants’ experiences transitioning to remote work. Each participant offers a nuanced perspective, elucidating
+various aspects of remote work, from the advantages of flexibility and time-saving to challenges such as work-life
+balance, isolation, and technical issues. After preliminary review and discussion by researchers, there was a consensus
+that the corpus has a rich thematic diversity, capturing a range of personal views and strategies from individuals with
+different backgrounds and job roles regarding the transition to remote work.
+
+
+6.1.1 Results and Evaluation. We submitted the data to both ChatGPT (web version) and QualiGPT. In QualiGPT, we
+selected the data type as "focus group" and enabled the "role-playing" feature. We also chose to obtain 20 potential
+topics. The final response results from QualiGPT and ChatGPT (web version) were similar. However, when using the
+web version of ChatGPT, we encountered several troubling issues that were resolved in QualiGPT:
+
+      1. Due to the data volume exceeding the token limit for a single submission, we had to manually split the dataset
+         and input it into ChatGPT using the copy-paste method.
+      2. On the web version, we had to manually input prompts multiple times for debugging.
+      3. We had to manually organize the output results, such as transferring the results to a spreadsheet.
+
+This made the work time and complexity on the web version of ChatGPT much greater than using QualiGPT. To
+highlight the efficiency advantage of QualiGPT, we repeated the same analysis process in QualiGPT three times and
+timed each run. From entering the API (starting checkpoint) to saving to a .csv file (ending checkpoint), the results
+showed that the average time to complete the analysis process in QualiGPT was 96.5 seconds. We provide the simulated
+dataset used for testing in the supplementary materials, and we welcome researchers to use this dataset for a quick test
+on QualiGPT to experience the efficiency improvement compared to the web version of ChatGPT or manual coding.
+
+
+6.2    Case Study Two - Social Media Analysis (Real World Data)
+In Case Study 2, we used a dataset of 1,000 qualitative data entries collected by one of the authors of this study from a
+public Discord channel in their previous research, along with the results of the first round of manual coding. Each entry
+in the dataset is a message from a user in that channel. The dataset does not contain any identifiable information. We
+removed the manually coded labels from the data and submitted it to QualiGPT for analysis.
+
+
+6.2.1 Results and Evaluation. We let QualiGPT use "role-playing" to analyze this social media data and identify 15 key
+themes. The comparison between the response results and the early manual coding is shown in Fig. 7. From the results,
+it can be seen that QualiGPT not only captures the main themes identified in manual coding but also provides detailed
+explanations and source references for the themes. From a cost perspective, QualiGPT undoubtedly offers significant
+advantages. In the first round of manual coding, coding 1,000 entries took several hours of work, including discussions
+and negotiations on coding, and the entire coding process lasted close to a week.
+                                                              17
+                                                                                                        Zhang and Wu, et al.
+
+
+
+
+Fig. 7. Comparison between manual coding and QualiGPT results. The top shows the coding results from QualiGPT. The
+bottom displays the results of manual coding.
+
+
+
+7   DISCUSSION
+In recent times, the advent and evolution of LLMs such as GPT-3.5 Turbo and GPT-4 have opened up new avenues
+for automating tasks that were traditionally labor-intensive. One such task is the coding of qualitative data to derive
+thematic insights. Our tool, QualiGPT, leverages the capabilities of LLMs through prompt design and API calls to
+automate this coding process, offering a list of potential themes. This integrated tool significantly reduces the overhead
+associated with manual coding, addressing challenges encountered in traditional qualitative analysis and when using
+ChatGPT.
+    Specifically, QualiGPT employs prompts that have been validated in prior research [84], offering researchers an
+efficient means of categorizing themes in qualitative data. The prompts are highly structured, mitigating risks associated
+with using GPT for analysis, such as inconsistencies and lack of transparency. Compared to traditional qualitative
+analysis methods or software, the computational prowess of LLMs ensures that QualiGPT outperforms conventional
+software’s auto-coding features in terms of accuracy. Furthermore, its coding speed far surpasses manual coding
+while maintaining a quality comparable to expert groups. This tool has the potential to revolutionize the paradigm of
+                                                            18
+QualiGPT: GPT as an easy-to-use tool for qualitative coding
+
+
+qualitative analysis in the future. In this section, we delve into the contributions and prospects of this tool, especially in
+terms of collaboration.
+
+7.1    QualiGPT as a Tool: Leveraging QualiGPT to Augment Efficiency in Qualitative Analysis
+A primary concern among researchers regarding GPT-generated content stems from a lack of confidence in its accu-
+racy [58]. There have been instances where GPT has been found to fabricate content, generating spurious information.
+Such behavior is unequivocally unacceptable in scientific research. However, when used as an auxiliary tool, these
+concerns can be significantly alleviated. In other words, when used as a tool, QualiGPT merely offers perspectives on the
+data, while the mechanism for human review remains intact. Under this modality, researchers can utilize QualiGPT for
+rapid coding. Specifically, they can select themes of interest from the generated responses and, aided by the justifications
+provided by QualiGPT (explanations and references to the original data), manually verify these themes. In this scenario,
+the researcher or user retains control over the accuracy of the results, with the final decision-making power remaining
+human-centric.
+
+7.2    QualiGPT as a Collaborative Researcher
+Qualitative analysis often carries a degree of subjectivity, which is typically viewed as an advantage [28, 60], allowing
+for unique insights to be gleaned from the data [50]. Concurrently, this subjectivity can lead to varied interpretations of
+the same qualitative data by different researchers. In traditional analysis workflows, discussions between co-researchers
+to reconcile coding results and reach a consensus are indispensable. Building on this procedural concept, we pondered
+the possibility of incorporating QualiGPT as an independent co-researcher in studies.
+   Under this new paradigm, both human researchers and QualiGPT would analyze the qualitative data independently.
+Once the analyses are completed, the results from both the human researchers and QualiGPT would be collated for a
+collective discussion, aiming to achieve consensus among all parties. Indeed, QualiGPT appears to possess the potential
+to facilitate such a collaborative model, as it can generate several high-quality themes, providing genuine content
+references from the original text for each theme. In this context, QualiGPT should not merely be perceived as a tool
+assisting researchers but rather as an independent contributor, offering insights into the data and actively participating
+in discussions.
+
+7.3    Limitations and Future Work
+While QualiGPT addresses some important concerns associated with using large language model applications and
+challenges in qualitative analysis, there are still some limitations to the tool in its current state. We recognize that
+addressing these limitations through future versions and research will enhance the tool’s performance and offer more
+possibilities for researchers. Specifically, the primary limitations (L.) and possible future works (Fw.) are as follows:
+
+   L.1. Singular Functionality: The current version of QualiGPT only includes preset prompts for analyzing three
+         relatively mainstream types of qualitative data. While this aligns with most methods used in qualitative research,
+         it is not exhaustive. Furthermore, while the tool’s focus is on coding qualitative data to derive usable themes and
+         deliberately avoids complex interaction logic and redundant features, it’s evident that incorporating additional
+         related functionalities, such as data visualization, could provide researchers with more insights and possibilities.
+   L.2. Cost Control: We plan to open-source the QualiGPT toolkit, allowing anyone to use the tool for free. However,
+         since the tool is designed based on an API, there’s an associated cost when invoking OpenAI’s API. Even though
+                                                              19
+                                                                                                          Zhang and Wu, et al.
+
+
+      we’ve opted for a relatively cheaper model (GPT 3.5 Turbo) in the tool and ensured its performance in qualitative
+      data coding tasks is comparable to more advanced models (like GPT 4.0) through prompt design, this cost still
+      needs to be considered. In essence, the tool, when used, will incur costs based on the volume of data processed.
+      While these costs are typically manageable for small research teams, they might escalate when dealing with
+      large-scale datasets. Moving forward, we will continue to monitor developments in the LLMs domain to identify
+      more affordable models (with higher performance and lower costs) to update our tool.
+ L.3. Data Privacy and Security: We adopted the method of calling the API to mitigate some of the risks of data
+      leakage and enhanced the transparency of the tool through open-sourcing. However, as mentioned earlier,
+      the privacy policy of this API is enterprise-based, implying that ordinary users lack or have limited capability
+      and methods to directly control data sharing. In the future, in addition to protecting data privacy through
+      regulatory measures and corporate self-discipline [67], we recommend introducing an API traffic monitoring
+      mechanism [39] to manage associated privacy risks. Moreover, since the API relies on a private key, the leakage
+      of this key could result in significant losses. We advise users to set up a specific API key dedicated to using this
+      tool and establish usage limits to control the usage.
+Fw.1 Iterative Enhancement While it might sound clichéd, we wish to reiterate the significance of future iterations
+      for the tool, especially given that LLMs are still in their nascent stages of rapid development. The performance
+      of LLMs is likely to see further enhancements in upcoming iterations. Consequently, there might be a need for
+      QualiGPT to integrate more advanced APIs, different preset prompts, or additional functionalities to further
+      boost its efficacy.
+      Moreover, the current version of QualiGPT does not support preprocessing of datasets or iterative analysis
+      capabilities. This implies that if users wish to delve deeper into the data based on themes identified in an
+      initial round of analysis, they would need to manually configure sub-datasets and rerun QualiGPT. We plan to
+      address this in future updates. Furthermore, by open-sourcing QualiGPT, we aim to foster community-driven
+      development for its subsequent versions.
+Fw.2 Strengthening Ethical and Policy-Related Research While QualiGPT has been developed based on prior
+      research findings and conceptualizations, and we believe it achieves a high degree of usability and user-
+      friendliness in addressing certain practical concerns, it doesn’t imply that the tool is flawless. This is especially
+      pertinent in the current context where AI-assisted collaboration is still in its early stages. Therefore, intensifying
+      considerations on the ethical and policy fronts is imperative.
+      Several future research questions emerge, such as, “Should there be defined boundaries for the application and
+      extent of LLMs usage? How can we establish norms for the use of LLMs? What impacts might the use of LLMs
+      have on human cognition, behavioral patterns, and thought processes?” Exploring these questions may be both
+      intriguing and essential.
+Fw.3 Using LLMs for Self-Review of LLM-Generated Content An intriguing avenue for future work is the idea
+      of having LLMs review and critique their own generated content. This concept stems from the first author’s
+      experience in the development process of this research toolkit and the envisioning of GPT as an independent
+      researcher. While we’ve effectively controlled the output in QualiGPT using prompts, a bold proposition arises:
+      Why not employ GPT to self-review its generated content and control it through a human-in-the-loop approach?
+      Given GPT’s existing capabilities (dialogue-based interactions and multi-process operations), this doesn’t seem
+      far-fetched.
+
+                                                           20
+QualiGPT: GPT as an easy-to-use tool for qualitative coding
+
+
+         Though this falls under future work, a preliminary conceptualization is as follows: Multiple GPT processes
+          can be employed to analyze initial data in multiple rounds, yielding perspectives A, B, and C. Different GPT
+          processes can then cross-evaluate and debate the perspectives A, B, and C put forth by the other processes,
+          providing detailed rationales during the process. After several rounds of debate, a human review can select the
+          most logical thought path to arrive at a reasoned final outcome.
+
+
+8   CONCLUSION
+The realm of qualitative research, while invaluable for its depth and nuance, has long grappled with the challenges
+of data analysis, particularly during the coding phase. Traditional qualitative analysis software, despite their merits,
+often fall short in addressing the complexities, costs, and performance demands of modern research. This study has
+illuminated a promising avenue for the future of qualitative analysis through the integration of LLMs, specifically
+ChatGPT and its API, into the research workflow.
+    Our introduction of QualiGPT represents a significant stride forward in addressing the longstanding challenges in
+qualitative data analysis. By identifying and addressing the common issues associated with ChatGPT, we have not only
+enhanced the efficiency of the coding process but also bolstered the credibility and transparency of using LLMs in
+qualitative research. The comparative analysis between QualiGPT and manual coding underscores the tool’s potential
+in streamlining the workflow, reducing processing costs, and ensuring a more transparent and credible analysis process.
+    Furthermore, the design considerations of QualiGPT, with its emphasis on usability and user-friendliness, mark
+a departure from the often cumbersome interfaces of traditional qualitative software. By offering a more intuitive
+interface, QualiGPT significantly diminishes the learning and usage overheads, making it an attractive option for both
+seasoned researchers and those in the early stages of their careers.
+    In light of our findings, it is evident that the integration of LLMs like ChatGPT into qualitative research holds
+substantial promise. As technology continues to evolve, it is imperative for the academic community to remain adaptive
+and open to such innovations, ensuring that research methodologies are not only rigorous but also efficient and
+user-centric. With tools like QualiGPT, we are one step closer to realizing this vision, ushering in a new era of qualitative
+research that marries depth with efficiency. Future work should continue to refine and expand upon these tools, ensuring
+they remain relevant and effective in the ever-evolving landscape of qualitative research.
+
+
+ACKNOWLEDGMENTS
+REFERENCES
+ [1] Ida Madieha Abdul Ghani Azmi, Sonny Zulhuda, and Sigit Puspito Wigati Jarot. 2012. Data breach on the critical information infrastructures:
+     Lessons from the Wikileaks. In Proceedings Title: 2012 International Conference on Cyber Security, Cyber Warfare and Digital Forensic (CyberSec).
+     306–311. https://doi.org/10.1109/CyberSec.2012.6246173
+ [2] Amina Adadi and Mohammed Berrada. 2018. Peeking Inside the Black-Box: A Survey on Explainable Artificial Intelligence (XAI). IEEE Access 6
+     (2018), 52138–52160. https://doi.org/10.1109/ACCESS.2018.2870052
+ [3] Hussam Alkaissi and Samy I McFarlane. 2023. Artificial hallucinations in ChatGPT: implications in scientific writing. Cureus 15, 2 (2023), 1–4.
+     https://doi.org/10.7759/cureus.35179
+ [4] P. Bazeley. 2013. Qualitative Data Analysis: Practical Strategies. SAGE Publications. https://books.google.com/books?id=33BEAgAAQBAJ
+ [5] Michael Bergin. 2011. NVivo 8 and consistency in data analysis: Reflecting on the use of a qualitative data analysis program. Nurse researcher 18, 3
+     (2011). https://doi.org/10.7748/nr2011.04.18.3.6.c8457
+ [6] Lea Bishop. 2023. A computer wrote this paper: What chatgpt means for education, research, and writing. Research, and Writing (January 26, 2023)
+     (2023). https://doi.org/10.2139/ssrn.4338981
+ [7] R.E. Boyatzis. 1998. Transforming Qualitative Information: Thematic Analysis and Code Development. SAGE Publications. https://books.google.com/
+     books?id=_rfClWRhIKAC
+                                                                           21
+                                                                                                                                   Zhang and Wu, et al.
+
+
+ [8] Virginia Braun and Victoria Clarke. 2006. Using thematic analysis in psychology. Qualitative research in psychology 3, 2 (2006), 77–101. https:
+     //doi.org/10.1191/1478088706qp063oa
+ [9] Virginia Braun and Victoria Clarke. 2012. Thematic analysis. American Psychological Association. https://doi.org/10.1037/13620-004
+[10] Virginia Braun and Victoria Clarke. 2014. What can “thematic analysis” offer health and wellbeing researchers? , 26152 pages.
+[11] Virginia Braun and Victoria Clarke. 2019. Reflecting on reflexive thematic analysis. Qualitative research in sport, exercise and health 11, 4 (2019),
+     589–597. https://doi.org/10.1080/2159676X.2019.1628806
+[12] Virginia Braun and Victoria Clarke. 2021. To saturate or not to saturate? Questioning data saturation as a useful concept for thematic analysis and
+     sample-size rationales. Qualitative Research in Sport, Exercise and Health 13, 2 (2021), 201–216. https://doi.org/10.1080/2159676X.2019.1704846
+[13] John M. Carroll. 2022. Why Should Humans Trust AI? Interactions 29, 4 (jun 2022), 73–77. https://doi.org/10.1145/3538392
+[14] Ashley Castleberry and Amanda Nolen. 2018. Thematic analysis of qualitative research data: Is it as easy as it sounds? Currents in Pharmacy
+     Teaching and Learning 10, 6 (2018), 807–815. https://doi.org/10.1016/j.cptl.2018.03.019
+[15] Yanto Chandra and Liang Shang. [n. d.]. Computer-Assisted Qualitative Research: An Overview. In Qualitative Research Using R: A Systematic
+     Approach, Yanto Chandra and Liang Shang (Eds.). Springer Nature, 21–31. https://doi.org/10.1007/978-981-13-3170-1_2
+[16] Yanto Chandra, Liang Shang, Yanto Chandra, and Liang Shang. [n. d.]. An Overview of R and RQDA: An Open-Source CAQDAS Platform. ([n. d.]),
+     47–51.
+[17] AL Chapman, M Hadfield, and CJ Chapman. 2015. Qualitative research in healthcare: an introduction to grounded theory using thematic analysis.
+     Journal of the Royal College of Physicians of Edinburgh 45, 3 (2015), 201–205.
+[18] Victoria Clarke and Virginia Braun. 2013. Teaching thematic analysis: Overcoming challenges and developing strategies for effective learning. The
+     psychologist 26, 2 (2013), 120–123.
+[19] Amanda Coffey, Holbrook Beverley, and Atkinson Paul. 1996. Qualitative Data Analysis: Technologies and Representations. Sociological Research
+     Online 1, 1 (1996), 80–91. https://doi.org/10.5153/sro.1 arXiv:https://doi.org/10.5153/sro.1
+[20] Paul Crawford, Brian Brown, and Pam Majomi. 2008. Professional identity in community mental health nursing: A thematic analysis. International
+     journal of nursing studies 45, 7 (2008), 1055–1063.
+[21] Jingfeng Cui, Zhaoxia Wang, Seng-Beng Ho, and Erik Cambria. 2023. Survey on sentiment analysis: evolution of research methods and topics.
+     Artificial Intelligence Review 56 (2023), 8469—-8510. https://doi.org/10.1007/s10462-022-10386-z
+[22] Yogesh K. Dwivedi, Nir Kshetri, Laurie Hughes, Emma Louise Slade, Anand Jeyaraj, Arpan Kumar Kar, Abdullah M. Baabdullah, Alex Koohang,
+     Vishnupriya Raghavan, Manju Ahuja, Hanaa Albanna, Mousa Ahmad Albashrawi, Adil S. Al-Busaidi, Janarthanan Balakrishnan, Yves Barlette,
+     Sriparna Basu, Indranil Bose, Laurence Brooks, Dimitrios Buhalis, Lemuria Carter, Soumyadeb Chowdhury, Tom Crick, Scott W. Cunningham,
+     Gareth H. Davies, Robert M. Davison, Rahul Dé, Denis Dennehy, Yanqing Duan, Rameshwar Dubey, Rohita Dwivedi, John S. Edwards, Carlos Flavián,
+     Robin Gauld, Varun Grover, Mei-Chih Hu, Marijn Janssen, Paul Jones, Iris Junglas, Sangeeta Khorana, Sascha Kraus, Kai R. Larsen, Paul Latreille, Sven
+     Laumer, F. Tegwen Malik, Abbas Mardani, Marcello Mariani, Sunil Mithas, Emmanuel Mogaji, Jeretta Horn Nord, Siobhan O’Connor, Fevzi Okumus,
+     Margherita Pagani, Neeraj Pandey, Savvas Papagiannidis, Ilias O. Pappas, Nishith Pathak, Jan Pries-Heje, Ramakrishnan Raman, Nripendra P. Rana,
+     Sven-Volker Rehm, Samuel Ribeiro-Navarrete, Alexander Richter, Frantz Rowe, Suprateek Sarker, Bernd Carsten Stahl, Manoj Kumar Tiwari, Wil
+     van der Aalst, Viswanath Venkatesh, Giampaolo Viglia, Michael Wade, Paul Walton, Jochen Wirtz, and Ryan Wright. 2023. Opinion Paper: “So what
+     if ChatGPT wrote it?” Multidisciplinary perspectives on opportunities, challenges and implications of generative conversational AI for research,
+     practice and policy. International Journal of Information Management 71 (2023), 102642. https://doi.org/10.1016/j.ijinfomgt.2023.102642
+[23] Helen Elliott-Mainwaring. 2021. Exploring using NVivo software to facilitate inductive coding for thematic narrative synthesis. British Journal of
+     Midwifery 29, 11 (2021), 628–632. https://doi.org/10.12968/bjom.2021.29.11.628
+[24] Yunhe Feng, Sreecharan Vanam, Manasa Cherukupally, Weijian Zheng, Meikang Qiu, and Haihua Chen. 2023. Investigating Code Generation
+     Performance of ChatGPT with Crowdsourcing Social Data. In 2023 IEEE 47th Annual Computers, Software, and Applications Conference (COMPSAC).
+     876–885. https://doi.org/10.1109/COMPSAC57700.2023.00117
+[25] Jennifer Fereday and Eimear Muir-Cochrane. 2006. Demonstrating rigor using thematic analysis: A hybrid approach of inductive and deductive
+     coding and theme development. International journal of qualitative methods 5, 1 (2006), 80–92.
+[26] Alexander J. Fiannaca, Chinmay Kulkarni, Carrie J Cai, and Michael Terry. [n. d.]. Programming without a Programming Language: Challenges and
+     Opportunities for Designing Developer Tools for Prompt Programming. In Extended Abstracts of the 2023 CHI Conference on Human Factors in
+     Computing Systems (Hamburg Germany, 2023-04-19). ACM, 1–7. https://doi.org/10.1145/3544549.3585737
+[27] Andrew Gao. [n. d.]. Prompt Engineering for Large Language Models. https://doi.org/10.2139/ssrn.4504303
+[28] Lucia Garcia and Francis Quek. 1997. Qualitative research in information systems: time to be subjective?. In Information Systems and Qualitative
+     Research: Proceedings of the IFIP TC8 WG 8.2 International Conference on Information Systems and Qualitative Research, 31st May–3rd June 1997,
+     Philadelphia, Pennsylvania, USA. Springer, 444–465. https://doi.org/10.1007/978-0-387-35309-8_22
+[29] Robert P. Gauthier and James R. Wallace. 2022. The Computational Thematic Analysis Toolkit. Proc. ACM Hum.-Comput. Interact. 6, GROUP, Article
+     25 (jan 2022), 15 pages. https://doi.org/10.1145/3492844
+[30] Simret Araya Gebreegziabher, Zheng Zhang, Xiaohang Tang, Yihao Meng, Elena L. Glassman, and Toby Jia-Jun Li. 2023. PaTAT: Human-AI
+     Collaborative Qualitative Coding with Explainable Interactive Rule Synthesis. In Proceedings of the 2023 CHI Conference on Human Factors in
+     Computing Systems (Hamburg, Germany) (CHI ’23). Association for Computing Machinery, New York, NY, USA, Article 362, 19 pages. https:
+     //doi.org/10.1145/3544548.3581352
+                                                                           22
+QualiGPT: GPT as an easy-to-use tool for qualitative coding
+
+
+[31] G. Guest, K.M. MacQueen, and E.E. Namey. 2011. Applied Thematic Analysis. SAGE Publications. https://books.google.com/books?id=
+     Hr11DwAAQBAJ
+[32] G. Guest, E.E. Namey, and M.L. Mitchell. 2013. Collecting Qualitative Data: A Field Manual for Applied Research. SAGE Publications. https:
+     //books.google.com/books?id=--3rmWYKtloC
+[33] Perttu Hämäläinen, Mikke Tavast, and Anton Kunnari. 2023. Evaluating Large Language Models in Generating Synthetic HCI Research Data: A
+     Case Study. In Proceedings of the 2023 CHI Conference on Human Factors in Computing Systems (Hamburg, Germany) (CHI ’23). Association for
+     Computing Machinery, New York, NY, USA, Article 433, 19 pages. https://doi.org/10.1145/3544548.3580688
+[34] Thomas Hansson, Greg Carey, and Rafn Kjartansson. 2010. A multiple software approach to understanding values. Journal of Beliefs & Values 31, 3
+     (2010), 283–298. https://doi.org/10.1080/13617672.2010.521005
+[35] Mubin Ul Haque, Isuru Dharmadasa, Zarrin Tasnim Sworna, Roshan Namal Rajapakse, and Hussain Ahmad. 2022. "I think this is the most disruptive
+     technology": Exploring Sentiments of ChatGPT Early Adopters using Twitter Data. arXiv:2212.05856 [cs.CL]
+[36] Hossein Hassani and Emmanuel Sirmal Silva. 2023. The role of ChatGPT in data science: how ai-assisted conversational interfaces are revolutionizing
+     the field. Big data and cognitive computing 7, 2 (2023), 62. https://doi.org/10.3390/bdcc7020062
+[37] Thomas F. Heston and Charya Khun. [n. d.]. Prompt Engineering in Medical Education. 2, 3 ([n. d.]), 198–205. Issue 3. https://doi.org/10.3390/
+     ime2030019
+[38] James Huynh. [n. d.]. Media Review: Qualitative and Mixed Methods Data Analysis Using Dedoose: A Practical Approach for Research Across the
+     Social Sciences. 15, 2 ([n. d.]), 284–286. https://doi.org/10.1177/1558689820977627
+[39] Katsutaka Ito, Hirokazu Hasegawa, Yukiko Yamaguchi, and Hajime Shimada. 2018. Detecting privacy information abuse by android apps from API
+     call logs. In Advances in Information and Computer Security: 13th International Workshop on Security, IWSEC 2018, Sendai, Japan, September 3-5, 2018,
+     Proceedings 13. Springer, 143–157. https://doi.org/10.1007/978-3-319-97916-8_10
+[40] Jialun Aaron Jiang, Kandrea Wade, Casey Fiesler, and Jed R. Brubaker. 2021. Supporting Serendipity: Opportunities and Challenges for Human-AI
+     Collaboration in Qualitative Analysis. Proc. ACM Hum.-Comput. Interact. 5, CSCW1, Article 94 (apr 2021), 23 pages. https://doi.org/10.1145/3449168
+[41] Jared Kaplan, Sam McCandlish, Tom Henighan, Tom B. Brown, Benjamin Chess, Rewon Child, Scott Gray, Alec Radford, Jeffrey Wu, and Dario
+     Amodei. 2020. Scaling Laws for Neural Language Models. arXiv:2001.08361 [cs.LG]
+[42] Diksha Khurana, Aditya Koli, Kiran Khatter, and Sukhdev Singh. 2023. Natural language processing: State of the art, current trends and challenges.
+     Multimedia tools and applications 82, 3 (2023), 3713–3744. https://doi.org/10.1007/s11042-022-13428-4
+[43] Lawrence Leung. 2015. Validity, reliability, and generalizability in qualitative research. Journal of family medicine and primary care 4, 3 (2015), 324.
+     https://doi.org/10.4103/2249-4863.161306
+[44] Michael Liebrenz, Roman Schleifer, Anna Buadze, Dinesh Bhugra, and Alexander Smith. 2023. Generating scholarly content with ChatGPT: ethical
+     challenges for medical publishing. The Lancet Digital Health 5, 3 (2023), e105–e106. https://doi.org/10.1016/S2589-7500(23)00019-5
+[45] Liye Ma and Baohong Sun. 2020. Machine learning and AI in marketing – Connecting computing power to human insights. International Journal of
+     Research in Marketing 37, 3 (2020), 481–504. https://doi.org/10.1016/j.ijresmar.2020.04.005
+[46] Calum Macdonald, Davies Adeloye, Aziz Sheikh, and Igor Rudan. 2023. Can ChatGPT draft a research article? An example of population-level
+     vaccine effectiveness analysis. Journal of global health 13 (2023). https://doi.org/10.7189/jogh.13.01003
+[47] Megh Marathe and Kentaro Toyama. 2018. Semi-Automated Coding for Qualitative Research: A User-Centered Inquiry and Initial Prototypes.
+     In Proceedings of the 2018 CHI Conference on Human Factors in Computing Systems (Montreal QC, Canada) (CHI ’18). Association for Computing
+     Machinery, New York, NY, USA, 1–12. https://doi.org/10.1145/3173574.3173922
+[48] Iba Masood. 2023. How CHATGPT can now hear, see and speak. learn from Sam Altman.: IBA Masood posted on the topic. https://www.linkedin.
+     com/posts/ibamasood_chatgpt-can-now-hear-see-and-speak-nervous-activity-7112087060068368384-0OXb/
+[49] T. Mather, S. Kumaraswamy, and S. Latif. 2009. Cloud Security and Privacy: An Enterprise Perspective on Risks and Compliance. O’Reilly Media.
+     https://books.google.com/books?id=BHazecOuDLYC
+[50] Haradhan Kumar Mohajan et al. 2018. Qualitative research methodology in social sciences and related subjects. Journal of economic development,
+     environment and people 7, 1 (2018), 23–48. https://mpra.ub.uni-muenchen.de/id/eprint/85654
+[51] Gabriella Oliveira, Jorge Grenha Teixeira, Ana Torres, and Carla Morais. 2021. An exploratory study on the emergency remote education experience
+     of higher education students and teachers during the COVID-19 pandemic. British Journal of Educational Technology 52, 4 (2021), 1357–1376.
+[52] Anna-Marie Ortloff, Matthias Fassl, Alexander Ponticello, Florin Martius, Anne Mertens, Katharina Krombholz, and Matthew Smith. 2023. Different
+     Researchers, Different Results? Analyzing the Influence of Researcher Experience and Data Type During Qualitative Analysis of an Interview and
+     Survey Study on Security Advice. In Proceedings of the 2023 CHI Conference on Human Factors in Computing Systems (Hamburg, Germany) (CHI ’23).
+     Association for Computing Machinery, New York, NY, USA, Article 864, 21 pages. https://doi.org/10.1145/3544548.3580766
+[53] Geetanjali Panda, Ashwani Kumar Upadhyay, and Komal Khandelwal. 2019. Artificial intelligence: A strategic disruption in public relations. Journal
+     of Creative Communications 14, 3 (2019), 196–213. https://doi.org/10.1177/0973258619866585
+[54] Trena Paulus, Jessica Lester, and Paul Dempster. [n. d.]. Digital Tools for Qualitative Research. SAGE. googlebooks:ZgZPAgAAQBAJ
+[55] Noel Pearse. 2019. An illustration of deductive analysis in qualitative research. In 18th European conference on research methodology for business and
+     management studies. 264.
+[56] Margaret Phillips and Jing Lu. [n. d.]. A Quick Look at NVivo. 30, 2 ([n. d.]), 104–106. https://doi.org/10.1080/1941126X.2018.1465535
+[57] F. Beryl Pilkington. [n. d.]. The Use of Computers in Qualitative Research. 9, 1 ([n. d.]), 5–7. https://doi.org/10.1177/089431849600900103
+                                                                             23
+                                                                                                                                   Zhang and Wu, et al.
+
+
+[58] Russell A Poldrack, Thomas Lu, and Gašper Beguš. 2023. AI-assisted coding: Experiments with GPT-4. arXiv:2304.13187 [cs.AI]
+[59] Rémi Rampin and Vicky Rampin. [n. d.]. Taguette: Open-Source Qualitative Data Analysis. 6, 68 ([n. d.]), 3522.
+[60] Carl Ratner et al. 2002. Subjectivity and objectivity in qualitative methodology. In Forum Qualitative Sozialforschung/Forum: Qualitative Social
+     Research, Vol. 3. https://doi.org/10.17169/fqs-3.3.829
+[61] renaissancerachel. [n. d.]. 15 Best Qualitative Data Analysis Software of 2023. Renaissance Rachel. https://renaissancerachel.com/best-qualitative-
+     data-analysis-software/
+[62] Laria Reynolds and Kyle McDonell. 2021. Prompt programming for large language models: Beyond the few-shot paradigm. In Extended Abstracts of
+     the 2021 CHI Conference on Human Factors in Computing Systems. 1–7.
+[63] Tim Rietz and Alexander Maedche. 2021. Cody: An AI-Based System to Semi-Automate Coding for Qualitative Research. In Proceedings of the 2021
+     CHI Conference on Human Factors in Computing Systems (Yokohama, Japan) (CHI ’21). Association for Computing Machinery, New York, NY, USA,
+     Article 394, 14 pages. https://doi.org/10.1145/3411764.3445591
+[64] Rashmi R Salavi, Mallikarjun M Math, and UP Kulkarni. 2019. A survey of various cryptographic techniques: From traditional cryptography
+     to fully homomorphic encryption. In Innovations in Computer Science and Engineering: Proceedings of the Sixth ICICSE 2018. Springer, 295–305.
+     https://doi.org/10.1007/978-981-13-7082-3_34
+[65] C.B. Seaman. 1999. Qualitative methods in empirical studies of software engineering. IEEE Transactions on Software Engineering 25, 4 (1999),
+     557–572. https://doi.org/10.1109/32.799955
+[66] Thanveer Shaik, Xiaohui Tao, Yan Li, Christopher Dann, Jacquie McDonald, Petrea Redmond, and Linda Galligan. 2022. A Review of the Trends
+     and Challenges in Adopting Natural Language Processing Methods for Education Feedback Analysis. IEEE Access 10 (2022), 56720–56739.
+     https://doi.org/10.1109/ACCESS.2022.3177752
+[67] Tamar Sharon. 2021. Blind-sided by privacy? Digital contact tracing, the Apple/Google API and big tech’s newfound role as global health policy
+     makers. Ethics and information technology 23, Suppl 1 (2021), 45–57. https://doi.org/10.1007/s10676-020-09547-x
+[68] Yiqiu Shen, Laura Heacock, Jonathan Elias, Keith D Hentel, Beatriu Reig, George Shih, and Linda Moy. 2023. ChatGPT and other large language
+     models are double-edged swords. , e230163 pages. https://doi.org/10.1148/radiol.230163
+[69] Sruti Srinivasa Ragavan, Zhitao Hou, Yun Wang, Andrew D Gordon, Haidong Zhang, and Dongmei Zhang. 2022. GridBook: Natural Language
+     Formulas for the Spreadsheet Grid. In 27th International Conference on Intelligent User Interfaces (Helsinki, Finland) (IUI ’22). Association for
+     Computing Machinery, New York, NY, USA, 345–368. https://doi.org/10.1145/3490099.3511161
+[70] M. C. Sánchez-Gómez, M. V. Martín-Cilleros, and G. Sánchez Sánchez. [n. d.]. Evaluation of Computer Assisted Qualitative Data Analysis
+     Software (CAQDAS) Applied to Research. In Learning Technology for Education Challenges (Cham, 2019) (Communications in Computer and
+     Information Science), Lorna Uden, Dario Liberona, Galo Sanchez, and Sara Rodríguez-González (Eds.). Springer International Publishing, 474–485.
+     https://doi.org/10.1007/978-3-030-20798-4_41
+[71] Gareth Terry, Nikki Hayfield, Victoria Clarke, and Virginia Braun. 2017. Thematic analysis. The SAGE handbook of qualitative research in psychology
+     2 (2017), 17–37. https://doi.org/10.4135/9781526405555.n2
+[72] Sara Thunberg and Linda Arnell. 2022. Pioneering the use of technologies in qualitative research–A research review of the use of digital interviews.
+     International Journal of Social Research Methodology 25, 6 (2022), 757–768. https://doi.org/10.1080/13645579.2021.1935565
+[73] Shubo Tian, Qiao Jin, Lana Yeganova, Po-Ting Lai, Qingqing Zhu, Xiuying Chen, Yifan Yang, Qingyu Chen, Won Kim, Donald C. Comeau, Rezarta
+     Islamaj, Aadit Kapoor, Xin Gao, and Zhiyong Lu. [n. d.]. Opportunities and Challenges for ChatGPT and Large Language Models in Biomedicine and
+     Health. https://doi.org/10.48550/arXiv.2306.10070 arXiv:2306.10070 [cs, q-bio]
+[74] Lara Varpio, Elise Paradis, Sebastian Uijtdehaage, and Meredith Young. 2020. The distinctions between theory, theoretical framework, and conceptual
+     framework. Academic Medicine 95, 7 (2020), 989–994.
+[75] Paul Voigt and Axel Von dem Bussche. 2017. The eu general data protection regulation (gdpr). A Practical Guide, 1st Ed., Cham: Springer International
+     Publishing 10, 3152676 (2017), 10–5555. https://doi.org/10.1007/978-3-319-57959-7
+[76] Shuyue Wang and Pan Jin. [n. d.]. A Brief Summary of Prompting in Using GPT Models. ([n. d.]). https://doi.org/10.32388/IMZI2Q
+[77] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia, Ed Chi, Quoc V. Le, and Denny Zhou. [n. d.]. Chain-of-Thought
+     Prompting Elicits Reasoning in Large Language Models. 35 ([n. d.]), 24824–24837. https://proceedings.neurips.cc/paper_files/paper/2022/hash/
+     9d5609613524ecf4f15af0f7b31abca4-Abstract-Conference.html
+[78] E. Weitzman and M.B. Miles. 1995. Computer Programs for Qualitative Data Analysis. SAGE Publications. https://books.google.com/books?id=
+     E4Y5DQAAQBAJ
+[79] Elaine Welsh et al. 2002. Dealing with data: Using NVivo in the qualitative data analysis process. In Forum qualitative sozialforschung/Forum:
+     qualitative social research, Vol. 3. https://doi.org/10.17169/fqs-3.2.865
+[80] Carla Willig. 2013. EBOOK: introducing qualitative research in psychology. McGraw-hill education (UK).
+[81] Ziang Xiao, Xingdi Yuan, Q. Vera Liao, Rania Abdelghani, and Pierre-Yves Oudeyer. 2023. Supporting Qualitative Analysis with Large Language
+     Models: Combining Codebook with GPT-3 for Deductive Coding. In Companion Proceedings of the 28th International Conference on Intelligent User
+     Interfaces (Sydney, NSW, Australia) (IUI ’23 Companion). Association for Computing Machinery, New York, NY, USA, 75–78. https://doi.org/10.
+     1145/3581754.3584136
+[82] Wen Xu and Katina Zammit. 2020. Applying thematic analysis to education: A hybrid approach to interpreting data in practitioner research.
+     International Journal of Qualitative Methods 19 (2020), 1609406920918810.
+                                                                           24
+QualiGPT: GPT as an easy-to-use tool for qualitative coding
+
+
+[83] JD Zamfirescu-Pereira, Richmond Y Wong, Bjoern Hartmann, and Qian Yang. 2023. Why Johnny can’t prompt: how non-AI experts try (and fail) to
+     design LLM prompts. In Proceedings of the 2023 CHI Conference on Human Factors in Computing Systems. 1–21.
+[84] He Zhang, Chuhao Wu, Jingyi Xie, Yao Lyu, Jie Cai, and John M. Carroll. 2023. Redefining Qualitative Analysis in the AI Era: Utilizing ChatGPT for
+     Efficient Thematic Analysis. arXiv:2309.10771 [cs.HC]
+[85] Zihao Zhao, Eric Wallace, Shi Feng, Dan Klein, and Sameer Singh. [n. d.]. Calibrate Before Use: Improving Few-shot Performance of Language
+     Models. In Proceedings of the 38th International Conference on Machine Learning (2021-07-01). PMLR, 12697–12706. https://proceedings.mlr.press/
+     v139/zhao21c.html
+
+
+A    ONLINE RESOURCES
+QualiGPT is available on https://github.com/KindOPSTAR/QualiGPT.
+
+Received 9 October 2023
+
+
+
+
+                                                                          25
+

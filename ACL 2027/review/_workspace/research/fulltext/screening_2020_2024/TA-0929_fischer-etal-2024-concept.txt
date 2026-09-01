@@ -1,0 +1,480 @@
+                         Concept Over Time Analysis:
+            Unveiling Temporal Patterns for Qualitative Data Analysis
+                     Tim Fischer† , Florian Schneider† , Robert Geislinger† ,
+                      Florian Helfer‡ , Gertraud Koch‡ , Chris Biemann†
+   †
+     Language Technology Group, Department of Informatics, Universität Hamburg, Germany
+ ‡
+    Institute of Anthropological Studies in Culture and History, Universität Hamburg, Germany
+              {firstname.lastname OR florian.schneider-1}@uni-hamburg.de
+
+                       Abstract                                ous features extend its utility across various disci-
+                                                               plines. Noteworthy functionalities include the au-
+    In this system demonstration paper, we present             tomated pre-processing of multi-modal data (text,
+    the Concept Over Time Analysis extension for
+                                                               image, audio, and video), data exploration, and
+    the Discourse Analysis Tool Suite. The pro-
+    posed tool empowers users to define, refine, and           both manual and automatic annotation.
+    visualize their concepts of interest within an                In this paper, we extend DATS with Concept
+    interactive interface. Adhering to the Human-              Over Time Analysis, a machine-learning-based fea-
+    in-the-loop paradigm, users can give feedback              ture to identify concepts of interest in a large
+    through sentence annotations. Utilizing few-               dataset and analyse their occurrences over time.
+    shot sentence classification, the system em-
+                                                               The proposed system allows users to define con-
+    ploys Sentence Transformers to compute repre-
+    sentations of sentences and concepts. Through              cepts, assists them in identifying relevant sentences,
+    an iterative process involving semantic simi-              refine the concept representation and finally visual-
+    larity searches, sentence annotation, and fine-            ize the results over time. The interactive User Inter-
+    tuning with contrastive data, the model contin-            face (UI) follows the Human-in-the-loop paradigm
+    uously refines, providing users with enhanced              (Holzinger, 2016), encouraging users to give feed-
+    analysis outcomes. The final output is a time-             back by annotating samples, which improves con-
+    line visualization of sentences classified to con-
+                                                               cept representations and analysis results.
+    cepts. Especially suited for the Digital Human-
+    ities, Concept Over Time Analysis serves as a                 The proposed system performs few-shot sen-
+    valuable tool for qualitative data analysis within         tence classification, mapping each concept to a
+    extensive datasets. The chronological overview             class. We use Sentence Transformers (Reimers
+    of concepts enables researchers to uncover pat-            and Gurevych, 2019) to compute representations
+    terns, trends, and shifts in discourse over time.          of sentences and concept descriptions. Initially,
+                                                               a similarity search provides semantically relevant
+1   Introduction                                               sentences for each concept that can be classified
+The Discourse Analysis Tool Suite (DATS) (Schnei-              into concepts by the user. With few labeled exam-
+der et al., 2023) serves as an open-source oper-               ples, a contrastive dataset is generated to fine-tune
+ational platform designed for conducting digital               a Sentence Transformer model. This is employed
+qualitative discourse analysis within the realm of             to update concept representations and similarity
+Digital Humanities (DH). Developed through col-                search results, providing the user with better sug-
+laborative efforts, the tool is tailored specifically          gestions. This iterative refinement step is repeated
+for DH researchers. Its purpose is to democratize              until the user is content. Finally, sentences classi-
+access to cutting-edge machine learning technolo-              fied to a concept with confidence above a specified
+gies derived from Computer Vision and Natural                  threshold are visualized in a timeline.
+Language Processing. This initiative enables non-                 The Concepts Over Time Analysis enables quali-
+expert users to efficiently handle and analyze un-             tative data analysis within large datasets. A chrono-
+structured, large multi-modal data.                            logical overview of custom concepts like events,
+   While the overarching design of the platform                topics, opinions or practices allows researchers to
+is catered to Grounded Theory-based research                   identify patterns, trends, and shifts in discourse
+(Strauss and Corbin, 1990), particularly in align-             over time. This temporal perspective can reveal
+ment with approaches like the Sociology of Knowl-              how ideas, narratives, or cultural practices evolve,
+edge Approach to Discourse (Keller, 2011), numer-              providing insights into the dynamics of discour-
+                                                           148
+    Proceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics:
+                    Human Language Technologies (Volume 3: System Demonstrations), pages 148–157
+                            June 16-21, 2024 ©2024 Association for Computational Linguistics
+sive trends. By visualising such concepts along a        own concepts or topics of interest across time.
+timeline, researchers can identify clusters of related      SCoT (Haase et al., 2021) is an interactive web
+events, helping to create a nuanced understanding        application to analyse the sense-clusters of a word
+of how cultural phenomena unfold over time. Fur-         and their evolution over time. SentiView (Wang
+ther, a timeline analysis can aid in contextualising     et al., 2013) is an interactive visualization system
+and connecting different elements within a large         for sentiment analysis. It visualizes changes over
+dataset, making it easier to trace the lineage of        time of various attributes and relationships between
+ideas or the influence of past discourses on current     demographics of interest as well as participants’
+ones. Though inspired by DH and discourse analy-         sentiments on popular topics. Open Discourse is a
+sis, the proposed system is versatile, extending its     web-platform for the analysis of the plenary min-
+utility to related analyses such as visualizing topics   utes of the german federal parliament. It includes
+or sentiments over time.                                 a topic analysis feature to investigate the political
+   While the Concepts Over Time Analysis is a pow-       discourse over time, filterable by speaker, gender,
+erful feature on its own, its integration within DATS    party and other attributes.
+can enable users to merge findings with existing            LabelSleuth (Shnarch et al., 2022) serves as a no-
+analyses, utilize Memos or the Logbook for docu-         code platform, making NLP accessible for a broad
+mentation and reflection, and identify concepts to       audience. It facilitates integrated model training
+be analyzed using search and filter functionalities.     and an intuitive, active learning-powered annota-
+   The contributions of this paper are threefold:        tion interface. In contrast, our proposed extension
+First, we develop the Concept Over Time Analy-           supports the training of multi-class sentence classi-
+sis extension, which facilitates the identification      fication models and enables a timeline analysis of
+of concepts in large datasets and a chronological        the results.
+overview. Second, we describe a typical usage
+scenario, outlining the interaction with the system.     3     Concept Over Time Analysis
+Finally, we perform experiments on three datasets,
+                                                         The Concept Over Time Analysis extension is an
+demonstrating the feasibility of our system.
+                                                         interactive, machine-learning-based tool that semi-
+   The DATS and Concepts Over Time Analysis are
+                                                         automatically identifies relevant sentences of user-
+open-source and available on GitHub1 where links
+                                                         defined concepts, adjusts accordingly to feedback,
+to a demonstration and a video are provided.
+                                                         and visualizes concept occurrences in a timeline.
+2     Related Work                                          Its goal is to provide users with a chronological
+                                                         overview of their concepts of interest, with as few
+Qualitative Data Analysis tools that are frequently      steps as possible. Integrating the feedback process
+used in the DH include CATMA (Gius et al., 2022),        into the workflow was a key requirement for the
+MAXQDA and Atlas.ti. While offering various              development of the UI.
+analysis tools, at the time of writing, none of them
+include means to semi-automatically identify con-        3.1    Concepts
+cepts in large datasets or visualize concepts in a       Concepts are defined by Strauss et al. (1996) as the
+chronological overview. With the proposed exten-         basic building blocks of a theory. In grounded the-
+sions, DATS aims to close that gap.                      ory, open coding represents the analytical process
+   However, there exist many tools and libraries         through which concepts are identified and devel-
+that offer interesting timeline analysis functionali-    oped in terms of their properties and dimensions.
+ties. BERTopic (Grootendorst, 2022), a topic mod-           In this work, we employ the broad term concept
+eling tool, leverages Sentence Transformers to com-      to encompass various usage scenarios, such as cat-
+pute document or sentence embeddings, yielding           egories, topics, sentiments, opinions, etc. In our
+easily interpretable topic representations through       terms, a concept refers to anything that serves to
+clustering. With Dynamic Topic Modeling, the tool        semantically group or classify sentences.
+offers a collection of techniques to analyse the de-
+velopment of topics over time. While BERTopic            3.2    User Workflow
+identifies prevalent topics automatically, our exten-
+                                                         The Concept Over Time Analysis extension pro-
+sion empowers users to define and analyze their
+                                                         vides versatile functions for diverse applications.
+1
+    github.com/uhh-lt/dats                               Illustratively, we present key features through a
+                                                     149
+Figure 1: The annotation view of the Concept Over Time Analysis extension: (1) Define, edit, delete & toggle
+visibility of concepts. (2) + (4) Sentence Annotator: A ranked list sentences similar to the selected concept. (3) 2D
+visualization of the search space, annotated sentences are colored & highlighted. (5) Controls to manually start,
+reset & configure model training. Training status is updated live.
+
+
+typical workflow. Consider Alice, a researcher ex-          Alice realizes that the scatter plot lacks effective
+ploring discourse on the COVID pandemic from                clustering for her concepts, primarily because, at
+2020 to 2024. Using her web browser, she accesses           this stage, a concept’s representation relies solely
+DATS, registers, logs in, and creates a new project.        on the initial description.
+Uploading material from various news websites,                 Alice enhances her defined concepts with more
+she ensures the presence of metadata indicating             information by providing feedback through sen-
+the publication date, which is required for Concept         tence annotations. While scrolling through lists of
+Over Time Analysis. To start her analysis, Alice            similar sentences, she annotates sentences with the
+locates the feature in the "Analysis" tab and creates       respective concept (4), identifying fitting mentions,
+an empty Concept Over Time Analysis.                        ideas, or paraphrases. This initial annotation is
+                                                            recognized as the most challenging part of the anal-
+Defining concepts Alice is presented with the               ysis, and we aim to assist by providing an initial
+annotation view of the Concept over time analysis           similarity ranking.
+view (see Figure 1). To initiate the analysis, she de-
+fines three concepts "Covid 19 as a risk", "Covid 19        Iterative concept refinement After annotating
+Outbreaks", "Vaccinations", and provides a short            the minimum required sentences per concept (de-
+description for each (1). To identify interesting con-      fault is five), she proceeds to the next step by click-
+cepts, DATS offers various dataset exploration fea-         ing the refine button (5). Through her feedback,
+tures ranging from the distant, quantitative search,        the system improves its ability to distinguish be-
+filter and statistics features to the close, qualitative    tween concepts and provides more relevant similar
+reading and annotation of documents.                        sentences for each. The scatter plot visualization
+                                                            is updated, showing clusters of sentences centered
+Concept annotation After inputting concepts                 around the annotated ones. Annotated sentences
+and descriptions, Alice starts the first iteration of       are in Alice’s defined color, while others are visu-
+the analysis. The Sentence Annotator (2) displays           alized in purple (3). With the improved scatter plot
+ranked sentences based on similarity to the concept,        and sentence rankings, it becomes notably easier
+accompanied by a scatter plot (3) visualizing all           for Alice to identify additional relevant sentences
+search space sentences. Clicking on a dot navi-             for her concepts.
+gates to and highlights the corresponding sentence             After annotating a few more relevant sentences,
+in the annotator. While exploring the search space,         Alice is prompted to refine the Concept Over Time
+                                                        150
+Analysis again. Alice can continue this process          et al., 2021; Reimers and Gurevych, 2020) model.
+until she’s certain in the system’s ability to distin-      Following this, the concept representations are
+guish between concepts. Typically, this is achieved      employed to identify semantically similar sen-
+if the scatter plot exhibits clear clustering, allow-    tences, leveraging the existing semantic similarity
+ing for effective separation, and if most top similar    search feature within DATS. Each uploaded doc-
+sentences for a concept are deemed relevant.             ument runs through a multi-step pre-processing
+                                                         pipeline, including sentence splitting and sentence
+Timeline analysis Satisfied with the clustering
+                                                         embedding, with the results stored in Weaviate5 ,
+and the suggested similar sentences, Alice switches
+                                                         an open-source vector database. Consequently, the
+to the Timeline Analysis visualization (see Figure
+                                                         vector database is utilized to retrieve the top K
+2). This visualization (1) depicts the date on the x-
+                                                         similar sentences for each concept representation,
+axis and the aggregated count of similar sentences
+                                                         along with their respective similarity scores. K is
+per concept on the y-axis, illustrating the devel-
+                                                         configurable in the UI and defaults to 1000.
+opment of her defined concepts over time. Alice
+                                                            The set of returned sentences is considered as
+customizes the aggregation (year, month, day) and
+                                                         the search space, which remains constant in the
+adjusts the similarity threshold to filter out irrele-
+                                                         subsequent steps. However, the UI allows resetting
+vant sentences (2). Alice explores the results by
+                                                         the search space and restarting the analysis process.
+clicking on several dots, which reveals all sentences
+                                                            The initial concept descriptions play a pivotal
+of the selected concept on the chosen date in the
+                                                         role in the entire analysis, determining the sen-
+Sentence Annotator (3).
+                                                         tences considered during the analysis. This step
+4   System Implementation                                is only executed once at the beginning, but cru-
+                                                         cial to the process as it limits the sentences to the
+The visualization is implemented using React and
+                                                         concepts’ domain and fastens the following steps.
+the Recharts2 library. The asynchronous model
+training is implemented with Celery3 and Set-            Model fine-tuning Users provide feedback in
+Fit4 (Tunstall et al., 2022).                            terms of labeling sentences with concepts. This
+   The main challenges involve classifying con-          step is skipped, if there are insufficient annotations
+cepts and adapting to limited user feedback while        for any given concept. The minimum labeled ex-
+ensuring high performance and interactivity. Addi-       amples per concept can be configured in the UI,
+tionally, we noted that concepts are often nuanced       however, our experiments suggest that 4, 8, and 16
+and exist within the same domain, resulting in high      are good thresholds to start the fine-tuning.
+inter-concept similarity. Therefore, key require-           A contrastive training dataset is generated based
+ments considered during the implementation are           on the users’ annotations, which is then used to fine-
+fast training, the capacity to learn from a few la-      tune a pre-trained Sentence Transformer model
+beled samples, and the ability to distinguish be-        (more details in Section 5). The model trains asyn-
+tween topically similar instances.                       chronously in the background for 1 epoch, the fron-
+   The Concept Over Time Analysis workflow is            tend is informed about status changes and displays
+internally structured as a three-step pipeline, en-      them accordingly.
+compassing: establishing the initial search space,
+fine-tuning the Sentence Transformer model, and          Results In the final step, we compute a 2D repre-
+computing the results. In the subsequent sections,       sentation of the search space, update concept rep-
+we provide a detailed explanation of each step.          resentations, re-rank sentences, and compute the
+                                                         timeline analysis.
+The initial search space To initiate the Concept            To generate the 2D representation, displayed in
+Over Time Analysis, users provide concepts along         the annotation view, the fine-tuned model computes
+with proper descriptions. The descriptions are em-       sentence embeddings, which are then passed to
+bedded with a Sentence Transformer model to gen-         UMAP (McInnes et al., 2020) or t-SNE (Van der
+erate an initial representation of each concept. The     Maaten and Hinton, 2008) for dimensionality re-
+model is configurable during the tool setup and de-      duction. Initially, the embeddings stored in the vec-
+faults to a pretrained multilingual CLIP (Radford        tor database represent the search space sentences.
+2
+  https://recharts.org/                                  Throughout iterative refinement, models with im-
+3
+  https://docs.celeryq.dev/
+                                                         5
+4
+  https://huggingface.co/docs/setfit                         https://weaviate.io/
+
+                                                     151
+Figure 2: The timeline view of the Concept Over Time Analysis extension: (1) Aggregated occurrences of sentences
+similar to concepts over time. (2) Settings. (3) Sentence Annotator showing similar sentences of selected concept at
+selected date.
+
+
+proved performance enhance the sentence repre-              Improve performance with more training samples
+sentations, causing sentences to "move" toward              rather than more training time, allowing iterative
+their most similar concept and form clusters. Ap-           refinement of the model.
+pendix B illustrates this process.
+   Initially, a concept is represented by its embed-        5.1     Datasets
+ded description. An enhanced representation is             The 20 newsgroup dataset6 (NG20), containing
+derived by averaging the embeddings of labeled             around 20,000 newsgroup posts across 20 topics,
+sentences for the concept. Next, we calculate the          aligns with our users’ domain. Given that con-
+cosine similarity between concept representations          cepts are commonly closely related and within the
+and all embedded search space sentences. The sen-          same domain, we align this experiment with the ex-
+tences in the Sentence Annotator are then ranked           pected real-world setting by considering the classes
+based on the resulting similarity scores.                  "misc," "guns," and "mideast" in the politics sub-
+   Finally, the timeline analysis is computed. For         ject. Similarly, we consider the related classes
+each concept, sentences below the similarity thresh-       "Wellness", "Style & Beauty" and "Healthy Liv-
+old are filtered out, and the remaining ones are ag-       ing" of the News Category dataset (Misra, 2022)
+gregated and counted based on the specified time           (NCT). It contains around 210.000 news headlines
+intervals (year, month, or day).                           from 2012 - 2022.
+                                                              The Stanford Sentiment Treebank dataset (SST-
+5   Experiments                                            5) (Socher et al., 2013), containing approximately
+                                                           12,000 sentences from movie reviews, involves fine-
+Few-shot fine-tuning of Sentence Transformers has
+                                                           grained sentiment classification with five labels
+been shown to achieve high accuracy with few la-
+                                                           ranging from "very negative" to "very positive."
+beled data by Tunstall et al. (2022). Our follow-
+                                                           We explore this dataset to assess the applicability
+ing experiments assess the suitability of this ap-
+                                                           of our proposed system for Sentiment Analysis, a
+proach for the Concept Over Time Analysis exten-
+                                                           common need in DH research.
+sion, while also gaining insights into its limitations.
+   We formulate the following requirements that             5.2     Setup
+our system should meet: Require few labeled sam-
+                                                            Following Tunstall et al. (2022), we fine-tune a
+ples, enabling users to quickly achieve satisfac-
+                                                            Sentence Transformer model with few-shot training
+tory results. Ensure short training time to facilitate
+an interactive user experience with fast iterations.        6
+                                                                http://qwone.com/ jason/20Newsgroups/
+
+                                                        152
+data and train a Logistic Regression classifier on       the 20 newsgroup experiment, there is a difference
+top. We use paraphrase-mpnet-base-v27 for all            of over 30% accuracy between the best-performing
+experiments.                                             and worst-performing run.
+   The contrastive training data comprises sentence         We acknowledge that the performance of our ap-
+pairs, where a pair is deemed positive (1.0) if both     proach does not match state-of-the-art results on
+sentences belong to the same class and negative          the datasets due to the few-shot nature of these ex-
+(0.0) otherwise. Considering C classes with N sen-       periments. To mitigate this, in the timeline analysis,
+tences per class, all combinations (N × |C|)2 are        users can define a similarity threshold to filter out
+evaluated, but duplicate (A, B) = (B, A) and iden-       irrelevant results. In addition, we provide an inter-
+tical (A, A) sentence pairs are removed. To balance      face to assess the considered sentences for a given
+positive and negative pairs, positive examples are       concept and time.
+oversampled, resulting in a substantial training set        In summary, our implemented system achieves
+even with limited labeled samples.                       most of our requirements: It requires few labeled
+   We mimic the iterative concept refinement step,       training data, the training times are fast (see Ap-
+by incrementally increasing the labeled training         pendix A), and it scales with more training samples,
+data. However, our experiments maintain a uniform        but only up to 16 examples per class.
+label distribution in the labeled data, a condition
+not assured in real-world settings.
+                                                         6   Conclusion
+   The model is fine-tuned for 1 epoch with cosine
+similarity loss, utilizing the AdamW optimizer with
+                                                         In this paper, we presented the Concept Over Time
+default parameters and a batch size of 16. Experi-
+                                                         Analysis extension, a machine-learning-based tool
+ments are conducted on a single A100 GPU.
+                                                         facilitating the identification and analysis of user-
+5.3 Evaluation                                           defined concepts within large datasets over time.
+                                                         The proposed tool empowers users to define con-
+                                                         cepts, identify relevant sentences, and visualize
+                                                         results in a timeline through a unified and interac-
+                                                         tive interface that is fully integrated within the Dis-
+                                                         course Analysis Tool Suite. Embracing the Human-
+                                                         in-the-loop paradigm, the system iteratively refines
+                                                         the underlying model and enhances the timeline
+                                                         analysis with the help of user feedback.
+                                                            It employs few-shot sentence classification uti-
+                                                         lizing Sentence Transformer models for sentence
+                                                         and concept representations. With minimal human
+                                                         feedback, the model is fine-tuned on a contrastive
+                                                         dataset generated from the provided annotations.
+                                                            This results in a powerful tool for qualitative
+                                                         data analysis in large datasets. The chronological
+                                                         overview of custom concepts allows researchers
+Figure 3: Accuracies over 10 runs of the experiments     to identify patterns, trends, and shifts in discourse
+described in Section 5.                                  over time. Beyond discourse analysis, the exten-
+                                                         sion supports various applications, including visu-
+   Figure 3 shows averaged accuracy from 10 runs         alizing topics or sentiments over time.
+of the SST-5, NG20 and NCT experiments. For all             This work centered on analyzing and visualizing
+three experiments, we observe a steady improve-          concepts in texts over time. In the next iteration,
+ment in accuracy up to 16 training examples per          we plan to support image data, i.e., using cross-
+class. Labeling more examples does not improve           modal Sentence Transformers powered by CLIP,
+the results. Additionally, we note that the quality      and adapting the interface for image processing.
+of annotation significantly impacts our setup. In        We also aim to fine-tune Sentence Transformers
+7
+  https://huggingface.co/sentence-transformers           with adapters to further reduce training time while
+/paraphrase-mpnet-base-v2                                maintaining comparable performance.
+                                                       153
+7   Acknowledgement                                        Leland McInnes, John Healy, and James Melville. 2020.
+                                                             UMAP: Uniform Manifold Approximation and Pro-
+This work is supported by the D-WISE project,                jection for Dimension Reduction. arXiv preprint
+Universität Hamburg, funded by BMBF (grant                   arXiv:1802.03426.
+no.01UG2124).
+                                                           Rishabh Misra. 2022. News Category Dataset. arXiv
+                                                             preprint arXiv:2209.11429.
+8   Ethics Statement
+                                                           Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya
+The proposed Concept Over Time Analysis exten-               Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sas-
+sion of the DATS heavily relies on Machine Learn-            try, Amanda Askell, Pamela Mishkin, Jack Clark,
+ing (ML) models and technology. We acknowl-                  et al. 2021. Learning Transferable Visual Models
+edge that while ML models can provide valuable               from Natural Language Supervision. In International
+                                                             Conference on Machine Learning (ICML), pages
+insights, they are not perfect and may produce er-           8748–8763, Online.
+rors. It is crucial to understand and accept the
+limitations of these models to avoid drawing false         Nils Reimers and Iryna Gurevych. 2019. Sentence-
+impressions or conclusions based on their outputs.           BERT: Sentence Embeddings using Siamese BERT-
+                                                             Networks. In Proceedings of the 2019 Conference on
+We urge users to exercise caution and critical think-        Empirical Methods in Natural Language Processing
+ing when interpreting results generated by our tool.         and the 9th International Joint Conference on Natu-
+The accuracy and reliability of any findings depend          ral Language Processing (EMNLP-IJCNLP), pages
+heavily on the quality and appropriateness of the            3973–3983, Hong Kong, China.
+input data as well as the model’s assumptions and
+                                                           Nils Reimers and Iryna Gurevych. 2020. Making
+parameters. Users should also consider potential             Monolingual Sentence Embeddings Multilingual us-
+biases that may exist within the training data used          ing Knowledge Distillation. In Proceedings of the
+to develop the models. In addition, we emphasize             2020 Conference on Empirical Methods in Natural
+the importance of validating all results through al-         Language Processing (EMNLP), pages 4512–4525,
+                                                             Online.
+ternative methods such as manual coding or expert
+review. This step will help ensure the accuracy and        Florian Schneider, Tim Fischer, Fynn Petersen-Frey, Is-
+robustness of the findings and prevent overreliance           abel Eiser, Gertraud Koch, and Chris Biemann. 2023.
+on automated tools.                                          The D-WISE Tool Suite: Multi-Modal Machine-
+                                                              Learning-Powered Tools Supporting and Enhancing
+                                                              Digital Discourse Analysis. In Proceedings of the
+                                                              61st Annual Meeting of the Association for Compu-
+References                                                    tational Linguistics (Volume 3: System Demonstra-
+Evelyn Gius, Jan Christoph Meister, Malte Meister,            tions), pages 328–335.
+  Marco Petris, Christian Bruck, Janina Jacke, Mareike
+  Schumacher, Dominik Gerstorfer, Marie Flüh, and          Eyal Shnarch, Alon Halfon, Ariel Gera, Marina
+  Jan Horstmann. 2022. CATMA: Computer Assisted              Danilevsky, Yannis Katsis, Leshem Choshen, Mar-
+  Text Markup and Analysis.                                  tin Santillan Cooper, Dina Epelboim, Zheng Zhang,
+                                                             Dakuo Wang, Lucy Yip, Liat Ein-Dor, Lena Dankin,
+Maarten Grootendorst. 2022. BERTopic: Neural topic           Ilya Shnayderman, Ranit Aharonov, Yunyao Li, Naf-
+ modeling with a class-based TF-IDF procedure.               tali Liberman, Philip Levin Slesarev, Gwilym New-
+ arXiv preprint arXiv:2203.05794.                            ton, Shila Ofek-Koifman, Noam Slonim, and Yoav
+                                                             Katz. 2022. Label Sleuth: From Unlabeled Text to
+Christian Haase, Saba Anwar, Seid Muhie Yimam,               a Classifier in a Few Hours. In Proceedings of the
+  Alexander Friedrich, and Chris Biemann. 2021.              2022 Conference on Empirical Methods in Natural
+  SCoT: Sense Clustering over Time: a tool for the           Language Processing: System Demonstrations.
+  analysis of lexical change. In Proceedings of the 16th
+  Conference of the European Chapter of the Associa-       Richard Socher, Alex Perelygin, Jean Wu, Jason
+  tion for Computational Linguistics: System Demon-          Chuang, Christopher D. Manning, Andrew Ng, and
+  strations, pages 198–204, Online. Association for          Christopher Potts. 2013. Recursive Deep Models for
+  Computational Linguistics.                                 Semantic Compositionality Over a Sentiment Tree-
+                                                             bank. In Proceedings of the 2013 Conference on
+Andreas Holzinger. 2016. Interactive machine learning        Empirical Methods in Natural Language Processing,
+  for health informatics: when do we need the human-         pages 1631–1642, Seattle, Washington, USA. Asso-
+  in-the-loop? Brain Informatics, 3(2):119–131.              ciation for Computational Linguistics.
+
+Reiner Keller. 2011. The sociology of knowledge ap-        Anselm Strauss and Juliet Corbin. 1990. Basics of Qual-
+  proach to discourse (SKAD). Human Studies, 34:43–          itative Research: Grounded Theory Procedures and
+  65.                                                        Techniques. SAGE Publications, Inc.
+
+                                                         154
+Anselm Strauss, Juliet Corbin, Solveigh Niewiarra,
+  and Heiner Legewie. 1996. Grounded Theory:
+  Grundlagen Qualitativer Sozialforschung. Beltz,
+  Psychologie-Verlag-Union Weinheim.
+Lewis Tunstall, Nils Reimers, Unso Eun Seo Jo, Luke
+  Bates, Daniel Korat, Moshe Wasserblat, and Oren
+  Pereg. 2022. Efficient Few-Shot Learning Without
+  Prompts. arXiv preprint arXiv:2209.11055.
+Laurens Van der Maaten and Geoffrey Hinton. 2008.
+  Visualizing data using t-SNE. Journal of machine
+  learning research, 9(11).
+Changbo Wang, Zhao Xiao, Yuhua Liu, Yanru Xu, Aoy-
+  ing Zhou, and Kang Zhang. 2013. SentiView: Senti-
+  ment Analysis and Visualization for Internet Popular
+  Topics. IEEE Transactions on Human-Machine Sys-
+  tems, 43(6):620–630.
+
+
+
+
+                                                      155
+A     Few-Shot Training Runtime
+An important requirement for implementing usable
+tools is the time or latency. We measured the train-
+ing times for the experiments described in Section 5
+to get an estimate of the time users have to wait
+until they receive the results of the COTA Refine-
+ment in the UI. The results are shown in Figure 4.
+Here we can see that the runtime heavily depends
+on the lengths of the sentences (see Table 1) and
+the number of samples used for training. Since the
+sentences within our tool are created using spaCy8 ,
+we can assume typical lengths. Hence, we expect
+the users of our tool to wait a maximum of two min-
+utes when refining a COTA with 32 annotations per
+concept.
+
+                                                           (a) Number of training samples per class: 4
+
+
+
+
+Figure 4: Average runtimes over 10 runs of the experi-     (b) Number of training samples per class: 8
+ments described in Section 5.
+
+
+Table 1: Number of white space separated words per
+dataset.
+
+    Dataset   mean      std       min    max
+    NG20      205.48    652.55    1.00   20082.00
+    SST-5     19.14     9.31      2.00   52.00
+    NCT       9.15      3.25      1.00   38.00
+
+
+B     Sentence Embedding Evolution
+In this appendix section, we show the evolu-
+tion of sentence embeddings produced during our
+experiment with the NG20 dataset. We use t-
+SNE (Van der Maaten and Hinton, 2008) to reduce            (c) Number of training samples per class: 16
+the embeddings to 2D for better visualization.
+8
+    https://spacy.io/
+
+                                                     156
+      (d) Number of training samples per class: 24
+
+
+
+
+      (e) Number of training samples per class: 32
+
+Figure 5: The evolution of sentence embeddings pro-
+duced during our experiment with the NG20 dataset.
+
+
+
+
+                                                     157
+

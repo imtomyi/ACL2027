@@ -1,0 +1,155 @@
+{
+  "document_type": "rq2_base_admissibility_transport_adapter",
+  "adapter_spec_version": "rq2-base-admissibility-transport-adapter-v2.2",
+  "purpose": "Serialization-only conversion from the flat Ollama transport object to the canonical v2 base-admissibility object",
+  "semantic_change_allowed": false,
+  "bindings": {
+    "transport_prompt": {
+      "file": "experiments/rq2_role_prompted_llm/prompts/base_admissibility_v2_2.md",
+      "sha256": "5db10d500635b69d39c3efabd8db060669d2d22a0728063f7e08dc47b6b501a9"
+    },
+    "transport_schema": {
+      "file": "experiments/rq2_role_prompted_llm/schemas/base_admissibility_v2_2_flat.schema.json",
+      "sha256": "3e1e2aab77e1a2d7bbc9472452229fb7b5a74b3fb38a009b2f2abb82da0a652f"
+    },
+    "canonical_schema": {
+      "file": "experiments/rq2_role_prompted_llm/schemas/base_admissibility_v2.schema.json",
+      "sha256": "bac01b16b60423a8bf98a2370bc09d6a259c296660a3a8eb01d5233c809f3658"
+    },
+    "canonical_semantic_rule": {
+      "file": "experiments/rq2_role_prompted_llm/protocol/base_admissibility_rule_v2.json",
+      "sha256": "9d2e521cc9edfebb14c66b8232eaebcf645ccac887cdd69fafabc9d1435670ec"
+    }
+  },
+  "transport_interface": {
+    "required_version_field": "transport_schema_version",
+    "required_version_value": "rq2-base-admissibility-flat-v2.2",
+    "root_must_be_flat": true,
+    "nested_objects_allowed": false,
+    "arrays_may_contain_only_finite_scalar_enums": true,
+    "unknown_fields_allowed": false,
+    "coercion_allowed": false,
+    "default_insertion_allowed": false
+  },
+  "canonical_interface": {
+    "constant_fields": {
+      "admissibility_schema_version": "rq2-base-admissibility-v2"
+    },
+    "direct_fields": [
+      "base_status",
+      "reason_codes"
+    ],
+    "check_field_map": {
+      "check_all_material_claims_warranted": "all_material_claims_warranted",
+      "check_support_roles_accurate": "support_roles_accurate",
+      "check_independent_support_units_sufficient": "independent_support_units_sufficient",
+      "check_counter_roles_genuine": "counter_roles_genuine",
+      "check_boundary_links_consequential_and_preserved": "boundary_links_consequential_and_preserved",
+      "check_claim_scope_packet_bounded": "claim_scope_packet_bounded",
+      "check_no_outside_facts": "no_outside_facts",
+      "check_no_other_material_flaw": "no_other_material_flaw"
+    },
+    "readiness_field_map": {
+      "non_support_anchor": {
+        "status": "non_support_anchor_status",
+        "evidence_positions": "non_support_anchor_positions"
+      },
+      "multi_unit_support": {
+        "status": "multi_unit_support_status",
+        "evidence_positions": "multi_unit_support_positions"
+      },
+      "consequential_counter": {
+        "status": "consequential_counter_status",
+        "evidence_positions": "consequential_counter_positions"
+      },
+      "local_distinction": {
+        "status": "local_distinction_status",
+        "evidence_positions": "local_distinction_positions"
+      },
+      "bounded_claim": {
+        "status": "bounded_claim_status",
+        "evidence_positions": "bounded_claim_positions"
+      }
+    },
+    "preserve_array_order": true,
+    "drop_transport_version_after_validation": true
+  },
+  "conversion_order": [
+    "validate_transport_json_against_bound_transport_schema",
+    "validate_cross_field_semantics_fail_closed",
+    "emit_canonical_constant_fields",
+    "copy_direct_fields_without_coercion",
+    "strip_check_prefix_and_nest_checks_using_exact_map",
+    "pair_and_nest_readiness_fields_using_exact_map",
+    "validate_emitted_object_against_bound_canonical_schema",
+    "return_only_canonical_object"
+  ],
+  "cross_field_semantics": {
+    "base_status": {
+      "admissible": {
+        "all_check_fields_must_equal": true,
+        "reason_codes_must_equal": []
+      },
+      "materially_flawed": {
+        "minimum_false_check_fields": 1,
+        "minimum_material_defect_reason_codes": 1
+      },
+      "unclear": {
+        "minimum_false_check_fields": 1,
+        "reason_codes_must_include": "insufficient_displayed_information"
+      }
+    },
+    "material_defect_reason_codes": [
+      "material_claim_not_warranted",
+      "support_role_mismatch",
+      "independent_support_units_insufficient",
+      "counterevidence_not_genuine",
+      "boundary_condition_not_consequential_or_preserved",
+      "claim_scope_not_packet_bounded",
+      "outside_fact_or_overreach",
+      "other_material_flaw"
+    ],
+    "readiness_pairs": {
+      "ready": {
+        "minimum_positions": 1
+      },
+      "not_ready": {
+        "positions_must_equal": []
+      },
+      "unclear": {
+        "positions_must_equal": []
+      },
+      "multi_unit_support_ready_minimum_positions": 2,
+      "positions_must_be_unique": true,
+      "allowed_positions": [1, 2, 3, 4, 5, 6]
+    }
+  },
+  "finite_failure_codes": [
+    "base_admissibility_transport_schema_invalid",
+    "base_admissibility_status_semantics_invalid",
+    "base_admissibility_readiness_semantics_invalid",
+    "base_admissibility_canonical_schema_invalid"
+  ],
+  "failure_behavior": {
+    "fail_closed": true,
+    "semantic_retry_allowed": false,
+    "repair_allowed": false,
+    "regeneration_allowed": false,
+    "manual_override_allowed": false,
+    "partial_canonical_object_allowed": false,
+    "model_response_content_may_appear_in_failure_output": false
+  },
+  "invariants": {
+    "gemma_model_and_decoding_unchanged": true,
+    "compact_base_input_unchanged": true,
+    "canonical_decision_meaning_unchanged": true,
+    "canonical_base_acceptance_rule_unchanged": true,
+    "generator_assets_unchanged": true,
+    "variant_assets_unchanged": true,
+    "comparison_assets_unchanged": true,
+    "qualification_thresholds_unchanged": true,
+    "human_ground_truth": false,
+    "manuscript_eligible": false,
+    "publication_or_release_eligible": false
+  }
+}

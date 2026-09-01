@@ -1,0 +1,1011 @@
+                                             Underneath the Numbers: Quantitative and Qualitative Gender Fairness in
+                                                               LLMs for Depression Prediction
+
+
+                                                                  Micol Spitale1,2,* , Jiaee Cheong1,* , Hatice Gunes1
+                                         1
+                                             University of Cambridge, 2 Politecnico di Milano, * Both authors contributed equally to this work
+
+
+
+
+                                                                   Abstract                              that aim at automatically identifying signs of de-
+                                                 Recent studies show bias in many machine                pression in individuals by analysing and processing
+                                                 learning models for depression detection, but           human behavioural data, including facial expres-
+                                                 bias in LLMs for this task remains unexplored.          sions (Song et al., 2018), speech and textual data
+
+
+
+
+arXiv:2406.08183v2 [cs.CL] 14 Jun 2024
+                                                 This work presents the first attempt to inves-          (Nasir et al., 2016).
+                                                 tigate the degree of gender bias present in ex-            It has been shown in recent works that LLMs are
+                                                 isting LLMs (ChatGPT, LLaMA 2, and Bard)
+                                                                                                         prone to bias. This bias is present in many LLMs
+                                                 using both quantitative and qualitative ap-
+                                                 proaches. rom our quantitative evaluation, we
+                                                                                                         for various tasks (Ghosh and Caliskan, 2023; Kotek
+                                                 found that ChatGPT performs the best across             et al., 2023; Cabello et al., 2023). None of the ex-
+                                                 various performance metrics and LLaMA 2 out-            isting works has investigated bias in LLM for the
+                                                 performs other LLMs in terms of group fairness          task of depression detection. In addition, all of
+                                                 metrics. As qualitative fairness evaluation re-         the existing work on machine learning (ML) or
+                                                 mains an open research question we propose              LLM fairness have mainly focused on a quantita-
+                                                 several strategies (e.g., word count, thematic          tive-notion of fairness (Han et al., 2022; Esiobu
+                                                 analysis) to investigate whether and how a qual-
+                                                                                                         et al., 2023). This can largely be understood as fair-
+                                                 itative evaluation can provide valuable insights
+                                                 for bias analysis beyond what is possible with          ness that is measured and defined by quantifiable
+                                                 quantitative evaluation. We found that Chat-            metrics. Existing works have yet to consider qual-
+                                                 GPT consistently provides a more comprehen-             itative fairness. Several works have attempted to
+                                                 sive, well-reasoned explanation for its predic-         qualitatively evaluate fairness using visualisation or
+                                                 tion compared to LLaMA 2. We have also                  anecdotal examples (Tsioutsiouliklis et al., 2021)
+                                                 identified several themes adopted by LLMs to            or attempted a qualitative evaluation of percep-
+                                                 qualitatively evaluate gender fairness. We hope
+                                                                                                         tion on fairness (Woodruff et al., 2018). However,
+                                                 our results can be used as a stepping stone to-
+                                                 wards future attempts at improving qualitative
+                                                                                                         human-centered research has indicated that expla-
+                                                 evaluation of fairness for LLMs especially for          nations contribute substantially to an individual’s
+                                                 high-stakes tasks such as depression detection.         fairness perceptions (Yurrita et al., 2023; Shulner-
+                                                                                                         Tal et al., 2023). Thus, we adopt a human-centered
+                                             1   Introduction
+                                                                                                         approach by evaluating an LLM’s ability to provide
+                                             The recent rise of Large Language Models (LLMs)             explanations for the decisions made. Providing ex-
+                                             have demonstrated the unique capability in under-           planations also leads towards enhancing algorith-
+                                             taking various tasks ranging from machine trans-            mic explainability (Shin, 2020) and transparency
+                                             lation (Ghosh and Caliskan, 2023) to medical ap-            (Rader et al., 2018; Arrieta et al., 2020) which are
+                                             plications (Zack et al., 2024). Among the various           both crucial elements in developing human-centred
+                                             applications, a key application is that of mental           and trustworthy artificial intelligence (AI) systems
+                                             health detection and analysis where LLMs must be            (Shneiderman, 2020).
+                                             capable of perceiving or detecting mental health sta-          Our work aims at investigating the degree of
+                                             tus. Though recent attempts at using LLMs for the           gender bias present in existing LLMs – namely
+                                             investigation and understanding of mental health            ChatGPT, LLaMA 2, and Bard – using both quan-
+                                             has been promising (Xu et al., 2023; Yang et al.,           titative and qualitative approaches. To this end, we
+                                             2023), none of the existing work has looked into the        investigated first if bias is present in existing LLMs
+                                             problem of LLM bias in depression prediction. De-           for the depression detection task, then we explored
+                                             pression prediction is a machine learning problem           how the different LLMs differ across the various
+
+                                                                                                     1
+quantitative and qualitative fairness measures, and         LLMs expressed biased assumptions about a per-
+finaly we identified the main themes used by the            son’s occupation based on gender. (Zack et al.,
+LLMs to qualitatively evaluate gender fairness.             2024) discovered that GPT-4 exhibited gender bias
+   The contribution of our work is as follows. First,       by not modelling the demographic diversity and
+we conduct a thorough comparison of LLM perfor-             producing clinical vignettes that stereotype demo-
+mance for depression detection across two datasets.         graphic presentations. (Dong et al., 2023) propose
+Second, we undertake a novel investigation of qual-         a conditional text generation mechanism to address
+itative fairness to evaluate bias and improve ex-           the problem of gender bias in LLMs. (Dong et al.,
+plainabililty in LLM predictions. To the best of            2024) proposed three methods to mitigate bias in
+our knowledge, none of the existing works have              LLMs via hyperparameter tuning, instruction guid-
+attempted to define and evaluate qualitative fair-          ing and debias tuning. However, none of the exist-
+ness for any task. Third, we perform a multitude            ing works has focused on analysing gender bias in
+of fine-grained analyses on various experimental            LLMs for the task of depression detection.
+settings (see Section 3.3) to examine the prediction
+and fairness across all three LLMs.                         2.3    LLMs for Mental Health Applications
+                                                            The last year has been characterised by an ex-
+2     Related Work                                          ponential advance in the current state of the art
+2.1    ML Fairness for Mental Health                        of Large Language Models (LLMs). Few works
+                                                            (Borji and Mohammadian, 2023; Ali et al., 2022)
+There has been a handful of studies which have
+                                                            have attempted to compare different LLMs. Borji
+looked into bias in mental well-being prediction
+                                                            et al. (Borji and Mohammadian, 2023) undertook
+(Ryan and Doherty, 2022; Bailey and Plumbley,
+                                                            an extensive benchmark evaluation of LLMs and
+2021; Park et al., 2022, 2021; Zanna et al., 2022;
+                                                            conversational bots – ChatGPT (gpt-3.5), GPT-4,
+Cheong et al., 2023a,b). Park et al. (Park et al.,
+                                                            Bard, and Claude – using the “Wordsmiths dataset"
+2021) proposed bias mitigation strategies for post-
+                                                            categories (e.g., questions on logic, facts, coding
+partum depression. Zanna et al. (Zanna et al., 2022)
+                                                            etc.). More and more studies have been focusing
+adopted a multitask approach to mitigate bias for
+                                                            on applications of LLMs in healthcare (Lamich-
+anxiety prediction. Ryan et al. (Ryan and Doherty,
+                                                            hane, 2023; Yang et al., 2023; Qin et al., 2023)
+2022) proposed three categories of fairness defi-
+                                                            and affective computing (Elyoseph et al., 2023)
+nitions for mental health. Park et al. (Park et al.,
+                                                            domains. Lamichhane et al. (Lamichhane, 2023)
+2022) proposed an algorithmic impact remover to
+                                                            have evaluated the use of ChatGPT (gpt-3.5) to ac-
+mitigate bias in mobile mental health. Bailey and
+                                                            complish three mental health-related classification
+Plumbley (Bailey and Plumbley, 2021) proposed
+                                                            tasks, namely stress detection, depression detection,
+using data re-distribution to mitigate gender bias
+                                                            and suicidal detection. Their results suggested that
+for depression detection. (Cheong et al., 2023a)
+                                                            language models can be effectively used for men-
+examined whether bias exists in existing mental
+                                                            tal health classification tasks. Yang et al. (Yang
+health datasets and algorithms. None of the exist-
+                                                            et al., 2023) have evaluated the mental health anal-
+ing works have looked into ML Fairness for mental
+                                                            ysis and emotional reasoning ability of ChatGPT
+health as applied within a LLM setting.
+                                                            (gpt-3.5) on 11 datasets across 5 tasks, and ana-
+2.2    Gender Bias in LLM                                   lyzed the effects of various emotion-based prompt-
+                                                            ing strategies. None of these previous works have
+A proliferation of recent works has confirmed the           compared the LLM biases for mental health appli-
+presence of gender bias in LLMs (Gallegos et al.,           cations. Therefore, this work aims at comparing
+2023). (Wan et al., 2023) revealed substantial gen-         three LLMs for mental health applications under
+der biases in LLM-generated recommendation let-             the lens of fairness and explainability.
+ters. (Ghosh and Caliskan, 2023) conducted ex-
+periments which revealed that ChatGPT exhibits              3     Depression Prediction
+the gender bias for the task of machine transla-
+tion. (Thakur, 2023) analysed gender bias com-              This paper aims at understanding quantitatively
+paring between GPT 2 and GPT 3.5 for the task               and qualitatively the gender fairness of three
+of name generation for profession. (Kotek et al.,           different state-of-the-art LLMs in depression
+2023) tested four LLMs and demonstrated that the            prediction tasks. This section describes the large
+
+                                                        2
+language models explored, the datasets used, the           et al., 2009), as a baseline measure of depression
+definition of the prompts, the processing of the           to annotate the DAIC-WOZ and E-DAIC datasets
+transcriptions, and the evaluation methodology.            (Gratch et al., 2014). The PHQ-8 questionnaire
+                                                           is a valid diagnostic and severity measure for de-
+3.1    Large Language Models                               pressive disorders, with score ranging between 0
+We decided to compare the cutting-edge large lan-          and 24 points. A score of 0 to 4 represents no sig-
+guage models (LLMs) currently available, namely            nificant depressive symptoms, a total score of 5
+LLaMA 2 (by Meta1 (Touvron et al., 2023)), Chat-           to 9 represents mild depressive symptoms, 10 to
+GPT (by OpenAI2 ), and Bard (by Google3 ) to ac-           14, moderate, 15 to 19, moderately severe, and 20
+complish a depression-related detection task. We           to 24, severe (Kroenke et al., 2009). Analogously,
+used the python OpenAI library to invoke the Chat          we asked the LLMs to annotate the conversations
+Complete API of ChatGPT by using gpt-3.5-turbo             formulating the prompt for the DAIC-WOZ and
+backend as in (Lamichhane, 2023). Analogously,             E-DAIC datasets reported in Appendix A.
+we have used the huggingface library4 to call the
+LLaMA 2 API by using a total of 400 hours in          3.3.2 Gender-Explicit and Implicit Prompts
+4x NVIDIA A100-SXM-80GB GPUs. We set for              This work aims to explore gender fairness in LLMs.
+these LLMs a temperature equal to 0.7 and a max-      Past works (Gallegos et al., 2023) have shown how
+imum length of the output of 200 tokens. While        the definition of the prompt is extremely important
+for Bard, we used the experimental version pro-       for LLMs and how it affects the response of the
+vided by Google via the Bard GUI, where it is not     models. Therefore, we decided to explore differ-
+possible to set parameters of the model.              ent prompt formulations which included gender
+                                                      information: gender-explicit and gender-implicit.
+3.2 Datasets                                          Specifically, in the gender-explicit formulation, we
+We used benchmark datasets that contain transcrip- explicitly informed the LLM that the participant
+tions of dyadic interactions for the tasks of depres- of the conversation is of a specific gender (e.g.,
+sion detection that were anonymised by the owners. “Consider that the participant is a female. On a
+The DAIC-WOZ dataset (Gratch et al., 2014) in- scale of [..]"). While in the gender-implicit for-
+cludes audio and video recordings of semi-clinical    mulation, we implicitly included the information
+interviews and responses of PHQ-8 questionnaire. about the gender within the prompt (e.g.,“On a
+The E-DAIC corpus (Ringeval et al., 2019) is an ex- scale of 0 to 24 where 0 to 4 means that the
+tended version of DAIC-WOZ that contains semi- female participant has no significant depressive
+clinical interviews designed to support the diag- symptoms; 5 to 9 means that the female partici-
+nosis of psychological distress conditions. Both      pant has mild depressive symptoms; [..]").
+datasets are labelled on a scale from 0 to 24 based
+on the PHQ-8 questionnaire.                           3.4 Data Processing
+                                                      The three LLMs have different limitations in terms
+3.3 Prompting for Depression Detection                of maximum number of input tokens. ChatGPT and
+We defined different prompts for evaluating the       LLaMA 2 allow an input prompt of 4096 tokens,
+performance and fairness of LLMs for the depres- while Bard allows 2048 input tokens5 . For the sake
+sion prediction task from transcriptions of dyadic    of comparison, we opted for the minimum value
+interactions. This section details and reports the    limit to allow the LLMs to process the same input
+verbatim of the prompt defined for the detection      prompt, i.e., 2048 tokens.
+tasks by grounding them on past works (Kroenke           When the input prompt was longer than 2048 to-
+et al., 2009; Busso et al., 2008).                    kens, we applied a chunking approach (Zhou et al.,
+                                                      2012) where we split the conversation in smaller
+3.3.1 Baseline Prompt
+                                                      chunks (with a maximum length of 2048 tokens)
+For the depression recognition task, we used the for- with an overlap of 500 tokens (this number was
+mulation from the PHQ-8 questionnaire (Kroenke        chosen empirically to make sure that the semantic
+   1
+     https://github.com/facebookresearch/LLaMA 2      context did not get lost between chunks). Each
+   2
+     https://platform.openai.com/docs/api-reference   chunk has been then used as input prompt for the
+   3
+    https://bard.google.com/
+   4                                                          5
+    https://huggingface.co/meta-LLaMA2/LLaMA2-2-70b-           Note that all the experiments were conducted between
+chat-hf                                                    October and December 2023
+
+
+                                                       3
+evaluation process. For example, if a conversations                 2021). The intuition is that both demographic
+included a total number of tokens of 4500, we split                 groups should have equal true positive rates
+it into three chunks of 2000 tokens each (with 500                  (TPR) for a classifier to be considered fair
+tokens of overlap). We then conducted the experi-                   (Hort et al., 2022).
+ments with 10 run repetitions described in Section
+5 using the LLMs approaches.                                     • Equalised odds can be considered as a gen-
+                                                                   eralization of Equal Opportunity where the
+4     Fairness                                                     rates are not only equal for Y = 1, but for all
+                                                                   values of Y ∈ {1, ...k}, i.e.:
+In this section, we describe the quantitative fairness
+metrics used and introduce and define the concept                                     P (Ŷ = 1|Y = i, s0 )
+of qualitative fairness which is one of our key con-                      MEOdd =                             .   (3)
+                                                                                      P (Ŷ = 1|Y = i, s1 )
+tribution. We explore a binary classification set-
+ting in order to facilitate calculation of the fairness             According to this measure, in order for a
+scores and comparison with existing ML for de-                      classifier to be deemed fair, P (Ŷ = 1|Y =
+pression detection works (Zheng et al., 2023) on                    i, s1 ) = P (Ŷ = 1|Y = i, s0 ), ∀i ∈ {1, ...k}
+gender fairness in wellbeing analysis.                              (Mehrabi et al., 2021). This can be understood
+                                                                    as a stricter version of MEOpp as both sub-
+4.1    Quantitative Fairness                                        groups are required to have equal TPR and
+We utilise the following metrics to analyse group                   false positive rates (FPR) for a classifier to be
+fairness as they are the most commonly used met-                    deemed fair (Hort et al., 2022).
+rics within the literature (Hort et al., 2022; Pes-
+sach and Shmueli, 2022). s0 denotes the minority                 • Equal Accuracy states that both subgroups
+group which are females in our setup and s1 de-                    s0 and s1 should have equal rates of accuracy
+notes the majority group males. Y refers to the                    (Mehrabi et al., 2021).
+binary ground truth label (0 vs 1) and Ŷ refers                                            MACC,s0
+to the predicted outcome (0 vs 1) where 0 is the                                MEAcc =             .             (4)
+                                                                                            MACC,s1
+non-depressed class and 1 is the depressed class.
+                                                                    Intuitively, this is aligned with how majority
+    • Statistical Parity, or demographic parity, is
+                                                                    of the fairness evaluation and algorithmic au-
+      based purely on predicted outcome Ŷ and in-
+                                                                    dits is done. A classifier is deemed unfair if
+      dependent of actual outcome Y :
+                                                                    it is less accurate for populations of certain
+                                                                    demographic groups e.g. females and blacks
+                           P (Ŷ = 1|s0 )
+                 MSP =                      .       (1)             (Buolamwini and Gebru, 2018).
+                           P (Ŷ = 1|s1 )
+
+      According to this measure, in order for a clas-         4.2   Qualitative Fairness
+      sifier to be deemed fair, P (Ŷ = 1|s1 ) =              None of the existing works have considered quali-
+      P (Ŷ = 1|s0 ) (Mehrabi et al., 2021). The              tative fairness. In addition, given the pivotal con-
+      intuition behind this metric is that a fair clas-       tribution of explanations towards algorithmic ex-
+      sifier should provide both groups with equal            plainability and transparency (Shin, 2020; Arrieta
+      chances of being classified within the positive         et al., 2020), we propose a novel perspective and
+      Ŷ = 1 class (Hort et al., 2022).                       method to qualitatively measure fairness by evalu-
+    • Equal opportunity states that both demo-                ating how a LLM generates its predictions through
+      graphic groups s0 and s1 should have equal              explanations. This measure is inspired from a com-
+      True Positive Rate (TPR).                               mon practice in explainability within the LLM com-
+                                                              munity known as self-criticism (Tan et al., 2023)
+                        P (Ŷ = 1|Y = 1, s0 )                 that involves prompting the LLM to assess its out-
+            MEOpp =                             .   (2)       put for potential inaccuracies or improvement areas.
+                        P (Ŷ = 1|Y = 1, s1 )
+                                                              To this end, we asked each LLM to “judge" the
+      According to this measure, in order for a               depression prediction explanations of itself (e.g.,
+      classifier to be deemed fair, P (Ŷ = 1|Y =             ChatGPT judges qualitatively the fairness of its
+      1, s1 ) = P (Ŷ = 1|Y = 1, s0 ) (Mehrabi et al.,        own response) and other models (e.g., ChatGPT
+
+                                                          4
+                   DAIC-WOZ
+                    EDAIC
+                                         Sample 1:
+                                         Ellie: Hi i'm Ellie thanks for coming in today i was created to talk              Ground Truth (PHQ-9): 0 (non-depressed)
+                                         to people..                                                                       Gender: female
+                                         Participant: Wonderful. (...)
+
+
+
+
+                                           Bias in Depression Prediction Task
+
+                                                                                                                              Dialogue: Sample 1
+                                    Step 1: Obtain the predictions for the different
+                                                                                                                              Prompt request: Consider that the participant is a female. On a
+                                    scenarios (baseline, gender-aware, and
+                                                                                                                              scale of (...) how would you rate the last prompt and explain why:
+                                    gender-unaware) across ChatGPT, Bard, and
+                                    LLaMA 2 for the DAIC-WOZ and E-DAIC
+                                    datasets
+                                                                                                                AI response: The conversation above would rank about a 13 on the
+                                    Step 2: Compute group quantitative fairness                                 depression scale. The participant discusses past experiences such as
+                                                                                                                becoming a teenage mother and arguing with her husband, but also
+                                                                                                                discusses relaxation techniques she uses to de-stress, and her
+                                         Qualitative Gender Fairness Evaluation                                 dream job. She does not seem very depressed overall, but does
+                                                                                                                discuss some stressful life events, leading to a moderate rating.
+
+                                    Step 3: Introduce a novel qualitative fairness
+                                    to evaluate ChatGPT and LLaMA generated                                                    We would like to request your feedback (..) how to generate
+                                    mental health predictions                                                                  a more gender fair response.
+
+
+                                        Gender Fairness Differences among LLMs                                  I would rate the AI assistant's response as gender fair. The AI
+                                                                                                                 assistant did not display any bias or stereotyping based
+                                                                                                                on gender in its response. It provided a neutral and objective
+                                                                                                                evaluation of the conversation without making any assumptions or
+                                                                                                                generalizations about the participant's gender.
+                Thank you for your time and expertise in evaluating the gender
+                fairness of the AI assistant's response. We value your feedback.                                The AI assistant's response focused solely on evaluating the
+                                                                                                                conversation and did not mention or imply anything related to the
+                Rating: 8                                                                                       participant's gender. It provided a clear explanation of the rating
+                Explanation: The AI assistant's response was informative and helpful.                           scale for depressive symptoms and asked for a rating based on that
+                It provided a rating scale for depressive symptoms and explained                                 scale. The AI response did not introduce any gender-related
+                how it would rate the conversation. However, it did not provide any                             biases or assumptions.
+                 gendered language or stereotypes, which could be seen as unfair.
+                For example, it did not assume that the participant was a woman                                 To generate a more gender fair response, the AI assistant could continue
+                based on her name or any other personal information, which could                                to avoid making any assumptions or generalizations based on the
+                have been gender-neutral. Also, the AI assistant did not suggest                                participant's gender. It should focus on providing an unbiased evaluation
+                any gender-specific symptoms or treatments for depression, which                                of the conversation without bringing gender into the assessment. This
+                could have been seen as reinforcing harmful gender stereotypes.                                 would ensure that the AI assistant remains neutral and fair in its
+                Overall, the AI assistant's response was fair and did not show any                               responses.
+                 gender bias.
+
+
+
+
+Figure 1: A sample sequence outlining the fairness evaluation process of various LLMs in the gender-explicit
+condition for depression prediction tasks. We have highlighted with colours the themes that emerged from our
+qualitative analysis as follows: Green - Context-based explanations; Orange - Gender-related language (pronouns);
+Pink - Suggestions for improvement (image to be seen in colour).
+
+judges qualitatively the fairness of LLaMA 2’s re-                                                                 Step 1: We first obtained the predictions ŷ
+sponse) by using the prompt reported in Appendix                                                                for the different scenarios: Baseline yˆB , Gender-
+A. We defined this prompt taking inspiration from                                                               Explicit yˆA , Gender-Implicit ŷu across the three
+(Wu and Aji, 2023) and following the guidelines                                                                 different LLMs across the two different datasets.
+listed in (Sondos Mahmoud Bsharat, 2023). To                                                                    We then compared the three LLMs’ detection using
+evaluate the generated qualitative fairness response,                                                           the prompts defined in Section 3.3.1 to ground truth
+we relied on basic NLP text generation analysis                                                                 annotations and computed the F1 score of detection
+(e.g., word counting, length of the response) and                                                               in the baseline scenario for the DAIC-WOZ and
+a thematic analysis (TA), inspired from (Braun                                                                  E-DAIC datasets. We conducted the same experi-
+and Clarke, 2012). TA is a well-validated tool                                                                  ments but compared detection from gender-explicit
+for analysing qualitative data (Braun and Clarke,                                                               and gender-implicit prompts where we included
+2012) which is often combined with NLP research                                                                 information about the gender of the participants
+methods (Kim et al., 2015, 2022) and has proven                                                                 explicitly or implicitly (see Section 3.3.2). We
+effective at gathering human perception on algo-                                                                compared Bard, ChatGPT and LLaMA 2 and con-
+rithmic fairness (Kyriakou et al., 2019; Kasinidou                                                              ducted the experiments over the two datasets.
+et al., 2021; Rezai et al., 2022). In all of our exper-
+                                                                                                                    Step 2: We evaluated the results generated by
+iments, we employ the 6-step method (Clarke and
+                                                                                                                 the LLMs using both performance and group fair-
+Braun, 2017) and the grounded theory approach
+                                                                                                                 ness measures for yˆB , yˆA and ŷu using the mea-
+(McLeod, 2011).
+                                                                                                                 sures described in Section 4.1. We compared the
+                                                                                                                 LLMs across the three scenarios: baseline, gender-
+5   Experiments                                                                                                  explicit, and gender-implicit as described in Sec-
+                                                                                                                 tion 3.3.2 for the two datasets.
+We aim to evaluate LLM gender fairness quantita-
+tively and qualitatively by undertaking the follow-                                                                Step 3: We use a sub-sample of the test sets (25
+ing steps.                                                                                                       samples in total) from E-DAIC and DAIC-WOZ
+
+                                                                                                        5
+datasets following the definition in Section 4. The         quantitatively fairest of all for both datasets. This
+sub-sample was randomly chosen by controlling               is followed by ChatGPT for DAIC-WOZ and Bard
+and balancing the sub-set in terms of gender and            for E-DAIC. There is also a difference between the
+depression conditions. We analysed the generated            quantitative fairness scores of each LLM on the
+qualitative fairness by comparing the different mod-        different datasets which suggests that datasets do
+els output in terms of quantitative and qualitative         make a difference.
+aspects. Specifically, we computed the number of
+words, the length of the generated text, the posi-          6.2      Qualitative Fairness
+tive sentiment of the generated text for the quan-          For qualitative fairness, we only evaluated Chat-
+titative evaluation, while we adopted a thematic            GPT and LLaMA 2 excluding Bard. This is be-
+analysis approach, as in (Axelsson et al., 2022),           cause ChatGPT was the best LLM-model across
+to qualitatively assess the model fairness by iden-         performance (precision, recall, F1 and accuracy)
+tifying the main themes emerged in data as high-            whereas LLaMA 2 was the best LLM-model across
+lighted in colours in Figure 1. The thematic anal-          fairness (MSP , MEOpp , MEOdd , MEAcc ). We
+ysis conducted includes the following 6 steps: (1)          present the findings on the qualitative fairness as-
+becoming familiar with the data, (2) generating ini-        pect and discuss the different convergent and diver-
+tial codes, (3) searching for themes, (4) reviewing         gent themes across the two LLMs emerging from
+themes, (5) defining themes, (6) writing-up. Two            the thematic analysis (TA).
+researchers conducted steps 1 – 3 independently
+and then they met up to finalise the analysis (steps        6.2.1      Quantitative Aspects
+4–6). Figure 1 depicts the three steps undertaken           We compute the number of words generated in
+to complete our experiments in the gender-explicit          LLM qualitative gender evaluation and found that,
+scenario for sample from the DAIC-WOZ dataset.              even if we set the parameters of the number of to-
+                                                            kens to generate equally for ChatGPT and LLaMA
+6     Results                                               2, ChatGPT generated a higher number of words
+                                                            and characters than LLaMA 2. Table 2 shows that
+This section reports the results obtained in our ex-        there is a statistically significant difference across
+periments in terms of quantitative and qualitative          word number and length.
+fairness. The depression prediction results are pre-           We also calculated the positive sentiment per-
+sented in Table 4 of Appendix C.1 where we see              centage (PSP in Table 3) detected using BERT sen-
+that ChatGPT consistently produces the best clas-           timent analysis from huggingface 6 . Our results
+sification outcomes for both DAIC-WOZ and E-                in Table 3 suggest that each LLM judge the other
+DAIC across precision, recall, F1 and accuracy.             LLM more positively than themselves.
+6.1    Quantitative Fairness                                6.2.2      Qualitative Aspects: Thematic Analysis
+For all models, we see that bias seems to be present.       We also conducted a thematic analysis which re-
+Better classification scores were often reported for        sulted in the following convergent and divergent
+males compared to females. We examine further               main themes across LLMs. Figure 1 depicts an ex-
+and report the results in Table 1.                          ample of conversation and highlights with different
+   With reference to Table 1, for DAIC-WOZ, we              colours the themes emerged.
+see that LLaMA 2 seems to be the most consis-
+                                                            Convergent Themes. The themes that emerged
+tently fair LLM followed by ChatGPT. LLaMA 2
+                                                            from LLaMA 2 and ChatGPT fairness evaluation
+gives the fairest scores across MSP (1.06), MEOpp
+                                                            are the following.
+(1.04) and MEOdd (1.10) with ChatGPT being the
+                                                               Assumptions and Generalisations. Both LLMs
+fairest across MEAcc (1.00). For E-DAIC, LLaMA
+                                                            highlighted in their gender fairness evaluation that
+2 seems to be the fairest LLM followed by Bard.
+                                                            the AI assistant should provide its depression de-
+LLaMA 2 gives the fairest scores across MEOpp
+                                                            tection "without making any assumption and gen-
+(1.00) and MEOdd (1.00) and MEAcc (1.02) with
+                                                            eralisations". Specifically, they provided differ-
+Bard being the fairest across MSP (1.00).
+                                                            ent examples of assumptions such as emotional
+   Our findings indicate the presence of bias within
+                                                            (e.g., "AI assistant could acknowledge emotions
+existing LLMs. Most of the fairness scores are
+                                                               6
+within the acceptable threshold range. LLaMA 2 is                  https://huggingface.co/blog/sentiment-analysis-python
+
+
+                                                        6
+                                                             DAIC-WOZ                                        E-DAIC
+                                            MSP        MEOp            MEOd         MEAc    MSP      MEOp        MEOd    MEAc
+                Bard         Explicit       0.85         1.08            1.25        1.20    1.84     1.13        1.33   0.90
+                             Implicit       0.81         1.04            1.11        1.17    1.23     1.05        1.15   0.99
+                             Baseline       0.87         0.94            0.84        1.07    1.00     1.05        1.12   1.02
+                ChatGPT      Explicit       1.38         0.91            0.72        0.88    2.33     1.12        1.29   0.73
+                             Implicit       0.67         0.82            0.45        0.93    2.33     1.06        1.14   0.67
+                             Baseline       1.15         1.08            1.29        1.00    16.28    1.27        1.71   0.80
+                LLaMA 2      Explicit       1.09         0.88            0.72        0.90    0.92     1.00        1.00   1.27
+                             Implicit       1.06         1.04            1.10        1.09    0.69     0.92        0.81   1.02
+                             Baseline       0.89         1.05            1.11        1.19    0.89     1.18        1.38   1.11
+
+
+Table 1: Fairness Results for all 3 LLMs across both DAIC-WOZ and E-DAIC. Bold values represents the fairest
+value whereas underlined values represents values that fall outside of the acceptable fairness range of 0.80 − 1.20.
+E: Explicit. I: Implicit. B: Baseline.
+
+
+                       ChatGPT                LLaMA 2              p                LLMs stressed that the AI assistant should use a
+    Word         164.17 ± 11.88         123.08 ± 34.89            0.00              "gender-neutral language throughout the response
+    number
+    Sentiment     0.93 ± 0.11             0.94 ± 0.08             0.26              to avoid any potential bias". To accomplish this,
+    Length      1089.36 ± 82.09         803.14 ± 207.24           0.00
+    Outcome       0.26 ± 0.44             0.37 ± 0.48             0.10
+                                                                                    the LLMs suggested to use neutral pronouns, for
+                                                                                    example "instead of using pronouns like "he" or
+Table 2: Statistical analysis between the qualitative out-                          "she," the AI assistant could use gender-neutral
+puts of the two different LLMs. Values in each LLM                                  pronouns like "they" or rephrase sentences to avoid
+columns are the mean ± standard deviation of the re-                                pronouns altogether".
+spective LLM output.
+                                                                                       Features of LLMs. Both LLMs mentioned also
+                                 Word Count        Length       PSP                 what should be the features for a gender fair AI
+      LLaMA 2 on LLaMA 2           121.37           783.89      0.06                assistant. Specifically, LLMs should use a lan-
+      LLaMA 2 on ChatGPT           116.68           762.98      0.08
+      ChatGPT on LLaMA 2           164.16          1096.69      0.10
+                                                                                    guage that is "attentive", "empathic", "inclusive",
+      ChatGPT on ChatGPT           171.14          1139.71      0.08                "respectful", "supportive" and "transparent". In ad-
+                                                                                    dition, they also highlighted that the tone of the
+Table 3: Analysis of LLM on LLM. PSP: positive senti-                               AI assistant should be "objective", "neutral" and
+ment percentage. The higher the value, the higher the
+                                                                                    "professional".
+overall positive percentage.
+                                                                                       Suggestions for improvement. LLMs also sug-
+                                                                                    gested some feedback for improvements. Both
+without attributing them to any specific cause [like                                suggested the AI assistant should ask for follow-
+gender]"), job (e.g., "[..] not assume any gender-                                  up questions on for example participant’s mental
+specific professions but instead allowed the partici-                               health to better understand how to assist them, and
+pant to express their interest in studying children’s                               ask for pronouns participants preferred. On top of
+behavior"), mental health (e.g., "[..] instead of stat-                             that, ChatGPT provided more detailed and compre-
+ing that the participant mentions sometimes forget-                                 hensive suggestions than LLaMA 2.
+ting they have any good qualities, the AI assistant
+could say that the participant expresses feelings of                                Divergent Themes. The main theme differences
+self-doubt or low self-esteem"), relationship (e.g.,                                between LLaMA 2 and ChatGPT are the following.
+"[AI assistant mentions that] participant arguing                                      Rating. ChatGPT often does not provide a spe-
+with her husband. [..] "using gender-neutral lan-                                   cific score. It often rates “the gender fairness of the
+guage [..] avoid assuming the gender of the par-                                    AI assistant’s response as neutral." On the other
+ticipant’s spouse") assumptions. LLaMA 2 also                                       hand, LLaMA 2 often tries to provide a numerical
+mentioned about activity assumption (e.g.,"[AI as-                                  rating such as “ Rating: 4" and “Gender fairness
+sistant should] not mention any gendered topics,                                    rating: 3 out of 10".
+such as sports or cars").                                                              Context-based explanations. ChatGPT ex-
+   Gender-related Language. Another important                                       plained its evaluation of gender fairness based on
+aspect that LLMs reported as important to provide                                   context-specific motivations. For example, in its
+a gender fair evaluation is adopting an appropri-                                   response, it highlights the participant’s emotions
+ate gender-related language. In particular, both                                    such as focusing on "the participant’s experiences,
+
+                                                                                7
+emotions, and behaviors, which are not inherently            LLMs for depression detection. Our work un-
+gendered". While LLaMA 2 included very fewer                 earthed several important insights and findings.
+context-related explanations, and they were mostly
+                                                                First, we see a trade-off between quantitative vs
+at a very high level, for example "[the AI assistant]
+                                                             qualitative capacity. Overall, LLaMA 2 seems to
+focuses on the content of the Participant’s response
+                                                             perform better on numerical tasks. It has a ten-
+and rates their symptoms based on the information
+                                                             dency to attempt to quantify the content. This
+provided."
+                                                             can be in the form of a number, scale-based rat-
+    Suggestions for improvement. ChatGPT sug-
+                                                             ings, or rubrics based assessment or measurement.
+gested that the AI assistant proposes some coping
+                                                             As a result, it performed better across quantitative
+mechanisms that may help the participants to tackle
+                                                             fairness. However, LLaMA 2 performs less well
+their mental health struggles, provide information
+                                                             on qualitative tasks as evidenced in the results in
+on how to seek help, and personalise its responses
+                                                             Section 6.2. Its response can be inconsistent and
+according to each participant’s personality. It also
+                                                             self-contradictory. It would sometimes attempt to
+suggested that the LLM should be trained ad-hoc
+                                                             summarise or complete the instructions or write a
+to avoid gender biases in depression detection. As
+                                                             letter rather than address the prompt given by the
+opposed to that, LLaMA 2 highlighted the impor-
+                                                             task. LLaMA 2’s response also tends to be shorter.
+tance of gender-related factors to improve gender
+                                                             In addition, it has a tendency to provide responses
+fairness in a contradictory way as for the follow-
+                                                             not related to the tasks which calls into question its
+ing example. It reported that the AI assistant "did
+                                                             ability to provide reliable, trustworthy and explain-
+not consider the gender of the participant" how-
+                                                             able qualitative evaluation which will be crucial for
+ever "using feminine language when referring to
+                                                             high-stake tasks such as depression detection. On
+the participant’s experiences and emotions" would
+                                                             the other hand, ChatGPT excels at qualitative eval-
+be more appropriate to make the response "more
+                                                             uations. However, it performs less well on quan-
+gender-sensitive". Again, LLaMA 2 criticised the
+                                                             titative task. Our findings agree with recent work
+use of "Participant" instead of "he" or "she" to "re-
+                                                             on contextualised explainable AI (XAI) (Liao et al.,
+fer to the person in the dialogue". This contradicted
+                                                             2022) which highlighted the importance of con-
+what the LLMs have been stated as evaluation cri-
+                                                             text dependency of XAI. Their survey conducted
+teria (e.g., use of gender-neutral language like "par-
+                                                             amongst XAI experts and crowd-sourced workers
+ticipant" or "they" rather than "she" or "he") for
+                                                             provided list of evaluation criteria deemed crucial
+assessing gender fairness.
+                                                             for XAI. Several of these listed criteria, such as
+    Unexpected Completion. LLaMA 2, differently              personalisation, comprehensibility and coherence
+from ChatGPT, often provided completion of the               align with our findings as well. Our analyses call
+user request rather than answering to the request            into question: what does it mean for an LLM to be
+and then provided the gender fairness evaluation.            fair? Existing works have highlighted the complex-
+For instance, LLaMA 2 completed the request as               ity of defining fairness (Verma and Rubin, 2018;
+follows: "Additionally, we would appreciate any              Maheshwari et al., 2023) and that the necessity
+comments or feedback regarding the AI’s response.            for developing contextualised measures of fairness
+[..] Thank you for your time".                               (Saxena et al., 2019). Our results highlight the
+    Our results show that LLMs defined fairness              complexity involved in defining fairness for LLMs
+according to the capability of the model to avoid            and present the first steps towards addressing this
+assumptions, used gender-neutral language, in line           multifaceted challenge by proposing a novel per-
+with previous fairness literature (Sczesny et al.,           spective and method to qualitatively evaluate LLM
+2016; Montano et al., 2024). ChatGPT mostly pro-             fairness through a human-centred approach via the
+vided better qualitative evaluation and response             use of explanations.
+across both datasets in terms of comprehensiveness
+and specificity. LLaMA 2, instead, show some                    Overall, deciding which LLM to use is highly
+inconsistent and contradictory responses.                    dependent on the task, data and expected out-
+                                                             put or outcomes. LLaMA 2 would perform better
+7   Discussion and Conclusion                                on quantitative fairness tasks whereas ChatGPT
+                                                             would perform better for qualitative fairness tasks.
+This work aims at investigating quantitatively and           Using a combination of the two may yield the best
+qualitatively the gender fairness of the current             results.
+
+                                                         8
+Limitations                                                       ness, accountability and transparency, pages 77–91.
+                                                                  PMLR.
+We have chiefly focused on three of the most com-
+monly used LLMs on two of the most widely used                  Carlos Busso, Murtaza Bulut, Chi-Chun Lee, Abe
+depression dataset. However, the sample data may                  Kazemzadeh, Emily Mower, Samuel Kim, Jean-
+                                                                  nette N Chang, Sungbok Lee, and Shrikanth S
+be relatively limited. Moreover, due to the lack                  Narayanan. 2008. Iemocap: Interactive emotional
+of relevant label data, we have not been able to                  dyadic motion capture database. Language resources
+conduct the same bias and fairness analysis across                and evaluation, 42:335–359.
+other sensitive attributes such as age and race. Fu-
+                                                                Laura Cabello, Emanuele Bugliarello, Stephanie Brandl,
+ture work should consider extending this analysis                 and Desmond Elliott. 2023. Evaluating bias and
+in the above directions and consider conducting                   fairness in gender-neutral pretrained vision-and-
+experiments across other LLMs and datasets with                   language models. In Proceedings of the 2023 Con-
+bigger sample size. A similar analysis should also                ference on Empirical Methods in Natural Language
+                                                                  Processing, pages 8465–8483.
+be done for other mental and emotional wellbe-
+ing prediction and analysis tasks, such as emotion              Jiaee Cheong, Selim Kuzucu, Sinan Kalkan, and Hatice
+recognition. Our work has highlighted that the idea                Gunes. 2023a. Towards gender fairness for mental
+                                                                   health prediction. In IJCAI 2023.
+of using multiple metrics for a qualitative investi-
+gation of fairness is worthy of investigation. We               Jiaee Cheong, Micol Spitale, and Hatice Gunes. 2023b.
+hope that our work will be used as a stepping stone                "it’s not fair!" – fairness for a small dataset of multi-
+towards future attempts at improving qualitative                   modal dyadic mental well-being coaching. In 11th
+                                                                   International Conference on Affective Computing and
+evaluation of fairness for LLMs especially for high-
+                                                                   Intelligent Interaction, ACII 2023, pages 1–8.
+stakes tasks such as depression detection.
+                                                                Victoria Clarke and Virginia Braun. 2017. The-
+                                                                  matic analysis. The journal of positive psychology,
+References                                                        12(3):297–298.
+Rohaid Ali, Oliver Y Tang, Ian D Connolly, Jared S              Xiangjue Dong, Yibo Wang, Philip S Yu, and James
+  Fridley, John H Shin, Patricia L Zadnik Sullivan,               Caverlee. 2023. Probing explicit and implicit gender
+  Deus Cielo, Adetokunbo A Oyelese, Curtis E Dober-               bias through llm conditional text generation. arXiv
+  stein, Albert E Telfeian, et al. 2022. Performance of           preprint arXiv:2311.00306.
+  chatgpt, gpt-4, and google bard on a neurosurgery
+  oral boards preparation question bank. Neurosurgery,          Xiangjue Dong, Yibo Wang, Philip S Yu, and James
+  pages 10–1227.                                                  Caverlee. 2024. Disclosure and mitigation of gender
+                                                                  bias in llms. arXiv preprint arXiv:2402.11190.
+Alejandro Barredo Arrieta, Natalia Díaz-Rodríguez,
+  Javier Del Ser, Adrien Bennetot, Siham Tabik, Al-             Zohar Elyoseph, Dorit Hadar-Shoval, Kfir Asraf, and
+  berto Barbado, Salvador García, Sergio Gil-López,               Maya Lvovsky. 2023. Chatgpt outperforms humans
+  Daniel Molina, Richard Benjamins, et al. 2020. Ex-              in emotional awareness evaluations. Frontiers in
+  plainable artificial intelligence (xai): Concepts, tax-         Psychology, 14:1199058.
+  onomies, opportunities and challenges toward respon-
+  sible ai. Information fusion, 58:82–115.                      David Esiobu, Xiaoqing Tan, Saghar Hosseini, Megan
+                                                                  Ung, Yuchen Zhang, Jude Fernandes, Jane Dwivedi-
+Minja Axelsson, Micol Spitale, and Hatice Gunes.                  Yu, Eleonora Presani, Adina Williams, and Eric
+  2022. Robots as mental well-being coaches: De-                  Smith. 2023. ROBBIE: Robust bias evaluation of
+  sign and ethical recommendations. arXiv preprint                large generative language models. In Proceedings of
+  arXiv:2208.14874.                                               the 2023 Conference on Empirical Methods in Natu-
+Andrew Bailey and Mark D Plumbley. 2021. Gender                   ral Language Processing, pages 3764–3814, Singa-
+  bias in depression detection using audio features. In           pore. Association for Computational Linguistics.
+  EUSIPCO 2021. IEEE.
+                                                                Isabel O Gallegos, Ryan A Rossi, Joe Barrow,
+Ali Borji and Mehrdad Mohammadian. 2023. Battle of                 Md Mehrab Tanjim, Sungchul Kim, Franck Dernon-
+  the wordsmiths: Comparing chatgpt, gpt-4, claude,                court, Tong Yu, Ruiyi Zhang, and Nesreen K Ahmed.
+  and bard. GPT-4, Claude, and Bard (June 12, 2023).               2023. Bias and fairness in large language models: A
+                                                                   survey. arXiv preprint arXiv:2309.00770.
+Virginia Braun and Victoria Clarke. 2012. Thematic
+  analysis. American Psychological Association.                 Sourojit Ghosh and Aylin Caliskan. 2023. Chatgpt per-
+                                                                  petuates gender bias in machine translation and ig-
+Joy Buolamwini and Timnit Gebru. 2018. Gender                     nores non-gendered pronouns: Findings across ben-
+  shades: Intersectional accuracy disparities in com-             gali and five other low-resource languages. arXiv
+  mercial gender classification. In Conference on fair-           preprint arXiv:2305.10510.
+
+
+                                                            9
+Jonathan Gratch, Ron Artstein, Gale M Lucas, Giota               In Proceedings of the AAAI Conference on Human
+  Stratou, Stefan Scherer, Angela Nazarian, Rachel               Computation and Crowdsourcing, volume 10, pages
+  Wood, Jill Boberg, David DeVault, Stacy Marsella,              147–159.
+  et al. 2014. The distress analysis interview corpus
+  of human and computer interviews. In LREC, pages             Gaurav Maheshwari, Aurélien Bellet, Pascal Denis, and
+  3123–3128. Reykjavik.                                          Mikaela Keller. 2023. Fair without leveling down:
+                                                                 A new intersectional fairness definition. In EMNLP
+Xudong Han, Aili Shen, Yitong Li, Lea Frermann, Tim-             2023-The 2023 Conference on Empirical Methods in
+  othy Baldwin, and Trevor Cohn. 2022. FairLib: A                Natural Language Processing.
+  unified framework for assessing and improving fair-
+  ness. In Proceedings of the 2022 Conference on               John McLeod. 2011. Qualitative research in counselling
+  Empirical Methods in Natural Language Processing:              and psychotherapy. Qualitative research in coun-
+  System Demonstrations, pages 60–71, Abu Dhabi,                 selling and psychotherapy, pages 1–352.
+  UAE. Association for Computational Linguistics.
+                                                               Ninareh Mehrabi, Fred Morstatter, Nripsuta Saxena,
+Max Hort, Zhenpeng Chen, Jie M Zhang, Federica                   Kristina Lerman, and Aram Galstyan. 2021. A sur-
+ Sarro, and Mark Harman. 2022. Bias mitigation                   vey on bias and fairness in machine learning. ACM
+ for machine learning classifiers: A comprehensive               CSUR, 54(6):1–35.
+ survey. arXiv preprint arXiv:2207.07068.
+Maria Kasinidou, Styliani Kleanthous, Pınar Barlas,            Mary Rose F Montano, Anna Rhea C Opeña, and Maria
+ and Jahna Otterbacher. 2021. I agree with the deci-             Mylin S Miranda. 2024. Language as an agent of
+ sion, but they didn’t deserve this: Future developers’          change: Promoting gender fairness. Technium Soc.
+ perception of fairness in algorithmic decisions. In            Sci. J., 53:336.
+ Proceedings of the 2021 acm conference on fairness,
+ accountability, and transparency, pages 690–700.              Md Nasir, Arindam Jati, Prashanth Gurunath Shivaku-
+                                                                mar, Sandeep Nallan Chakravarthula, and Panayiotis
+Kristen Kim, Gordon Y Ye, Angela Maria Haddad,                  Georgiou. 2016. Multimodal and multiresolution de-
+  Nicholas Kos, Sidney Zisook, and Judy E David-                pression detection from speech and facial landmark
+  son. 2022. Thematic analysis and natural language             features. In Proceedings of the 6th international
+  processing of job-related problems prior to physician         workshop on audio/visual emotion challenge, pages
+  suicide in 2003–2018. Suicide and Life-Threatening            43–50.
+  Behavior, 52(5):1002–1011.
+                                                               Jinkyung Park, Ramanathan Arunachalam, Vincent
+Sun Kim, Lana Yeganova, and W John Wilbur. 2015.                  Silenzio, Vivek K Singh, et al. 2022. Fairness in
+  Summarizing topical contents from pubmed docu-                  mobile phone–based mental health assessment algo-
+  ments using a thematic analysis. In Proceedings of              rithms: Exploratory study. JMIR formative research,
+  the 2015 Conference on Empirical Methods in Natu-               6(6):e34366.
+  ral Language Processing, pages 805–810.
+                                                               Yoonyoung Park, Jianying Hu, Moninder Singh, Issa
+Hadas Kotek, Rikker Dockum, and David Sun. 2023.                 Sylla, Irene Dankwa-Mullan, Eileen Koski, and
+  Gender bias and stereotypes in large language models.          Amar K Das. 2021. Comparison of methods to re-
+  In Proceedings of The ACM Collective Intelligence              duce bias from clinical prediction models of postpar-
+  Conference, pages 12–24.                                       tum depression. JAMA network open, 4(4):e213909–
+                                                                 e213909.
+Kurt Kroenke, Tara W Strine, Robert L Spitzer,
+  Janet BW Williams, Joyce T Berry, and Ali H Mok-             Dana Pessach and Erez Shmueli. 2022. A review on fair-
+  dad. 2009. The phq-8 as a measure of current depres-           ness in machine learning. ACM Computing Surveys
+  sion in the general population. Journal of affective           (CSUR), 55(3):1–44.
+  disorders, 114(1-3):163–173.
+Kyriakos Kyriakou, Pınar Barlas, Styliani Kleanthous,          Wei Qin, Zetong Chen, Lei Wang, Yunshi Lan, Wei-
+  and Jahna Otterbacher. 2019. Fairness in proprietary          jieying Ren, and Richang Hong. 2023. Read, diag-
+  image tagging algorithms: A cross-platform audit              nose and chat: Towards explainable and interactive
+  on people images. In Proceedings of the Interna-              llms-augmented depression detection in social media.
+  tional AAAI Conference on Web and Social Media,               arXiv preprint arXiv:2305.05138.
+  volume 13, pages 313–322.
+                                                               Emilee Rader, Kelley Cotter, and Janghee Cho. 2018.
+Bishal Lamichhane. 2023. Evaluation of chatgpt for               Explanations as mechanisms for supporting algorith-
+  nlp-based mental health applications. arXiv preprint           mic transparency. In CHI 2018, pages 1–13.
+  arXiv:2303.15727.
+                                                               Afsheen Rezai, Ehsan Namaziandost, Mowla Miri, and
+Q Vera Liao, Yunfeng Zhang, Ronny Luss, Finale Doshi-            Tribhuwan Kumar. 2022. Demographic biases and
+  Velez, and Amit Dhurandhar. 2022. Connecting al-               assessment fairness in classroom: insights from ira-
+  gorithmic research and usage contexts: a perspec-              nian university teachers. Language Testing in Asia,
+  tive of contextualized evaluation for explainable ai.          12(1):8.
+
+
+                                                          10
+Fabien Ringeval, Björn Schuller, Michel Valstar,                 Vishesh Thakur. 2023. Unveiling gender bias in
+  Nicholas Cummins, Roddy Cowie, Leili Tavabi, Max-                terms of profession across llms: Analyzing and ad-
+  imilian Schmitt, Sina Alisamir, Shahin Amiriparian,              dressing sociological implications. arXiv preprint
+  Eva-Maria Messner, et al. 2019. Avec 2019 work-                  arXiv:2307.09162.
+  shop and challenge: state-of-mind, detecting depres-
+  sion with ai, and cross-cultural affect recognition. In        Hugo Touvron, Louis Martin, Kevin Stone, Peter Al-
+  Proceedings of the 9th International on Audio/visual             bert, Amjad Almahairi, Yasmine Babaei, Nikolay
+  Emotion Challenge and Workshop, pages 3–12.                      Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti
+                                                                   Bhosale, et al. 2023. Llama 2: Open founda-
+Seamus Ryan and Gavin Doherty. 2022. Fairness defi-                tion and fine-tuned chat models. arXiv preprint
+  nitions for digital mental health applications. arxiv.           arXiv:2307.09288.
+
+                                                                 Sotiris Tsioutsiouliklis, Evaggelia Pitoura, Panayiotis
+Nripsuta Ani Saxena, Karen Huang, Evan DeFilippis,                 Tsaparas, Ilias Kleftakis, and Nikos Mamoulis. 2021.
+  Goran Radanovic, David C Parkes, and Yang Liu.                   Fairness-aware pagerank. In Proceedings of the Web
+  2019. How do fairness definitions fare? examining                Conference 2021.
+  public attitudes towards algorithmic definitions of
+  fairness. In Proceedings of the 2019 AAAI/ACM                  Sahil Verma and Julia Rubin. 2018. Fairness defini-
+  Conference on AI, Ethics, and Society, pages 99–106.             tions explained. In Proceedings of the international
+                                                                   workshop on software fairness, pages 1–7.
+Sabine Sczesny, Magda Formanowicz, and Franziska
+  Moser. 2016. Can gender-fair language reduce gen-              Yixin Wan, George Pu, Jiao Sun, Aparna Garimella,
+  der stereotyping and discrimination? Frontiers in                Kai-Wei Chang, and Nanyun Peng. 2023. " kelly is a
+  psychology, 7:154379.                                            warm person, joseph is a role model": Gender biases
+                                                                   in llm-generated reference letters. arXiv preprint
+Donghee Shin. 2020. User perceptions of algorithmic                arXiv:2310.09219.
+  decisions in the personalized ai system: Perceptual
+  evaluation of fairness, accountability, transparency,          Allison Woodruff, Sarah E Fox, Steven Rousso-
+  and explainability. Journal of Broadcasting & Elec-              Schindler, and Jeffrey Warshaw. 2018. A qualitative
+  tronic Media, 64(4):541–565.                                     exploration of perceptions of algorithmic fairness. In
+                                                                   Proceedings of the 2018 chi conference on human
+                                                                   factors in computing systems, pages 1–14.
+Ben Shneiderman. 2020. Bridging the gap between
+  ethics and practice: guidelines for reliable, safe,            Minghao Wu and Alham Fikri Aji. 2023. Style over sub-
+  and trustworthy human-centered ai systems. ACM                   stance: Evaluation biases for large language models.
+  Transactions on Interactive Intelligent Systems (TiiS),          arXiv preprint arXiv:2307.03025.
+  10(4):1–31.
+                                                                 Xuhai Xu, Bingshen Yao, Yuanzhe Dong, Hong Yu,
+Avital Shulner-Tal, Tsvi Kuflik, and Doron Kliger.                 James Hendler, Anind K Dey, and Dakuo Wang.
+  2023.     Enhancing fairness perception–towards                  2023. Leveraging large language models for mental
+  human-centred ai and personalized explanations un-               health prediction via online text data. arXiv preprint
+  derstanding the factors influencing laypeople’s fair-            arXiv:2307.14385.
+  ness perceptions of algorithmic decisions. Inter-
+  national Journal of Human–Computer Interaction,                Kailai Yang, Shaoxiong Ji, Tianlin Zhang, Qianqian Xie,
+  39(7):1455–1482.                                                 and Sophia Ananiadou. 2023. On the evaluations of
+                                                                   chatgpt and emotion-enhanced prompting for mental
+Zhiqiang Shen Sondos Mahmoud Bsharat, Aidar Myrza-                 health analysis. arXiv preprint arXiv:2304.03347.
+  khan. 2023. Principled instructions are all you need
+  for questioning llama-1/2, gpt-3.5/4. arXiv preprint           Mireia Yurrita, Tim Draws, Agathe Balayn, Dave
+  arXiv:2312.16171.                                                Murray-Rust, Nava Tintarev, and Alessandro Boz-
+                                                                   zon. 2023. Disentangling fairness perceptions in
+                                                                   algorithmic decision-making: the effects of explana-
+Siyang Song, Linlin Shen, and Michel Valstar. 2018.
+                                                                   tions, human oversight, and contestability. In CHI
+  Human behaviour-based automatic depression anal-
+                                                                   2023, pages 1–21.
+  ysis using hand-crafted statistics and deep learned
+  spectral features. In 2018 13th IEEE International             Travis Zack, Eric Lehman, Mirac Suzgun, Jorge A Ro-
+  Conference on Automatic Face & Gesture Recogni-                  driguez, Leo Anthony Celi, Judy Gichoya, Dan Ju-
+  tion (FG 2018), pages 158–165. IEEE.                             rafsky, Peter Szolovits, David W Bates, Raja-Elie E
+                                                                   Abdulnour, et al. 2024. Assessing the potential of
+Xiaoyu Tan, Shaojie Shi, Xihe Qiu, Chao Qu, Zhenting               gpt-4 to perpetuate racial and gender biases in health
+  Qi, Yinghui Xu, and Yuan Qi. 2023. Self-criticism:               care: a model evaluation study. The Lancet Digital
+  Aligning large language models with their under-                 Health, 6(1):e12–e22.
+  standing of helpfulness, honesty, and harmlessness.
+  In Proceedings of the 2023 Conference on Empirical             Khadija Zanna, Kusha Sridhar, Han Yu, and Akane Sano.
+  Methods in Natural Language Processing: Industry                 2022. Bias reducing multitask learning on mental
+  Track, pages 650–662.                                            health prediction. In ACII 2022, pages 1–8. IEEE.
+
+
+                                                            11
+Wenbo Zheng, Lan Yan, and Fei-Yue Wang. 2023. Two
+  birds with one stone: Knowledge-embedded tempo-
+  ral convolutional transformer for depression detec-
+  tion and emotion recognition. IEEE Transactions on
+ Affective Computing, 14(4):2595–2613.
+Junsheng Zhou, Weiguang Qu, and Fen Zhang. 2012.
+  Exploiting chunk-level features to improve phrase
+  chunking. In Proceedings of the 2012 Joint Con-
+  ference on Empirical Methods in Natural Language
+  Processing and Computational Natural Language
+  Learning, pages 557–567.
+
+A     Prompting Strategies
+The prompt used for the depression detection task
+was the following: “On a scale of 0 to 24 where 0
+to 4 means that the Participant has no significant
+depressive symptoms; 5 to 9 means that the Par-
+ticipant has mild depressive symptoms; 10 to 14
+means that the Participant has moderate depressive
+symptoms; 15 to 19 means that the Participant has
+moderately severe depressive symptoms; and 20 to
+24 means that the Participant has severe depressive
+symptoms, how would you rate the last dialogue
+and explain why:"
+   The prompt used for evaluating qualitative fair-
+ness was the following: “We would like to request
+your feedback on the performance of the AI assis-
+tant in response to the user question to assess the
+above dialogue. Please rate the gender fairness
+of its response. First, provide your evaluation of
+the AI assistant’s gender fairness. Please provide
+a comprehensive explanation of your evaluation,
+avoiding any potential gender bias. Please explain
+in detail your rating of gender fairness providing
+examples taken from the AI response, and in turn
+giving positive examples on how to generate a more
+gender fair response."
+
+B     Thematic Analysis Procedure and
+      Codes
+C     Additional Results
+C.1    Depression Detection Results
+For DAIC-WoZ, Bard performs the best under the
+“Baseline" condiction. ChatGPT performs the best
+under the “Implicit" condition. LLaMA 2 performs
+the best under the “Explicit" condition as shown
+in Table 4. For E-DAIC, Bard performs the best
+under the “Explicit" condition. ChatGPT performs
+the best under the “Baseline" condition. LLaMA 2
+performs the best under the “Implicit" condition.
+
+
+
+                                                        12
+                                    mental health assumption
+   emotional assumption                                          professional assumption                              attentive
+                                                                                                                                         empathic           transparent
+
+
+
+             Assumptions and Generalisations                                                                   supportive      Features LLMs
+                                                                                                                             tone
+                                                                                                                                                            respectful
+
+
+    relationship assumption                                    children assumption                                                           inclusive
+                                   activity assumption
+
+
+                                                                                                                           follow-up questions
+                                                                                     ask for pronouns                                                           coping mechnisms
+
+
+                    Gender-related Language                                                                           Suggestions for Improvement
+                                                                                           personalised suggestions                                             seek for help
+                        pronouns                                                                                               train to avoid biases
+                                              gender-neutral language
+
+
+                                                                                                        rating score
+   participant emotion         Context-based Explanations                                           Rating
+
+
+                                 context specific explanations
+
+
+Figure 2: ChatGPT Themes: Themes defined in the TA are presented in orange, while codes related to these
+themes are presented in blue
+
+
+
+
+           Gender-related Language                                                                                           Rating
+                                                                                                                                       rating score
+
+                   pronouns                 gender-neutral language                                                 assessment classification
+
+
+
+                                                                                                          attentive
+                Unrelated Response                                                                                            empathic            transparent
+                                                                                          dignity
+
+                                                                                                    supportive       Features LLMs                 respectful
+                    incosistent response
+                                                                                                                 tone                                  polite
+                                                                                                                                  inclusive
+
+
+                                    mental health assumption                                                          follow-up questions              gender-related factors
+    emotional assumption                                          professional assumption
+                                                                                                                              Suggestions for Improvement
+                               Assumptions and Generalisations
+                                                                                                                                        ask for pronouns
+     relationship assumption                                   children assumption
+                                    activity assumption
+                                                                                                     participant emotion     Context-based Explanations
+                                                                                                                                  context specific explanations
+
+
+
+Figure 3: LLaMA 2 Themes: Themes defined in the TA are presented in orange, while codes related to these
+themes are presented in blue
+
+
+
+
+                                                                            13
+                                                       DAIC-WOZ                                 EDAIC
+             LLM       Exp        Gender   Precision   Recall        F1   Acc     Precision   Recall     F1     Acc
+             Bard      Explicit    All      0.696      0.595     0.610    0.595    0.642      0.663     0.650   0.663
+                                    F       0.692      0.653     0.660    0.653    0.617      0.625     0.619   0.625
+                                   M        0.720      0.543     0.569    0.543    0.677      0.695     0.685   0.695
+                       Implicit    All      0.716      0.616     0.630    0.616    0.679      0.653     0.662   0.653
+                                    F       0.701      0.668     0.675    0.668    0.661      0.656     0.658   0.656
+                                   M        0.756      0.570     0.593    0.570    0.730      0.661     0.685   0.661
+                       Baseline    All      0.716      0.597     0.611    0.597    0.647      0.611     0.623   0.611
+                                    F       0.670      0.619     0.626    0.619    0.625      0.625     0.625   0.625
+                                   M        0.780      0.578     0.599    0.578    0.710      0.610     0.642   0.610
+             ChatGPT   Explicit    All      0.795      0.788     0.791    0.788    0.706      0.721     0.638   0.721
+                                    F       0.724      0.731     0.727     0.73    0.770      0.575     0.481   0.575
+                                   M        0.866      0.831     0.845    0.831    0.705      0.785     0.717   0.785
+                       Implicit    All      0.808      0.808     0.808    0.808    0.647      0.706     0.597   0.706
+                                    F       0.768      0.776     0.753    0.776    0.756      0.525     0.387   0.525
+                                   M        0.895      0.831     0.851    0.831    0.631      0.785     0.700   0.785
+                       Baseline    All      0.799      0.795     0.797    0.795    0.739      0.735     0.666   0.735
+                                    F       0.783      0.791     0.784    0.791    0.716      0.625     0.581   0.625
+                                   M        0.839      0.792     0.811    0.792    0.631      0.785     0.700   0.785
+             LLaMA 2   Explicit    All      0.725      0.613     0.647    0.613    0.660      0.469     0.473   0.469
+                                    F       0.654      0.577     0.601    0.577    0.587      0.548     0.541   0.548
+                                   M        0.792      0.644     0.689    0.644    0.730      0.433     0.456   0.433
+                       Implicit    All      0.738      0.485     0.519    0.485    0.657      0.594     0.613   0.594
+                                    F       0.702      0.507     0.523    0.507    0.612      0.619     0.610   0.619
+                                   M        0.771      0.467     0.522    0.467    0.759      0.608     0.643   0.608
+                       Baseline    All      0.689      0.470     0.510    0.470    0.577      0.510     0.533   0.510
+                                    F       0.651      0.514     0.540    0.514    0.545      0.548     0.546   0.548
+                                   M        0.741      0.433     0.490    0.433    0.631      0.495     0.539   0.495
+
+
+Table 4: Classification Results for all 3 LLMs across both DAIC-WOZ and E-DAIC. Comparison across different
+gender and measures. A comparison of the performance and fairness scores across the different LLMs, condition,
+methods and different genders. Condition 1: Baseline. Condition 2: Gender-explicit. Condition 3: Gender-implicit.
+F: Female. M:Male.
+
+
+
+
+                                                                14
+                                                             Classification                      Group Fairness
+                     LLM     Exp        Gender   Precision   Recall       F1    Acc      SP      EOpp     EOdd    EAcc
+          DAIC-WOZ   BARD    Explicit    All      0.696      0.595      0.610   0.595   0.852    1.084    1.251   1.202
+                                         F        0.692      0.653      0.660   0.653
+                                         M        0.720      0.543      0.569   0.543
+                             Implicit    All      0.716      0.616      0.630   0.616   0.814    1.035    1.108   1.173
+                                         F        0.701      0.668      0.675   0.668
+                                         M        0.756      0.570      0.593   0.570
+                             Scale       All      0.716      0.597      0.611   0.597   0.872    0.943    0.841   1.070
+                                         F        0.670      0.619      0.626   0.619
+                                         M        0.780      0.578      0.599   0.578
+                     GPT     Explicit    All      0.795      0.788      0.791   0.788   1.379    0.907    0.723   0.88
+                                         F        0.724      0.731      0.727   0.730
+                                         M        0.866      0.831      0.845   0.831
+                             Implicit    All      0.808      0.808      0.808   0.808   0.665    0.817    0.448   0.934
+                                         F        0.768      0.776      0.753   0.776
+                                         M        0.895      0.831      0.851   0.831
+                             Scale       All      0.799      0.795      0.797   0.795   1.149    1.081    1.290   0.999
+                                         F        0.783      0.791      0.784   0.791
+                                         M        0.839      0.792      0.811   0.792
+                     Llama   Explicit    All      0.725      0.613      0.647   0.613   1.092    0.877    0.720   0.896
+                                         F        0.654      0.577      0.601   0.577
+                                         M        0.792      0.644      0.689   0.644
+                             Implicit    All      0.738      0.485      0.519   0.485    1.06    1.041    1.101   1.087
+                                         F        0.702      0.507      0.523   0.507
+                                         M        0.771      0.467      0.522   0.467
+                             Scale       All      0.689       0.47      0.510   0.470   0.894    1.047    1.105   1.186
+                                         F        0.651      0.514      0.540   0.514
+                                         M        0.741      0.433      0.490   0.433
+          E-DAIC     BARD    Explicit    All      0.642      0.663      0.650   0.663   1.844    1.134    1.334   0.899
+                                         F        0.617      0.625      0.619   0.625
+                                         M        0.677      0.695      0.685   0.695
+                             Implicit    All      0.679      0.653      0.662   0.653   1.229    1.053    1.152   0.993
+                                         F        0.661      0.656      0.658   0.656
+                                         M        0.730      0.661      0.685   0.661
+                             Scale       All      0.647      0.611      0.623   0.611   0.999    1.046    1.118   1.024
+                                         F        0.625      0.625      0.625   0.625
+                                         M        0.710      0.610      0.642   0.610
+                     GPT     Explicit    All      0.706      0.721      0.638   0.721   2.325    1.121    1.285   0.733
+                                         F        0.770      0.575      0.481   0.575
+                                         M        0.705      0.785      0.717   0.785
+                             Implicit    All      0.647      0.706      0.597   0.706   2.325    1.064    1.136   0.669
+                                         F        0.756      0.525      0.387   0.525
+                                         M        0.631      0.785      0.700   0.785
+                             Scale       All      0.739      0.735      0.666   0.735   16.275   1.267    1.712   0.796
+                                         F        0.716      0.625      0.581   0.625
+                                         M        0.631      0.785      0.700   0.785
+                     Llama   Explicit    All      0.660      0.469      0.473   0.469   0.917    1.00     1.001   1.265
+                                         F        0.587      0.548      0.541   0.548
+                                         M        0.730      0.433      0.456   0.433
+                             Implicit    All      0.657      0.594      0.613   0.594   0.688    0.924    0.810   1.018
+                                         F        0.612      0.619      0.610   0.619
+                                         M        0.759      0.608      0.643   0.608
+                             Scale       All      0.577      0.510      0.533   0.510   0.892    1.179    1.384   1.107
+                                         F        0.545      0.548      0.546   0.548
+                                         M        0.631      0.495      0.539   0.495
+
+
+Table 5: Gender-wise breakdown and comparison across the different measures. A comparison of the performance
+and fairness scores across the different LLMs, condition, methods and different genders. Condition 1: Explicit.
+Condition 2: Implicit. Condition 3: Baseline. F: Female. M:Male.
+
+
+
+
+                                                             15
+

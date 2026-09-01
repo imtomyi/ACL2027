@@ -1,0 +1,1630 @@
+                                             Deconstructing Open-World Game Mission Design Formula: A
+                                                Thematic Analysis Using an Action-Block Framework
+                                                                       Kaijie Xu                                                        Yiwei Zhang
+                                                                  McGill University                                                  McGill University
+                                                              Montréal, Québec, Canada                                           Montréal, Québec, Canada
+                                                              kaijie.xu2@mail.mcgill.ca                                         yiwei.zhang3@mail.mcgill.ca
+
+                                                                     Brian Yang                                                      Clark Verbrugge
+                                                                  McGill University                                                 McGill University
+                                                              Montréal, Québec, Canada                                           Montréal, Québec, Canada
+
+
+
+
+arXiv:2603.18398v1 [cs.HC] 19 Mar 2026
+                                                             brian.yang2@mail.mcgill.ca                                            clump@cs.mcgill.ca
+
+                                         Abstract                                                                pacing and rhythm matter for aligning mechanics with story and
+                                         Open-world missions often rely on repeated formulas, yet designers      affect [43, 106]. Meanwhile, game analytics has equipped studios
+                                         lack systematic ways to examine pacing, variation, and experiential     with massive telemetry and dashboards, advancing the visualization
+                                         balance across large portfolios. We introduce the Mission Action        of emergent player behavior but leaving a “semantic leap” between
+                                         Quality Vector (MAQV), a six-dimensional framework—covering             low-level logs and interpretable design structure [21, 75, 84]. Recent
+                                         combat, exploration, narrative, emotion, problem-solving, and unique-   sequence-mining and representation-learning approaches begin to
+                                         ness—paired with an action block grammar representing missions          encode player action as language-like sequences, yet still target
+                                         as gameplay sequences. Using about 2200 missions from 20 AAA            observed play rather than authored mission blueprints [69, 117].
+                                         titles, we apply LLM-assisted parsing to convert community walk-        We build on these threads by shifting the analytic unit from player
+                                         throughs into structured action sequences and score them with           traces to the designer’s plan: a grammar of action blocks and a six-
+                                         MAQV. An interactive dashboard enables designers to reveal under-       dimensional experiential lens that makes authored mission flow
+                                         lying mission formulas. In a mixed-methods study with experienced       visible and comparable.
+                                         players and designers, we validate the pipeline’s fidelity and the         We introduce a two-part framework: (1) the Mission Action
+                                         tool’s usability, and use thematic analysis to identify recurring de-   Quality Vector (MAQV), which consists of six experiential dimen-
+                                         sign trade-offs, pacing grammars, and systematic differences by         sions (Problem-Solving, Combat, Uniqueness, Exploration, Nar-
+                                         quest type and franchise evolution. Our work offers a reproducible      rative, Emotion) scored over action sequences, and (2) an action
+                                         analytical workflow, a data-driven visualization tool, and reflective   block grammar that normalizes walkthrough text into common
+                                         insights to support more balanced, varied mission design at scale.      blocks (traversal, social, puzzle, stealth, combat, etc.). Using com-
+                                                                                                                 munity walkthroughs, we built a cross-title corpus (∼2200 missions,
+                                         CCS Concepts                                                            20 open-world games), extracted structured sequences with LLM-
+                                                                                                                 assisted conversion, and coupled them with coordinated visualiza-
+                                         • Applied computing → Computer games.
+                                                                                                                 tions (radars, quality timelines, block timelines). All walkthrough
+                                                                                                                 sources are public, and our user study received institutional ethics
+                                         Keywords                                                                approval with informed consent. Our use of LLMs follows HCI work
+                                         Open-world Games, Quest Design, Game Analytics, Visualization,          that positions AI as a collaborator for scalable and interpretable
+                                         Thematic Analysis                                                       qualitative structuring and sense-making, not an oracle [26, 28, 44].
+                                                                                                                    We evaluated the framework in a mixed-methods study with
+                                         1   Introduction                                                        experienced players and professional designers. First, participants
+                                         In open-world AAA games, the quality of mission design is central       verified action lists and extracted sequences, then assessed tool
+                                         to player engagement; however, many recent titles are criticized for    usability using SUS, UEQ-S, and SEQ, following established HCI
+                                         “checklist”-style design that leads to repetition and pacing fatigue    practice [10, 40]. Next, treating the interface as a reflection probe
+                                         rather than sustaining meaningful play. Critics point to large maps     [113], participants freely explored missions/games and reflected
+                                         populated with formulaic tasks and traversal that functions more        on pacing, archetypes, and cross-title patterns. We analyzed these
+                                         like a menu than a world, resulting in a hollow sense of place and      reflections using Reflexive Thematic Analysis (RTA) [7]. Separately,
+                                         grind-like loops [116]. We argue that beyond taste or production        we assessed interface usability quantitatively and reported those
+                                         constraints, there is a tooling gap: designers lack a shared, ana-      scores alongside the qualitative themes. The overall workflow is
+                                         lyzable representation of mission structure and the experiential        shown in Figure 1.
+                                         trade-offs it creates.                                                     Our key contributions are:
+                                            Prior work in game design and research provides partial an-
+                                         swers. Quest formalisms and patterns (e.g., grammars, archetypes)            • a design-facing representation that couples the Mission
+                                         describe how quests can be composed and varied [67, 103]; debates              Action Quality Vector with an action block grammar to
+                                         on ludonarrative tension and models of enjoyment speak to why                  externalize mission pacing and experiential balance;
+                                                                                             Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+
+
+Figure 1: End-to-end workflow of our study. Left-top (Data Acquisition & Structuring): community Fandom walkthroughs (text
+only, via MediaWiki API) are consolidated into a mission dataset and converted by an LLM-assisted parser into normalized action
+block sequences. Left-bottom (Frameworks & Tools): the MAQV six-dimensional lens (combat, exploration, narrative, emotion,
+problem-solving, uniqueness) and the action block grammar feed a Mission Analysis Dashboard with Browse/Compare views.
+Right-top (Quantitative Validation): extraction is assessed against a human-labeled gold set, complemented by participant
+data-validity checks and usability/utility evaluation (SUS, UEQ-S, SEQ). Right-bottom (Qualitative Insights): participants’
+exploration & reflection inform Reflexive Thematic Analysis to surface themes, trade-offs, and pacing heuristics.
+
+
+     • a large cross-title corpus and LLM-assisted pipeline for        behavior [23, 74]. However, the sheer scale of telemetry data creates
+       converting walkthroughs into analyzable sequences;              a ‘sense-making gap’: prior surveys and systems report abundant
+     • a pilot multi-view dashboard that operationalizes MAQV          signals but limited designer-facing, task-appropriate tooling to map
+       analyses for sense-making over mission structure;               raw metrics to concrete design hypotheses and pacing insights
+     • a quantitative evaluation indicating the feasibility of the     [75, 99, 105, 115]. As a result, visualization becomes a crucial bridge
+       framework, extraction pipeline, and system; and                 between raw numbers and intelligible patterns [75]. Unlike prior
+     • a qualitative study using Reflexive Thematic Analysis that      work centered on player traces, we target the designer’s blueprint
+       derives actionable pacing heuristics and cross-game design      of missions to support upstream design reasoning.
+       insights.                                                          Commercial dashboards track KPIs and spatial aggregates with
+                                                                       standard charts and heatmaps [23, 71, 115], while research proto-
+2 Related Work                                                         types visualize complex player processes and strategies. Novel ap-
+                                                                       proaches include interactive maps that overlay sequences of player
+2.1 Game Analytics and Player Behavior                                 actions over game environments [75], and specialized symbolic
+    Visualization                                                      encoding systems that represent high-level player strategies in a
+Game Analytics is the process of discovering and communicating         compact, comparable format [63, 69]. These tools are powerful for
+patterns in data to improve the player experience and solve design     analyzing emergent player behavior. Our work extends this visual-
+problems [23]. The field traditionally relies on telemetry, a stream   analytic spirit, but shifts the subject of analysis from the player’s
+of event data transmitted from game clients, to understand player
+Deconstructing Open-World Game Mission Design Formula
+
+
+path to the designer’s blueprint. We adapt similar principles to visu-    medium [112]. This is not merely an academic argument but a prac-
+alize authored mission structures, addressing the distinct challenge      tical design challenge in creating cohesive experiences where play
+of understanding predefined design formula rather than emergent           and plot reinforce each other [64]. A key technique for resolving
+player tactics.                                                           this “ludonarrative” tension is pacing: the deliberate manipulation
+   A fundamental challenge in analyzing telemetry is the “semantic        of speed and rhythm to control the player’s emotional journey [88].
+leap”: transforming raw, noisy event logs into meaningful, inter-         Effective pacing relies on the cycle of tension and release [14, 106],
+pretable sequences of actions [31]. Researchers have employed ad-         which operates on multiple scales, from the moment-to-moment
+vanced techniques to address this, including process mining to iden-      action to the overall arc of the game [100]. Our Mission Action
+tify common puzzle-solving attempts [31], domain-based spatial            Quality Vector (MAQV) provides a novel, quantifiable method for
+abstraction to reveal high-level strategies in player movement [69],      visualizing this dynamic, where shifts between dimensions like
+and even NLP models like player2vec that treat action sequences           Combat, Exploration, and Narrative directly represent the designed
+as a form of language [117]. Our research takes a complementary           pacing and tension flow within a quest.
+path. Instead of mining low-level, high-frequency telemetry, we               Despite established formalisms, a significant contemporary cri-
+mitigate the semantic leap by starting with human-authored data           tique argues that many modern open-world games fail at the ex-
+from mission walkthroughs. This approach leverages data that is           periential level, defaulting to the “open-world checklist” problem
+already injected with semantic and narrative meaning, allowing            [116]. This critique poses that in pursuing scale, games create vast
+our analysis to focus directly on authored design patterns.               worlds that are fundamentally uninteresting to traverse, reduc-
+   Dashboards are evolving from passive displays to active sense-         ing activities to icons on a map to be ticked off a list [47]. The
+making tools [37, 76, 91], yet designers still need customized sys-       journey becomes “dead space” between objectives, bypassed with
+tems adapted for creative workflows [90]. By reframing the dash-          fast-travel or boring traversal experience, rendering the world a
+board as an interactive environment for inquiry and discovery             “massive mission-select screen” [25, 116]. This emptiness is often
+[91, 98], we position our framework as such a tool: a specialized, re-    filled with repetitive, low-value “filler” content, like clearing out
+flective probe built not for general business intelligence, but for the   identical enemy camps, which provides diminishing returns and
+focused, creative task of deconstructing and innovating in mission        contributes to a sense of grind. Major franchises, including later
+design.                                                                   Assassin’s Creed and Bethesda’s RPGs, are frequently cited as ex-
+                                                                          emplars of this design issue [1, 32]. This critique highlights an
+                                                                          important information problem for designers. Our visual analytics
+                                                                          framework directly addresses this by making the holistic structure
+2.2    Quest and Mission Design Literature                                of the player’s designed journey visible, enabling designers to move
+A deep understanding of quest design requires examining the for-          beyond tracking discrete objectives and to analyze whether quest
+malisms that structure them and the experiential critiques that           flows create meaningful, engaging paths through their worlds.
+challenge them. Quests are the primary mechanism for narrative
+progression in many genres, guiding players through a story via a         2.3    Methodological Background: Evaluating
+series of goals and rewards [67]. Researchers have developed several
+formal models to deconstruct these structures. These include hierar-
+                                                                                 Creativity Support Tools and Thematic
+chical planning, where quests are top-level plans decomposed into                Analysis
+causally linked events, and more detailed grammar-based models.           Evaluating Creativity Support Tools (CSTs) is a long-standing HCI
+Pioneering work in this area identified that quests can be gener-         challenge because creative work is ambiguous and subjective; con-
+ated from a grammar rooted in nine core NPC motivations (e.g.,            ventional metrics (time, errors) are often inadequate [11, 89]. The
+Knowledge, Protection), which expand into strategies (e.g., “Kill         community therefore relies on a methodological “toolbox” rather
+Pests”) composed of atomic player actions (goto, kill, gather) [67].      than a single standard [89]. In this study we evaluate a designer-
+Complementing these generative models are design patterns, such           facing visual analytics system for mission-design sense-making
+as “Arrowhead Questing,” a structure that narrows from broad              using both quantitative instruments and qualitative inquiry.
+objectives to specific, high-stakes encounters to teach mechanics             Standardized questionnaires offer comparable signals about per-
+and build tension [103]. Recent work shows that thematization can         ceived usability and experience. We use the System Usability Scale
+shape verb sets and bespoke modes in open-world action-adventure          (SUS) [62] and the short form User Experience Questionnaire (UEQ-
+games [53]. These game-specific formalisms are modern, interac-           S, 8 items; two scales: Pragmatic and Hedonic) [5, 96, 97]. We did not
+tive expressions of timeless literary archetypes like “The Quest,”        administer the Creativity Support Index (CSI) [12, 101] because our
+sharing core elements of journey, challenge, and transformation           evaluation targets interaction-level analysis tasks rather than cre-
+[39, 46]. Our work builds on this tradition of formal analysis by         ative artifact production, and CSI’s constructs overlap with UEQ-S.
+introducing a taxonomy of “action blocks” that deconstructs quests        These instruments provide useful but shallow coverage [11], so we
+at a more granular, player-action level, to extract the anticipated       benchmark with SUS/UEQ-S and complement them with qualitative
+events players will actually experience through the game.                 methods aligned with expert reflective practice.
+   Underlying quest design is a foundational tension between game-            To access situated interpretation, we draw on cultural probes and,
+play and story, crystallized in the “ludology versus narratology”         in particular, the Reflection Probe [4, 66, 113]. We treat the system as
+debate [70]. Ludology prioritizes the formal systems of rules and         a reflection probe and ask whether it helps experts build meaningful
+mechanics, while narratology focuses on the game as a storytelling        representations and make previously intractable analysis possible
+                                                                                                 Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+[28, 84]. Concretely, our interface externalizes mission structure to           (2) Dataset construction: We extracted mission descriptions
+support design inquiry, and we study how users reason with these                    from community wikis, programmatically parsed and fil-
+externalizations.                                                                   tered them, and converted each into an ordered sequence
+    For open-ended reflections, we adopt Reflexive Thematic Analy-                  of actions grounded in the MAQV taxonomy.
+sis (RTA) [6, 13, 18, 77, 107, 118]. RTA is flexible yet explicit about         (3) LLM-based Action Block Extraction: Using LLMs and
+reflexivity and epistemology: themes are constructed rather than                    a predefined action vocabulary, we mapped each mission
+“discovered,” and positivist framings (e.g., IRR as a validity claim)               description into an action sequence, followed by automated
+are philosophically incompatible with this stance [36, 77]. Con-                    validation checks and manual spot reviews.
+sistent with this stance, agreement/accuracy statistics (e.g., IRR;             (4) Validation against a human-labeled gold set: We drew
+precision/recall/F1) are reported only for the quantitative pipeline                a stratified random sample of 80 missions, obtained inde-
+and are not used to validate qualitative themes. Given reports of                   pendent double annotations and adjudicated consensus se-
+inconsistent TA reporting in HCI and game studies [6, 24, 86, 110],                 quences, and evaluated LLM outputs via sequence align-
+we state our RTA position for coherence and transparency. Our goal                  ment and step-level metrics.
+is not to derive new explanatory theory but to interpret how players            (5) Visual analytics dashboard development: We imple-
+and designers make sense of “mission formula” with the tool. RTA                    mented an interactive Flask-based interface with both Browse
+suits this aim better than Grounded Theory [29]. Grounded Theory                    and Compare modes, integrating diverse visualization meth-
+seeks to build theory through theoretical sampling and saturation                   ods.
+with minimal prior structure, but in our study we instead focus on              (6) User studies with game designers: We conducted hands-
+interpreting participants’ reflections using existing ideas and their               on sessions in which domain experts used the tool to vali-
+interactions with our dashboard; we do not aim to develop a new                     date its usability and to generate initial design reflections
+theory. Unlike Interpretative Phenomenological Analysis (IPA) [22],                 and hypotheses.
+RTA supports a somewhat broader expert sample while preserving                  (7) Reflexive thematic analysis: Guided by Braun and Clarke’s
+depth.                                                                              six-phase method [7], our research team coded the qualita-
+    Overall, we take a mixed-methods stance: SUS/UEQ-S establish                    tive data from the user studies and the MAQV-augmented
+a baseline [5, 62, 96, 97]; a reflection-probe evaluates sense-making               visualizations, iteratively developing and refining themes
+[4, 28, 66, 84, 113]; and RTA analyzes expert reflections [6, 77, 107].             around mission design insights.
+We do so because neither fully “objective” nor fully “subjective”
+approaches suffice: widely used objective measures correlate only
+modestly with perceived quality [45], whereas reflexive analysis          3.1     Methodology
+cautions against treating accounts as general laws [7, 9]. Accord-        In Study 1, we focus on constructing the MAQV representation and
+ingly, we triangulate numeric and experiential evidence [16]. Pro-        the walkthrough-to-sequence pipeline, which together yield MAQV-
+cedural specifics of our thematic analysis appear in Section 4.1.3;       scored action sequences at scale. We then operationalize these
+here we articulate the methodological foundations motivating our          outputs in a dashboard, while quantitative/qualitative evaluations
+mixed-methods design.                                                     of fidelity and usability are reported in Study 2.
+
+                                                                          3.1.1 MAQV Framework. To operationalize our analysis of the
+3    Study 1: Mission Action Quality Vector                               mission formula, we introduce MAQV, a six-dimensional frame-
+To reveal the latent “mission design formula” that shapes open-           work for quantifying the experiential qualities of any given action
+world quests, we employ a mixed-methods, data-driven strategy             within a mission. Each action, extracted from mission sequences,
+that couples large-scale computational analysis with designer-centered    is scored from 0 to 1 across six dimensions, creating a vector that
+qualitative inquiry. Our study progresses in seven phases. We begin       represents its qualitative profile. We denote the six MAQV dimen-
+by building a cross-title mission corpus and defining the MAQV,           sions as Uniqueness (U), Combat (C), Narrative (N), Exploration (E),
+and we conclude with a reflexive thematic analysis. This phased           Problem-Solving (P), and Emotion (A), where A denotes Emotion in
+approach allows us to triangulate the quantitative signals with ex-       the sense of affect/aesthetics. We use the shorthand U/C/N/E/P/A
+pert reflections, ensuring both breadth and depth of insight [16].        throughout. This vectorization allows us to transform descriptive
+Figure 1 overviews our end-to-end pipeline: from dataset construc-        mission walkthroughs into rich time-series data, enabling compu-
+tion and LLM-assisted action extraction to visual analytics and           tational analysis and visualization of mission pacing, structure, and
+mixed-methods evaluation.                                                 experiential focus. Each dimension is grounded in established game
+   We organize the overall workflow into seven phases. Phases             studies literature to ensure a comprehensive and theoretically sound
+1-5 (MAQV design, dataset construction, action block extraction,          model of player experience (see Table 1). Raters applied a concise,
+gold-set validation, visualization) are detailed in the subsequent        anchored 0-1 rubric per dimension: 0 denotes absent or generic pres-
+subsections of Study 1 (Section 3), while Phases 6-7 (user studies        ence; 0.5 indicates moderate, context-supported presence; 1 reflects
+and thematic analysis) are reported in Study 2 (Section 4).               salient, defining presence. Each dimension was scored indepen-
+                                                                          dently based on the intrinsic properties of the action (not narrative
+    (1) Design of the Mission Action Quality Vector: We de-               payoff), with borderline cases defaulting to mid-range (≈ 0.5) and
+        fined a six-dimensional scoring system to capture the key         adjusted during the structured consensus review. The six axes form
+        qualities of every mission action.                                a literature-grounded minimal set; they are not exhaustive, and the
+Deconstructing Open-World Game Mission Design Formula
+
+
+Table 1: Content validity for MAQV: each dimension is anchored in established game-design constructs and tied to our observable
+cues derived from action blocks.
+
+ Dimension             Theoretical anchors (refs)                                          Operational cues (from action sequences)
+ Uniqueness (U)        Novelty as a driver of engagement; need for novelty in SDT/uncer-   First-appearance flags of mechanics/actions; density of one-off
+                       tainty frameworks [17, 60, 82, 108, 109].                           set pieces; rate of introducing new blocks.
+ Combat (C)            Adversarial challenge and risk in play; combat as an agency-        Share of combat/stealth/escort blocks; intensity markers (boss
+                       shaping core [42, 50, 73, 81].                                      tags, wave counts, sustained encounters).
+ Narrative (N)         Quest-mediated story progression; measuring story factors; nar-     Proportion of dialogue/cutscene/exposition blocks; presence of
+                       rative alignment [43, 46, 72, 78, 85].                              plot turns or quest-stage gates.
+ Exploration (E)       Discovery motives (Bartle) and MDA “Discovery” aesthetic [3, 49].   Share of traversal/scouting/collection blocks; POI/landmark dis-
+                                                                                           covery events.
+ Problem-Solving (P)   Games as problem spaces; puzzle/strategy and cognitive load/flow    Share of puzzle/investigation/manipulation blocks; multi-step
+                       [27, 52, 54, 65].                                                   precondition chains.
+ Emotion (A)           MDA “Aesthetics”, Four Keys to Fun, and affect in play [15, 38,     Alternation density of high-tension vs. relief segments;
+                       49, 55, 61].                                                        timed/escape/culmination flags.
+
+
+schema supports adding/replacing axes or genre-specific weighting                dimension draws from perspectives viewing games as problem-
+when appropriate.                                                                solving systems where overcoming “aporias”—or barriers—is in-
+   The Uniqueness dimension captures the novelty and surprise                    tegral to player progression [52, 54, 65]. It thus directly assesses
+of an action. This is informed by research on the “novelty effect,”              cognitive load, critical to puzzle design and the maintenance of
+where initial engagement is high but fades with familiarity [82, 109].           optimal player flow [27].
+Recent work within Uncertainty and Self-Determination Theory                        Finally, the Emotion dimension captures the affective engage-
+has even proposed the need for novelty as a distinct psychologi-                 ment an action evokes in the player. This operationalization directly
+cal factor that uniquely predicts positive player experiences and                corresponds to the “Aesthetics” component of the MDA framework,
+continued engagement [17, 60, 108]. Thus, higher scores on this                  which emphasizes emotional responses such as challenge, fantasy,
+dimension indicate rare or signature mechanics, whereas lower                    or sensation [49]. Similarly, Lazzaro’s Four Keys to Fun framework
+scores denote common or repeated actions.                                        categorizes play experiences by their emotional impact [61], such
+   Combat measures the intensity and frequency of direct, kinetic                as “Hard Fun” (overcoming adversity) or “Easy Fun” (driven by
+conflict. Rooted in game theory’s focus on adversarial scenarios                 curiosity). While previous research has explored multimodal phys-
+and strategic decision-making [42], this dimension represents a fun-             iological measurements of emotion in games [55], our approach
+damental challenge in many games [73]. Research highlights that                  relies primarily on psychology-based interpretative frameworks
+combat mechanics centrally affect player agency and experiential                 [15, 38].
+dynamics [50, 81], distinguishing physical opposition from other                    Collectively, these six dimensions offer an integrated yet min-
+challenge forms.                                                                 imally redundant analytical lens for mission design. They inten-
+   The Narrative dimension evaluates an action’s contribution                    tionally map onto established theoretical models, including Bar-
+to advancing the story or developing characters [78]. Quests are                 tle’s player types and MDA aesthetics, ensuring broad coverage of
+a primary bridge between gameplay and narrative [46], and this                   critical experiential facets. For example, both Combat and Problem-
+dimension measures an action’s role in maintaining that connec-                  Solving pertain to MDA’s “Challenge” aesthetic but crucially differ-
+tion. Prior studies investigate methods of quantifying narrative                 entiate physical, reflex-based difficulties from cognitive, strategic
+factors within games [72, 85]. Furthermore, this dimension directly              challenges. Likewise, Narrative measures an action’s structural
+addresses the concept of ludonarrative harmony, where gameplay                   narrative contribution, whereas Emotion assesses immediate affec-
+mechanics reinforce narrative themes, as opposed to ludonarrative                tive impacts on the player. This carefully selected dimensionality
+dissonance, where these elements conflict [43].                                  facilitates refined modeling of mission design tensions, such as
+   Exploration quantifies an action’s role in spatial discovery and              between narrative coherence and exploratory freedom. We delib-
+environmental interaction [102]. This aligns directly with the mo-               erately omit a Social axis because our analysis targets authored
+tivations of the “Explorer” player type in Bartle’s taxonomy, who                single-player mission flows and the walkthrough corpus encodes
+derives pleasure from discovering new areas and secrets [3]. It                  solitary play; multiplayer coordination and social dynamics are
+also maps to the “Discovery” aesthetic in the Mechanics-Dynamics-                beyond our present scope. For a concrete illustration using our
+Aesthetics (MDA) framework [49]. Thus, actions promoting ex-                     tool, Figure 2 shows that Web-Swing Traversal in Spider-Man: Miles
+pansive or secretive environments score higher, while linear or                  Morales is high on Uniqueness and Exploration (with only minimal
+constrained tasks score lower.                                                   Problem-Solving or Combat), whereas Stealth Takedown concen-
+   Problem-Solving measures the cognitive challenges, includ-                    trates on Combat and contributes little to Narrative or Exploration.
+ing puzzles, strategic thinking, and complex decision-making. This                  Quantification on a continuous 0-1 scale further supports com-
+                                                                                 parative and quantitative analytics. This practice aligns with estab-
+                                                                                 lished methods in game analytics, employing granular telemetry to
+                                                                                             Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+
+
+Figure 2: Action view in Browse mode from our implemented tool. Actions are grouped by category; each row shows 0-1
+MAQV scores: Uniqueness (U), Combat (C), Narrative (N), Exploration (E), Problem-Solving (P), and Emotion (A), plus a brief
+description. This figure and all other visualizations in the paper are direct screenshots of the working interface.
+
+
+generate quantifiable metrics, such as completion times or failure      Table 2: The 20 open-world games selected for our mission
+rates, to compare engagement across game levels [21]. By encoding       dataset, with developer and year.
+qualitative gameplay aspects numerically, the MAQV framework
+allows systematic computational comparison of design patterns           Game Title                          Developer                          Year
+across numerous missions and multiple game titles, forming a ro-
+                                                                        The Elder Scrolls V: Skyrim         Bethesda Game Studios              2011
+bust empirical foundation for our analysis.
+                                                                        Dragon’s Dogma                      Capcom                             2012
+                                                                        Grand Theft Auto V                  Rockstar North                     2013
+3.1.2 Dataset. To enable large-scale, cross-game analysis of mis-       Dying Light                         Techland                           2015
+sion design, we built a dataset of quest descriptions from 20 major     Fallout 4                           Bethesda Game Studios              2015
+open-world titles. We used Fandom wikis as the primary source:          The Witcher 3: Wild Hunt            CD Projekt Red                     2015
+community-curated, publicly accessible repositories that are con-       Horizon Zero Dawn                   Guerrilla Games                    2017
+tinuously validated by dedicated player communities. Using online       Kingdom Come: Deliverance           Warhorse Studios                   2018
+player forums/wikis as research corpora is established in game          Red Dead Redemption 2               Rockstar Games                     2018
+studies [34], allowing analysis of experiences, beliefs, and emotions   Ghost of Tsushima                   Sucker Punch Productions           2020
+that would be infeasible to collect manually [83, 87, 110]. Before      Spider-Man: Miles Morales           Insomniac Games                    2020
+automation, we first assembled a broad candidate pool by surveying      Cyberpunk 2077                      CD Projekt Red                     2020
+public sources (editorial roundups, platform charts, award short-       Far Cry 6                           Ubisoft Toronto                    2021
+lists, community threads), and then two authors manually vetted         Horizon Forbidden West              Guerrilla Games                    2022
+each candidate game’s public wiki to confirm mission-by-mission         Hogwarts Legacy                     Avalanche Software                 2023
+coverage sufficient for parsing. Inclusion criteria covered maturity,   Marvel’s Spider-Man 2               Insomniac Games                    2023
+completeness, and structural consistency so that quest pages were       Starfield                           Bethesda Game Studios              2023
+sufficiently detailed and followed a predictable HTML structure         Dragon’s Dogma 2                    Capcom                             2024
+suitable for programmatic parsing.                                      Rise of the Ronin                   Team Ninja                         2024
+    Our final selection comprises 20 critically and commercially        Kingdom Come: Deliverance 2         Warhorse Studios                   2025
+successful open-world games across multiple sub-genres (fantasy,
+science fiction, contemporary) and studios, spanning 2011-2025.
+The set includes foundational titles that codified genre tropes and     yielded 2435 raw descriptions; after conversion to action sequences
+recent releases that iterate upon them, enabling a broad analysis of    (Section 3.1.3) and quality filtering, the final dataset comprises
+the mission formula. Table 2 lists the games, developers, and years.    2191 valid missions: 607 Main Quests, 1174 Side Quests, and 410
+    We programmatically retrieved quest descriptions from Fandom        Points of Interest (POIs). Fandom text is licensed under CC BY-SA
+via the MediaWiki API and parsed walkthrough-style sections,            3.0; we accessed content via the API in line with the Terms of Use,
+removing boilerplate. To ensure quality and reproducibility, we         processed text only (no media), and will release derived annotations
+retained only descriptions whose cleaned, complete walkthrough          (action sequences and per-mission MAQV vectors) with per-page
+description contained at least 35 words and conducted all analyses      attribution rather than verbatim text. No personal data is involved,
+on immutable page snapshots identified by revision/oldid. This          and our protocol was reviewed by the IRB. Details of the scraping
+Deconstructing Open-World Game Mission Design Formula
+
+
+and parsing pipeline, together with compliance boundaries, are             framed this task as a zero-shot, constrained data extraction prob-
+provided in Appendix A.                                                    lem, leveraging the model’s ability to parse natural language and
+                                                                           map it to a predefined schema. While this approach offers scala-
+3.1.3 Action Block Extraction. We define an action block as an             bility, we did not take the model’s output for granted; the validity
+atomic, player-performed verb that is (i) observable in textual walk-      of the generated action sequences was established through (i) an
+throughs, (ii) locally complete and temporally bounded, and (iii)          objective validation study (Section 3.1.4) and (ii) convergent partic-
+semantically stable enough to compare across missions. To ensure           ipant ratings from the Stage 1 data-validity check (Section 4.1.2),
+consistent granularity, we organize blocks under a small but gen-          jointly demonstrating the effectiveness of our extraction pipeline.
+eral set of categories (e.g., traversal, combat, stealth, puzzle, social   We report the corresponding fidelity metrics, along with other
+interaction, environmental interaction, special ability, etc.). During     quantitative evaluation results, in Study 2.
+list construction, we merge near-synonyms (e.g., wall-running vs.             Our process was managed by a programmatic pipeline designed
+wall-crawling if not design-significant), collapse UI-only or meta         to ensure consistency and robustness. For each of the 2191 viable
+actions unless they constitute core mechanics, and keep franchise-         missions, we dynamically constructed a prompt for the LLM (GPT-
+specific verbs when they meaningfully alter play (e.g., web-swing          4.1, with the fixed snapshot gpt-4.1-2025-04-14). This prompt con-
+traversal).                                                                tained four key elements: (1) a system message defining the model’s
+    Before LLM extraction, the first author compiled a per-game            role as a data converter; (2) the complete, game-specific library of
+action block list, the set of unique actions likely to appear in that      predefined actions it was allowed to use; (3) a clear, step-by-step
+game’s missions, by skimming representative walkthroughs to seed           instruction set telling the model to read the description, break it
+candidates and applying the inclusion/merging rules above. Each ac-        into elementary steps, map each step to exactly one predefined
+tion was initially scored on all six MAQV dimensions by a primary          action, and output only a JSON array of action names; and (4) the
+annotator with first-hand play experience across the dataset. For          mission description text itself. To promote deterministic output,
+each game, one or two secondary annotators who had personally              we used deterministic decoding (temperature=0, top_p=1). The
+played the title independently reviewed the action list and scores;        pipeline included a robust retry mechanism with a rate limit to
+when no secondary had prior experience, a reviewer completed               handle transient API failures and automatically validated that the
+targeted play before review. Thus, every title had 2-3 annotators          model’s output was a correctly formatted JSON array of strings.
+with first-hand play. An additional co-author occasionally served as       Complete prompt specifications are provided in Appendix B.
+a non-scoring sanity reviewer on titles they had played. We used a            This extraction process successfully generated action sequences
+consensus protocol similar to a modified Delphi method [19], which         for all missions. Our comprehensive action libraries for the 20 games
+we refer to as a ‘structured consensus meeting’: unanimous rat-            contained a total of 711 manually defined actions, of which 701 were
+ings were accepted; disagreements were discussed until consensus.          utilized by the LLM in at least one mission sequence, validating the
+This follows expert consensus methods known to improve validity            breadth of activities represented. The resulting sequences varied
+through iterative feedback and convergence [30, 58, 94]. The struc-        significantly in length, with an average of 12.28 actions per mis-
+tured consensus ensured that MAQV assignments reflected shared             sion. An initial analysis of these sequences reveals clear structural
+interpretive understanding and experiential expertise.                     differences between mission types: Main Quests are the longest on
+    Before the full annotation pass, we ran a pre-annotation inter-        average (15.67 actions), followed by Side Quests (11.71 actions), and
+rater reliability (IRR) check on two representative titles (The Witcher    POIs are the most compact (8.79 actions). This structured dataset of
+3; GTA V) [36]. To maximize comparability, each MAQV dimen-                action sequences forms the foundation for the quantitative analysis
+sion was discretized to a five-point grid 0, 0.25, 0.5, 0.75, 1 for this   of mission formula presented in the following sections.
+IRR only. Two authors independently scored 76 actions; quadratic-
+weighted Cohen’s 𝜅 indicated strong overall agreement (𝜅=0.913,            3.1.4 Validation Study: Human-Labeled Gold Set. To objec-
+95% CI [0.895, 0.929]) and moderate-to-excellent agreement per             tively assess the reliability of our LLM-based extraction, we con-
+dimension (U 0.737; C 0.966; N 0.868; E 0.953; P 0.890; A 0.843).          ducted a validation study on a stratified random sample of 80 mis-
+Exact agreement was 0.767 with 0.228 off-by-one (mean absolute             sions drawn from our corpus (20 games; 24 Main, 36 Side, 20 POI).
+difference 0.059 on the 0-1 scale); see Appendix G for full tables.        We stratified over game × mission-type and sampled with a fixed
+We then reverted to the continuous 0-1 scale for the main study            pseudorandom seed (seed = 42), enforcing at least one mission per
+and finalized scores via the structured consensus procedure above.         type per game where available; if a game lacked a given type, its
+For clarity, the above IRR serves solely as a procedural reliability       quota was reallocated proportionally to others. Two annotators
+check for MAQV action scoring; no coder-agreement statistics were          (two authors) independently segmented each walkthrough into
+computed for our Reflexive Thematic Analysis.                              elementary steps and mapped each step to exactly one item from
+    To convert the unstructured mission descriptions from our dataset      the closed, per-game action list; a third adjudicator (the first author)
+into structured, analyzable sequences of actions, we employed a            produced a consensus gold set and logged disagreements (missing,
+Large Language Model (LLM). Manually coding over 2000 detailed             spurious, mislabel, merge/split, granularity drift).
+mission texts would be prohibitively time-consuming and prone to              LLM-predicted sequences were aligned to gold via Needleman-
+inconsistency. Recent work in HCI has demonstrated the utility of          Wunsch dynamic programming on action labels. We report micro
+AI assistants in qualitative research [26, 44, 51], capable of perform-    Precision, Recall, and F1, exact sequence match rate, and normal-
+ing structured data extraction and aiding in the analysis of large         ized edit distance, with 95% bootstrap confidence intervals. Group
+text corpora with significant accuracy [59, 110, 119]. We therefore        differences across mission types and across games were tested using
+                                                                                     Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+
+
+Figure 3: Quality-flow visualization tracking the six MAQV dimensions across normalized mission progress (not wall-clock
+time). Peaks highlight intense phases; valleys denote lulls; example shown is from Marvel’s Spider-Man 2 (Main Quest: “A
+Second Chance”).
+
+
+non-parametric procedures (Kruskal-Wallis with Holm-corrected   3.2    Visualization Results
+post-hoc tests).                                                To motivate our choice of a compact set of familiar views for this
+                                                                pilot dashboard, we briefly situate them within prior game analytics
+Deconstructing Open-World Game Mission Design Formula
+
+
+
+
+Figure 4: Action-timeline visualization showing the ordered sequence of action categories, enabling rapid assessment of pacing
+and structural rhythm; example shown is from Marvel’s Spider-Man 2 (Main Quest: “A Second Chance”).
+
+
+visualizations. Prior HCI and games research has used visual ana-          Browse mode supports within-mission reading at two granular-
+lytics to make sense of complex play data, mission structure, and      ities. Quality-flow (Figure 3) shows six MAQV traces aligned to mis-
+player behavior. Early work includes Medler et al.’s “Data Cracker”    sion progress, revealing build-ups, plateaus, and climaxes; smooth-
+dashboard for monitoring player metrics via interactive charts and     ing (Gaussian, 𝜎=2) is for visualization only—statistics use raw
+maps [71]. Hullett and Whitehead analyzed FPS mission design           values. The companion action timeline (Figure 4) encodes the same
+patterns, showing the value of decomposing missions into compo-        mission as a color-coded sequence of action categories, surfacing
+nents and motivating tools that visually map structure [48]. Wallner   macro-structure (e.g., traversal ↔ stealth alternation, single-peak
+and Kriglstein’s survey highlights heatmaps, timelines, and node-      boss segments). Shared colors and normalized progress [0, 100]%
+link diagrams for revealing behavior patterns and traversal paths      make it easy to link what happens to how it feels [20, 35, 104, 111].
+[115]. Building on this, later systems added interactive sequence      Additional Browse panels (storyboard, per-mission numerical sum-
+analysis and comparison; for example, Wallner’s Play-Graph vi-         maries, and the per-game Action view table of actions with MAQV
+sualized gameplay event sequences to expose recurring patterns         scores as shown in Figure 2) are described in Appendix C.
+[114]. Dimensionality-reduction (e.g., PCA) has also been applied to       Compare mode aggregates across selected titles. Normalized
+player and content telemetry to cluster behaviors or mission types     per-game mission radars (Figure 5) emphasize shape (within-title
+[115]. More recently, Kepplinger et al. combined timeline, spatial,    balance) so atypical profiles stand out, while Top Categories / Game
+and physiological views (e.g., synchronized gaze paths and emotion     (Figure 8) highlights dominant or under-served mechanics. These
+timelines) to support holistic assessment [56]. Collectively, this     answer “which dimensions does this title lean on?” and “which
+work shows that diverse visualizations, from radar/spider charts       gameplay atoms dominate?” respectively. More generally, Compare
+to flow timelines, help designers analyze and reflect on complex       mode structures analysis into four question families: Emphasis
+missions in both commercial and research settings [21].                (radars; Top Categories), Contrast (combined radar means; PCA
+   In our methodology, we developed a web-based visual analyt-         similarity map; distance matrix), Structure/Outliers (dendrogram;
+ics interface that incorporates multiple coordinated visualization     centroid tables), and Motifs (frequent 3-step blocks), with details
+techniques to interrogate the “mission formula” data from AAA          in Appendix C. All summaries are computed consistently from the
+open-world titles. The interface was implemented as a Flask web ap-    same dataset, ensuring stable values across subsets and exports.
+plication (with a Bootstrap front-end) generating charts server-side
+using Matplotlib and Seaborn libraries. Two main modes of inter-
+action are supported: a Browse mode for within-game exploration
+(per-game and per-mission views), and a Compare mode for cross-        4   Study 2: User Study
+game visual comparisons. Users can interactively explore patterns,     Study 2 evaluates the fidelity and practical usefulness of our MAQV-
+export visualization snapshots, and use the visuals to inform guided   based pipeline and Mission Analysis Dashboard through a three-
+design reflection prompts. We adopt a compact set of familiar views    stage mixed-methods study with players and designers. Section 4.1
+to cover three analysis families: emphasis, similarity/contrast, and   reports the study methodology, including participants, a quanti-
+sequencing/motifs. All views share consistent MAQV encodings           tative component (Stage 1 data validity check; Stage 3 usability
+and respond to the same subset filters; selecting a title or mission   & utility instruments), and a qualitative component (Stage 2 free
+updates panels that summarize that subset. Interactions are inten-     exploration & reflection) analyzed via reflexive thematic analysis.
+tionally lightweight to keep first-use cognitive load low in this      Section 4.2 presents the quantitative results, covering subjective
+pilot implementation, whose goal is to materialize the analytical      data validity, objective extraction fidelity against a human-labeled
+workflow rather than introduce novel chart types.                      gold set, and tool usability. The qualitative findings and thematic
+                                                                                              Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+
+
+Figure 5: Normalized per-game radar charts highlighting each title’s internal balance. U=Uniqueness, C=Combat, N=Narrative,
+E=Exploration, P=Problem-Solving, A=Emotional.
+
+
+insights derived from participants’ open-ended reflections are re-      developer Discord channel) and invited through personalized invi-
+ported separately in Thematic Insights (Section 5).                     tations, with eligibility confirmed through brief online interviews.
+                                                                        We analyzed data from 68 participants (50 male, 18 female; age 19-
+                                                                        35, 𝑀=24.5, 𝑆𝐷=3.2) spanning both player and designer roles (44.1%
+4.1    Methodology
+                                                                        experienced players, 27.9% aspiring/indie designers, 19.1% casual
+To evaluate the fidelity of our dataset and the usefulness of the       players, 8.8% professional quest/mission designers). A full break-
+Mission Analysis Dashboard, we conducted a three-stage mixed-           down, including open-world familiarity, analytics-tool experience,
+methods study with players and designers. Participants were ex-         and design-experience buckets, is provided in Appendix D.
+pected to connect their personal experience as players with their ob-      We offered no monetary compensation. After providing informed
+servations from the tool, providing meaningful feedback for design      consent, participants completed a self-paced online study (~30 min-
+practice. Accordingly, we treat experienced players as experts-by-      utes). Initially, participants filled out a brief demographic survey
+experience whose reflections on experiential dynamics complement        (2 minutes) capturing their background, game-design experience,
+those of professional designers; this purposive inclusion follows       tool familiarity (general game-analytics/visualization tools), and
+information power in qualitative sampling and lead-user reason-         open-world games played. Next, they freely explored our web-based
+ing, and helps surface fine-grained pacing/salience cues observed       interactive tool to familiarize themselves with visualization results
+in game expertise research [33, 68]. Study 2 comprises (i) quanti-      (< 30 minutes) before proceeding through the three study stages
+tative validity and usability measurements (Stages 1 and 3) and         described below.
+(ii) qualitative reflection and reflexive thematic analysis (Stage 2;
+Section 4.1.3).
+                                                                        4.1.2 Quantitative Method. The quantitative component con-
+4.1.1 Participants. Participants were recruited via two methods.        sisted of Stage 1 (Data Validity Check) and Stage 3 (Usability &
+Experienced players were sourced through public calls on platforms      Utility Evaluation). We designed Stage 1 to assess the accuracy and
+such as Reddit (e.g., r/truegaming, r/videogames, r/SampleSize) and     comprehensiveness of the automatically generated data artifacts.
+our university’s gaming forums, followed by email-based screening       Participants selected 1-2 familiar games and rated Likert-scale items
+to verify eligibility criteria. Designers were contacted directly via   regarding action-list consistency and coverage, generated sequence
+industry studios or game developer platforms (e.g., a formal game       completeness and correctness, and overall data credibility (Table 3).
+Deconstructing Open-World Game Mission Design Formula
+
+
+Table 3: Stage 1 Items (Likert 1 = very strongly disagree . . .            Table 4: Stage 2 Reflection Prompts (Choose any ≥ 3). Full
+Likert 7 = very strongly agree).                                           questions in Appendix E.
+
+      Code     Prompt                                   Type               ID     Question (abridged)
+      A1       Action-List Consistency                  Likert 7           Q1     Six-dimensional commonalities/divergences across games
+      A2       Action-List Coverage                     Likert 7           Q2     Good vs. flawed mission—dimensional centers/voids
+      A3       Missing Actions (optional list)          Open text          Q3     Action diversity and block structure across games
+      A4       Redundant Actions (optional list)        Open text          Q4     Shared/missing block combos (good vs. poor missions)
+      A5       LLM Sequence Completeness                Likert 7           Q5     Long-mission pacing differences
+      A6       LLM Sequence Correctness                 Likert 7           Q6     Neglected or over-emphasized dimensions/categories
+      A7       Overall Data Credibility                 Likert 7           Q7     Main vs. Side vs. POI mission priorities
+                                                                           Q8     Mission/action evolution across sequels
+                                                                           Q9     Formula-breaking uniqueness vs. monotony cases
+They also provided optional free-text responses highlighting miss-         Q10    Core & flavoring ingredients of a good mission
+ing or redundant actions, thus surfacing and quantifying extraction        Q11    Mapping dimensions to player motives (examples)
+errors.                                                                    Q12    Peaks/valleys as emotional climaxes or recovery buffers
+   Stage 3 evaluated participants’ experience with the tool itself
+through established quantitative measures: the System Usability
+Scale (SUS, 10 items, 5-point Likert, 0-100 score [10]), the short form
+                                                                           of developer materials and community walkthroughs. We treat
+User Experience Questionnaire (UEQ-S, 8 semantic-differential
+                                                                           prior exposure as contextual knowledge rather than evidence and
+items rated from −3 to +3 [40]), and the Single Ease Question (SEQ,
+                                                                           mitigate bias through reflexivity memos, peer debriefs, and negative-
+single 7-point item rating overall ease [92]). Additionally, partici-
+                                                                           case checks [6, 7]. The TA corpus comprised the Stage 2 open-ended
+pants provided open-ended feedback on the most helpful features,
+                                                                           written reflections; we did not code wiki text, telemetry, or tool logs
+any confusion encountered, and areas for potential improvement.
+                                                                           for TA. Analysts engaged with both gameplay (where applicable)
+   All quantitative data were summarized consistently: Stage 1 Lik-
+                                                                           and fandom discourse (e.g., walkthrough summaries), attending to
+ert ratings with medians and inter-quartile ranges (IQR), and Stage 3
+                                                                           semantic and latent patterns while avoiding premature, surface-
+usability metrics (SUS, UEQ-S, SEQ) with both means and standard
+                                                                           level topic coding [9].
+deviations (SD) as well as medians/IQR. Differences between play-
+                                                                              Following initial immersion, the authors inductively generated
+ers and designers were assessed via individual Mann-Whitney 𝑈
+                                                                           codes capturing meaningful language about mission structure, de-
+tests for each metric, with Holm correction for multiple compar-
+                                                                           sign reasoning, and gameplay reflections. Coding focused on user
+isons. Effect sizes were reported as rank-biserial correlation (𝑟𝑈 ) for
+                                                                           expressed summaries or design narratives rather than pre-coded
+Mann-Whitney tests, with 95% bootstrap CIs; we interpret 𝑟𝑈 mag-
+                                                                           categories, preserving interpretive richness. As codes accumulated,
+nitudes as small (0.10-0.30), medium (0.30-0.50), and large (> 0.50).
+                                                                           we clustered them into candidate themes reflecting recurring con-
+   Ethical approval was obtained from our institutional review
+                                                                           ceptual patterns in mission design (e.g., “trade-off between narrative
+board. Participation was voluntary and anonymous; identifiable
+                                                                           and combat intensity” or “repeated traversal-dialogue-combat block
+records are retained only until de-identification, which will be
+                                                                           motifs”). Code clustering and initial theme delineation followed
+completed within 12 months of data collection or within three
+                                                                           a reflexive iterative cycle, with theme definitions refined in joint
+months after first publication, whichever occurs first. At that point
+                                                                           analytic sessions [110].
+the linkage key is destroyed. Before de-identification, participants
+                                                                              We then reviewed candidate themes iteratively, verifying each
+could request withdrawal and their data would be deleted; after
+                                                                           theme’s coherence, boundary, and prevalence in the corpus, merg-
+de-identification or publication, withdrawal is no longer possible.
+                                                                           ing overlapping themes and discarding those lacking analytic depth.
+De-identified data are stored on an access-controlled institutional
+                                                                           This process continued until themes were internally consistent, con-
+cloud for at least seven years from first publication, are not shared
+                                                                           ceptually coherent, and grounded in representative coded segments.
+outside the lab, and any future reuse by the same team for related
+                                                                           Reflexivity memos aided transparency, documenting analytic deci-
+studies requires explicit participant opt-in.
+                                                                           sions and researcher assumptions.
+4.1.3 Thematic Analysis. Our qualitative corpus comes from                    Through open, inductive coding, we first generated an initial
+Stage 2 (Free Exploration & Reflection) of Study 2: participants used      set of candidate patterns, including (1) Dimensional Trade-offs, (2)
+the dashboard to explore missions freely and responded to at least         Action Block Grammar, (3) Quest Category Variation, (4) Cross-Game
+three guided reflection prompts covering cross-game commonali-             Design Patterns, (5) Pacing-Driven Emotional Arcs, (6) Novelty versus
+ties, good versus poor mission patterns, mission/action evolution,         Redundancy, and (7) Emergent Play. Following Braun and Clarke’s
+and pacing strategies (Table 4; full text in Appendix E).                  recursive phases of theme development [7–9], we repeatedly re-
+   In accordance with reflexive thematic analysis as articulated by        viewed, merged, and renamed these provisional themes, drawing
+Braun and Clarke [7–9], the first author, who had prior familiarity        on the twin criteria of information power [68] and conceptual depth
+with most of the selected titles, led the analysis. For each title, the    [79] to decide when further subdivision or consolidation was war-
+analyst responsible for coding and theme review was a coauthor             ranted. This iterative sense-making ultimately converged on four
+with documented familiarity arising from prior play and/or analysis        reportable themes (Section 5); the remaining three were merged
+                                                                                                  Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+Table 5: Summary statistics for Stage 1 (Validity) and Stage               Table 6: Extraction performance vs. human gold (80 mis-
+3 (Usability). SUS is reported on the canonical 0-100 scale;               sions).
+UEQ-S scores range from −3 to +3. Stage 1 cells report IQR;
+Stage 3 cells report SD. Per-item distributions are provided                     Metric                            Value            95% CI
+in Appendix F.
+                                                                                 Precision ↑                       87.68%     [82.14%-93.22%]
+                                                                                 Recall ↑                          89.70%     [84.26%-95.13%]
+                                    Median      Mean      SD / IQR
+                                                                                 F1 (micro) ↑                      88.27%     [82.87%-93.66%]
+  Stage 1 — Validity Check (Likert 1-7)                                          Exact sequence match ↑            42.50%     [31.43%-53.57%]
+  A1 (Action-List Consistency)       5.00        4.99     [4.75-6.00]            Normalized edit distance ↓        13.81%      [8.23%-19.39%]
+  A2 (Action-List Coverage)          5.00        4.84     [4.00-6.00]
+  A5 (LLM Completeness)              5.00        4.53     [4.00-6.00]           Table 7: F1 by mission type in the validation study.
+  A6 (LLM Correctness)               5.00        4.72     [4.00-6.00]
+  A7 (Data Credibility)              5.00        5.01     [4.00-6.00]
+                                                                                          Type     𝑛            F1 (95% CI) ↑
+  Stage 3 — Usability & Utility
+  SUS score                           65.0       67.3        10.7                         Main     24    82.95% [69.14%-96.76%]
+  UEQ-S Pragmatic                     1.62       1.50        0.87                         Side     36    92.67% [86.84%-98.50%]
+  UEQ-S Hedonic                       1.25       1.16        0.80                         POI      20    86.72% [75.98%-97.47%]
+  SEQ (overall ease, 1-7)             5.0        4.54        1.58
+                                                                              Tool usability (Stage 3): The System Usability Scale shows borderline-
+                                                                           positive results (Mean= 67.3, Median= 65.0; Figure 6), placing
+                                                                           the tool around the “marginal-high” band [2] overall with a tail
+or de-emphasized: (5) into (1) and (2), (6) into (1) and (4), and (7)
+                                                                           into the “acceptable” zone. We treat this as a baseline signal for
+reflected in quotations but not retained as a standalone theme given
+                                                                           an information-dense, coordinated multi-view research prototype
+our focus on authored, critical-path flows (Section 6.4).
+                                                                           rather than a definitive claim about polished usability; planned
+   By combining inductive coding with thematic clustering sensi-
+                                                                           onboarding and interaction refinements are detailed in Section 6.4.
+tive to our MAQV framework and visual analytics, our thematic
+                                                                           Following conventional SUS acceptability ranges (e.g., [2, 10, 93]),
+analysis integrates qualitative depth with quantitative insight, bridg-
+                                                                           a mean of 67.3 falls in the marginal-high band and just below the
+ing numerical patterns and experiential meaning.
+                                                                           commonly cited acceptable threshold of 70, indicating borderline-
+                                                                           acceptable usability with room for refinement. UEQ-S scores are
+4.2    Quantitative Results                                                likewise positive (pragmatic Mean= 1.50, Median= 1.62; hedo-
+This section reports three strands of quantitative evidence from           nic Mean= 1.16, Median= 1.25) [benchmark: pragmatic=Good, hedo-
+Study 2: subjective data validity (Stage 1), objective extraction          nic=Above average [41, 95]], suggesting the interface is both practical
+fidelity against a human-labeled gold set (Validation Study, Sec-          and pleasant. Taken together, we regard the prototype as borderline-
+tion 3.1.4), and tool usability (Stage 3). Table 5 aggregates key de-      acceptable for first-use reflective tasks, with clear headroom for
+scriptive statistics; Figures 6 and 11 provide distributional overviews.   polish. The Single Ease Question (SEQ) indicates moderate ease
+                                                                           (Mean= 4.54, Median= 5.0). Comparing experienced players and
+   Data validity (Stage 1): Across the five validity items A1, A2, A5-     designers via two-sided Mann-Whitney tests with Holm correction
+A7, the median response is consistently 5/7, with means A1= 4.99,          found no significant differences after correction; for transparency
+A2= 4.84, A5= 4.53, A6= 4.72, A7= 5.01. Item-wise dispersion is            we report Holm-adjusted 𝑝 and rank-biserial effect sizes 𝑟𝑈 (un-
+small as reflected by IQRs (Q1-Q3) reported in Table 5 (e.g., A1:          adjusted 𝑝 in parentheses) as point estimates: Stage 1 Average
+5.00 [4.75-6.00]; A6: 5.00 [4.00-6.00]; A7: 5.00 [4.00-6.00]). These       𝑈 =516.0, 𝑝 adj =1.00 (𝑝=0.4925), 𝑟𝑈 =−0.108; SUS 𝑈 =431.0, 𝑝 adj =1.00
+results suggest agreement that the action lists and LLM-normalized         (𝑝=0.6411), 𝑟𝑈 =0.074; UEQ-S Pragmatic 𝑈 =536.5, 𝑝 adj =1.00 (𝑝=0.3319),
+sequences are adequate for the study’s reflective analysis. Per-item       𝑟𝑈 =−0.153; UEQ-S Hedonic 𝑈 =486.5, 𝑝 adj =1.00 (𝑝=0.7782), 𝑟𝑈 =−0.045;
+distributions are provided in Appendix F (Figure 12).                      SEQ 𝑈 =483.0, 𝑝 adj =0.81 (𝑝=0.8116), 𝑟𝑈 =−0.038. Effect sizes were
+                                                                           small overall. Per-item SUS and UEQ-S histograms are shown in
+   Extraction fidelity (Validation Study): Against the human-labeled
+                                                                           Appendix F (Figure 13 and 14).
+gold set (80 missions; Section 3.1.4), LLM predictions closely matched
+consensus labels, achieving micro F1 of 88.27% (Precision 87.68%,             Implications: Together, the objective extraction fidelity (micro-
+Recall 89.70%), with 42.5% exact sequence matches and 13.81% nor-          F1 = 88.27%) and Stage 1 validity (medians = 5/7 across A1-A7)
+malized edit distance (95% CIs via bootstrap). Performance was             indicate that our MAQV taxonomy and LLM pipeline yield trust-
+broadly consistent across mission types (Kruskal-Wallis, 𝑝=0.3015)         worthy mission representations. Usability is borderline-acceptable
+and varied significantly across games (𝑝<0.001), consistent with           (SUS mean = 67.3, median = 65.0); nevertheless, UEQ-S means
+differences in mission complexity and vocabulary specificity (Ta-          (pragmatic = 1.50, hedonic = 1.16) and SEQ (Mean = 4.54) are
+ble 6; Table 7). The most frequent discrepancies were dialogue vs.         positive, supporting practical viability for first-use reflective tasks.
+cutscene substitutions, traversal granularity drift (merge/split), and     We therefore treat the current system as analysis-ready while ac-
+occasional missing micro-steps.                                            knowledging headroom for polish; Section 6.4 outlines lightweight
+Deconstructing Open-World Game Mission Design Formula
+
+
+
+
+Figure 6: SUS score distribution with rating zones. Mean = 67.3, Median = 65.0; scores cluster around “marginal-high” with a tail
+into “acceptable”.
+
+
+onboarding and clearer affordances to reduce initial cognitive load.   multifaceted nature of open-world mission design practices and
+These quantitative findings motivate and contextualize the qualita-    player engagement.
+tive thematic insights reported in Thematic Insights (Section 5).
+                                                                       5.1   Theme 1: Dimensional Trade-offs
+5    Thematic Insights                                                 This theme examines how MAQV dimensions trade off to produce
+In this section, we categorize our qualitative exploration of open-    engaging missions: which dimensions act as pillars, when balanced
+world mission design into four thematic categories. These themes       baselines outperform skewed profiles, the two recurring archetypes,
+capture how designers and players perceive, navigate, and evalu-       and how these patterns align with player motives.
+ate the interplay of mission dimensions and structures. The four
+themes we developed were: (1) Dimensional Trade-offs, (2) Action       5.1.1 Foundational Pillars with Variable Depth. Combat and Explo-
+Block Grammar for Mission Flow, (3) Functional and Structural          ration are the structural foundations of most open-world missions,
+Variation by Quest Category, and (4) Cross-Game Design Patterns.       serving as the basic gameplay loop across genres and titles. Other
+Subsection headers correspond to codes from our initial coding pass;   dimensions, especially Narrative and Emotion, vary in presence
+within each subtheme we unpack the distinct claims within that         and depth, giving each game or quest its distinct identity.
+code and support them with representative quotations. Quotations              “Looking at the radar charts, you can really see how
+are lightly edited to preserve voice and intent while normalizing             each game focuses on different things. In Spider-Man
+slang, acronyms, and memes to common vocabulary, expanding                    2, everything feels balanced: lots of swinging around,
+shorthand, and omitting tangential fragments, retaining only core,            fighting, and exploring, with the story and cutscenes
+thematically relevant content. While each theme is presented sep-             tying it all together. GTA V, on the other hand, is
+arately for clarity, the coding was interwoven: individual codes              all about the story moments and character stuff, but
+and quotations often connected to multiple themes, reflecting the             the gameplay itself is mostly driving and shooting,
+                                                                                               Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+        so it’s not as strong on puzzles or unique mechanics.                    Cry 6 is mostly shootouts and sneaking. It’s fun for
+        Far Cry 6 is heavy on action and exploration, but the                    a bit, but without the investigation or mini-game, it
+        story takes a back seat and you end up doing a lot of                    starts to blur together. Spider-Man at least sprinkles
+        the same things. Honestly, most open-world games                         in the occasional puzzle or stealth section, which helps
+        build around combat and exploration, but how much                        break things up, but a lot of games skip that entirely.
+        they focus on narrative or emotion is what really sets                   Sure, too many puzzles can drag the pace down, but
+        them apart.”                                                             having none at all leaves missions feeling like they’re
+   Narrative and Emotion dimensions act as complements rather                    missing a layer.”
+than substitutes; when applied in the right dose they function as        5.1.2 Dimensional Balanced vs Specialized. Missions read as strongest
+a “universal tonic,” and their indispensability grows with mission       when a balanced baseline (no zeros across dimensions) is in place
+length. Narrative usually carries Emotion, whereas high Emotion          and one pillar is allowed to peak as a highlight. The peak is a bonus
+alone does not guarantee a compelling Narrative arc. Emotion com-        that turns a good, well-rounded quest into a memorable one. By
+bined with Narrative consistently appears in missions participants       contrast, single-axis missions without supporting beats (no story
+explicitly praised, but continuous high-Emotion peaks can reduce         hook, no exploratory relief, no light problem-solving) tend to feel
+player sensitivity to narrative twists—an “emotional saturation”         hollow—unless that lone axis reaches a truly exceptional bar, which
+effect.                                                                  is rare in open-world quest flow.
+       “For me a well-designed mission contains high emo-                         “ ‘Gangs of Novigrad’ works because it has story, some
+       tion and narrative engagement (Cyberpunk 2077,                             exploring, a fight, a couple of light puzzles—and then
+       Who Wants to Live Forever); a flawed mission usually                       it leans a bit harder into narrative. That extra push
+       wastes time on exploration (The Ride). On the flip side,                   makes it stick. Compare that to a Far Cry outpost or
+       I’ve played missions that hit big emotional beats but                      a Horizon fetch run: it’s basically travel + combat
+       barely moved the story forward, and they just didn’t                       on repeat. Unless the setup is truly special, the miss-
+       land the same way. The best ones combine emotion                           ing story or combat parts make the whole thing feel
+       and narrative together so each heightens the other,                        weird.”
+       rather than relying on one to carry the experience.”
+                                                                         5.1.3 Dimensional Archetypes. Most open-world missions tend to
+   Uniqueness is necessary but not sufficient; missions still fail       fall into one of two broad types: narrative-driven or combat-driven.
+when uniqueness is not balanced by other dimensions, and excess          Narrative-oriented missions focus heavily on story, supported by
+uniqueness cannot compensate for poor dimensional balance. Dis-          emotion and exploration, while combat-oriented missions center
+tinctive narrative content, rather than mechanical novelty alone, is     on fighting, with exploration and emotion playing smaller sup-
+the decisive factor in successful missions.                              porting roles. These patterns give missions recognizable “shapes”
+       “I do feel uniqueness is really important for open world          (Figure 5) that set expectations and reflect the trade-offs design-
+       missions. I really love Spider-Man games, and I never             ers make. While not all games conform rigidly to these archetypal
+       feel bored when swinging through the city. But that is            shapes, the prevailing tendency is to expand upon the generic pro-
+       because the missions do not only cover these actions.             file: adding breadth or height along its dominant axes, rather than
+       Being a ninja in Rise of the Ronin is also cool (with a           to compress it further.
+       not-bad combat system). But I just want to finish the                      “When I looked across all the games on the radar
+       game as soon as possible after a lot of missions with                      charts, I kept seeing two clear shapes. One leans to
+       only the “Unique” combat objectives.”                                      the upper left, narrative first, then strong emotion
+   Puzzle-solving is almost always underemphasized or missing.                    and some exploration, kind of like a teardrop pointing
+Problem-Solving and Combat tend to suppress each other, while                     to story. The other leans slightly to the upper right,
+Exploration tolerates either. Missions overloaded with Problem-                   peaking on combat with moderate exploration and
+Solving are generally rated lower, and the lack of puzzles, inves-                emotion, but usually dropping off in puzzles and story.
+tigations, or mini-games can make the pacing feel hollow. While                   Simple, but it matches how I’ve always thought about
+many players report fatigue with puzzle-heavy segments, others                    these games.”
+explicitly ask for at least some puzzle content; this pattern raises     5.1.4 Dimension-Motive Alignment. Dimensions map directly to
+an important but unresolved question beyond the evidence in our          player motives: Combat+Problem-Solving feed challenge and
+study: is the steady simplification and scarcity of puzzles in contem-   mastery, Narrative+Emotion drive story and immersion, and
+porary AAA titles driven mainly by studio-side cost-benefit and          Exploration+Uniqeness satisfy curiosity and novelty. Strong
+designer expertise constraints, or by a genuine decline in player        missions sequence these motives so each beat hits at least two at
+appetite and demand for puzzle mechanics? Synthesizing our coded         once—for example, opening with a narrative-emotion hook, giving
+claims, we also observe that token, perfunctory insertion of a few       space for exploration with unique mechanics, layering in a chal-
+puzzles, likely symptomatic of this trend, tends to alienate both        lenge that blends combat and puzzles, and ending with a payoff
+constituencies.                                                          that ties back to the hook. Skipping an entire motive risks making
+       “Most open-world games set you in a loop of combat                the mission feel either hollow (all action, no reason) or static (all
+       and travel, with puzzles barely getting a look-in. Far            story, no play).
+Deconstructing Open-World Game Mission Design Formula
+
+
+        “The missions that stick with me do two things: give                    cutscene) so even when you revisit familiar verbs, the
+        me a reason to care, then let me do something about it.                 sequence feels less samey.”
+        Let me look around a bit, then make me plan a route                High-quality missions move through multiple well-planned phases
+        and do related setup before the fight, and close with           (setup, infiltration, execution, escape, resolution) rather than jump-
+        a payoff that ties back to the hook. If it’s just map-          ing straight to a single mode.
+        markers and brawls, I zone out; if it’s only cutscenes,
+                                                                                “A strong RDR2 tobacco-field stealth run flows stealth
+        I get restless. The sweet spot is when story, curiosity,
+                                                                                → planning → sabotage → escape → dialogue: stealth,
+        and a small skill test all show up in the same run.”
+                                                                                destruction, combat, narrative. A weak Starfield ruin-
+                                                                                scan is just flight → landing → scan → return: pure
+5.2    Theme 2: Action Block Grammar for                                        exploration with no combat or plot blocks, a flat
+       Mission Flow                                                             trough on the radar.”
+We treat missions as chains of action blocks. In this theme, we            A planning/setup phase frames later mechanics and raises stakes;
+analyze how sequencing, alternation, multi-phase scaffolding, and       missions that skip it lose momentum and texture. By making the
+peak-valley rhythm shape moment-to-moment flow.                         upcoming beats legible, the planning phase gives players a clear
+                                                                        expectation scaffold that offsets early build-up fatigue; provided the
+5.2.1 Characteristic Action Blocks. Across nearly every title, a        later sequence pays off, the explicit promise of delayed gratification
+small set of blocks forms the common backbone: combat and traver-       smooths the transition period and sustains engagement.
+sal (plus a franchise-specific “special” verb such as web-swinging,
+                                                                                “The bank heist goes planning (dialogue/exposition;
+parkour, or scanning). By comparison, puzzles and stealth show
+                                                                                feels like another real side quest) → stealth infiltra-
+up less consistently and are often underweighted. This bias pro-
+                                                                                tion → tense shoot-out → escape, different blocks that
+duces familiar loops that feel good minute-to-minute but can blur
+                                                                                keep momentum. The debt-collection job is travel →
+together without occasional cognitive or tactical shifts.
+                                                                                quick fight → travel. Same traversal/combat bones,
+        “Most open-worlds have the same backbone: travel,                       but without setup or escape phases the latter feels
+        then combat. In Far Cry 6, I drive or sprint in and                     static next to the heist.”
+        it turns into a shootout; in Spider-Man 2, I swing to
+        a marker and end up in an arena brawl; in Dying                 5.2.3 Climax and Recovery: Peak-Valley Grammar. Healthy pacing
+        Light, it’s parkour into a scrap. Puzzles and stealth           alternates peaks (back-to-back combat or narrative-emotion spikes)
+        only appear in a small number of titles. I am really            with valleys (lighter traversal, dialogue, or small puzzles). Too many
+        sad to see that trend (Is stealth game really dead ?).          peaks exhaust; valleys that run long bore. Good arcs weave minor
+        But one thing is pretty interesting but still making            buffers even inside a single quest so players breathe before the next
+        sense: some games have their special actions at the             high.
+        top of their action diversity graph, like Dying Light.”                 “On the radar-timeline, stacked Combat/Emotion seg-
+                                                                                ments mark the big moments—bosses, reveals, set-
+   Every series tends to stitch these blocks into a recognizable
+                                                                                pieces—while lower-key exploration or dialogue cre-
+signature: a recurring “sentence” of actions players learn to antici-
+                                                                                ates short breathers. The best flows alternate those
+pate. These grammars set expectations and micro-pacing: a bit of
+                                                                                peaks and breathers; when everything is a peak you
+movement, a quick look/handle moment, a small decision or puzzle,
+                                                                                burn out, and if the valley drags you tune out.”
+then a payoff; or a straightforward talk → go → fight template.
+The specifics differ by franchise, but the idea is the same: familiar
+                                                                        5.3    Theme 3: Functional and Structural
+sequences shape how a mission feels from the first step.
+                                                                               Variation by Quest Category
+        “In the Spider-Man games, the design formula is clear:
+                                                                        We examine how mission category (main, side, POI) shapes both
+        swing across town, scan or pull a panel, solve a quick
+                                                                        function and structure: mains carry narrative load and context shifts,
+        puzzle, then the fight kicks off. In medieval RPGs like
+                                                                        sides narrow mechanics and simplify flow, POIs deliver single-focus
+        Kingdom Come: Deliverance, Skyrim, or The Witcher
+                                                                        tasks, and long missions require multi-stage pacing with higher
+        3, it’s talk to someone, travel to the spot, and poke
+                                                                        narrative support.
+        around the scene. Across a lot of series you see the
+        same basic template—social setup, the trip, then the            5.3.1 Narrative Backbone of Main Quests. Main missions typically
+        fight.”                                                         push story and emotion while keeping exploration and combat
+                                                                        steady; side quests pivot toward problem-solving and uniqueness;
+5.2.2 Alternation and Phase Structure. Strong missions alternate        POIs are quick hits of exploration/combat with minimal story.
+between diverse action categories; weak ones loop the same strand
+                                                                                “In ‘The Witcher 3’, it’s pretty clear: mains are heavy
+without relief.
+                                                                                on story and feelings, moving between talk, clues,
+        “In Far Cry 6 I kept falling into a shoot → drive                       travel and a big fight. Side quests/contracts are more
+        → shoot loop from one outpost to the next. GTA                          about prep and puzzles—follow a trail, oil a blade,
+        mixes things up more (drive, then a dialogue setup,                     plan a takedown. POIs are the opposite: ride in, clear
+        then drive, then a shootout or a mini-game, then a                      a camp, loot, leave. Each type has a different job.”
+                                                                                                 Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+        “Main missions are mostly cinematic, emotionally                          “Think ‘Battle of Kaer Morhen’ or Tsushima’s cas-
+         invested and layered while side missions feel more                       tle assault: prep, short breath, defense, duels, pay-
+         experimental and world-building (sometimes morally                       off. Travel - talk - defend - puzzle - fight in waves.
+         interesting). POIs are usually mechanically repetitive                   Compare that to an endless bandit-camp loop—travel,
+         and have relatively lower narrative investment.”                         fight, loot, repeat—and you see why one soars and
+   When a main quest swaps the usual context or role, it breaks                   the other grinds.”
+routine and sticks in memory.                                                The longer a mission runs, the more story scaffolding it needs
+        “RDR2’s ‘A Fine Night of Debauchery’ flips the script             to justify the time and mix up the beats.
+         into a high-society poker heist with a tense getaway—barely
+                                                                                  “If a quest runs an hour, it can’t just be a long corridor
+         any straight gunfights. Horizon Forbidden West’s
+                                                                                  of fights. Give me why we’re here, a twist halfway, a
+         relic ruins do a similar thing with self-contained puz-
+                                                                                  choice that matters, and a payoff that ties back. The
+         zle spaces.”
+                                                                                  longer it goes, the more narrative fuel it needs or the
+   Big, designed turns like twists, bespoke mechanics, and branch-                action starts to feel like padding.”
+ing create the peaks people remember; template errands fade fast.
+        “Quests like ‘A Night to Remember’ in W3 or Cy-                   5.4    Theme 4: Cross-Game Design Patterns
+         berpunk’s Heist intro land because they bend the
+                                                                          This subsection examines cross-game patterns: dimensional “finger-
+         formula—branching choices, unique mechanics, big
+                                                                          prints,” studio/genre clusters, shared block skeletons versus layering
+         reveals. Routine fetches or basic bounties feel like
+                                                                          and pacing, and how series evolve across sequels.
+         background noise next to those set-pieces.”
+5.3.2 Dimensional Bias. Main quests usually keep multiple dimen-          5.4.1 Dimensional Analysis Across Games. Across titles, a small set
+sions in play with more complex, interleaved flows, while side            of dominant dimension pairs reliably define identity: clear peaks
+quests become simpler and more linear and POIs are one-and-done.          shape player expectations long before the first fight or cutscene.
+        “In a lot of games, mains have flower-like pattern in                     “On the radars every game has a tell. RDR2 leans hard
+        all dimensions: story, combat, exploration, even a bit                    into exploration+emotion (long rides, quiet moments),
+        of puzzle all show up. Sides trim down to a couple of                     Witcher 3 spikes on narrative+emotion with steady
+        beats, and POIs are tiny one-shots. The complexity                        combat, and Tsushima pushes combat+uniqueness
+        scales with narrative importance, and you can feel it                     (stealth duels, swordplay). Different mixes, instantly
+        in the flow.”                                                             recognizable.”
+   Side missions tend to narrow the mechanic set, and POIs spike a           At the catalogue level, games cluster into “families”: studio habits
+single axis (often exploration or a gimmick) while keeping every-         and genre conventions pull dimension weights into similar regions,
+thing else low.                                                           making those family traits easy to spot. This pattern implies that
+        “Main quests pair strong story with a few puzzles;                studios, having internalized these dimensional centers of gravity,
+        sides keep some story but cut the big combat set-                 often bias new productions toward established or adjacent profiles,
+        pieces; POIs are quick hits—explore a spot, do one                intentionally referencing prior entries or comparable titles and
+        simple interaction, move on. They help pacing, but                thereby reinforcing the observed clustering.
+        you shouldn’t expect the full range there.”
+                                                                                  “Bethesda games (Skyrim, Fallout) bunch near explo-
+5.3.3 Long Mission Design. Good long missions keep a centered                     ration + social-interaction + problem-solving; they’re
+profile and rotate verbs to manage fatigue; weak ones tunnel on a                 about roaming and figuring things out. Rise of the
+single axis and drag.                                                             Ronin and Ghost of Tsushima both sit deep in the
+        “ ‘Deep Secrets of the Earth’ or ‘Alduin’s Wall’ stay                     ninja+combat lane. Their dimension peaks and even
+         balanced in sneak, travel, puzzle, fight, cutscene, so                   mission action sequences line up almost perfectly,
+         the pace breathes. Something like ‘A Kind and Benev-                     built around stealth approaches, duels, and parry-
+         olent Despot’ leans hard on emotion+combat for ages                      heavy swordplay fights.”
+         with little reset; no puzzle or exploration beats to                Signature mechanics tend to resonate with the world and theme;
+         break it up, so it starts to feel long.”                         when they do, loops feel fresh, and when they don’t, or get overused,
+   Strong long quests shift the spotlight, so the curve rises and falls   formula fatigue sets in.
+instead of keeping static.
+                                                                                  “Spider-Man stays fresh because swinging and little
+        “Good long missions shift focus: find some clues, talk
+                                                                                  puzzles fit the fantasy; Far Cry’s outpost loop, run too
+         it through, fight, then make a choice that matters.
+                                                                                  many times, goes boring. Tsushima’s haiku and duels
+         When a mission sits on one activity, like waves of
+                                                                                  feel right for the setting; checkpoint grinds don’t.”
+         enemies or pure fetching, the curve goes flat and I
+         just tire out.”                                                  5.4.2 Action Block Structural Similarity. Across franchises, mis-
+   Epic finales work as distinct acts with buffers; monotone marathons    sions often share a common skeleton (travel → encounter → nar-
+don’t.                                                                    rative beat). What separates a great mission is how it layers and
+Deconstructing Open-World Game Mission Design Formula
+
+
+alternates blocks: dropping in stealth, investigation, or puzzles, cre-   6.1    A Critical Reflection on Contemporary
+ating peaks and breathers, rather than looping a single block to                 Open-World Design
+exhaustion.
+                                                                          A significant critique of modern open-world games is their tendency
+        “They share the same bones, but the craft feels dif-              towards “checklist”-style design, where vast worlds are populated
+        ferent. The Spider-Man finale keeps swapping gears:               with repetitive, low-value content [80, 116]. Our findings provide
+        swing, clear debris puzzles, sneak past nests, multi-             empirical weight to this critique, revealing a systemic imbalance in
+        phase boss, then an emotional scene, so it breathes.              the experiential dimensions offered to players. Across numerous
+        A mission like ‘Blood Ties’ in Far Cry is basically               titles, participants consistently identified an over-emphasis on the
+        checkpoint → gunfight on repeat; short cutscenes,                 dimensions of Combat and Exploration at the expense of Problem-
+        not much to figure out... I got tired.”                           Solving, Uniqueness, and often, deep Emotional engagement. As one
+                                                                          designer noted: across all four titles, Problem-Solving is systemati-
+5.4.3 Series Analysis. Across sequels, structural complexity usually      cally under-represented or even missing, while Exploration is often
+grows: more staged missions, richer interlocks between systems,           over-emphasized.
+and bigger set-pieces—but size alone doesn’t guarantee better play.           This dimensional imbalance is not accidental but appears to be
+        “Newer entries usually add phases and toys—heists                 a product of the economic realities of AAA development. To justify
+        get extra steps, finales come in acts, systems talk to            ballooning production costs, major studios must target the widest
+        each other more. It feels bigger and busier, but it only          possible audience [57]. Combat and exploration are mechanically
+        matters if those pieces actually change how you play.”            straightforward, visually spectacular, and broadly appealing pillars.
+                                                                          In contrast, complex puzzle design is a high-risk endeavor; it is
+   Sequels either widen the mechanic set (good) or scale up the           difficult to balance, can frustrate less patient players, and offers
+same loop (fatigue). Added tools diversify action blocks; unchanged       a lower return on graphical investment compared to explosive
+side loops keep the grind intact.                                         set-pieces [27]. The result is a repeatable, risk-averse core loop
+        “Forbidden West’s glider/grapple and trickier puzzles             (“travel-fight”/“shoot-drive-shoot”). It succeeds commercially but
+        make more routes and block combos, but if collectibles            produces uneven pacing and thin connective content, a pattern
+        and outposts run the same script, the bloat catches               noted by players and designers in our study. While this formula
+        up. New verbs help; recycled checklists don’t.”                   has defined a generation of commercially successful games, it also
+                                                                          risks creative stagnation, leaving significant potential for richer,
+   Studios also shift design focus across entries—trading specta-         more intellectually and emotionally varied experiences untapped.
+cle for story, or breadth for speed—creating different pacing and         These observations motivate a synthesis on how “formula” should
+payoffs.                                                                  be treated in mainstream open-world development (see Section 6.2).
+        “RDR2 leans away from pure spectacle into slower,
+        heavier narrative beats. CDPR’s jump from Witcher 3
+        to Cyberpunk flips the feel—vertical city, faster com-            6.2    Rethinking the Role of Design Formulas
+        bat flow—but some of the big, layered side-quest tex-
+                                                                          From our tool-assisted prompts and reflections, a broad consensus
+        ture gets thinner.”
+                                                                          emerged: design formulas do exist, and many ideas and patterns are
+                                                                          shared across modern open-world games. Synthesizing Themes 1-4
+6    Discussion                                                           and participant reflections, we use “formula” descriptively rather
+Our thematic analysis, informed by the reflections of experienced         than prescriptively. Users repeatedly observed that even the most
+players and designers interacting with our visualization tool, offers     celebrated titles reveal shared structures in our analysis, including
+specific insights into how modern open-world missions are con-            clear inheritance within a series and recognizable overlaps across
+structed and experienced. The study’s findings introduce precise          studios. Yet those same games feel distinct because the ordering,
+terminology that designers can use to break down mission struc-           emphasis, and pacing of similar ingredients are tuned to their verbs,
+tures, and they frame a perspective on where the open-world genre         theme, and fiction, yielding different moment-to-moment expe-
+is heading with its current design formulas. In this section, we first    riences from ostensibly similar scaffolds. The pathology appears
+reflect on the systemic design challenges our findings illuminate         when studios copy-paste the same design formula across different
+within the broader context of AAA game development. We then               games and overuse it within a single title, producing large vol-
+synthesize our themes into a set of actionable design heuristics          umes of undifferentiated, non-targeted tasks. Within mainstream,
+aimed at fostering diverse mission experiences in Section 6.3. From       production-oriented open-world design, we therefore treat formu-
+a visual analytics standpoint, the takeaway is a task-oriented coordi-    las as diagnostic baselines and a safe lower bound for analysis and
+nation of familiar views that lets analysts move from portfolio-level     coordination, but not templates to replicate. In that role, pattern
+emphasis and similarity to concrete sequencing for inspection and         libraries and style guides can help teams inspect and when desir-
+discussion. We present these conclusions as evidence that the tool        able subvert defaults, guard against overlong single-axis plateaus,
+is useful for reflection, rather than as a definitive validation of       and surface under-explored combinations, so that cost and coher-
+its effectiveness. Finally, we critically evaluate our own analytical     ence improve without constraining distinctive, memorable play.
+framework, discussing its strengths and limitations as a reflective       This stance directly motivates the four actionable heuristics we
+tool for designers and researchers.                                       articulate next in Section 6.3.
+                                                                                                Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+6.3    The Designer’s Toolkit: A Framework for                            6.4    Limitations, Future Directions, and
+       Crafting Memorable Missions                                               Reflections on Quantifying Mission Design
+While our analysis highlights systemic issues, it also deconstructs       We present MAQV and its visual analytics as a reflection probe
+the mission “formula” into its constituent parts, offering a con-         rather than an objective score of mission “quality.” The framework
+crete toolkit for designing more varied and impactful missions.           externalizes designers’ and players’ tacit judgments by making
+By moving beyond high-level narrative planning to measurable              action block structure and experiential balance visible, offering a
+dimensional balance and explicit block sequencing, our findings           shared language to reason about pacing, emphasis, and formula.
+can be distilled into a set of actionable heuristics. Concretely, we      Participants reported that the MAQV quality-flow charts and block
+articulate four actionable heuristics (H1-H4): H1 balanced baseline       timelines helped them articulate why some missions felt repetitive
+with selective emphasis; H2 peak-valley pacing via action blocks;         while others felt planned and varied. Our aim, therefore, is not
+H3 tier-appropriate roles across main/side/POI; and H4 verb-first         to judge taste, but to support disciplined reflection with personal
+innovation rather than noun accretion.                                    experience and analyzable artifacts.
+   H1: First, the results indicate that memorable missions are typi-         At the same time, several limitations bound our claims. First,
+cally characterized not by a single dominant dimension but by a           dimensional reduction: collapsing rich, situated play into six con-
+deliberate balance across MAQV, followed by selective emphasis.           tinuous dimensions introduces simplifications. The dimensions
+Participants described this as a “balanced star” on the radar chart:      foreground experiential roles but do not capture aspects such as
+establish a balanced baseline to avoid experiential gaps and then         encounter design, timing and staging, camera work, or spatial au-
+allow one or two dimensions to peak to create a distinctive iden-         dio, which also shape mission feel. Second, data provenance: we
+tity. In concrete terms, designers can purposefully combine, for          rely on community-authored walkthroughs and LLM-based con-
+example, Exploration with Problem-Solving and Narrative to jointly        version to canonical action blocks. While our validation indicates
+address curiosity, mastery, and immersion, rather than defaulting         good fidelity, the source texts vary in granularity and emphasis,
+to a combat-exploration template.                                         and extraction errors or omissions can propagate. Third, coverage:
+   H2: Second, pacing can be operationalized through an action            the pipeline privileges authored, critical-path flows. Optional beats,
+block “peak-valley” grammar. The most engaging missions inter-            failure loops, and emergent play are only partially reflected, and
+leave high-intensity peaks (e.g., Combat segments or salient Emo-         branching is often linearized for analysis, which can understate
+tional beats) with low-intensity valleys or recovery buffers (e.g.,       variability. Fourth, comparability: game-specific action vocabular-
+Exploration, Problem-Solving, or social interaction blocks), produc-      ies, smoothing choices, and normalization can influence cross-title
+ing a sustainable rhythm of tension and release [106]. Conversely,        contrasts, and aggregations (e.g., mission-level centroids) may hide
+extended single-activity plateaus (e.g., continuous combat waves)         within-game variance. Fifth, usability: the information-dense, multi-
+or overlong valleys depress engagement. The action block repre-           view dashboard introduces unfamiliar constructs, so first-time use
+sentation makes such alternation explicit and thus designable.            has a learning curve (SUS mean 67.3). Sixth, scope and selection
+   H3: Third, we observe consistent role differences by content tier.     bias: because inclusion required substantial stepwise public walk-
+Main quests are typically complex, multi-dimensional set-pieces           throughs, our sample skews toward high-visibility, convention-
+that carry narrative and emotional weight; side quests focus more         ally structured open-world titles. We view this as a pragmatic and
+on world-building or mechanical depth; and points of interest (POIs)      acceptable trade-off to guarantee dependable extraction and fair
+function as brief, single-focus encounters that punctuate explo-          cross-title analysis, and we bound our claims accordingly. Seventh,
+ration. Treating these categories as distinct roles within a coherent     priming: our survey and task materials repeatedly referenced “for-
+portfolio, rather than as interchangeable “filler”, helps ensure that     mulas,” which may have biased participants toward judging how
+content at all scales contributes meaningfully to the overall experi-     well a formula was executed rather than whether a formula should
+ence.                                                                     exist. This framing could inflate neutral or positive attitudes toward
+   H4: Finally, cross-franchise patterns indicate that durable inno-      well-used formulas and should be considered when interpreting re-
+vation is driven less by adding new “nouns” (content or tools) to         sponses. Finally, visualization scope and encoding: our visualization
+existing templates and more by expanding the player’s core “verb”         contribution is organizational rather than algorithmic: a coordi-
+set and integrating those verbs into mission structure. Examples          nated arrangement of familiar views used as a reflection probe;
+include the introduction of new traversal mechanics in Horizon            we did not conduct a dedicated visualization study. The current
+Forbidden West or expanded stealth options in Marvel’s Spider-Man         charts prioritize readability over precision; radar overlays, PCA
+2, which, when embedded in the action block grammar, produce              projections, and frequency plots are diagnostic cues, not absolute
+richer interaction, alter pacing, and diversify dimensional profiles.     claims, and may be misread if treated as such.
+In practice, teams should prioritize verb-level additions and ensure         These constraints suggest concrete improvements. On the UX
+missions require their use, rather than scaling world size alone.         side, we will add lightweight onboarding (guided tour and in-
+   During development, teams can operationalize H1-H4 using               line tooltips with worked examples), clearer legends/filters, and
+our mission-analysis pipeline (CSI → MAQV profiling → action-             progressive-disclosure workflows in Compare mode (search and
+block extraction), which can consume stepwise inputs from quest           saved views), with the goal of improving first-use usability (higher
+scripts/blockouts (via CSI), QA step lists, or early playtest telemetry   SUS) without reducing analytic power. For example, we are pro-
+to support iteration.                                                     totyping a Gantt-style rendering of the action timeline (Fig. 4) to
+                                                                          improve readability, expose relative durations, and support quick
+Deconstructing Open-World Game Mission Design Formula
+
+
+cross-mission alignment. Integrating engine or telemetry traces will      player-experience modeling into HCI and game development prac-
+let us triangulate designed flow against enacted play. This enables       tice.
+time-weighted MAQV timelines, failure-aware pacing profiles, and
+confidence intervals around dimension estimates. A designer-in-           Acknowledgments
+the-loop plug-in for common engines could support editable action         We thank our study participants for their time and thoughtful
+sequences, “what-if” pacing experiments, automatic peak-valley            feedback. This research is supported by NSERC Discovery Grant
+detection, and safety checks (e.g., alerts for overlong single-axis       RGPIN-2019-05213.
+plateaus). On the representation side, we will model missions as
+branch-preserving DAGs (nodes = action blocks; edges weighted by
+                                                                          References
+transition frequency/duration), enabling path alignment, subgraph
+                                                                           [1] Ryan Alexander and Chris Martens. 2017. Deriving quests from open world
+motif mining, and branch centrality alongside linear timelines.                mechanics. In Proceedings of the 12th international conference on the foundations
+Genre-aware weighting and adaptive dimension sets can improve                  of digital games. 1–7.
+                                                                           [2] Aaron Bangor, Philip Kortum, and James Miller. 2009. Determining what
+construct validity across franchises. Methodologically, mixed anno-            individual SUS scores mean: Adding an adjective rating scale. Journal of usability
+tation strategies that combine expert consensus with lightweight               studies 4, 3 (2009), 114–123.
+crowdsourced checks could reduce extraction bias; uncertainty vi-          [3] Richard Bartle. 1996. Hearts, clubs, diamonds, spades: Players who suit MUDs.
+                                                                               Journal of MUD research 1, 1 (1996), 19.
+sualization and per-mission provenance summaries would make                [4] Kirsten Boehner, Janet Vertesi, Phoebe Sengers, and Paul Dourish. 2007. How
+quality transparent at the point of use. To address potential priming,         HCI interprets the probes. In Proceedings of the SIGCHI Conference on Human
+we will vary prompt language and include non-priming control                   Factors in Computing Systems. 1077–1086.
+                                                                           [5] Chase S Boothe, Lesley Strawderman, Brian K Smith, Cindy L Bethel, Kate
+conditions, counterbalance task order, add manipulation checks,                Holmes, et al. 2024. Generalized User Experience Questionnaire (UEQ-G):
+and preregister analyses to quantify and isolate framing effects.              Holistic Measurement of Multimodal UX. Journal of User Experience 19, 2
+                                                                               (2024).
+Upon acceptance, we will release a reproducible corpus (derived            [6] Robert Bowman, Camille Nadal, Kellie Morrissey, Anja Thieme, and Gavin
+annotations only), analysis scripts, and dashboard-generated design            Doherty. 2023. Using thematic analysis in healthcare HCI at CHI: A scoping
+worksheets to support longitudinal and cross-studio comparisons.               review. In Proceedings of the 2023 CHI Conference on Human Factors in Computing
+                                                                               Systems. 1–18.
+   Stepping back, our emphasis is on quantifying mission structure         [7] Virginia Braun and Victoria Clarke. 2006. Using thematic analysis in psychology.
+and building visualizations for sense-making, not on prescribing a             Qualitative research in psychology 3, 2 (2006), 77–101.
+single formula or reducing judgment to a score. MAQV and the ac-           [8] Virginia Braun and Victoria Clarke. 2019. Reflecting on reflexive thematic
+                                                                               analysis. Qualitative research in sport, exercise and health 11, 4 (2019), 589–597.
+tion block grammar are intended to complement narrative craft and          [9] Virginia Braun, Victoria Clarke, Nikki Hayfield, and Gareth Terry. 2019. The-
+encounter design by providing an analyzable, communicable struc-               matic analysis. In Handbook of research methods in health social sciences. Springer,
+                                                                               843–860.
+ture. We see the framework as a supplementary tool for reflection.        [10] John Brooke et al. 1996. SUS-A quick and dirty usability scale. Usability
+Used with designer expertise, player research, and production con-             evaluation in industry 189, 194 (1996), 4–7.
+straints, it helps teams reason about pacing, variation, and portfolio    [11] Erin Ashley Carroll. 2013. Quantifying the personal creative experience: evalua-
+                                                                               tion of digital creativity support tools using self-report and physiological responses.
+balance more clearly and with less reliance on tacit judgment.                 Ph. D. Dissertation. The University of North Carolina at Charlotte.
+                                                                          [12] Erin Cherry and Celine Latulipe. 2014. Quantifying the creativity support
+                                                                               of digital tools through the creativity support index. ACM Transactions on
+                                                                               Computer-Human Interaction (TOCHI) 21, 4 (2014), 1–25.
+                                                                          [13] Ned Cooper, Tiffanie Horne, Gillian R Hayes, Courtney Heldreth, Michal Lahav,
+7    Conclusion                                                                Jess Holbrook, and Lauren Wilcox. 2022. A systematic review and thematic
+                                                                               analysis of community-collaborative approaches to computing research. In
+Open-world missions are often criticized for repetitive, formulaic             Proceedings of the 2022 CHI conference on human factors in computing systems.
+structures that drive player fatigue and content hollowness. To                1–18.
+address this, we introduce a framework that deconstructs missions         [14] James E Cutting. 2016. The evolution of pace in popular movies. Cognitive
+                                                                               research: principles and implications 1, 1 (2016), 30.
+into quantifiable action blocks and experiential dimensions (MAQV).       [15] Celso M. de Melo, Ana Paiva, and Jonathan Gratch. 2014. Emotion in Games.
+Using an interactive visualization tool as a reflection probe with             John Wiley and Sons, Ltd, Chapter 21, 573–592.
+expert players and designers, we conducted a thematic analysis that       [16] Norman K Denzin. 2017. The research act: A theoretical introduction to sociological
+                                                                               methods. Routledge.
+identified a practical grammar for mission design. Preliminary vali-      [17] Sebastian Deterding, Marc Malmdorf Andersen, Julian Kiverstein, and Mark
+dation indicates that the extraction and scoring are sufficiently reli-        Miller. 2022. Mastering uncertainty: A predictive processing account of enjoying
+                                                                               uncertain success in video game play. Frontiers in psychology 13 (2022), 924953.
+able for reflective analysis, and the tool shows acceptable first-use     [18] Richard Devine. 2021. Reflexive thematic analysis–the what, why and how.
+usability. Our findings identify three recurrent practices: deliberate         Richard Devine, Social Work Enthusiast and Blogger (2021).
+balancing across MAQV dimensions; rhythmic sequencing of action           [19] Ivan R Diamond, Robert C Grant, Brian M Feldman, Paul B Pencharz, Simon C
+                                                                               Ling, Aideen M Moore, and Paul W Wales. 2014. Defining consensus: a system-
+blocks into peak-valley structures; and functional stratification of           atic review recommends methodologic criteria for reporting of Delphi studies.
+missions within a coherent content portfolio. Together, these results          Journal of clinical epidemiology 67, 4 (2014), 401–409.
+provide an evidence-based method and reusable tools, including            [20] Nina Doerr, Benjamin Lee, Katarina Baricova, Dieter Schmalstieg, and Michael
+                                                                               Sedlmair. 2024. Visual highlighting for situated brushing and linking. In Com-
+representation, measures, and visualization, for day-to-day review.            puter Graphics Forum, Vol. 43. Wiley Online Library, e15105.
+In practice, the framework enables teams to audit dimensional bal-        [21] Anders Drachen, Magy Seif El-Nasr, and Alessandro Canossa. 2013. Game
+                                                                               analytics–the basics. In Game analytics: Maximizing the value of player data.
+ance, pacing, and portfolio roles to produce varied, deliberately              Springer, 13–40.
+paced missions with clearer experiential intent. We offer this work       [22] Virginia Eatough and Jonathan A Smith. 2017. Interpretative phenomenological
+as a first step toward rigorous, quantitative modeling of in-game              analysis. The Sage handbook of qualitative research in psychology (2017), 193–
+                                                                               209.
+player experience to inform design decisions and evaluation across        [23] Magy Seif El-Nasr, Anders Drachen, and Alessandro Canossa. 2016. Game
+production, and we hope it catalyzes broader efforts to integrate              analytics. Springer.
+                                                                                                                      Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+[24] Karam Eum and Young Yim Doh. 2023. A thematic analysis of bereaved adults’                  in qualitative analysis. Proceedings of the ACM on Human-Computer Interaction
+     meaning-making experience of loss through playing video games. Frontiers in                 5, CSCW1 (2021), 1–23.
+     Psychology 14 (2023), 1154976.                                                         [52] Kristine Jørgensen. 2003. Problem solving: The essence of player action in
+[25] Clara Fernández-Vara. 2024. Introduction to game analysis. Routledge.                       computer games. In Proceedings of DiGRA 2003 Conference: Level Up.
+[26] Jessica L Feuston and Jed R Brubaker. 2021. Putting tools in their place: The          [53] Miikka Junnila. 2025. Thematization of actions in open-world action-adventure
+     role of time and perspective in human-AI collaboration for qualitative analysis.            games. In Proceedings of the 20th International Conference on the Foundations
+     Proceedings of the ACM on Human-Computer Interaction 5, CSCW2 (2021), 1–25.                 of Digital Games (FDG ’25). Association for Computing Machinery, Article 5,
+[27] Tracy Fullerton. 2024. Game design workshop: a playcentric approach to creating             13 pages. doi:10.1145/3723498.3723711
+     innovative games. AK Peters/CRC Press.                                                 [54] Jesper Juul. 2003. The game, the player, the world: Looking for a heart of
+[28] Katy Ilonka Gero, Chelse Swoopes, Ziwei Gu, Jonathan K Kummerfeld, and                      gameness. In Proceedings of DiGRA 2003 Conference: Level Up.
+     Elena L Glassman. 2024. Supporting sensemaking of large language model                 [55] Kostas Karpouzis and Georgios N Yannakakis. 2016. Emotion in games. Springer.
+     outputs at scale. In Proceedings of the 2024 CHI Conference on Human Factors in        [56] Daniel Kepplinger, Günter Wallner, Simone Kriglstein, and Michael Lankes.
+     Computing Systems. 1–21.                                                                    2020. See, Feel, Move: player behaviour analysis through combined visualization
+[29] Barney G Glaser and Anselm L Strauss. 1998. Grounded theory. Strategien                     of gaze, emotions, and movement. In Proceedings of the 2020 CHI Conference on
+     qualitativer Forschung. Bern: Huber 4 (1998).                                               Human Factors in Computing Systems. 1–14.
+[30] Tobias Gnatzy, Johannes Warth, Heiko von der Gracht, and Inga-Lena Darkow.             [57] Aphra Kerr. 2017. Global games: Production, circulation and policy in the net-
+     2011. Validating an innovative real-time Delphi approach-a methodological                   worked era. Routledge.
+     comparison between real-time and conventional Delphi studies. Technological            [58] Dmitry Khodyakov, Sean Grant, Jack Kroger, and Melissa Bauman. 2023. RAND
+     Forecasting and Social Change 78, 9 (2011), 1681–1694.                                      methodological guidance for conducting and critically appraising Delphi panels.
+[31] Manuel J Gomez, José A Ruipérez-Valiente, Pedro A Martinez, and Yoon Jeon                   Rand.
+     Kim. 2020. Exploring the affordances of sequence mining in educational games.          [59] Jooyoung Kim, Wonkyung Lee, and Jungwoon Park. 2025. Structured Summa-
+     In Eighth international conference on technological ecosystems for enhancing                rization of League of Legends Match Data Optimized for Large Language Model
+     multiculturality. 648–654.                                                                  Input. Applied Sciences 15, 13 (2025), 7190.
+[32] Ulrich Götz. 2021. On the evolution of narrative mechanics in open-world               [60] Mehmet Kosa and Ahmet Uysal. 2024. Exploration of novelty as part of the
+     games. Narrative Mechanics: Strategies and Meanings in Games and Real Life 82               player experience of need satisfaction in games. Interacting with Computers
+     (2021), 161.                                                                                (2024), iwae006.
+[33] C Shawn Green and Daphne Bavelier. 2003. Action video game modifies visual             [61] Nicole Lazzaro. 2004. Why We Play Games: Four Keys to More Emotion Without
+     selective attention. Nature 423, 6939 (2003), 534–537.                                      Story. White Paper. XEODesign, Inc., Oakland, CA.
+[34] Mark D Griffiths, Andrea M Lewis, ANGELICA B Ortiz de Gortari, and Daria J             [62] James R Lewis. 2018. The system usability scale: past, present, and future.
+     Kuss. 2014. Online forums and solicited blogs: Innovative methodologies for                 International Journal of Human–Computer Interaction 34, 7 (2018), 577–590.
+     online gaming data collection. Studia Psychologia 14, 3 (2014), 5–24.                  [63] Wei Li, Mathias Funk, Quan Li, and Aarnout Brombacher. 2019. Visualizing
+[35] Shunan Guo, Zhuochen Jin, David Gotz, Fan Du, Hongyuan Zha, and Nan Cao.                    event sequence game data to understand player’s skill growth through behavior
+     2018. Visual progression analysis of event sequence data. IEEE transactions on              complexity. Journal of Visualization 22, 4 (2019), 833–850.
+     visualization and computer graphics 25, 1 (2018), 417–426.                             [64] Craig A Lindley. 2005. Story and narrative structures in computer games.
+[36] Kevin A Hallgren. 2012. Computing inter-rater reliability for observational                 Bushoff, Brunhild. ed (2005).
+     data: an overview and tutorial. Tutorials in quantitative methods for psychology       [65] Chen-Chung Liu, Yuan-Bang Cheng, and Chia-Wen Huang. 2011. The effect of
+     8, 1 (2012), 23.                                                                            simulation games on the learning of computational problem solving. Computers
+[37] Jeffrey Heer and Ben Shneiderman. 2012. Interactive dynamics for visual analy-              & Education 57, 3 (2011), 1907–1918.
+     sis: A taxonomy of tools that support the fluent and flexible use of visualizations.   [66] Daria Loi. 2007. Reflective probes, primitive probes and playful triggers. In
+     Queue 10, 2 (2012), 30–55.                                                                  Ethnographic praxis in industry conference proceedings, Vol. 2007. Wiley Online
+[38] Scott H. Hemenover and Nicholas D. Bowman. 2018. Video Games, Emotion,                      Library, 232–245.
+     and Emotion Regulation: Expanding the Scope. Annals of the International               [67] António Machado, Pedro Santos, and João Dias. 2017. On the structure of role
+     Communication Association 42, 2 (02 2018), 125–143.                                         playing game quests. Revista de Ciências da Computação (2017).
+[39] Kaitlin Hillerich. 2022. 7 Types of Stories: The Quest. https://www.firstdraftpro.     [68] Kirsti Malterud, Volkert Dirk Siersma, and Ann Dorrit Guassora. 2016. Sample
+     com/blog/the-quest-plot                                                                     size in qualitative interview studies: guided by information power. Qualitative
+[40] Andreas Hinderks. 2017. Design and evaluation of a short version of the                     health research 26, 13 (2016), 1753–1760.
+     user experience questionnaire (UEQ-S). International Journal of Interactive            [69] Sai Siddartha Maram, Johannes Pfau, Jennifer Villareale, Zhaoqing Teng, Jichen
+     Multimedia and Artificial Intelligence (2017).                                              Zhu, and Magy Seif El-Nasr. 2023. Mining player behavior patterns from domain-
+[41] Andreas Hinderks, Martin Schrepp, and Jörg Thomaschewski. 2018. A bench-                    based spatial abstraction in games. In 2023 IEEE Conference on Games (CoG).
+     mark for the short version of the user experience questionnaire. In Proceedings of          IEEE, 1–8.
+     the 14th International Conference on Web Information Systems and Technologies-         [70] Amy McManus and Andrew Hale Feinstein. 2006. Narratology and ludology:
+     APMDWE. SciTePress, 373–377.                                                                Competing paradigms or complementary theories in simulation. Developments
+[42] Edwin Ho, Arvind Rajagopalan, Alex Skvortsov, Sanjeev Arulampalam, and                      in Business Simulation and Experiential Learning 33 (2006).
+     Mahendra Piraveenan. 2022. Game theory in defence applications: A review.              [71] Ben Medler, Michael John, and Jeff Lane. 2011. Data cracker: developing a visual
+     Sensors 22, 3 (2022), 1032.                                                                 game analytic tool for analyzing online gameplay. In Proceedings of the SIGCHI
+[43] Clint Hocking. 2009. Ludonarrative dissonance in Bioshock: The problem of                   Conference on Human Factors in Computing Systems. 2365–2374.
+     what the game is about. Well played 1 (2009), 255–260.                                 [72] Christopher Moser and Xiaowen Fang. 2015. Narrative structure and player
+[44] Matt-Heun Hong, Lauren A Marsh, Jessica L Feuston, Janet Ruppert, Jed R                     experience in role-playing games. International Journal of Human-Computer
+     Brubaker, and Danielle Albers Szafir. 2022. Scholastic: Graphical human-AI                  Interaction 31, 2 (2015), 146–156.
+     collaboration for inductive and interpretive text analysis. In Proceedings of the      [73] Rickard Fernández Mossner. 2022. ‘Don’t take my babies’ — Investigating Emo-
+     35th Annual ACM Symposium on User Interface Software and Technology. 1–12.                  tional Engagement in Video Games. Technical Report. IT University of Copen-
+[45] Kasper Hornbæk and Effie Lai-Chong Law. 2007. Meta-analysis of correlations                 hagen.
+     among usability measures. In Proceedings of the SIGCHI Conference on Human             [74] Motivational Digital Systems group @ FBK. 2025. Game Analytics and Player
+     Factors in Computing Systems. 617–626.                                                      Profiling. https://modis.fbk.eu/gamification-engine/
+[46] Jeff Howard. 2022. Quests: Design, theory, and history in games and narratives.        [75] Dinara Moura, Magy Seif El-Nasr, and Christopher D Shaw. 2011. Visualizing
+     AK Peters/CRC Press.                                                                        and understanding players’ behavior in video games: discovering patterns and
+[47] Nathan Gerard Jayy Hughes. 2023. Understanding specific gaming experiences:                 supporting aggregation and comparison. In ACM SIGGRAPH 2011 game papers.
+     the case of open world games. Ph. D. Dissertation. University of York.                      1–6.
+[48] Kenneth Hullett and Jim Whitehead. 2010. Design patterns in FPS levels. In             [76] Tamara Munzner. 2025. Visualization analysis and design. In Proceedings of
+     proceedings of the Fifth International Conference on the Foundations of Digital             the Special Interest Group on Computer Graphics and Interactive Techniques
+     Games. 78–85.                                                                               Conference Courses. 1–2.
+[49] Robin Hunicke, Marc LeBlanc, and Robert Zubek. 2004. MDA: A formal ap-                 [77] Muhammad Naeem, Wilson Ozuem, Kerry Howell, and Silvia Ranfagni. 2023.
+     proach to game design and game research. In Proceedings of the AAAI Workshop                A step-by-step process of thematic analysis to develop a conceptual model in
+     on Challenges in Game AI, Vol. 4. San Jose, CA, 1722.                                       qualitative research. International Journal of Qualitative Methods 22 (2023),
+[50] Rachael Hutchinson. 2007. Performing the self: Subverting the binary in combat              16094069231205789.
+     games. Games and Culture 2, 4 (2007), 283–299.                                         [78] Emily Naul and Min Liu. 2020. Why story matters: A review of narrative in
+[51] Jialun Aaron Jiang, Kandrea Wade, Casey Fiesler, and Jed R Brubaker. 2021. Sup-             serious games. Journal of Educational Computing Research 58, 3 (2020), 687–707.
+     porting serendipity: Opportunities and challenges for Human-AI Collaboration
+Deconstructing Open-World Game Mission Design Formula
+
+
+ [79] James Nelson. 2017. Using conceptual depth criteria: addressing the challenge              visualization and computer graphics 17, 12 (2011), 2249–2258.
+      of reaching saturation in qualitative research. Qualitative research 17, 5 (2017),   [105] Yanhui Su, Per Backlund, and Henrik Engström. 2021. Comprehensive review
+      554–570.                                                                                   and classification of game analytics. Service Oriented Computing and Applications
+ [80] Peter Nelson. 2023. Claustrophobia, Repetition and Redundancy: The Economy                 15, 2 (2021), 141–156.
+      and Aesthetics of User-Generated Content in Sandbox Computer Games. Game             [106] Penelope Sweetser and Peta Wyeth. 2005. GameFlow: a model for evaluating
+      Studies 23, 1 (2023).                                                                      player enjoyment in games. Computers in Entertainment (CIE) 3, 3 (2005), 3–3.
+ [81] Joseph C. Osborn, Dylan Lederle-Ensign, Noah Wardrip-Fruin, and Michael              [107] Gareth Terry, Nikki Hayfield, Victoria Clarke, Virginia Braun, et al. 2017. The-
+      Mateas. 2015. Combat in Games. In Proceedings of the 10th International Con-               matic analysis. The SAGE handbook of qualitative research in psychology 2, 17-37
+      ference on the Foundations of Digital Games (FDG 2015). Society for the Ad-                (2017), 25.
+      vancement of the Science of Digital Games, Pacific Grove, CA, USA. http:             [108] Alexandra To, Safinah Ali, Geoff Kaufman, and Jessica Hammer. 2016. Integrat-
+      //www.fdg2015.org/papers/fdg2015_paper_53.pdf                                              ing curiosity and uncertainty in game design. In Proceedings of DiGRA/FDG
+ [82] Xiangyu Peng, Jonathan C. Balloch, and Mark O. Riedl. 2021. Detecting and                  2016 Conference.
+      Adapting to Novelty in Games. In AAAI-21 Workshop on Reinforcement Learning          [109] Crystal Han-Huei Tsay, Alexander K Kofinas, Smita K Trivedi, and Yang Yang.
+      in Games (RLG). Association for the Advancement of Artificial Intelligence                 2020. Overcoming the novelty effect in online gamified learning systems:
+      (AAAI).                                                                                    An empirical evaluation of student engagement and performance. Journal of
+ [83] Cody Phillips, Madison Klarkowski, Julian Frommel, Carl Gutwin, and Regan L                Computer Assisted Learning 36, 2 (2020), 128–146.
+      Mandryk. 2021. Identifying commercial games with therapeutic potential               [110] Jaakko Väkevä, Perttu Hämäläinen, and Janne Lindqvist. 2025. " Don’t You Dare
+      through a content analysis of steam reviews. Proceedings of the ACM on Human-              Go Hollow": How Dark Souls Helps Players Cope with Depression, a Thematic
+      Computer Interaction 5, CHI PLAY (2021), 1–21.                                             Analysis of Reddit Discussions. In Proceedings of the 2025 CHI Conference on
+ [84] Peter Pirolli and Daniel M. Russell. 2011. Introduction to this Special Issue on           Human Factors in Computing Systems. 1–20.
+      Sensemaking. Human–Computer Interaction 26, 1-2 (2011), 1–8. doi:10.1080/            [111] Sanne Van Der Linden, Evie de Fouw, Stef van den Elzen, and Anna Vilanova.
+      07370024.2011.556557                                                                       2023. A survey of visualization techniques for comparing event sequences.
+ [85] Hua Qin, Pei-Luen Patrick Rau, and Gavriel Salvendy. 2009. Measuring player                Computers & Graphics 115 (2023), 522–542.
+      immersion in the computer game narrative. Intl. Journal of Human–Computer            [112] Robert Veloya. 2023. An Analysis of the Debate and How It Changed Everything:
+      Interaction 25, 2 (2009), 107–133.                                                         Narratology vs. Ludology. ScholarWorks @ SJSU (institutional repository).
+ [86] Ezzati Rahman. 2017. Gamers’ experiences in playing video games–A Theoreti-                https://scholarworks.sjsu.edu/art108/38/
+      cal Thematic Analysis. Coventry University (2017), 0–91.                             [113] Jayne Wallace, John McCarthy, Peter C Wright, and Patrick Olivier. 2013. Mak-
+ [87] Heidi Rautalahti. 2019. " How video games changed my life": Life-Changing                  ing design probes work. In Proceedings of the SIGCHI Conference on Human
+      Testimonies and The Last of Us. gamevironments 10 (2019), 38–38.                           Factors in Computing Systems. 3441–3450.
+ [88] Andrew J Reagan, Lewis Mitchell, Dilan Kiley, Christopher M Danforth, and            [114] Günter Wallner. 2013. Play-Graph: A methodology and visualization approach
+      Peter Sheridan Dodds. 2016. The emotional arcs of stories are dominated by six             for the analysis of gameplay data. In 8th International Conference on the Foun-
+      basic shapes. EPJ data science 5, 1 (2016), 1–12.                                          dations of Digital Games (FDG2013). Foundations of Digital Games, 253–260.
+ [89] Christian Remy, Lindsay MacDonald Vermeulen, Jonas Frich, Michael Mose               [115] Günter Wallner and Simone Kriglstein. 2013. Visualization-based analysis of
+      Biskjaer, and Peter Dalsgaard. 2020. Evaluating creativity support tools in HCI            gameplay data–a review of literature. Entertainment Computing 4, 3 (2013),
+      research. In Proceedings of the 2020 ACM designing interactive systems conference.         143–155.
+      457–476.                                                                             [116] Bo Wang, Zhenlin Gao, and Mohammad Shidujaman. 2024. Meaningful place: A
+ [90] Luís Filipe Cardoso Rocha. 2021. Gameplay Analytics for Game Design Insights.              phenomenological approach to the design of spatial experience in open-world
+      Master’s thesis. Universidade de Coimbra (Portugal).                                       games. Games and Culture 19, 5 (2024), 587–610.
+ [91] Alper Sarikaya, Michael Correll, Lyn Bartram, Melanie Tory, and Danyel Fisher.       [117] Tianze Wang, Maryam Honari-Jahromi, Styliani Katsarou, Olga Mikheeva,
+      2018. What do we talk about when we talk about dashboards? IEEE transactions               Theodoros Panagiotakopoulos, Sahar Asadi, and Oleg Smirnov. 2024. player2vec:
+      on visualization and computer graphics 25, 1 (2018), 682–692.                              A language modeling approach to understand player behavior in games. arXiv
+ [92] Jeff Sauro and Joseph S Dumas. 2009. Comparison of three one-question, post-               preprint arXiv:2404.04234 (2024).
+      task usability questionnaires. In Proceedings of the SIGCHI Conference on Human      [118] Matt Wood. 2025. Thematic Analysis in HCI: a “crash course”. In Proceedings of
+      Factors in Computing Systems. 1599–1608.                                                   the 23rd EUSSET Conference on Computer Supported Cooperative Work. European
+ [93] Jeff Sauro and James R Lewis. 2016. Quantifying the user experience: Practical             Society for Socially Embedded Technologies (EUSSET).
+      statistics for user research. Morgan Kaufmann.                                       [119] Zachary Yang, Domenico Tullo, and Reihaneh Rabbany. 2025. Unified Game
+ [94] Julia Schifano and Marlen Niederberger. 2025. How Delphi studies in the health             Moderation: Soft-Prompting and LLM-Assisted Label Transfer for Resource-
+      sciences find consensus: a scoping review. Systematic Reviews 14, 1 (2025), 14.            Efficient Toxicity Detection. In Proceedings of the 31st ACM SIGKDD Conference
+ [95] Martin Schrepp. 2015. User experience questionnaire handbook. All you need                 on Knowledge Discovery and Data Mining V.2 (Toronto ON, Canada) (KDD
+      to know to apply the UEQ successfully in your project 10 (2015).                           ’25). Association for Computing Machinery, New York, NY, USA, 5161–5170.
+ [96] Martin Schrepp, Andreas Hinderks, and Jörg Thomaschewski. 2014. Applying                   doi:10.1145/3711896.3737271
+      the user experience questionnaire (UEQ) in different evaluation scenarios. In
+      International conference of design, user experience, and usability. Springer, 383–
+      392.                                                                                 A     Dataset Pipeline and Compliance Details
+ [97] Martin Schrepp, Andreas Hinderks, and Jorg Thomaschewski. 2017. Construc-
+      tion of a benchmark for the user experience questionnaire (UEQ). International       This appendix details the dataset pipeline and compliance bound-
+      Journal of Interactive Multimedia and Artificial Intelligence 4, 4 (2017), 40–44.    aries. We used a semi-automated Python pipeline to access pages
+ [98] Michael Sedlmair, Miriah Meyer, and Tamara Munzner. 2012. Design study
+      methodology: Reflections from the trenches and the stacks. IEEE transactions         via the MediaWiki Action API with polite rate limiting. For each
+      on visualization and computer graphics 18, 12 (2012), 2431–2440.                     mission name, the scraper generated candidate URL slugs to ac-
+ [99] Magy Seif El-Nasr and Erica Kleinman. 2020. Data-driven game development:
+      Ethical considerations. In Proceedings of the 15th international conference on the
+                                                                                           commodate Fandom idiosyncrasies by normalizing spaces to under-
+      foundations of digital games. 1–10.                                                  scores, testing common disambiguation suffixes (e.g., _(Quest)), and
+[100] Mike Shepard. 2014.             Interactive Storytelling — Narrative Tech-           permuting case for articles and prepositions (e.g., “The_of_the” vs.
+      niques and Methods in Video Games. Web project on Scalar (USC).
+      https://scalar.usc.edu/works/interactive-storytelling-narrative-techniques-          “the_of_the”). The fetcher followed redirects and retried on tran-
+      and-methods-in-video-games/index                                                     sient errors. A heuristic parser prioritized textual sections such as
+[101] Ben Shneiderman. 2002. Creativity support tools. Commun. ACM 45, 10 (2002),          Walkthrough, Quest Stages, or Description, with a fallback to intro-
+      116–120.
+[102] Chen Si, Yusuf Pisan, Chek Tien Tan, and Songjia Shen. 2017. An initial un-          ductory paragraphs, while stripping navigation boxes, infoboxes,
+      derstanding of how game users explore virtual environments. Entertainment            and advertisements.
+      Computing 19 (2017), 13–27.
+[103] Gillian Smith, Ryan Anderson, Brian Kopleck, Zach Lindblad, Lauren Scott,
+                                                                                              Quality control retained only descriptions of at least 35 words,
+      Adam Wardell, Jim Whitehead, and Michael Mateas. 2011. Situating quests:             discarding stubs and empty pages. For each page, we recorded stable
+      Design patterns for quest and level design in role-playing games. In International   snapshot metadata—page revision_id, fixed snapshot URL with oldid,
+      Conference on Interactive Digital Storytelling. Springer, 326–329.
+[104] Markus Steinberger, Manuela Waldner, Marc Streit, Alexander Lex, and Di-             ISO-8601 retrieval timestamp, license string (CC BY–SA), and a SHA-
+      eter Schmalstieg. 2011. Context-preserving visual links. IEEE transactions on        256 checksum of the raw HTML—and all analyses in the paper are
+                                                                                                         Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+     computed on these immutable snapshots. Using wiki-curated lists,             B.3    API Configuration
+     each mission was categorized as Main Quest, Side Quest, or Point of
+                                                                              1   MODEL             = "gpt-4.1"
+     Interest (POI). The pipeline produced 2435 raw mission descriptions;     2   REQUEST_TIMEOUT   = 30             # seconds
+     after conversion to action sequences and validity filtering, the final   3   MAX_RETRIES       = 5
+     dataset includes 2191 missions (607 Main, 1174 Side, 410 POI).           4   RATE_LIMIT_SEC    = 5
+                                                                              5   TEMPERATURE       = 0              # deterministic output
+        Compliance and redistribution boundaries are as follows. Except
+     where otherwise noted on individual pages, Fandom text is licensed              Listing 2: LLM/API configuration used in our pipeline
+     under CC BY–SA 3.0. We accessed content exclusively via the Me-
+     diaWiki API in line with the site’s Terms of Use and processed text
+                                                                                  B.4    Example Prompt Instance
+     only; media assets (images, videos) were excluded due to hetero-
+     geneous licenses. For redistribution, we will release only derived,      1 {
+     non-verbatim annotations—normalized action sequences and per-            2   "role": "system",
+                                                                              3   "content":
+     mission MAQV vectors—with per-page attribution links; we do not          4         "You are an expert game analyst who converts free-form
+     redistribute full wiki text. The corpus contains no personal data                  mission descriptions into ordered lists of predefined game
+                                                                                        actions. Your task is to break down mission walkthroughs into
+     and was reviewed under our IRB protocol.                                           elementary action steps and map each step to exactly one
+                                                                                        predefined action."
+     B     LLM Prompt Specification                                            5 }
+                                                                               6 {
+     This appendix provides the full prompt specification used in the          7   "role": "user",
+     action-block extraction pipeline (see Section 3.1.3) and is intended      8   "content": "Predefined actions (choose only from this list):\n[
+                                                                               9     \"Walk / Sprint\",
+     to support transparency and reproducibility expected for LLM-            10     \"Dialogue Choice\",
+     enabled CHI research. Validation of extraction fidelity against a        11     \"Speech Charisma Check\",
+                                                                              12     \"Pip-Boy Fast-Travel\",
+     human-labeled gold set is reported in Section 3.1.4.                     13     \"Loot Container\",
+                                                                              14     \"Workshop Build Object\",
+     B.1    Prompt Structure                                                  15
+                                                                              16
+                                                                                     \"Stealth Boy Cloak\",
+                                                                                     \"Sneak Crouch\",
+     The prompt comprises four components aligned with our extraction         17     \"Suppressed Shot\",
+                                                                              18     \"VATS Target Shot\",
+     procedure (Section 3.1.3):                                               19     \"Melee Bash\",
+         (1) System Message: Declares the model’s role and constraints.       20     \"Power-Armor Melee Slam\",
+                                                                              21     \"Grenade Throw\",
+         (2) Action Library: Game-specific predefined actions.                22     \"Vertibird Airdrop Ride\"
+         (3) Instruction Set: Stepwise mapping rules.                         23   ]\n\nInstruction:\n1. Read the mission description.\n2. Break it
+         (4) Mission Description: The input text to convert.                            into elementary action steps.\n3. Map each step to exactly one
+                                                                                        predefined action.\n4. Ignore narrative or non-action details.\
+                                                                                        n5. Output ONLY the ordered list of action names as a JSON
+     B.2    Complete Prompt Template                                                    array.\n\nMission description:\n\"Mama Murphy insists that she
+                                                                                        can see the future ...\""
+                                                                              24 }
+1 from typing import List
+2 import json
+3
+                                                                                          Listing 3: Example prompt (Fallout 4 mission)
+4 def build_prompt(actions: List[str], desc: str) -> list[dict]:
+5     system = (
+6         "You are an expert game analyst who converts free-form                  B.5    Expected Output Format
+           mission "
+7             "descriptions into ordered lists of predefined game actions.    1 [
+            "                                                                 2   "Dialogue Choice",
+8             "Your task is to break down mission walkthroughs into           3   "Speech Charisma Check",
+           elementary "                                                       4   "Pip-Boy Fast-Travel",
+9             "action steps and map each step to exactly one predefined       5   "Loot Container",
+           action."                                                           6   "Workshop Build Object",
+10       )                                                                    7   "Dialogue Choice",
+11       user = (                                                             8   "Speech Charisma Check"
+12           "Predefined actions (choose only from this list):\n"             9 ]
+13           f"{json.dumps(actions, ensure_ascii=False)}\n\n"
+14           "Instruction:\n"                                                                Listing 4: Expected JSON output format
+15           "1. Read the mission description.\n"
+16           "2. Break it into elementary action steps.\n"
+             "3. Map each step to exactly one predefined action.\n"
+17
+18           "4. Ignore narrative or non-action details.\n"
+                                                                                  B.6    Error Handling and Validation
+19           "5. Output ONLY the ordered list of action names as a JSON
+           array.\n\n"                                                        1 def get_actions(actions: list[str], desc: str) -> list[str] | None:
+20           f"Mission description:\n\"{desc}\""                              2     for attempt in range(1, MAX_RETRIES + 1):
+21       )                                                                    3         try:
+22       return [{"role": "system", "content": system},                       4              return call_chatgpt(actions, desc)
+23               {"role": "user",   "content": user}]                         5         except Exception as e:
+                                                                              6              print(f" attempt {attempt}/{MAX_RETRIES} failed: {e}")
+                                                                              7              if attempt < MAX_RETRIES:
+     Listing 1: Prompt construction function (Python pseudocode)              8                  time.sleep(RATE_LIMIT_SEC)
+                                                                              9     return None
+     Deconstructing Open-World Game Mission Design Formula
+
+
+10                                                                            summary reports the mean and standard deviation of each MAQV
+11 def call_chatgpt(actions: list[str], desc: str) -> list[str]:
+                                                                              dimension over mission progress; these statistics are computed
+12     resp = openai.ChatCompletion.create(
+13         model=MODEL,                                                       on raw (unsmoothed) values and serve as a portable fingerprint
+14         messages=build_prompt(actions, desc),                              for spreadsheets or reports. Finally, an action view table (Figure 2)
+15         temperature=TEMPERATURE,
+16         request_timeout=REQUEST_TIMEOUT
+                                                                              lists every per-game action with its six MAQV scores and a short
+17     )                                                                      description; this table is the reference scaffold behind the extractor
+18     # Validate JSON array of strings                                       and helps relate concrete verbs (e.g., “Web Zip”) to experiential
+19     arr = json.loads(resp.choices[0].message.content.strip())
+20     if not isinstance(arr, list) or not all(isinstance(a, str) for a       emphasis (e.g., Uniqueness vs. Combat). Across all Browse visuals,
+            in arr):                                                          colors are shared with the action timeline, and progress is nor-
+21           raise ValueError("Model returned invalid JSON array.")           malized to [0, 100]% so peaks in the quality-flow curves can be
+22       return arr
+                                                                              mentally aligned to colored timeline segments; when smoothing
+     Listing 5: Retry and output validation in the extraction                 is used (Gaussian, 𝜎 = 2), it is strictly for visualization, never for
+     pipeline                                                                 statistics.
+                                                                                  The Compare mode aggregates across selected titles and ex-
+     B.7     Action Library Structure                                         poses cross-game tendencies using a family of complementary sum-
+                                                                              maries. A combined radar overview places overlaid polygons of
+     Predefined actions are stored in JSON with the following fields:         mean mission-level MAQV scores per title (Figure 7), answering
+          • name: canonical action identifier used in prompts;                “which dimensions are emphasized at a glance?” and allowing im-
+          • scores: MAQV scores (uniqueness, combat, narrative, ex-           mediate contrast of experiential profiles across franchises and sub-
+             ploration, problem/solving, emotional);                          genres; values are computed by averaging mission vectors within
+          • description: humanreadable explanation;                           each game.
+          • category: e.g., Traversal, Combat, Social Interaction.                Small-multiple radar grids extend this idea at two granularities
+                                                                              (the normalized per-game mission grid appears in the main text as
+     B.8     Reproducibility Notes                                            Figure 5). One grid aggregates over actions (averaging each game’s
+     To reproduce our results:                                                unique action vectors), highlighting how a franchise’s verb set is cal-
+         (1) Use the prompt composition in Listing 1;                         ibrated; the other aggregates over missions (averaging per-mission
+         (2) Set TEMPERATURE = 0 for deterministic outputs;                   vectors), emphasizing authored flow. A front-end “Normalize” tog-
+         (3) Use the same action library schema (Section 3.1.3);              gle rescales each mini-chart to its own maximum so that “shape”
+         (4) Implement retry/validation as in Listing 5;                      encodes within-title balance while avoiding visual domination by
+         (5) Note minor variability may occur due to provider model           larger-magnitude titles; switching normalization off restores abso-
+             updates.                                                         lute magnitudes to support scale-aware reading.
+                                                                                  Dimensionality-reduction maps translate centroid vectors into
+     B.9     Model Version Information                                        spatial metaphors. An Action Similarity Map and a Mission Sim-
+                                                                              ilarity Map plot principal components computed from per-title
+           • Primary Model: GPT-4.1.
+                                                                              action and mission centroids, respectively; clusters and outliers sug-
+           • API: OpenAI ChatCompletion.
+                                                                              gest genre affinities and divergences (e.g., why a traversal-heavy
+           • Token limits/context: All missions fit within the model
+                                                                              modern city title might neighbor another with similar emphasis).
+             context with our batching.
+                                                                              Complementary distance matrices visualize the same relationships
+        This specification complements our Method (Section 3.1.3) and         as colored grids, where each cell encodes pairwise Euclidean dis-
+     Validation Study (Section 3.1.4), enabling other researchers to repli-   tance between titles; darker or lighter tones immediately flag tight
+     cate the extraction pipeline on comparable corpora.                      siblings and outliers without requiring axis interpretation.
+                                                                                  Recurring structure is surfaced with frequency plots derived from
+     C     Visualization Gallery and Implementation                           sliding windows over the extracted sequences (Figure 9). Frequent
+           Notes                                                              category-blocks count support for the top three 𝐴 → 𝐵 →𝐶 category
+     The Browse mode complements the two in-text exemplars—quality-           patterns per game, exposing shared or franchise-specific loops (e.g.,
+     flow (Figure 3) and action timeline (Figure 4) with several aux-         traversal → investigation → ability) computed by scanning the
+     iliary panels fed by the same per-mission action sequence and            category stream of each mission and tallying three-step windows
+     MAQV traces. For transparency, each mission’s metadata (title,           across the corpus.
+     quest type, and the fixed-snapshot walkthrough text used for ex-             A companion frequent action-blocks view repeats the same com-
+     traction) is shown alongside the raw, closed-vocabulary action           putation on concrete verbs instead of categories, making signature
+     sequence. This lets designers verify tokenization and mapping de-        mechanics visible (e.g., Web Zip → Traversal → Combat in super-
+     cisions at a glance and annotate omissions or misclassifications if      hero titles). Two top-𝑘 bar summaries (one for actions, one for
+     needed. A storyboard view renders the same sequence as a linear          categories) report, per game, the absolute counts of the five most
+     chain of labeled boxes with arrows; it is produced by collapsing         common atoms; long bars imply dominant mechanics while short
+     consecutive identical categories and pretty-printing verb names, so      bars suggest potential design gaps or niches. The Top-5 Categories /
+     repeated “travel→combat→travel” loops or unusual beats such as           Game chart is the exemplar retained in the main text (Figure 8); the
+     “puzzle before exposition” surface instantly. A compact numerical
+                                                                                              Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+
+
+                Figure 7: Combined radar chart comparing mission-dimension emphasis across selected games.
+
+
+Top-5 Actions / Game counterpart follows the same computation           neutral (8.8%). Prior analytics-tool use was rare: 6 yes (8.8%), 62 no
+and reading logic.                                                      (91.2%). Regarding game-design experience, 42 reported no experi-
+    A hierarchical Similarity Tree (Ward dendrogram) clusters titles    ence (61.8%). Among the 26 with any design experience, 13 had 1–3
+by their action centroids; branch heights encode distance, yielding     years (50.0%), 7 had <1 year (26.9%), and 5 had 4–6 years (19.2%); 1
+an at-a-glance taxonomy of design kinship that complements the          reported >6 years (3.8%).
+PCA scatter without requiring axis literacy. Two centroid tables
+provide numeric counterparts to the radars: the Action-Centroid         E    Stage 2 Reflection Prompts (Full)
+Table averages over unique actions per game, and the Mission-           Participants were shown the following 12 prompts and instructed to
+Centroid Table averages over missions; each row includes raw            select any ≥ 3 to answer. The abridged versions appear in Table 4.
+means in [0, 1] and within-row percentages normalized to that
+                                                                        Q1 Using the six-dimension radar and point-cloud plots, summa-
+title’s highest dimension to enable scale-independent comparison.
+                                                                           rize the commonalities and divergences across games. Which
+All Compare summaries are computed on demand from the same
+                                                                           dimensions define each game’s signature profile?
+cached JSON dataset that feeds Browse, ensuring consistent values
+when toggling subsets of selected games or exporting snapshots.         Q2 Select one well-designed and one flawed mission. From their
+                                                                           dimensional distributions alone, what centers of gravity or
+                                                                           voids distinguish them?
+D    Participant Demographics
+In Figure 10, we report the full demographic breakdown of the study     Q3 Based on the action point cloud and frequent action-block
+sample (𝑛=68). Participants were aged 19–35 years (mean = 24.5,            charts, describe the patterns of action diversity and block struc-
+SD = 3.2; median = 25.0). Gender: 50 male (73.5%), 18 female (26.5%).      ture across games.
+Professional role: 30 experienced players (≥3 years; 44.1%), 19 ca-     Q4 For your chosen good vs. poor missions, compare only the
+sual players (<3 years; 27.9%), 13 aspiring/indie designers (19.1%),       action-block sequences: which block combinations are shared
+and 6 professional quest/mission designers (8.8%). Open-world fa-          or missing?
+miliarity: 40 very familiar (58.8%), 22 somewhat familiar (32.4%), 6
+ Deconstructing Open-World Game Mission Design Formula
+
+
+
+
+ Figure 8: Top action-category counts per game, shown as horizontal stacked bars (longer bars indicate dominant mechanics;
+ shorter bars suggest under-represented ones). To reduce color dependence, the contributing titles for each row (top→bottom) are:
+ 1) Traversal—Marvel’s Spider-Man: Miles Morales, Fallout 4, Red Dead Redemption 2, Far Cry 6. 2) Special Ability—Dragon’s Dogma
+ 2, The Witcher 3: Wild Hunt, Marvel’s Spider-Man 2. 3) Combat—Marvel’s Spider-Man: Miles Morales, Kingdom Come: Deliverance
+ (KCD), Dragon’s Dogma 2, Hogwarts Legacy. 4) Puzzle & Investigation—Hogwarts Legacy. 5) Gadget Deployment—Dragon’s Dogma,
+ Marvel’s Spider-Man 2. 6) Social Interaction—Kingdom Come: Deliverance, Kingdom Come: Deliverance 2. 7) Environmental
+ Interaction—Kingdom Come: Deliverance, Kingdom Come: Deliverance 2, Dying Light. 8) Stealth—Kingdom Come: Deliverance,
+ Kingdom Come: Deliverance 2. 9) Ranged Interaction—Dying Light.
+
+
+ Q5 Analyze several long missions. How do well-constructed vs.        F    Extended Distributions
+    poorly-constructed long missions differ in dimensional centers,   To complement the main-text summaries (e.g., Table 5), this appen-
+    block sequencing, and pacing?                                     dix provides the UEQ-S overall plots, and per-item distribution plots
+ Q6 Across the games you explored, which dimensions or categories     for Stage 1 validity items (A1, A2, A5–A7), the System Usability
+    are neglected or over-emphasized? How might this imbalance        Scale (SUS1–SUS10), and the UEQ-S (U1–U8), with overlaid means
+    create pacing gaps or content hollowness?                         and medians to substantiate the aggregate statistics.
+
+ Q7 Within one game you know well, contrast Main, Side, and POI
+    missions in dimensional layout and action flow. What design
+    priorities emerge?
+                                                                      G    Pre-annotation IRR for MAQV
+                                                                      Before the full annotation pass, two raters (two authors) indepen-
+ Q8 Examine multiple instalments of the same IP or similar titles.    dently scored actions from two representative titles (The Witcher
+    Describe mission/action evolution and whether it enriched or      3, GTA V) to check inter-rater reliability (IRR). For this IRR only,
+    diminished your experience.                                       each MAQV dimension was discretized to {0, 0.25, 0.5, 0.75, 1} to im-
+ Q9 Which missions/games break the formula and exhibit unique-        prove comparability. We report quadratic-weighted Cohen’s 𝜅 with
+    ness, and which fall into monotony due to rigid templates?        2,000 bootstrap resamples (seed=42), together with Spearman’s 𝜌,
+    Explain how you judged.                                           exact/off-by-one rates, and mean absolute difference (mapped back
+                                                                      to [0, 1]). Main-paper analyses revert to continuous 0–1 scores and
+Q10 Outline the core ingredients and flavouring ingredients of a      the structured consensus in Section 3.1.3.
+    successful open-world mission formula based on your obser-            Three patterns in Table 9 support the reasonableness of the
+    vations.                                                          ratings. First, scores align with construct expectations for both
+Q11 Map the six dimensions onto player motives (challenge, story,     raters—core combat actions are high on C, traversal/vehicle actions
+    exploration, immersion). Which combos satisfy multiple mo-        on E, dialogue/calls on N, and signature abilities on U/A. Second, dis-
+    tives? Give examples.                                             agreement is small: 74/76 actions have a maximum step difference
+                                                                      ≤ 1 on the 0–4 ordinal grid, with only two reaching 2 (GTAV: Stock
+Q12 In the peak-valley curves, which dimensions or blocks serve as    Market Trade, Parachute Free-fall), consistent with 𝜅 𝑤 =0.913 and
+    emotional climaxes or recovery buffers? What pacing strategies    exact agreement 0.768. Third, within-category stability is strong
+    does this suggest?                                                (e.g., multiple ranged or vehicle actions show near-identical pro-
+                                                                      files across raters), indicating shared decision rules rather than
+                                                                      idiosyncratic judgments. Overall, the table demonstrates that the
+                                                                                  Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+
+
+Figure 9: Frequent three-step category blocks (A → B → C) across games. Horizontal bars show support; rows are the blocks;
+bars are stacked by game. To reduce color dependence, the contributing games per row (top→bottom) are, by abbreviation: 1)
+MM; 2) MM; 3) MM; 4) SM2; 5) SM2; 6) SM2; 7) FC6; 8) KCD, KCD2, CP2077; 9) FC6; 10) DD, Skyrim, TW3; 11) GTA5; 12) GTA5;
+13) TW3; 14) TW3; 15) CP2077; 16) CP2077; 17) RDR2; 18) RDR2; 19) RDR2; 20) Skyrim; 21) Skyrim; 22) DD; 23) KCD, KCD2;
+24) DD2; 25) KCD; 26) KCD2. Abbrev: MM = Marvel’s Spider-Man: Miles Morales, SM2 = Marvel’s Spider-Man 2, FC6 = Far Cry
+6, GTA5 = Grand Theft Auto V, TW3 = The Witcher 3: Wild Hunt, CP2077 = Cyberpunk 2077, RDR2 = Red Dead Redemption 2,
+Skyrim = The Elder Scrolls V: Skyrim, DD = Dragon’s Dogma, DD2 = Dragon’s Dogma 2, KCD = Kingdom Come: Deliverance, KCD2
+= Kingdom Come: Deliverance 2.
+
+
+MAQV protocol is interpretable and replicable, with residual differ-
+ences confined to boundary cases (typically novelty or affect), not
+construct confusion.
+Deconstructing Open-World Game Mission Design Formula
+
+
+
+
+Figure 10: User demographics overview (𝑛=68): age histogram with markers (Mean = 24.5; Median = 25.0); gender distribution
+(73.5% male, 26.5% female); professional roles (30 experienced players, 19 casual players, 13 aspiring/indie designers, 6 profes-
+sional designers); game-design experience (42 none; among those with experience: 13 with 1–3 years, 7 with <1 year, 5 with 4–6
+years, 1 with >6 years); open-world familiarity (40 very familiar, 22 somewhat familiar, 6 neutral); prior analytics-tool use (62
+no, 6 yes).
+
+Table 8: Pre-annotation IRR on discretized MAQV scores (two
+games, 76 actions).
+
+   Dim         𝜅𝑤          CI            𝜌      Exact    Off±1    MAD
+   U         0.7366   [0.611, 0.813]   0.7966   0.6184   0.3816   0.0954
+   C         0.9658   [0.946, 0.982]   0.9682   0.8553   0.1447   0.0362
+   N         0.8682   [0.746, 0.931]   0.9077   0.7632   0.2237   0.0625
+   E         0.9530   [0.918, 0.977]   0.9536   0.8553   0.1447   0.0362
+   P         0.8904   [0.834, 0.934]   0.9218   0.7895   0.2105   0.0526
+   A         0.8434   [0.747, 0.908]   0.8439   0.7237   0.2632   0.0724
+   Overall   0.9131   [0.895, 0.929]   0.9134   0.7675   0.2281   0.0592
+                                                                                       Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+
+
+Figure 11: UEQ-S analysis. Both pragmatic and hedonic dimensions are positive: pragmatic mean = 1.50 (median = 1.62), hedonic
+mean = 1.16 (median = 1.25), on the −3 . . . + 3 scale.
+
+
+
+
+Figure 12: Stage 1 per-item distributions (Likert 1–7) with dashed lines marking the mean (red) and median (green). Distributions
+cluster around 5; the overall mean across A1, A2, A5–A7 is 4.82. Per-item means: A1 = 4.99, A2 = 4.84, A5 = 4.53, A6 = 4.72, A7
+= 5.01 (all medians = 5.00).
+Deconstructing Open-World Game Mission Design Formula
+
+
+
+
+Figure 13: SUS per-item distributions (1–5 scale). Dashed lines mark the mean (red) and median (blue). Positively worded items
+(SUS1, 3, 5, 7, 9) skew higher, while negatively worded items (SUS2, 4, 6, 8, 10) skew lower; this polarity pattern is consistent
+with the aggregate SUS computed from these items (see Table 5).
+
+
+
+
+Figure 14: UEQ-S per-item distributions on the −3 to +3 scale. Dashed lines mark the mean (red) and median (green). All items
+are shifted to the positive side; the aggregated UEQ-S means are 1.50 (Pragmatic: U1–U4) and 1.16 (Hedonic: U5–U8).
+                                                                                                            Kaijie Xu, Yiwei Zhang, Brian Yang, and Clark Verbrugge
+
+
+Table 9: All actions with both raters’ scores (two games, 76 actions). Abbreviations: TW3 = The Witcher 3; Trav = Traversal, Cbt
+= Combat, Env = Environmental Interaction, Gdt = Gadget Deployment, PI = Puzzle & Investigation, Rng = Ranged Interaction,
+Soc = Social Interaction, SpA = Special Ability, Stl = Stealth. Columns list rater A/B scores on each MAQV dimension (0–1 grid);
+maxΔ is the maximum absolute step difference (0–4) across the six dimensions for that action.
+
+           Game    Category Action                         U𝐴     U𝐵     C𝐴     C𝐵     N𝐴     N𝐵      E𝐴      E𝐵     P𝐴     P𝐵    A𝐴      A𝐵 maxΔ
+           GTA V   Cbt      Assault-Rifle Burst            0.25   0.25      1      1      0      0      0       0      0      0   0.75   0.75      0
+           GTA V   Cbt      Franklin Driving Focus         0.75      1    0.5   0.75      0      0    0.5     0.5   0.25      0   0.75      1      1
+           GTA V   Cbt      Grenade Throw                  0.25   0.25   0.75   0.75      0      0      0       0   0.25   0.25   0.75   0.75      0
+           GTA V   Cbt      Melee Punch Combo                 0   0.25    0.5    0.5      0      0      0       0      0      0    0.5   0.25      1
+           GTA V   Cbt      Michael Bullet Time            0.75      1   0.75   0.75      0      0      0       0   0.25      0   0.75      1      1
+           GTA V   Cbt      Pistol Fire                    0.25   0.25      1   0.75      0      0      0       0      0      0   0.75    0.5      1
+           GTA V   Cbt      Rocket Launcher                0.25    0.5      1      1      0      0      0       0      0      0      1      1      0
+           GTA V   Cbt      SMG Spray                      0.25   0.25      1   0.75      0      0      0       0      0      0   0.75    0.5      1
+           GTA V   Cbt      Sniper Shot                    0.25   0.25      1   0.75      0      0      0       0   0.25   0.25   0.75   0.75      0
+           GTA V   Cbt      Trevor Rampage                 0.75      1      1      1      0      0      0       0      0      0      1      1      0
+           GTA V   Env      ATM Withdrawal                    0      0      0      0      0      0      0       0      0      0      0      0      0
+           GTA V   Env      Hack Security Keypad           0.25    0.5      0   0.25   0.25   0.25      0       0      1   0.75    0.5    0.5      1
+           GTA V   Env      Loot Cash Register             0.25   0.25   0.25   0.25   0.25      0      0       0      0      0    0.5    0.5      0
+           GTA V   Env      Open Safe                      0.25    0.5      0   0.25   0.25   0.25      0       0   0.75    0.5    0.5    0.5      1
+           GTA V   Gdt      Drone Recon (SP Heist)          0.5    0.5   0.25   0.25    0.5   0.25    0.5     0.5    0.5    0.5    0.5    0.5      1
+           GTA V   Gdt      Remote-Sentry Turret (Heist)    0.5    0.5   0.75   0.75   0.25   0.25      0       0    0.5    0.5   0.75   0.75      0
+           GTA V   PI       Dossier Search (PC)            0.25   0.25      0      0   0.75    0.5      0       0   0.75   0.75   0.25   0.25      1
+           GTA V   PI       Photo Evidence (Cell)          0.25   0.25      0      0   0.75    0.5   0.25       0    0.5    0.5   0.25   0.25      1
+           GTA V   Rng      Flare Gun                      0.25    0.5   0.25   0.25   0.25   0.25      0       0   0.25   0.25   0.25    0.5      1
+           GTA V   Rng      Sticky Bomb Placement          0.25    0.5   0.75   0.75      0      0      0       0    0.5    0.5   0.75   0.75      1
+           GTA V   Rng      Tear Gas Throw                 0.25   0.25    0.5    0.5      0      0      0       0   0.25   0.25    0.5    0.5      0
+           GTA V   Soc      Cell-Phone Call                0.25   0.25      0      0      1   0.75      0       0   0.25   0.25   0.25   0.25      1
+           GTA V   Soc      Dialogue Choice (Heist Crew)    0.5    0.5      0      0      1      1      0       0    0.5    0.5    0.5    0.5      0
+           GTA V   Soc      Stock Market Trade             0.25    0.5      0      0    0.5      0      0       0    0.5    0.5   0.25   0.25      2
+           GTA V   SpA      Director Mode                  0.75   0.75      0      0      0   0.25      0    0.25   0.25   0.25   0.25   0.25      1
+           GTA V   Stl      Silenced Pistol Shot           0.25   0.25   0.75   0.75   0.25      0      0       0   0.25      0    0.5    0.5      1
+           GTA V   S        Stealth Takedown               0.25   0.25   0.75   0.75   0.25      0      0       0   0.25   0.25   0.75    0.5      1
+           GTA V   S        Stealth Walk                   0.25   0.25   0.25   0.25   0.25      0   0.25    0.25   0.25   0.25    0.5    0.5      0
+           GTA V   Trav     Bicycle Pedal                  0.25   0.25      0      0      0      0   0.75     0.5      0      0   0.25   0.25      1
+           GTA V   Trav     Boat Driving                   0.25   0.25      0      0      0      0   0.75    0.75      0      0   0.25   0.25      0
+           GTA V   Trav     Car Driving                    0.25   0.25      0      0      0      0      1       1      0      0   0.25   0.25      0
+           GTA V   Trav     Fixed-Wing Pilot               0.25    0.5      0      0      0      0      1       1      0      0    0.5   0.75      1
+           GTA V   Trav     Helicopter Pilot               0.25    0.5      0      0      0      0      1       1      0      0    0.5   0.75      1
+           GTA V   Trav     Motorcycle Riding              0.25   0.25      0      0      0      0      1    0.75      0      0   0.25    0.5      1
+           GTA V   Trav     Parachute Free-fall             0.5    0.5      0      0      0      0    0.5    0.75      0      0    0.5      1      2
+           GTA V   Trav     Scuba Dive                     0.25    0.5      0      0      0      0    0.5    0.75   0.25      0   0.25    0.5      1
+           GTA V   Trav     Sprint                            0   0.25      0      0      0      0    0.5     0.5      0      0   0.25   0.25      1
+           GTA V   Trav     Walk / Jog                        0   0.25      0      0      0      0    0.5     0.5      0      0      0      0      1
+           TW3     Cbt      Bomb Throw (Grapeshot)         0.25    0.5   0.75   0.75      0      0      0       0   0.25   0.25   0.75   0.75      1
+           TW3     Cbt      Fast Dodge / Roll              0.25   0.25    0.5    0.5      0      0      0    0.25      0      0    0.5    0.5      0
+           TW3     Cbt      Parry / Riposte                0.25   0.25   0.75   0.75      0      0      0       0      0      0    0.5    0.5      0
+           TW3     Cbt      Silver Sword Combo              0.5    0.5      1      1      0      0      0       0      0      0   0.75    0.5      1
+           TW3     Cbt      Steel Sword Combo              0.25   0.25      1      1      0      0      0       0      0      0   0.75    0.5      1
+           TW3     Cbt      Strong Attack                  0.25   0.25      1   0.75      0      0      0       0      0      0   0.75    0.5      1
+           TW3     Env      Herb Gathering                 0.25   0.25      0      0      0      0    0.5    0.25   0.25   0.25      0      0      1
+           TW3     Env      Monster Nest Destruction       0.25    0.5   0.25   0.25      0   0.25      0    0.25    0.5      1   0.25    0.5      1
+           TW3     Env      Torch Ignite / Extinguish      0.25   0.25      0      0      0      0   0.25    0.25   0.25   0.25      0      0      0
+           TW3     Gdt      Dancing Star Bomb              0.25    0.5   0.75   0.75      0      0      0       0   0.25   0.25   0.75   0.75      1
+           TW3     Gdt      Hanged Man’s Venom Oil          0.5    0.5    0.5    0.5      0      0      0       0    0.5    0.5    0.5   0.25      1
+           TW3     Gdt      Yrden Trap Glyph                0.5    0.5    0.5    0.5      0      0      0       0    0.5   0.25    0.5    0.5      1
+           TW3     PI       Code Riddle Solve              0.25    0.5      0      0    0.5   0.25      0       0      1   0.75   0.25   0.25      1
+           TW3     PI       Inspect Clue                   0.25   0.25      0      0   0.75    0.5      0       0   0.75    0.5   0.25   0.25      1
+           TW3     PI       Track Footprints               0.25    0.5      0      0   0.75    0.5    0.5    0.25   0.75    0.5   0.25   0.25      1
+           TW3     PI       Witcher Sense Track             0.5   0.75      0      0   0.75    0.5   0.25    0.25   0.75    0.5   0.25   0.25      1
+                                                                                                                                         (continued)
+Deconstructing Open-World Game Mission Design Formula
+
+
+              Game    Category Action                          U𝐴     U𝐵     C𝐴     C𝐵     N𝐴   N𝐵    E𝐴   E𝐵   P𝐴     P𝐵    A𝐴     A𝐵 maxΔ
+              TW3     Rng         Crossbow Bolt                0.25   0.25    0.5    0.5      0    0    0    0    0      0   0.25   0.25   0
+              TW3     Rng         Northern Wind Bomb           0.25    0.5    0.5    0.5      0    0    0    0    0      0    0.5    0.5   1
+              TW3     Soc         Contract Negotiation          0.5    0.5      0      0   0.75 0.5     0    0 0.5    0.25    0.5   0.25   1
+              TW3     Soc         Dialogue Choice              0.25   0.25      0      0      1    1    0    0 0.25   0.25    0.5    0.5   0
+              TW3     Soc         Gwent Card Game               0.5   0.75      0      0   0.25 0.25    0    0 0.75   0.75   0.25    0.5   1
+              TW3     Soc         Trade with Merchant          0.25   0.25      0      0   0.25 0.25    0    0 0.25   0.25      0      0   0
+              TW3     SpA         Adrenaline Rush (Mutation)   0.75    0.5   0.75   0.75      0    0    0    0    0      0   0.75   0.75   1
+              TW3     SpA         Sign: Aard                   0.75   0.75   0.75    0.5      0    0    0    0 0.25   0.25   0.75    0.5   1
+              TW3     SpA         Sign: Axii (Combat Stun)     0.75   0.75   0.75    0.5      0    0    0    0 0.25   0.25    0.5    0.5   1
+              TW3     SpA         Sign: Igni                   0.75   0.75   0.75   0.75      0    0    0    0 0.25   0.25   0.75   0.75   0
+              TW3     SpA         Sign: Quen                   0.75   0.75    0.5   0.25      0    0    0    0 0.25   0.25    0.5    0.5   1
+              TW3     SpA         Sign: Yrden                  0.75   0.75    0.5    0.5      0    0    0    0 0.5    0.25    0.5    0.5   1
+              TW3     S           Crossbow Silent Shot         0.25   0.25    0.5   0.75   0.25    0    0    0 0.25      0    0.5    0.5   1
+              TW3     S           Quiet Approach               0.25   0.25   0.25   0.25   0.25    0 0.25 0.25 0.25   0.25    0.5    0.5   0
+              TW3     Trav        Boat Sailing                 0.25    0.5      0      0      0    0 0.75 0.75    0      0   0.25   0.25   1
+              TW3     Trav        Climb / Vault                0.25   0.25      0      0      0    0 0.5 0.25 0.25       0   0.25   0.25   1
+              TW3     Trav        Dive & Loot                  0.25    0.5      0      0      0    0 0.5 0.5 0.25        0   0.25    0.5   1
+              TW3     Trav        Fast-Travel Signpost          0.5   0.25      0      0      0    0    1    1    0      0      0      0   1
+              TW3     Trav        Roach Gallop                  0.5    0.5      0      0      0    0 0.75 0.75    0      0   0.25   0.25   0
+              TW3     Trav        Sprint / Stamina Run            0   0.25      0      0      0    0 0.5 0.5      0      0   0.25   0.25   1
+              TW3     Trav        Swim Surface                 0.25   0.25      0      0      0    0 0.5 0.5      0      0   0.25   0.25   0
+              TW3     Trav        Walk / Jog                      0   0.25      0      0      0    0 0.5 0.5      0      0      0      0   1
+

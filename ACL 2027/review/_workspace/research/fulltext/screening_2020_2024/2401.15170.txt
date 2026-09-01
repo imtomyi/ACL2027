@@ -1,0 +1,608 @@
+                                              Scalable Qualitative Coding with LLMs: Chain-of-Thought
+                                             Reasoning Matches Human Performance in Some Hermeneutic
+                                                                        Tasks
+
+                                                                                       Zackary Okun Dunivin
+                                                                        Center for Complex Networks and Systems Research
+                                                                   Luddy School of Informatics, Computer Science, and Engineering
+                                                                                      Department of Sociology
+                                                                                         Indiana University
+
+
+
+
+arXiv:2401.15170v2 [cs.CL] 12 Feb 2024
+                                                                                      Bloomington, Indiana, US
+                                                                                         zdunivin@iu.edu
+
+
+
+
+                                                                                             A BSTRACT
+                                                  Qualitative coding, or content analysis, extracts meaning from text to discern quantitative patterns
+                                                  across a corpus of texts. Recently, advances in the interpretive abilities of large language models
+                                                  (LLMs) offer potential for automating the coding process (applying category labels to texts), thereby
+                                                  enabling human researchers to concentrate on more creative research aspects, while delegating
+                                                  these interpretive tasks to AI. Our case study comprises a set of socio-historical codes on dense,
+                                                  paragraph-long passages representative of a humanistic study. We show that GPT-4 is capable of
+                                                  human-equivalent interpretations, whereas GPT-3.5 is not. Compared to our human-derived gold
+                                                  standard, GPT-4 delivers excellent intercoder reliability (Cohen’s κ ≥ 0.79) for 3 of 9 codes, and
+                                                  substantial reliability (κ ≥ 0.6) for 8 of 9 codes. In contrast, GPT-3.5 greatly underperforms for
+                                                  all codes (mean(κ) = 0.34; max(κ) = 0.55). Importantly, we find that coding fidelity improves
+                                                  considerably when the LLM is prompted to give rationale justifying its coding decisions (chain-of-
+                                                  thought reasoning). We present these and other findings along with a set of best practices for adapting
+                                                  traditional codebooks for LLMs. Our results indicate that for certain codebooks, state-of-the-art
+                                                  LLMs are already adept at large-scale content analysis. Furthermore, they suggest the next generation
+                                                  of models will likely render AI coding a viable option for a majority of codebooks.
+
+                                         1   Introduction
+
+                                         Text categorization, commonly referred to as content analysis and qualitative coding in the social sciences, plays an
+                                         important role in scholarly research and industrial applications. This process traditionally relies on human expertise
+                                         to interpret the nuanced and often complex meanings embedded in texts [1, 2]. The difficulty lies in the multifaceted
+                                         nature of meaning and the challenge of fitting real-world complexity into discrete categories, even for skilled readers.
+                                         Historically, these challenges have positioned text categorization as a task unsuitable for machine learning approaches
+                                         [3], despite robust attempts [4, 5].
+                                         Recent developments in artificial intelligence, notably the advent of transformers with billions of parameters known as
+                                         large language models (LLMs), have begun to challenge this notion. These models demonstrate increasing capabilities
+                                         in knowledge, interpretation, reasoning, and creativity expressed in natural language, approaching or even surpassing
+                                         human performance [6–8]. The processing speed of artificial intelligence opens up the possibility of categorizing
+                                         vast quantities of text, far exceeding the limitations of human coding teams restricted to smaller samples. Yet, this
+                                         opportunity raises a critical question: how can we ensure and maintain the accuracy of machine categorization at a level
+                                         comparable to human standards?
+                                         This study provides the strongest evidence to date that machines are capable of human-quality interpretations of text
+                                         for the purposes of qualitative coding. Additionally, our report serves as a practical guide to employing LLMs in text
+                                         categorization and as a reference for those encountering machine-assisted qualitative coding in empirical research. We
+                                         contribute to the growing body of work that builds confidence in the rigor of LLM-based text categorization [9–12], a
+
+                                         Code and data available at https://osf.io/k4fg9
+Scalable Content Analysis with LLMs
+
+
+field that will expand as these models continue to evolve. Our report emphasizes the redesign of codebooks—comprising
+category descriptions and coding instructions—specifically for LLMs. We demonstrate how the structure of prompts,
+the specific requests made to the generative model for categorizing passages, significantly impacts coding fidelity. Even
+as these models continue to rapidly improve, we expect most of the principles of prompt design we report will remain
+useful and informative as methodologists explore new models and empiricists automate their coding workflows. Our
+results are presented through narratives detailing our approach and highlighting potential challenges and demonstrated
+by LLM-generated analyses to a human-derived gold standard. A summary of best practices for content analysis with
+an LLM is also presented in tabular format for quick reference.
+Key findings of our study include:
+
+       • GPT-4 exhibits human-equivalent performance with zero-shot prompts. 8 of 9 tasks exceed the 0.6 threshold
+         for substantial agreement using Cohen’s κ. 3 of 9 tasks exceed the 0.75 threshold for excellent agreement.
+
+       • GPT-3.5, when given the same prompts, has an average intercoder reliability of 0.34 across all codes.
+
+       • Codebooks designed for human coders need reworking for LLM application, requiring iterative manual testing
+         to refine phrasing and improve model comprehension.
+
+       • Agreement improves when the LLM provides rationale for code assignments: µ(κ) = 0.68 vs. µ(κ) = 0.59.
+
+       • Agreement improves when presenting each code as a separate prompt, rather than the codebook as a whole:
+         µ(κ) = 0.68 vs. µ(κ) = 0.60.
+
+
+1.1   Automating Content Analysis: Past and Present
+
+Prior work on automating content analysis entailed training machine learning models on large quantities of text.
+Supervised models, typically some form of linear regression, learn to associate text features with user-specified
+categories [13]. This process captures half the traditional human-coded process by using human-derived codes and
+examples, but fails to leverage abstract code descriptions found in a codebook, as well as requiring large quantities
+of human-annotated data. Unsupervised models, such as LDA [14, 15] or BERTTopic [16], develop their own
+categorizations from unlabeled training sets. This process does not require time-intensive labeling, but rarely captures
+the specific categories that a researcher intends to target.
+The latest generation of LLMs (e.g, GPT [17], LLaMa [18], Mistral [19], Claude [20]) differ notably from previous
+machine learning models in that they can perform new tasks specified through natural language prompts. A user can
+specify a task that the model was not trained on, give few (single digit) or no examples, and the model will return output
+conforming to the specifications. Demonstrated successes include computer code generation [21], creative writing [22],
+and quantitative reasoning [23]. We are only beginning to understand and expand upon the limitations of these models.
+By converting natural language requests into highly intelligent output across vast and indeterminate domains, LLMs
+lower the technical barriers to machine learning by making its application more naturalistic and eliminating the need
+for large training data. Beyond this, LLM’s capacities in many domains far exceed the specialized machine learning
+models that preceded them, suggesting that for many applications, including scholarly inquiry, artificial intelligence is
+overwhelmingly more accessible and capable in 2024 than it was just two years prior.
+Early studies of content analysis with LLMs are encouraging. Xiao et al. [9] demonstrate moderate success, Cohen’s
+κ = 0.61 and κ = 0.38, in two linguistic tasks using GPT-3. Chew et al. [10] report high success on many of 19 tasks
+across three datasets, and results that are indistinguishable from random for others. It is difficult to evaluate their results
+due to the choice of Gwet’s AC1, which is biased toward agreement on negative codings rather than positive, whereas
+most standard measures of intercoder reliability do the opposite [24]. However, we commend Chew et al.’s approach to
+adapting codebooks for LLMs, which is communicated with great detail and clarity. A survey of 20 empirical pieces
+reports “mixed-results” of using GPT-3 to automate “text annotation,” a term that ties their framing to “data annotation”,
+labeling data for in machine learning [25], rather than content analysis in the tradition of grounded theory [26].
+We present here three advances to these studies. 1) We report the first methodological account of automating qualitative
+coding using GPT-4, which, along with other recent models, greatly improves upon many of GPT-3’s capabilities
+[19, 27, 28]. 2) We provide the first conclusive evidence that LLMs are capable of human-equivalent performance in
+qualitative coding, and do so on larger passages of text, wherein meaning is often woven through multiple interrelated
+clauses. 3) We demonstrate that GPT is better at interpreting text when it is tasked with justifying its coding decisions
+(chain-of-thought prompting) rather than applying codes without an accompanying explanation.
+
+
+                                                              2
+Scalable Content Analysis with LLMs
+
+
+1.2     Case Study: W.E.B. Du Bois’s Characterization in News Media
+
+In order to present a realistic challenge of using an LLM to do qualitative coding, we make a case study of our own
+work. We adapted a codebook written by the authors to understand how the scholar and activist W.E.B. Du Bois has
+been characterized in news media over time. The codebook is composed of 9 codes in 3 categories. Due to multiple
+layers of agency (who is doing what) and voice (who is saying what), the tasks are difficult even for human interpreters.
+Applying the codes is also complicated because it can be difficult to differentiate Du Bois’s scholarship from his
+political activism, as Du Bois’s theoretical contributions have profound implications for understanding race and the
+social-historical position of Black persons in the United States and beyond, making them powerful activist tools. We
+are particularly interested in understanding how different facets of Du Bois’s activities contributed to his canonization
+in the public imagination as the preeminent figure for understanding Black political struggle. Table 1 gives the codes in
+brief. Complete examples of the original human and modified-for-GPT codebook are included in the appendix.
+The training and test data for our study were random samples of passages from New York Times articles (1970–2023)
+that mention W.E.B. Du Bois. 232 passages were automatically extracted as concurrent paragraphs containing “Du
+Bois”. The average number of words was 94 (σ = 70), and the average number of sentences was 3.75 (σ = 2.88). To
+give a better sense of the size of our passages, this paragraph has 76 words across 4 sentences.
+
+                                      Table 1: Categories and descriptions for 9 codes.
+    Characterization of Du Bois
+
+    Scholar                         Describes Du Bois as a scholar or intellectual.
+    Activist                        Refers to Du Bois’s political or social activism.
+    General Themes
+
+    Monumental Memorialization      Refers to an enduring cultural object named after Du Bois.
+    Mention of Scholarly Work       Mentions or quotes specific academic works by Du Bois.
+    Social/Political Advocacy       Mentions or implies social or political activism, advocacy, or critique.
+    Canonization Processes
+
+    Coalition Building              Refers to Du Bois’s activities with activist or academic organizations.
+    Out of the Mouth of Academics   Describes an academic organization engaging with Du Bois’s legacy.
+    Out of the Mouth of Activists   Describes an activist organization engaging with Du Bois’s legacy.
+    Collective Synecdoche           Mentions Du Bois alongside other figures in order to represent some facet of
+                                    a culture, era, or ideology.
+
+
+
+
+2      Results
+
+2.1     Adapting a Codebook for an LLM
+
+Initially, we developed a codebook for human coders using standard methods. This process involved exploratory reading
+to define and refine codes. Codes were derived to probe particular substantive hypotheses, some of which preceded
+our exploratory reading, and others which resulted from it. We then applied these codes iteratively, adjusting them
+as needed until we achieved high intercoder reliability with a test set. We adapted these code descriptions for use
+with a large language model, evaluating the LLM’s performance on a training set of text passages. Where we found
+ambiguities or deficiencies in the model’s interpretation, we refined the code descriptions accordingly. This iterative
+process of definition, evaluation, and refinement follows Nelson’s Computational Grounded Theory paradigm [4], the
+core of which is common to all qualitative code development processes whether or not coding is automated [26].
+Our experience modifying the code descriptions yielded several key insights related in the following paragraphs. We
+encourage readers interested in a fuller account of this process to read Chew et al.’s study [10] describing their process
+of LLM-Assisted Content Analysis (LACA), which relates a process similar to our own in greater detail.
+
+
+                                                             3
+Scalable Content Analysis with LLMs
+
+
+
+Role            You are tasked with applying qualitative codes to articles, book reviews, and
+Assignment      opinion pieces referencing W.E.B. Du Bois. The purpose of this task is to
+                track how Du Bois is represented in news media over time.
+
+                Below I will explain how to apply the code:
+
+                Title: Monumental Memorialization
+Code            Description: Apply when an enduring cultural object is named after Du Bois.
+Definition      Such objects include prizes/awards, named professorships, buildings or rooms,
+                geographical features, institutes, schools, or activist organizations. Do not
+                apply when Du Bois is mentioned in the title of a book or theater production.
+
+Justification   When you evaluate the passage, provide a justification of why you did or did
+                not apply the code.
+
+                Then list the code in the following fashion if you applied the code:
+
+                Justification: [insert 2-3 sentence rationale for applying the code here]
+
+                Codes Applied:
+                - Scholar
+
+Decision /      Otherwise you can format it like this:
+Formatting
+                Justification: [insert 2-3 sentence rationale for not applying the code here]
+
+                Codes Applied:
+                - None
+
+                Do not write anything in your reply after listing the ``Codes Applied:''
+
+                                     Figure 1: The chain-of-thought prompt sequence.
+
+
+
+LLM-generated rationale are essential for evaluating performance. In adapting the codebook, we wanted to
+understand not just which codes the model struggled to interpret correctly, but what aspects of the code the model
+failed to capture. To achieve this, we structured our prompts to require GPT to justify its decision to apply or not apply
+each code. These rationale were invaluable. They often highlighted parts of the code description that were ambiguous
+or imprecisely defined, leading the model to misinterpret them. Whenever a rationale repeatedly pointed to such an
+issue, we revised the corresponding code. We then retested the passage to check that the code was correctly applied
+and the rationale aligned with our intended interpretation of the code. Sometimes a revision would not improve the
+interpretations for the passages in question; other times it would fix the interpretations for those passages, but would
+introduce new problems in passages which were previously coded correctly.
+Figure 1 demonstrates an effective method of prompting GPT to provide rationale for its code selections. The initial
+instruction is given by the Justification section of the prompt, and solicited again in the Decision/Formatting box.
+
+LLMs require more precise descriptions than do human readers. Human coders do not rely solely on a written
+codebook. Their interpretation of the codes is enriched through the codebook development process, discussions with
+fellow coders, and supplementary oral instructions. An LLM lacks this interactive and historical context and must
+interpret codes entirely from written descriptions. Our work modifying the codebook for GPT revealed information
+that, while implicitly understood by the code developers, wasn’t explicitly stated in the code descriptions. This process
+not only aided in refining the codebook for automated coding, but also improved our own understandings of the codes.
+This ultimately led to clearer definition of the codes, thereby enhancing future manual coding processes as well. Figure
+2 demonstrates how the Monumental Memorialization and Social/Political Advocacy codes were redefined to improve
+GPT’s comprehension.
+Often, we encountered cases where ambiguous phrasing was obvious to humans, but challenging for the LLM. Our
+codebook contains two codes that relate to Du Bois’s reputation among academics and activists. These codes are meant
+to evaluate whether Du Bois appears in a news story because either an academic or activist mentioned him. Initially, we
+titled this code “Academic Repute,” which worked well for human coders. GPT, however, consistently misinterpretted
+
+
+                                                            4
+Scalable Content Analysis with LLMs
+
+
+    Original: Activist
+    Apply when Du Bois is developing activist organizations, giving public speech-
+    es, participating in meetings with politicians and organizers, running for
+    office, promoting a candidate, organization or initiative. Also apply when Du A
+    Bois is explicitly described as an activist or leader.
+
+   Redefined: Activist
+ A Apply this code when Du Bois is explicitly called an "activist" or "leader",
+   or when his political or social activism is either explicitly noted or clearly B
+   implied through context. Examples include being mentioned in the context of
+   leadership, activism, developing activist organizations, giving public speech-
+   es, participating in meetings with politicians and organizers, running for
+   office, or promoting a candidate, organization, or initiative.
+
+
+   Original: Social/Political Activism C
+ D Refers to any form of social or political participation in promoting change in
+   society. Can be used in conjunction with Du Bois’ scholarly work, specifically E
+   when Du Bois’s ideas are used to frame Black political struggle. Can be used
+ F to describe Du Bois’ political work or those who invoke Du Bois in service of G
+   their activism.
+
+   Redefined: Social/Political Advocacy C
+ D This code applies when a passage mentions or implies any form of social or po-
+   litical activism, advocacy, critique, or discourse, including discussions about
+   current or historical social problems. This includes not only direct activism F
+   of Du Bois and others, but also the framing and challenging of social norms,
+ E historical narratives, and racial or cultural identities. Apply this code when
+   Du Bois's work, persona, or ideas are invoked in discussions that critically G
+   engage with Black identity, positionality, or broader systemic circumstances
+   of Black people. Adjacency to other activists, such as inclusion in a list, is H
+   insufficient; advocacy must be explicitly mentioned in the passage.
+
+
+Figure 2: Two examples of prompt redefinition. Colored, alphabetically labeled blocks of text show alterations derived through
+          iterative code refinement. Italics draw attention to direction to constrain interpretive scope to implicit or explicit information.
+
+
+this code as pertaining to Du Bois’s esteem as an academic, rather than among or by academics (the meaning of “among”
+remains ambiguous even here). We tried numerous iterations this code without success. Nevertheless, altering the title
+of the code to the far more literal “Out of the Mouth of Academics” dramatically improved performance, even when
+paired with the original code description. In another case, the code titled “Social/Political Activism” was revised to
+“Social/Political Advocacy” (Figure 2, C) because GPT did not consider social critique to be a form of activism, even
+when it was specifically instructed to.
+We found that words indicating how much the model should draw on context or its own outside knowledge had large
+impacts on the model’s outputs, often to the desired effect. In particular, instructing the model to restrict itself to
+“explicit” meanings, or to draw on “implicit” meanings, often helped the model with part of a code description it had
+struggled with. Figure 2 B and D demonstrate the addition of such verbiage to control scope.
+Both mandatory (do) and prohibitory (do not) phrasing were observed by the model, though mandatory phrasing seemed
+more successful, a finding reported by other researchers [29]. The ordering of directives also impacted how likely the
+model was to follow them. We found that moving a phrase that was ignored in the coding rationale toward the front of
+the definition made the model more likely to follow its specifications, as in Figure 2 A. When a very specific problem
+was observed repeatedly, it was sometimes necessary to add a directive to correct it, as in Figure 2 H.
+
+Prompting for machine-readable output. To fully automate the coding process, model output must be reliably
+readable by a computer. The LLM generates text, which must be interpreted by another script into a data structure, such
+as a table, for further analysis. Instructing exactly how to format the output produced machine-readable results with
+
+
+                                                                     5
+Scalable Content Analysis with LLMs
+
+
+GPT-4 and GPT-3.5. Critically, this involves specifying a tag that the interpreting script locates, after which follows
+a reliably formatted list of codes. The Decision/Formatting component Figure 1 illustrates how to constrain model
+output and produce consistent results across queries. Additionally, because GPT tends to be excessively verbose and
+summarize its output, particularly at higher temperatures, we informed the model that we do not want any output to
+follow the code list.
+
+2.2   Selecting a Model and Writing Prompts for Optimal Performance
+
+Once the code descriptions have been revised for LLM text categorization, numerous other decisions remain about
+how to prompt a model to execute the content analysis. We present these as a separate step for the sake of clarity, but
+in reality, we developed our approach in iteratively and tandem with revising the code descriptions. We hope future
+methodologists and empiricists will benefit from what we learned during this process, and that less exploration of these
+components will be necessary so practitioners can focus on application or exploration of calibrations not explored here.
+We summarize all our recommendations for qualitative coding with an LLM in Table 3.
+There is large and growing body of academic and nonacademic literature on prompt engineering: constructing user-
+defined input to elicit the best model output. In fact, the codebook adaptation in the previous section was in large part an
+exercise in prompt engineering. However, in this second section, prompt engineering refers more to the broader context
+of task description than the code definitions. In this section we report how different prompts influence the quality of
+machine categorization. Additionally we compare performance when the LLM is tasked with assigning each code
+independently to when the model is given the full codebook and assigned with coding all 9 codes as a single task. We
+refer to these as the “Per Code” and “Full Codebook” approach respectively.
+Studies have shown that LLM decision-making improves when the model is prompted to account for its decisions
+[30, 31]. This is generally known as chain-of-thought (CoT) prompting or reasoning, and refers to breaking down
+tasks into specific components, one or more of which involve planning for future steps or reflection on previous ones.
+Our prompts, which can be viewed in full in the appendix, apply chain-of-thought prompting by including 1) a role
+assignment step, informing the machine of its purpose, 2) a task description step, specifying the code definition, 3) a
+justification step, instructing the model to provide a rationale for its decision, and 4) a decision step, wherein the model
+delivers its ultimate analysis in a consistent, machine-readable format. An example of the chain-of-thought prompt
+sequence is given by Figure 1.
+We use zero-shot prompts throughout this study. Zero-shot refers to providing the model only the task description,
+without giving examples of correctly executed responses. Xiao et al. found few-shot prompting improves coding and
+performance on other tasks [9], whereas Chew et al. largely employed zero-shot prompts [10]. Our case study involves
+evaluating paragraph-long passages rather than single clauses. We found that information in the examples was drawn
+upon by the LLM and interfered with its coding decisions. We also found that in Full Codebook prompts, giving
+examples greatly expanded the prompt, negatively impacting results. We suggest that when content is more literary or
+historical, zero-shot prompts are probably preferred, but that most coding tasks will benefit from few-shot prompting as
+demonstrated by the results of many other studies across domains.
+Performance comparisons are relative to the human-derived gold standard hidden from the LLM at all stages of
+development. We used the default settings for the GPT API where temperature is set to 0 and nucleus sampling (top_p)
+is set to 1. We specified the task description as a “system prompt”, and provide each passage as a “user prompt”. A
+system prompt gives the LLM its purpose, clearly specifying the task it is meant to address, whereas a user prompt
+provides the input to which the model responds by generating output. We did not investigate whether intercoder
+agreement suffers with the default system prompt, while combining the task description and passage as a user prompt.
+
+GPT-4 greatly outperforms GPT-3.5. We found that GPT-4 approaches human performance for 3 codes: Activist:
+κ = 0.81; Monumental Memorialization: κ = 1.00; Collective Synecdoche κ = 0.79. GPT-4 prompted for rationale
+provides considerably higher quality code assignments than GPT-3.5, except in the case of the Out of the Mouth of
+Activists code, which no configuration handled well. It is especially notable that GPT-4 and GPT-3.5 differed in their
+most accurately interpreted codes. In the 3 tasks GPT-4 executed best, GPT-3.5’s performance was slightly below its
+own average, mean(κall ) = 0.34 vs. mean(κ) = 0.32.
+
+Coding fidelty improves when codes are presented as individual tasks. We adapted our codebook by presenting
+the entire codebook to GPT along with task instructions. However, we found in testing that performance improved when
+GPT was given each task independently. This “per code” approach was taken by one recent study exploring content
+analysis with non-mutually exclusive codes (permitting multiply coded passages) [10], but not another, which tested
+only two codes [9]. Table 2 compares the GPT-4 performance when presented individual tasks for each code (“Per
+Code”) and when presented all tasks in a single prompt (“Full Codebook”). We found that for the 3 human-equivalent
+
+
+                                                             6
+Scalable Content Analysis with LLMs
+
+
+
+Table 2: Intercoder reliability (Cohen’s κ) for all codes on 111 gold standard passages. Best overall performance is shown in bold.
+         Italics indicate the highest intercoder reliability between pairs with and without prompting for rationale (CoT vs. No CoT);
+         if the pair are equivalent neither is italicized. Two values are considered equivalent if their difference does not exceed 0.02.
+                                                                               GPT-4                              GPT-3.5
+
+                                                              Per Code              Full Codebook                Per Code
+
+                    Code                     Count        CoT          No CoT       CoT        No CoT         CoT        No CoT
+
+     Scholar                                    27        0.61          0.52        0.59         0.42        0.29         0.21
+     Activist                                   23        0.81          0.65        0.67         0.62        0.39         0.32
+     Monumental Memorialization                 13        1.00          0.91        0.75         0.48        0.29         0.31
+     Mention of Scholarly Work                  24        0.71          0.69        0.52         0.44        0.33         0.39
+     Social/Political Advocacy                  51        0.64          0.60        0.60         0.60        0.55         0.51
+     Coalition Building                          9        0.60          0.44        0.43         0.13        0.33         0.17
+     Out of the Mouth of Academics              30        0.63          0.65        0.65         0.62        0.37         0.33
+     Out of the Mouth of Activists              11        0.30          0.09        0.34         0.18        0.21         0.09
+     Collective Synecdoche                      26        0.79          0.78        0.81         0.71        0.27         0.27
+
+     Mean                                       24        0.68          0.59        0.60         0.46        0.34         0.29
+
+
+tasks (Activist, Monumental Memorialization, and Collective Synecdoche) the Per Code performance far exceeded the
+Full Codebook for 2 tasks, and was comparable for 1. For 2 other tasks, Mention of Scholarly Work and Coalition
+Building, we found that the Per Code configuration produced considerably higher agreement, whereas Full Codebook
+performed comparably to the Per Code in the remaining 4 tasks.
+
+Coding fidelity improves when the model is prompted to justify its coding decisions. Consistent with other
+experiments with chain-of-thought (CoT) reasoning in LLMs, we found that coding agreement benefited strongly
+from prompting the model to explain itself [32]. Table 2 shows the effect of prompting for rationale on three pairs
+of conditions: Per Code GPT-4, Full Codebook GPT-4, and Per Code GPT-3.5. We found that across all codes
+and conditions, with one exception, CoT prompting produces higher or equivalent intercoder reliability with the gold
+standard. Using GPT-4, average Per Code agreement improved from 0.59 to 0.68, and average Full Codebook agreement
+improved from 0.46 to 0.60. Furthermore, a majority of pairs showed substantial improvement when the codes were
+assigned after providing reasoning for coding decisions.
+
+3    Discussion
+Determining appropriate domains for LLM-assisted qualitative coding. Previous methods of automated text
+categorization, both supervised and unsupervised, rarely met the standards of traditional social scientists and humanists,
+and were instead generally employed by data scientists. Capturing meaning, particularly complex meaning, through
+machine learning has largely been an elusive goal [3]. Despite our own former skepticism, we predict that LLMs will be
+capable of applying most qualitative codebooks within the year. However, our results show that even within the scope
+of a single codebook, interpretation quality varies. Thus, different disciplines and domains should expect model success
+and the ease of transitioning a codebook to vary considerably. We suspect that more humanistic and “softer” scientific
+approaches will (continue to) be more resistant to machine interpretation than problems posed by scholars who identify
+with “harder” sciences, to say nothing of their ability to convince their peers of its validity. We do not oppose developing
+evaluation benchmarks for qualitative coding to assess which models are adept at what variety of task, but neither do we
+advocate it; meaning is manifold and emergent, and much of its beauty derives from its resistance to reduction and
+definition. Instead, we suggest those who wish to employ an LLM to perform content analysis survey similar attempts
+and simply experiment on their own. The process of discovering triumphs, workarounds, and limitations of working
+with these models was not only fascinating, but tremendously fun.
+
+Practical aspects of transitioning to content analysis with LLMs. While artificial intelligence potentially opens
+up much larger datasets to qualitative scholars, there is still a considerable technical barrier to automating content
+
+
+                                                                   7
+Scalable Content Analysis with LLMs
+
+
+
+                                Table 3: Principles of prompting an LLM for qualitative coding.
+    Task Instructions
+
+    Prompt for Rationale    Model fidelity improves when instructed to justify its coding decisions.
+    One Task Per Code       Model fidelity improves when given each code as a separate task.
+    Brevity                 Shorter task descriptions are more likely to be faithfully executed by the model.
+    Structured Output       Instruct the model to format its output to ensure uniform responses.
+    Code Definitions
+
+    Word Choice             A single high-content word can be changed to align with the LLM’s built-in ontology.
+    Clause Order            Clauses are more likely to be observed when introduced earlier in the code description.
+    Mandates/Prohibitions Both can be effective, but it is easier to get the model to “do” than “do not”.
+    Code Titles             Altering the code title can have a large effect even without altering the definition.
+    Interpretation Scope    Use words like “implicit” and “explicit” when interpretation is too limited or expansive.
+    Chain-of-Thought Prompt Sequence
+
+    1. Role Assignment      Supply the model its purpose, e.g., "You will be applying category labels to passages."
+    2. Code Definition      Provide the code title(s) and description(s).
+    3. Justification        Request that the model provide evidence of its reasoning.
+    4. Decision             Instruct the model to list the codes that apply to the passage in a consistent format.
+
+
+
+
+analysis. Development of an LLM adapted codebook is feasible for anyone regardless of technical skill by interacting
+with an LLM through chat-like Web platforms provided by proprietary model developers. However, systematically
+testing prompts or applying a completed codebook to the full dataset requires moderate skill in writing scripts in a
+language such as Python. Rather than suggest that all scholars become programmers, we encourage researchers to
+develop partnerships with students or community members seeking programming or research experience as a form of
+project-based education. Conversely, we suggest that data scientists pursue partnerships with traditional social scientists
+and humanists, who are often better positioned to develop coding schema to flush out complex meanings embedded in
+text, which are now more tractable to machine learning.
+
+Handling passages where model interpretation is poor. Overwhelmingly, GPT-4’s interpretations were accurate
+and human-like. However, we found repeatedly that GPT-4, like a human reader, struggled with edge cases, especially
+where implicit information was required to make a judgment. We are encouraged by this finding, and argue that with
+automated analysis, fidelity is less important than it is with humans. Because statistical power increases with the
+number of observations, noise is more tolerable in machine-applied codes, as automated coding potentially increases
+sample size by orders of magnitude. Notably, this assumes that error is restricted to edge cases and is not otherwise
+systematically biased. We also advise against automated coding where datasets are small, as in interviews, where
+it is likely as efficient to code entirely by hand. As models improve and can provide confidence estimates for their
+statements [33–35], ML content analysis workflows should include manual review of passages with uncertain code
+assignments. Anecdotally, we found that GPT-4 could intelligently reflect on its responses when prompted to do so.
+When presented the output of another model instance, GPT-4, acting as an untrained “critic” model [36], was often
+able to identify when it had encountered an edge case without prompting, as well as recognize and revise obvious
+mistakes. Our experiences suggest that a human-in-the-loop tag-for-manual-review workflow or a two-step automated
+reflect-and-revise workflow may already be feasible with GPT-4 and similar models.
+
+
+4      Conclusion
+
+Our results using state-of-the-art models lead us to recommend that scholars who do much qualitative coding consider
+automated coding with LLMs a potentially viable option today. We especially encourage skeptics to probe these tools’
+
+
+                                                              8
+Scalable Content Analysis with LLMs
+
+
+capacities, as it is useful to know their limitations. Over the next year, models such as those incorporating memory [37],
+(multi-)agential models that dialogue and revise prior to rendering output [38, 39], and architectures that can handle
+larger inputs [40], will almost certainly greatly improve upon GPT-4’s current abilities. When those models are made
+available, researchers who have already experimented with LLMs will be best positioned to make use of the new tools.
+The efficiency of automation is compelling, but we are most enthusiastic about the ability to probe much larger datasets
+than ever before, potentially illuminating patterns too rare or too fuzzy to detect with a sample numbering in the tens or
+hundreds rather than thousands or beyond.
+
+Acknowledgments
+
+The author thanks Harry Yan, Pat Wall, Patrick Kaminski, Adam Fisch, Alicia Chen, and Francisco Muñoz for their
+helpful comments toward improving this manuscript. I am especially grateful to Tania Ravaei for collaborating on
+codebook development.
+
+References
+ [1] Anselm L Strauss. 1967. The discovery of grounded theory: Strategies for qualitative research. Aldine.
+ [2] Johnny Saldaña. 2009. The coding manual for qualitative researchers. SAGE Publications.
+ [3] Momin M Malik. 2020. A hierarchy of limitations in machine learning. arXiv preprint arXiv:2002.05193.
+ [4] Laura K Nelson. 2017. Computational Grounded Theory: A methodological framework. Sociological Methods &
+     Research, 49(1):3–42.
+ [5] Ankita Dhar, Himadri Mukherjee, Niladri Sekhar Dash, and Kaushik Roy. 2021. Text categorization: past and
+     present. Artificial Intelligence Review, 54:3007–3054.
+ [6] Sébastien Bubeck, Varun Chandrasekaran, Ronen Eldan, Johannes Gehrke, Eric Horvitz, Ece Kamar, Peter Lee,
+     Yin Tat Lee, Yuanzhi Li, Scott Lundberg, et al. 2023. Sparks of artificial general intelligence: Early experiments
+     with GPT-4. arXiv preprint arXiv:2303.12712.
+ [7] Bernardino Romera-Paredes, Mohammadamin Barekatain, Alexander Novikov, Matej Balog, M Pawan Kumar,
+     Emilien Dupont, Francisco JR Ruiz, Jordan S Ellenberg, Pengming Wang, Omar Fawzi, et al. 2023. Mathematical
+     discoveries from program search with large language models. Nature, 625:1–3.
+ [8] Gemini Team, Rohan Anil, Sebastian Borgeaud, Yonghui Wu, Jean-Baptiste Alayrac, Jiahui Yu, Radu Soricut,
+     Johan Schalkwyk, Andrew M Dai, Anja Hauth, et al. 2023. Gemini: A family of highly capable multimodal
+     models. arXiv preprint arXiv:2312.11805.
+ [9] Ziang Xiao, Xingdi Yuan, Q Vera Liao, Rania Abdelghani, and Pierre-Yves Oudeyer. 2023. Supporting qualitative
+     analysis with large language models: Combining codebook with GPT-3 for deductive coding. In Companion
+     Proceedings of the 28th International Conference on Intelligent User Interfaces.
+[10] Robert Chew, John Bollenbacher, Michael Wenger, Jessica Speer, and Annice Kim. 2023. LLM-assisted content
+     analysis: Using large language models to support deductive coding. arXiv preprint arXiv:2306.14924.
+[11] Shih-Chieh Dai, Aiping Xiong, and Lun-Wei Ku. 2023. LLM-in-the-loop: Leveraging large language model for
+     thematic analysis. arXiv preprint arXiv:2310.15100.
+[12] Robert H Tai, Lillian R Bentley, Xin Xia, Jason M Sitt, Sarah C Fankhauser, Ana M Chicas-Mosier, and Barnas G
+     Monteith. 2023. An examination of the use of large language models to aid analysis of textual data. bioRxiv
+     preprint bioRxiv:2023.07.17.549361.
+[13] Ammar Ismael Kadhim. 2019. Survey on supervised machine learning techniques for automatic text classification.
+     Artificial Intelligence Review, 52(1):273–292.
+[14] David M Blei, Andrew Y Ng, and Michael I Jordan. 2003. Latent Dirichlet allocation. Journal of Machine
+     Learning Research, 3(1):993–1022.
+[15] Hamed Jelodar, Yongli Wang, Chi Yuan, Xia Feng, Xiahui Jiang, Yanchao Li, and Liang Zhao. 2019. Latent
+     Dirichlet allocation (LDA) and topic modeling: Models, applications, a survey. Multimedia Tools and Applications,
+     78:15169–15211.
+[16] Maarten Grootendorst. 2022. BERTopic: Neural topic modeling with a class-based TF-IDF procedure. arXiv
+     preprint arXiv:2203.05794.
+
+
+                                                            9
+Scalable Content Analysis with LLMs
+
+
+[17] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind Nee-
+     lakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al. 2020. Language models are few-shot learners.
+     Advances in Neural Information Processing Systems, 33:1877–1901.
+[18] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timothée Lacroix,
+     Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal Azhar, et al. 2023. LLaMa: Open and efficient foundation
+     language models. arXiv preprint arXiv:2302.13971.
+[19] MistralAI. 2023. Mixtral of experts: A high quality sparse mixture-of-experts. https://mistral.ai/news/
+     mixtral-of-experts. Accessed: 2024-01-13.
+[20] Anthropic. 2023. Claude 2. https://www.anthropic.com/index/claude-2. Accessed: 2024-01-18.
+[21] Jan Nowakowski and Jan Keller. 2024. AI-powered patching: The future of automated vulnerability fixes. Google
+     Security Engineering Technical Report.
+[22] Carlos Gómez-Rodríguez and Paul Williams. 2023. A confederacy of models: A comprehensive evaluation of
+     LLMs on creative writing. arXiv preprint arXiv:2310.08433.
+[23] Manon Bischoff. 2024. AI matches the abilities of the best Math Olympians. Scientific American.
+[24] Werner Vach and Oke Gerke. 2023. Gwet’s AC1 is not a substitute for Cohen’s kappa – A comparison of basic
+     properties. MethodsX, 10:102212.
+[25] Etienne Ollion, Rubing Shen, Ana Macanovic, and Arnault Chatelain. 2023. ChatGPT for text annotation? Mind
+     the hype! SocArXiv preprint doi:10.31235/osf.io/x58kn.
+[26] Anselm Strauss and Juliet M Corbin. 1997. Grounded theory in practice. SAGE Publications.
+[27] OpenAI. 2023. GPT-4. https://openai.com/research/gpt-4. Accessed: 2024-01-18.
+[28] Weizhe Yuan, Richard Yuanzhe Pang, Kyunghyun Cho, Sainbayar Sukhbaatar, Jing Xu, and Jason Weston. 2024.
+     Self-rewarding language models. arXiv preprint arXiv:2401.10020.
+[29] Sondos Mahmoud Bsharat, Aidar Myrzakhan, and Zhiqiang Shen. 2023. Principled instructions are all you need
+     for questioning LLaMA-1/2, GPT-3.5/4. arXiv preprint arXiv:2312.16171.
+[30] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou, et al.
+     2022. Chain-of-thought prompting elicits reasoning in large language models. Advances in Neural Information
+     Processing Systems, 35:24824–24837.
+[31] Aman Madaan and Amir Yazdanbakhsh. 2022. Text and patterns: For effective chain of thought, it takes two to
+     tango. arXiv preprint arXiv:2209.07686.
+[32] Zheng Chu, Jingchang Chen, Qianglong Chen, Weijiang Yu, Tao He, Haotian Wang, Weihua Peng, Ming Liu,
+     Bing Qin, and Ting Liu. 2023. A survey of chain of thought reasoning: Advances, frontiers and future. arXiv
+     preprint arXiv:2309.15402.
+[33] Zhen Lin, Shubhendu Trivedi, and Jimeng Sun. 2023. Generating with confidence: Uncertainty quantification for
+     black-box large language models. arXiv preprint arXiv:2305.19187.
+[34] Kaitlyn Zhou, Dan Jurafsky, and Tatsunori Hashimoto. 2023. Navigating the grey area: Expressions of
+     overconfidence and uncertainty in language models. arXiv preprint arXiv:2302.13439.
+[35] Chen, Jiefeng and Yoon, Jinsung. 2024. Introducing ASPIRE for selective prediction in LLMs. https:
+     //blog.research.google/2024/01/introducing-aspire-for-selective.html?m=1. Accessed: 2024-01-
+     20.
+[36] Debjit Paul, Mete Ismayilzada, Maxime Peyrard, Beatriz Borges, Antoine Bosselut, Robert West, and Boi Faltings.
+     2023. REFINER: Reasoning feedback on intermediate representations. arXiv preprint arXiv:2304.01904.
+[37] Noah Shinn, Beck Labash, and Ashwin Gopinath. 2023. Reflexion: An autonomous agent with dynamic memory
+     and self-reflection. arXiv preprint arXiv:2303.11366.
+[38] Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, and Yuan Cao. 2022. ReAct:
+     Synergizing reasoning and acting in language models. arXiv preprint arXiv:2210.03629.
+[39] Zhenran Xu, Senbao Shi, Baotian Hu, Jindi Yu, Dongfang Li, Min Zhang, and Yuxiang Wu. 2023. Towards
+     reasoning in large language models via multi-agent peer review collaboration. arXiv preprint arXiv:2311.08152.
+[40] Albert Gu and Tri Dao. 2023. Mamba: Linear-time sequence modeling with selective state spaces. arXiv preprint
+     arXiv:2312.00752.
+
+
+
+
+                                                        10
+

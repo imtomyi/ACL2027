@@ -1,0 +1,2301 @@
+                                        How can LLMs Support Policy Researchers? Evaluating an
+                                        LLM-Assisted Workflow for Large-Scale Unstructured Data.
+                                        YUHAN LIU, Princeton University, USA
+                                        SHUYAO ZHOU, Princeton University, USA
+                                        JAKOB KAISER, Nuremberg Institute for Market Decisions, Germany
+                                        ELLA COLBY∗ , Princeton University, USA
+                                        JENNIFER OKWARA∗ , Princeton University, USA
+                                        MAGGIE WANG∗ , Princeton University, USA
+
+
+
+
+arXiv:2604.04479v2 [cs.HC] 7 Apr 2026
+                                        VARUN NAGARAJ RAO, Princeton University, USA
+                                        ANDRÉS MONROY-HERNÁNDEZ, Princeton University, USA
+                                        Policy researchers need scalable ways to surface public views, yet they often rely on interviews, listening
+                                        sessions, and surveys—analyzed thematically—that are slow, expensive, and limited in scale and diversity. LLMs
+                                        offer new possibilities for thematic analysis of unstructured text, yet we know little about how LLM-assisted
+                                        workflows perform for policy research. Building on a workflow for LLM-assisted thematic analysis of online
+                                        forums, we conduct a study with 11 policy researchers, who use an early prototype and see it as a quick,
+                                        rough-and-ready input to their research. We then extend and scale the workflow to analyze millions of Reddit
+                                        posts and 1,058 chatbot-led interview transcripts on a policy-relevant topic, treating these sources as rich
+                                        and scalable data for policy discourse. We compare the synthesized themes to those from authoritative policy
+                                        reports, identify points of alignment and divergence, and discuss what this implies for policy researchers
+                                        adopting LLM-assisted workflows.
+                                        CCS Concepts: • Human-centered computing → Empirical studies in collaborative and social comput-
+                                        ing; Social media; Human computer interaction (HCI); • Social and professional topics → Economic
+                                        impact.
+                                        Additional Key Words and Phrases: Policy Research, Reddit, LLMs
+
+                                        1   Introduction
+                                        Policymakers need timely and nuanced insight into how people experience and talk about policy
+                                        issues. They routinely draw on public opinion research, by policy researchers, to inform decisions,
+                                        design programs, and evaluate trade-offs [5, 6, 23, 39, 42, 50, 60]. Policy researchers typically
+                                        work with three main kinds of data sources [14]: primary sources such as surveys, interviews,
+                                        listening sessions, and focus groups; secondary sources such as government statistics (e.g., Bureau
+                                        of Labor Statistics, National Institutes of Health in the U.S.) and think tank reports (e.g., Pew
+                                        Research); and microsimulations that model likely impacts of policy changes. These methods
+                                        are well-established and crucial when policy researchers need population-level estimates and
+                                        demographic breakdowns [2, 13, 58]. Yet they are slow and expensive to run, require substantial
+                                        coordination between participants and human researchers, and often reach only people who
+                                        have the time and resources to participate [26, 33, 55]. As a result, policy memos and briefs may
+                                        miss perspectives from underserved communities, even as initiatives such as the U.S. Office of
+                                        ∗ Authors contributed equally to this research.
+
+
+                                        Authors’ Contact Information: Yuhan Liu, Princeton University, Princeton, New Jersey, USA, yuhanl@princeton.edu;
+                                        Shuyao Zhou, Princeton University, Princeton, New Jersey, USA, sz8740@princeton.edu; Jakob Kaiser, Nuremberg Institute
+                                        for Market Decisions, Nuremberg, Germany; Ella Colby, Princeton University, Princeton, New Jersey, USA, ellacolby@
+                                        princeton.edu; Jennifer Okwara, Princeton University, Princeton, New Jersey, USA, jo4986@princeton.edu; Maggie Wang,
+                                        Princeton University, Princeton, New Jersey, USA, maggiewang@princeton.edu; Varun Nagaraj Rao, Princeton University,
+                                        Princeton, New Jersey, USA, varunrao@princeton.edu; Andrés Monroy-Hernández, Princeton University, Princeton, New
+                                        Jersey, USA, andresmh@princeton.edu.
+2                                                                                              Liu et al.
+
+
+Management and Budget’s Public Participation and Community Engagement effort call for more
+diverse voices in policy processes [55].
+   In parallel, online communities have become a major venue where people discuss policy-relevant
+issues in their own words. Platforms like Reddit host candid conversations about technologies,
+work, health, and public services, often including detailed anecdotes and critical viewpoints that
+can be hard to surface in structured surveys or formal consultations [10, 18, 30, 31, 36, 41, 41].
+These discussions are abundant, relatively inexpensive to collect, and already organized into topical
+communities, making them an attractive potential input for policy research. However, at the
+same time, social media data raise well-known concerns around representativeness, mis- and
+dis-information, consent, and platform governance. User populations are skewed, some groups are
+underrepresented, and access constraints and ethical considerations limit what can be collected and
+reused [15]. As a result, it is unclear when and how analyses of online discussions can complement
+more conventional methods, such as targeted interviews, in ways that are useful and responsible
+for policy work.
+   Recent progress in LLMs offers new tools for working with these growing text corpora. LLMs
+can help researchers organize and summarize large-scale unstructured text, including extracting
+topics and themes from interviews, forums, and other qualitative sources [32, 40, 41, 48, 56]. Rather
+than replacing qualitative methods, LLM-based workflows can reduce manual coding effort and
+make it feasible to incorporate more and larger datasets into early-stage sensemaking. For example,
+QuaLLM is one such LLM-assisted framework that uses a multi-stage prompting pipeline to extract
+themes from unstructured text [40]. These prior works show that this kind of workflow can structure
+online discussions while keeping researchers in the loop. But we know little about how it fits into
+policy research practice, how policy researchers experience it, or how its outputs compare to the
+human-authored reports that currently guide policymakers. Moreover, existing systems are often
+code-centric and were not designed around the needs of non-programmer policy researchers.
+   In this paper, we adapt and extend a QuaLLM-style workflow for the specific needs of policy
+researchers and evaluate it in two studies. Our central research question is: how can an LLM-assisted
+thematic analysis workflow help policy researchers make sense of large-scale unstructured text, and
+how do its outputs relate to the authoritative reports they already trust? We first focus on policy
+researchers as users of such a tool. In Study 1, we implement a user interface on top of the workflow
+that allows researchers: (1) select relevant data sources (currently Reddit communities), (2) define
+high-level themes, and (3) visualize structured reports with subtopics and example quotes. We ask
+11 experienced policy researchers to use the interface to explore two policy-relevant topics (social
+media use by minors and climate change), compare it to their own non-AI research approach under
+time constraints, and reflect on where such a workflow fits into their practice.
+   In Study 1, we find that some policy researchers are skeptical about using social media data,
+in part because platforms are not representative of the wider population and because forum
+discussions tend to cluster around specific communities and concerns. To examine these issues,
+Study 2 holds the policy topic constant—the economic impact of AI—and compares thematic
+analysis results across two sources. On one track, we scale the workflow to identify relevant data
+from Reddit in a large and comprehensive scale. Specifically, we filter from 25,691 subreddits, extract
+122,191 quotes from 5,491,991 associated posts. We then apply the workflow to generate themes
+about AI’s economic impacts. On the other track, we conduct 1,058 semi-structured, chatbot-led
+interviews with a demographically diverse sample of U.S. adults and apply the same workflow to
+the resulting transcripts. We then compare the themes from both sources to the themes extracted
+from authoritative policy reports on AI and the economy.
+   Across both studies, we position the LLM-assisted workflow as a complement to, not a replace-
+ment for, traditional policy research methods, particularly for early-stage topic exploration. Our
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data. 3
+
+
+findings suggest that the workflow can recover many themes emphasized in authoritative reports,
+surface additional community-specific and early-emerging concerns, and help policy experts move
+efficiently from unstructured text to structured overviews—while also revealing important gaps
+related to metadata, representativeness, and trust in AI-generated summaries. In summary, the
+work makes three contributions:
+
+      • We demonstrate how an existing LLM-assisted thematic analysis workflow can be instanti-
+        ated in the context of policy research.
+      • In Study 1, we present an evaluation of the workflow with policy researchers that explores
+        how this workflow fits into existing research practices, how it compares to their own non-AI
+        methods.
+      • In Study 2, we provide a large-scale case study on AI’s economic impacts that applies the
+        workflow to both Reddit discussions and interview transcripts, and compare the resulting
+        themes to authoritative reports, highlighting where the workflow can supplement and
+        extend current policy research methods.
+   Taken together, we offer empirical evidence about when and how LLM-based thematic analysis
+can support early-stage policy sensemaking by evaluating the workflow with policy researchers
+and across multiple data sources, and we surface design and methodological considerations for
+integrating such tools into policy research workflows.
+
+2     Related Work
+2.1    Data Sources of Policy-Relevant Text
+Policy experts have long relied on investigation of public opinion as a source of evidence for policy-
+relevant decision-making [37]. To do so, researchers traditionally employ methods such as surveys,
+opinion polls, listening sessions, and structured interviews, which use standardized instruments
+and sampling strategies to produce representative estimates of population-level attitudes [2, 13, 58].
+These methods play a central role in informing policymaking, shaping market strategies, and
+supporting advocacy efforts [6, 42, 50]. These methods remain essential when decision makers
+need insights into the thinking of the wider population. However, they are expensive, slow to field,
+and constrained by coordination challenges between participants and human interviewers [23]. As
+a result, they are not always well-suited for rapidly evolving topics or for exploring the full range
+of how people talk about an issue.
+   In parallel, the growth of social media and online forums has created new sources of policy-
+relevant discourse [51]. Researchers in HCI, CSCW, and computational social science use platforms
+such as Reddit to analyze people’s perceptions about privacy [36], political acts and policy [10, 30],
+the needs of marginalized groups [41], and responses to new technologies [31]. These platforms
+provide unsolicited narratives, concrete experiences, and sometimes anonymous, critical, or fringe
+viewpoints that can be hard to elicit in structured surveys or interviews.
+   However, using online platforms for policy research also raises practical and ethical challenges
+around data access, consent, and platform governance. Their user bases are imbalanced and non-
+representative of the general population [15]. Moreover, platforms have tightened access to APIs and
+bulk data over time, and researchers must respect evolving terms of service and legal constraints [16,
+38]. Scholars have also highlighted the importance of protecting user privacy, avoiding harm to
+vulnerable communities, and being transparent about data collection and reuse [17, 18, 62]. These
+considerations motivate careful selection of subreddits and posts, as well as anonymization and
+aggregation when presenting quotes. In our work, we treat Reddit as one deliberately filtered source
+of policy-relevant discourse that complements other forms of data rather than replacing them.
+4                                                                                             Liu et al.
+
+
+   Interviews are a valuable way to gather policy-relevant insights alongside demographic informa-
+tion. Recent work has demonstrated the potential of LLM-based chatbots as effective channels for
+collecting interview data [29, 64]. Building on this, researchers have developed tools that leverage
+LLM-based chatbots for large-scale interviews and have shown their utility in qualitative data
+collection [21]. However, conducting traditional thematic analysis on large volumes of interview
+data remains time-consuming and resource-intensive. In this work, we therefore treat chatbot-led
+interviews as a promising data source that provides demographic richness while enabling us to
+examine how an LLM-assisted thematic analysis workflow can support policy research.
+   Taken together, these strands of work suggest a spectrum of data sources for policy-relevant text:
+representative surveys, listening sessions and polls, online forums, and transcripts of interviews.
+Each source offers different strengths and weaknesses in terms of representativeness, depth, and
+logistical cost. In this work, our goal is not to replace those traditional methods or to validate
+whether chatbots are good interviewers. Instead, we combine chatbot-led interviews and
+online forum posts as complementary text sources and focus on how an existing LLM-
+assisted thematic analysis workflow can support early-stage policy sensemaking.
+
+2.2   Computational Methods for Structuring and Analyzing Policy-Relevant Text
+As these diverse channels produce growing volumes of text, researchers have developed com-
+putational methods to organize this material into themes. A long line of work uses non-LLM
+techniques such as topic models and clustering to structure large text corpora into interpretable
+components [3]. In public opinion and policy-adjacent domains, topic models have helped analyze
+social media conversations e.g., Reddit discussions of deepfakes and their societal implications [19].
+These methods can reveal broad topical structures and trends, but they often require substantial
+technical expertise and focus on optimizing statistical properties rather than aligning directly with
+policy researchers’ workflows.
+   Beyond static topic models, interactive and dynamic systems help analysts iteratively surface
+and refine themes in large datasets. Prior work on dynamic surveys, interactive visual analytics,
+and mixed-initiative tools enables users to explore text corpora, adjust topic granularity, and
+incorporate domain expertise into the modeling process [8, 35, 57]. These systems highlight the
+value of keeping human analysts in the loop rather than relying on fully automated pipelines.
+However, they typically target data scientists or visualization experts, and the specific focus on the
+needs and practices of policy researchers is underexplored.
+   LLMs have also been used as instruments in social and HCI research, generating synthetic
+personas or simulated respondents. Recent work evaluates LLM-generated synthetic HCI research
+data [22], examines how LLMs compose persona descriptions [53], and reflects on the challenges
+and opportunities of LLM-based synthetic personae and data [49]. These studies ask whether LLMs
+can stand in for human participants or help researchers reason about different types of respondents.
+Our work takes a different stance: we treat LLMs as tools for structuring human-generated text
+from interviews and forums, rather than as substitutes for people.
+   Recent work in HCI and qualitative methods explores how LLMs can assist with coding, memoing,
+and generating candidate themes from interview or forum data [20, 27, 28, 63]. Closest to our goal,
+we have identified LLM-assisted thematic analysis frameworks that use multi-stage prompts to
+move from unstructured text to topics and themes. Tools such as TopicGPT, DocETL, LLooM
+and QuaLLM show that LLMs can propose topics, cluster documents, and support exploratory
+analysis over large corpora [32, 40, 48, 56]. TopicGPT clusters large corpora into topics and produces
+natural-language topic descriptions, allowing for quick mapping of what people are talking about
+at scale [48]. DocETL operationalizes pre-defined analytical constructs to process various formats
+of data in a repeatable and auditable way [56]. LLooM organizes large collections of unstructured
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data. 5
+
+
+text with interactive, iterative data visualizations [32]. QuaLLM demonstrates how an LLM can
+analyze online discussion forums and extract themes through a multi-phase prompting approach,
+reducing manual coding effort while preserving researcher oversight [40]. These studies highlight
+both the promise of faster analysis and concerns about prompt sensitivity, opacity, and hallucinated
+structure.
+   Despite these advances, many of the LLM-assisted workflows remain code-centric and prompt-
+engineering-heavy, which limits their accessibility for policy practitioners. Some systems require
+users to write scripts, manage APIs, or tune prompts manually; others, such as Reddit Answers
+and The Giga Brain, expose LLM-powered search over forums but do not give users fine-grained
+control over data sources or analysis stages12 . Tools that provide a workflow that non-programmer
+policy researchers can adopt, inspect, and critique are underexplored. Moreover, prior work has
+not evaluated how an LLM-assisted thematic analysis framework fits into real policy research or
+how its outputs compare to authoritative reports that currently guide policy making.
+   Taken together, prior research offers strong building blocks for LLM-based computational analysis
+of policy-relevant unstructured text. However, we still lack evidence on whether an LLM-assisted
+text analysis framework can help policy researchers make sense of interview transcripts and
+forum data, or how its outputs compare to authoritative reports. In this paper, we extend and
+apply QuaLLM in a policy context, and evaluate its use through a formative study with
+policy researchers and a case study on AI’s economic impacts that compares its outputs
+to existing authoritative policy reports. Design considerations of choosing QuaLLM are
+illustrated in the next section. We’ll also discuss implications and broader generalizations
+of LLM-assisted frameworks later in this paper.
+
+
+3     Workflow
+3.1    Design Goals
+We derived our design goals from two inputs: first, we drew on our team’s policy research experience.
+Second, we drew on federal guidance and law that emphasize building evidence for policymaking
+and improving how agencies learn from public participation and lived experience [43, 44, 61].
+Together, these inputs informed the design of an LLM-assisted workflow intended to support
+early-stage policy sensemaking. Specifically, we articulate the following design goals:
+     • Rapid scoping under tight timelines. The workflow should transform large volumes
+        of unstructured text into a structured, survey-like map of concerns and their relative
+        prevalence, enabling researchers to quickly orient themselves and identify directions for
+        further investigation.
+     • Scaling to naturally occurring discussion. The workflow should ingest and synthesize
+        public discourse at scale, summarizing it into concerns and themes. This provides a com-
+        plementary evidence stream when traditional methods such as interviews or surveys are
+        infeasible due to time, cost, or access constraints.
+     • Source-aware interpretation. The workflow should make data sources explicit and easy
+        to change, presenting results as reflective of a specific community or corpus rather than the
+        general public.
+     • Prevalence-guided prioritization The workflow should surface which concerns appear
+        most prevalent within the selected source, supporting triage, agenda-setting, and the priori-
+        tization of follow-up research or engagement.
+1 https://www.reddit.com/answers/
+2 https://thegigabrain.com/feed
+6                                                                                                                  Liu et al.
+
+
+    Design     Goals   TopicGPT [48]                     LLooM [32]                          QuaLLM [40]
+    (Section 3.1)
+
+    Rapid scoping      Partial. Efficient for generat-   Partial. Runs quickly, but pro-     Strong. Produces a quick
+    under     tight    ing and assigning topics, but     ducing a policy-ready concern       draft of prioritized list of
+    timelines          translating them to themes        summary can require repeated        themes and sub-themes.
+                       and sub-themes still requires     human refinement of concepts
+                       additional human interpreta-      across several iterations.
+                       tion time.
+
+    Scaling to nat-    Partial. Scales via sample-       Strong. Built for large-scale       Strong. Demonstrated at
+    urally occurring   based topic generation plus       text: distills evidence into con-   scale (e.g., >1M comments)
+    discussion         corpus-wide assignment, but       cepts and applies/scores them       and explicitly supports ex-
+                       is geared toward topic discov-    across the dataset.                 tracting, aggregating, and
+                       ery rather than end-to-end                                            quantifying concerns.
+                       concerns synthesis.
+
+    Source-aware in-   Partial. Can run on any corpus,   Strong. Compares con-               Strong. Frames outputs as
+    terpretation       but does not explicitly frame     cept    prevalence across           tied to the selected forum/-
+                       results as community/source-      user-defined slices (e.g.,          community, not population-
+                       specific in the output struc-     source/subgroup)    using           representative.
+                       ture.                             metadata.
+
+    Prevalence-        Partial. Can filter rare topics   Strong. Makes prioritization        Strong. Produces prevalence-
+    guided prioriti-   and report frequencies, but       explicit via prevalence visu-       ranked sub-themes from ag-
+    zation             does not foreground ranked        alizations across slices (what      gregated quote-level evidence.
+                       concerns for triage.              matters most, where).
+
+    Human      over-   Partial. Allows steering (ex-     Strong. Keeps humans in the         Strong. Requires human-
+    sight and policy   amples/edits), but offers fewer   loop via editable concepts and      defined framing and exposes
+    framing            explicit checkpoints for pre-     explicit inclusion criteria (ad-    inspectable intermediate arti-
+                       specifying framing and audit-     d/edit/merge/split).                facts that constrain synthesis
+                       ing intermediates.                                                    to the policy question.
+Table 1. Comparison of TopicGPT, LLooM, and QuaLLM against our Section 3.1 design goals. QuaLLM
+best matches our goal of producing a source-specific, prevalence-aware, survey-like map of concerns while
+preserving explicit points of human framing and oversight.
+
+
+
+
+       • Human oversight and policy framing. The workflow should include clear points where
+         researchers define scope, framing prior to reviewing results, ensuring outputs remain aligned
+         with a policy question rather than producing unconstrained or decontextualized topics.
+
+Our five goals require a workflow that rapidly converts naturally occurring public discourse into a
+structured, source-specific map of concerns with prevalence signals, while preserving clear points
+for human framing and oversight. We build on QuaLLM [40] because it was designed to extract
+survey-like themes from unstructured text, estimate prevalence through quote-to-theme mappings,
+and keep analysis interpretable through explicit intermediate artifacts. It is also modular and
+easily adaptable to specific uses. To justify this choice, we also explicitly compare QuaLLM to
+TopicGPT[48] and LLooM[32]—two closely related LLM-assisted frameworks that also make sense
+of large-scale unstructured text. Table 1 shows how TopicGPT, LLooM, and QuaLLM align with
+our five design criteria, and why QuaLLM best fits our needs. We therefore use QuaLLM as the
+thematic analysis component of our workflow.
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data. 7
+
+
+3.2      Workflow Overview
+In this work, we develop a workflow that adapts an existing LLM-based thematic analysis work-
+flow(QuaLLM) for application in policy research [40]. The workflow comprises four stages: data
+collection, quote extraction, thematic analysis, and report generation. The fist stage involves select-
+ing appropriate data sources for the research topic. The quote extraction stage focuses on extracting
+topic-relevant quotes from given data sources. The thematic analysis stage derives themes from
+these unstructured texts and ranks the representative ones after mapping each quote to its corre-
+sponding theme [40]. Finally, the workflow generates a report to provide policy researchers with
+an interpretable synthesis of the underlying data. Figure 1 shows the overview of the workflow.
+
+
+                                                                                       population
+                                                                                       relevance (0-5)
+                                             # of members
+                                                                                                                                       Recruit participants
+                                             language
+
+                                             over18 label
+
+                                             description                                content             refine the                                                       Design protocol
+                                                                                      relevance (0-5)        prompt                                 Researchers filter
+                                                                                                                                                                            and integrate into
+                                                                                                                                                                                 chatbot
+                                                                                                                                                     out subreddits
+                                    Collect metadata                                                                              LLM codes             with low
+   User select/upload data                                          LLM and researcher code relevance for sampled              relevance for all       relevance
+                                     of subreddits                  subreddits separately and revise the LLM prompt               subreddits                               Process chats data
+                                                                                                                                                                                                 Chatbot conducts
+                                                                                until consensus reached                                                                                             interviews
+
+
+                                                                                              Data Collection
+
+
+
+                        LLM extracts quotes                  Generate High-Level                    Classify Quotes to 
+                     Aggregate
+                     Calculate prevalence
+                        from a small sample
+                      Themes                         High-Level Theme Groups               Quotes into Sub-Themes
+                       Researcher review the
+                          extracted quotes
+                                                              High-Level Theme 1                                                                                         Theme 1
+                                                                                                                                             Quote 1
+                                                                                                          High-Level Theme 1                 Quote 2                     Theme 2
+                       Extract quotes from
+                        the whole dataset
+                                                              High-Level Theme 2
+
+                                                              High-Level Theme 3
+                                                                                                                                             Quote 3 Quote 1
+                                                                                                                                                     Quote 2                ...
+                            using LLM                                                                     High-Level Theme 2
+                                                                                                                                                     Quote 3             Theme X
+
+
+         Quote Extraction                                                                                                Thematic Analysis
+
+
+
+                                                                                                         Final Report
+                                                                                               Report Generation
+
+Fig. 1. Overview of the Workflow. The workflow comprises four stages, where the two stages(Quote Extraction
+and Thematic Analysis) are adapted from an existing LLM-based thematic analysis workflow called QuaLLM.
+We demonstrated details of each stage in Sections 3.1, 3.2, 3.3, and 3.4 respectively.
+
+
+3.2.1 Data Collection. Data collection involves selecting appropriate data sources for a given
+policy topic and gathering relevant content from those sources. This process can be adjusted based
+on constraints such as time, budget, and available resources. In this work, we present three example
+data collection approaches that vary in scale and degree of human involvement. In Study 1, we
+pre-downloaded data from multiple subreddits on Reddit and asked participants to manually select
+one subreddit. In Study 2, we designed semi-automated approaches in which an LLM collects data
+8                                                                                               Liu et al.
+
+
+based on predefined instructions, with human involved for tuning. Further details of each data
+collection method are described in the corresponding study sections.
+
+3.2.2 Quote Extraction. In this section, we demonstrate the procedure of quote extraction from
+online forums using a Reddit dataset.
+
+   The Reddit Dataset. Due to its vast user base, Reddit is a valuable source for gauging public
+sentiment on policy-relevant topics. Its anonymity-driven candid discussions and specialized
+subreddit communities facilitate rich contextual data and longitudinal analysis of public opinion
+[7, 18, 24, 41, 65]. Furthermore, comprehensive data is easily and publicly accessible. We used Reddit
+data from The Eye3 Reddit archive (Study 1) and Academic Torrents4 (Study 2), which contains
+submissions (the original posts that initiate threads in subreddits, consisting of a title with optional
+text, link, or media) and comments (responses to submissions or other comments that form threaded
+discussions). In the studies presented in this work, we downloaded and selected subreddits related
+to our research topics, with the specific selection procedures described in detail in Sections 4 and 5,
+respectively.
+
+   Data Processing and Quote Extraction from Reddit. We organized the downloaded subreddit files
+into structured JSON formats. Each entry represented a discussion with four fields: submission
+ID, submission title, submission body, and a sequential list of comments. See the annotation in
+Figure 2 for an example. We stored comments in linear order without nesting, which sacrificed
+some relational context but made processing more efficient. We then fed each entry into the LLM
+with instructions to extract quotes relevant to the research topic. For every extracted quote, the
+output JSON includes the submission ID, submission title, and a summary of the submission body
+to provide context. To validate the LLM’s performance and reduce hallucination [25], we randomly
+sampled 10 subreddits and 100 entries from each (1,000 discussions in total) in each iteration. The
+LLM extracted relevant quotes from these samples, and one researcher manually reviewed the
+results to check that each quote matched the original sentence. The researcher kept randomly
+sampling and refining the prompt through multiple iterations until the extractions reached over 70%
+agreement on relevance. Details of the LLM prompts used in this stage are attached in Appendix 9
+
+3.2.3 Thematic Analysis. Following the QuaLLM [40], our workflow started with defining high-
+level themes of the selected research topic. Then we used LLM to categorize quotes into each
+high-level theme group. Within each group of quotes, we then leveraged LLM to extract themes
+in a bottom-up manner. Next, we instructed the LLM to map each quote to its appropriate theme.
+Within each high-level theme group, we count the number of quotes for each theme and find the
+representative themes. Emphasizing a stepwise policy research workflow, each prompt is engineered
+to support policy-focused analytical objectives. We detail our prompt engineering approach for
+each step in Appendix 9.
+
+3.2.4 Report Generation. In this stage, we generate a report with high-level themes, description
+of themes (generated by LLM), and representative quotes. To validate the integrity of the outputs,
+in this work, two researchers manually reviewed every theme in every report, along with three
+randomly sampled quotes mapped to it to confirm that the quotes were drawn from the original
+dataset and were not fabricated by the LLM.
+
+
+3 https://the-eye.eu/redarcs/
+4 https://academictorrents.com/
+                9/3/25, 9:44 PM                       Do you think the tech market is showing signs of improvement in the U.S., and will it get better in 2026? : r/cscareers
+
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data. 9
+
+
+                                                                                                                                                submission title
+
+
+
+
+                                                                                                                                                submission body
+
+
+
+
+                                                                                                                                                  comment
+
+
+
+
+                                                                                                                                                  comment
+
+
+
+
+                                                                                                                                                  comment
+
+
+
+
+                                      Fig. 2. Example of a discussion in r/cscareers subreddit
+
+
+4     Study 1: An Evaluation of the Workflow With Policy Researchers Using Limited
+      Online Forum Discussions
+To evaluate how LLM-assisted tools can support policy researchers, we implemented a user interface
+                https://www.reddit.com/r/cscareers/comments/1m543ec/do_you_think_the_tech_market_is_showing_signs_of/                                                           1/16
+on top of the workflow (see Figure 3 for a high level overview of the user interaction) and conducted
+a user study with N=11 policy researchers. We now discuss the methods and findings from the user
+study.
+
+4.1    User Interface Implementation
+4.1.1 Data Source Selection. Users specify a policy domain (e.g., “Climate Change”) and select
+relevant data sources. The system uses an LLM to match topics with policy-relevant online com-
+munities, currently providing options from subreddit forums but designed for expansion to other
+platforms and alternative data sources (Figure 4, View 1).
+4.1.2 Theme Generation. The workflow identifies high-level themes within the selected data source.
+Users can explore suggested themes or perform custom searches based on their own research needs
+(Figure 4, View 2).
+4.1.3 Report Generation. For each selected or entered theme, the workflow processes data through
+a series of prompts. This multi-stage pipeline ensures structured, concise insights tailored for policy
+research. Specifically:
+      • Relevant quotes of people’s actual experiences and anecdotes are extracted using a Quote
+        Extraction prompt designed to minimize bias.
+      • Aggregated quotes are analyzed to identify subtopics (Figure 4: View 3).
+10                                                                                                                           Liu et al.
+
+
+
+
+                                     User Input            Backend                    System Output
+
+                                                                                   r/Climate      globalclimateforum.org
+                                    Climate Change
+                                                                                  r/ClimateActionPlan       Climate.gov
+                   Action           Enter research      Identify relevant               Recommended
+                                      domain                datasets                       datasets
+
+                                                                                   Rising        Carbon         Mitigation
+                                        r/Climate                                Sea Levels     Emissions       Strategies
+
+                   Action                                                                       Theme
+                                    Select/Upload       Analyze for high-
+                                      dataset(s)          level themes                        suggestions
+
+
+                                         Carbon
+                                        Emissions
+                   Action                             Extract quotes, generate
+                                    Choose/Define    subtopics, then map each           Downloadable
+                                       theme            quote accordingly                  report
+
+
+
+Fig. 3. Illustration of How User Interact with the Workflow in This Study. Action 1: The user enters a policy-
+relevant topic (left), prompting the backend (center) to identify relevant datasets, which the system (right)
+then presents as recommendations. Action 2: The user selects or uploads the dataset(s), triggering the backend
+to analyze for high-level themes, and the system outputs theme suggestions. Action 3: The user chooses or
+defines a final theme, prompting the backend to extract relevant quotes, generate subtopics, and map each
+quote accordingly, resulting in a downloadable report.
+
+
+     • Quotes are mapped to appropriate subtopics to ensure structured organization.
+     • Concise summaries (5–6 words) are generated for enhanced readability (Figure 4: View 4).
+     • A final downloadable report is created for offline analysis.
+  The system processes approximately 1,000 quotes per 10 minutes, caching results for immediate
+access on subsequent views (detailed prompts in Appendix 9).
+4.1.4 Implementation Details. We used RESTful APIs to orchestrate interactions between the
+frontend user interface and the workflow. Figure 4 shows the screenshots of the user interfaces. The
+core functionality of the implementation includes data preprocessing through Pandas, caching for
+iterative analysis, and JSONL-based storage for structured reports. While currently leveraging The
+Eye Reddit archive, the modular architecture supports structured processing of any user-uploaded
+dataset. Furthermore, this allows the user agency over data sources, which current LLM-wrapper
+tools such as Reddit Answers5 and The Giga Brain6 do not allow. This is especially important for
+policy researchers looking to explore public sentiment using only specific data sources they deem
+to satisfy their requirements.
+   The initial script that handles downloaded data scraped from The Eye aggregates posts and their
+associated comments into unified discussion threads to preserve contextual coherence, ensuring
+that analyses accurately reflect the temporal order of public discourse. The output raw data is
+stored in CSV format to optimize access and preprocessing efficiency. The Flask backend processes
+this raw data with the workflow described in the previous section.
+
+4.2    Method
+Figure 5 shows an overview of the study procedure. We recruited 11 experienced policy researchers
+to evaluate the workflow through comparative analysis with participants’ own non-AI expert
+5 https://www.reddit.com/answers/
+6 https://thegigabrain.com/feed
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.11
+
+
+
+
+                                                                 High-level theme
+                                           Action
+
+
+
+
+                                                 Action                                            Action
+
+
+
+
+                                                       View 1                                               View 2
+
+
+
+
+                                           Downloadable Report
+                                                                                    Summary
+                                Subtopic
+
+
+
+
+                                                                                          User quotes
+
+
+
+
+                                                       View 3                                               View 4
+
+
+
+Fig. 4. Screenshots of the User Interface in this study. View 1 shows the interface. This view prompts users to
+input a research domain for analysis (Action 1) and select a data source (Action 2). View 2 shows high-level
+themes in the workflow interface. The user can then select or search for a primary research topic (Action 3).
+View 3 shows the final Report View of the interface, displaying all subtopics identified from the data source
+and quote counts. View 4 shows examples of 5-6 word summaries beneath the subtopic and a couple of fully
+displayed quotes on which the summaries are based.
+
+
+
+
+Fig. 5. Timeline of the User Study. This figure illustrates the four-phase research method comparing AI-
+assisted and participants’ own non-AI expert approach. The process begins with an interview and tutorial,
+followed by two sequential research parts randomized based on topic (Climate Change or Social Media &
+Kids) and method (with the workflow or own non-AI expert approach), and concludes with a retrospective
+survey and interview. Each research phase is allocated 10-15 minutes, with participants documenting both
+quantitative and qualitative findings using standardized interviewee report templates throughout the process.
+
+
+approaches. Basic information of the participants is shown in Table 2. During 45-60-minute inter-
+views, participants first completed a pre-task survey assessing their policy research experience,
+followed by a structured comparison task. Participants were randomly divided into two groups
+based on the order of topics they would research. Within each group, they were further divided
+based on the order of methods used (workflow vs. participants’ own non-AI expert approach).
+12                                                                                                   Liu et al.
+
+
+ PID Job and Position                                         Expertise                                 Education
+ 1   Deputy Director of Policy & Strategy at a pedi-          Health policy                             MS
+     atric research organization
+ 2   Research Director at a university public policy          Media and social influences               PhD
+     center
+ 3   Postdoctoral Research Associate at educa-                Education policy                          PhD
+     tion/public affairs institutes
+ 4   Strategic management lead at a philanthropic             Medicaid policy                           MS
+     policy organization
+ 5   Social impact professional and federal agency            Global anti-poverty policy                MS
+     fellow in energy/international affairs
+ 6   Lead Economist at a national central banking             Public finance policy                     MS
+     institution
+ 7   Professor at a public affairs and administration         Public policy and administration          PhD
+     school
+ 8   Deputy Chief of Staff for Economic Growth in a           State economic policy                     MS
+     U.S. state government
+ 9   Policy Advisor in a U.S. state governor’s office   Health and Human Services pol- MS
+                                                        icy
+ 10    Former federal advisory board policy analyst and Domestic policy                MS
+       communications officer
+ 11    University Professor; former Dean of a public Public budgeting and finance      PhD
+       affairs school
+        Table 2. Job, Position, Expertise and Education of the Policy Researchers in the Interview
+
+
+
+
+This organizational structure helped to control for order effects, such as practice or fatigue, which
+could influence participants’ performance depending on the sequence of tasks. Each participant
+spent 10-15 minutes researching one of two randomly assigned topics using one method and then
+switched to the other method for the second topic. For both topics, they recorded themes and
+anecdotal evidence in standardized worksheets (see Appendix C.4), enabling a direct comparison of
+research efficiency and effectiveness.
+   We audio-recorded and transcribed all interviews, then conducted thematic analysis using open
+coding. We coded the transcripts to identify recurring themes and patterns in user feedback. We
+iteratively refined these codes through discussion until reaching consensus, then grouped them
+into higher-level themes. This analysis revealed three primary themes: enhancement of traditional
+methods, interface design benefits, and areas for improvement.
+   Post-task Likert-scale surveys measured user experience and perceived benefits across multiple
+dimensions, including speed, breadth of perspectives, anecdote discovery, data quality, and ease
+of analysis. Participants also reflected on how the workflow compares to and may complement
+surveys, interviews, and listening sessions. We quantitatively analyzed the worksheet data to
+compare the number of themes gathered within the time constraint across both methods. The study
+was approved by our institution’s IRB.
+
+4.3   Findings
+4.3.1 The Workflow Enhances Traditional Research Methods While Reducing Resource Requirements.
+The workflow complements existing policy research methods by providing a cost-effective and
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.13
+
+
+
+                       Speed of Data Collection       Negative (1 2)                                  7
+                                                      Neutral (3)
+                                                      Positive (4 5)
+                        Breadth of Perspectives                            1                     6
+
+                         Quantity of Anecdotes                                                        9
+
+                               Quality of Data              7
+
+                               Ease of Analysis                                                       8
+
+                                                  8   6         4      2       0         2        4       6   8
+                                                                           Number of Participants
+
+
+Fig. 6. This diverging stacked bar chart breaks down Likert scale responses (1-5) into three groups (negative,
+neutral, positive) with the y-axis representing one question from our survey. The length of each colored
+segment indicates how many of our evaluation participants chose that group. The further left the red bar
+extends, the more negative; the further right the green bar extends, the more positive. The gray area indicates
+the number of neutral participants. Notably, most participants found the quantity of anecdotes and ease of
+analysis provided by the workflow a key strength, but the data quality a major place for improvement.
+
+
+
+
+Fig. 7. This bar chart shows the average number of themes gathered across the two research topics—Climate
+Change and Social Media & Kids—using two research methods, the workflow and non-AI expert approach. As
+we can see, even in a limited study duration, using the workflow, on average, allowed participants to collect a
+higher number of themes for both topics, pointing to the process being an order of magnitude faster.
+
+
+time-efficient solution. Figure 6 demonstrates that 7/11 (64%) of participants rated workflow’s
+speed and efficiency positively. Furthermore, participants on average collected 2 more themes
+during the study period compared to their own non-AI expert approach as seen in Figure 7. With
+regards to costs, participants told us that listening sessions and surveys cost between $4,000-$80,000
+respectively, while workflow can operate at much more reduced cost(less than $1,000 using Azure
+OpenAI API). Beyond financial benefits, P2 also told us the tool accelerates the public opinion
+gathering stage, which comprises 10% of the policy research process: “Your tool is definitely faster
+than what we could produce in a survey because we would be surveying hundreds of people” (P2).
+   The workflow also excels at capturing a broader range of public opinions compared to traditional
+methods. While conventional approaches exhibit inherent biases toward participants with time
+and resources, the workflow leverages online forums to expand demographic representation. One
+participant highlighted this advantage, stating “Most issues are not very researched in terms of polls
+and surveys. So this tool could become more versatile” (P6). However, two users noted potential
+population bias favoring younger, internet-savvy generations, supporting the workflow’s role as a
+supplementary rather than a replacement tool.
+14                                                                                               Liu et al.
+
+
+   All participants believe the workflow would integrate effectively into the existing research
+pipelines, particularly in early stages. Specifically, they explained the typical policy research
+pipeline, which starts with background research, consulting existing surveys from think tanks like
+Pew Research or other governmental agencies and databases, engaging subject matter experts, and
+finally conducting new surveys or listening sessions – a process spanning 3-4 months. Participants
+felt that our tool proved especially valuable for researchers less familiar with topics, as its thematic
+layout facilitates rapid understanding. As one participant commented, “I would use your tool to
+jump start the research process” (P8).
+
+4.3.2 AI Integration and Interface Design Facilitate Objective Data Analysis. Despite initial AI skep-
+ticism, participants found that the workflow’s AI backend actually reduces bias in data presentation.
+Specifically, they felt the thematic categorization limits selection bias, particularly benefiting re-
+searchers already familiar with topics. And, the interface effectively presents qualitative data,
+making non-statistical information more accessible. One participant emphasized this benefit: “The
+surveys would say X percent of parents think that students shouldn’t use social media. But then you
+wouldn’t get more of the reasoning behind. And I’ve struggled with this in my previous position in
+policy research” (P10).
+   The raw user data, presented as Reddit quotes, distinguishes workflow from non-AI expert
+research. One participant noted, “So you know the sense I’m getting is that your tool [is] actually giving
+us...a little insight into what people are actually saying, as opposed to what people are summarizing
+about it” (P2). The interface’s efficiency impressed participants, with one stating, “I didn’t have to
+read a bunch of stuff that I wasn’t interested in reading” (P11).
+   The tool also excels at revealing unexpected insights compared to participants’ own non-AI
+expert methods. As one participant observed, “For unexpected themes I think it’s much easier with
+your tool than with traditional methods” (P7). They also felt that the workflow facilitates access to
+otherwise hard-to-reach data and anecdotes, enhancing both accessibility and perspective diversity.
+The Likert scale responses in Figure 6 validate these qualitative observations, with 8/11 (73%) of
+participants rating the workflow’s ease of analysis positively. Additionally, participants consistently
+gathered more themes using tue workflow across both research topics (Figure 7), supporting their
+feedback about improved access to diverse data.
+
+4.3.3 Areas for Enhancement Focus on Metadata and Trust Building. Participants identified several
+opportunities for improvement, primarily centered around metadata enhancement. These concerns
+are reflected in the quantitative data, where data quality received the lowest positive ratings among
+all measured dimensions in Figure 6. Diving deeper through retrospective interviews, participants
+desired demographic information, including geographic, racial, and gender breakdowns, to assess
+dataset representation. As one participant suggested, “Do try to categorize Reddit users into some of
+those demographic data...that’s the kind of thing that I would be really interested in” (P4).
+   The interface requires refinement in data presentation. Participants requested more intuitive
+quantitative representations, with one noting, “Sometimes it’s helpful to have kind of the quantitative
+score of how that theme ranks, or what percentage” (P7). Additional suggestions include improved
+scrolling functionality, reduced quote redundancy, and clearer theme hierarchy labeling.
+   Finally, two fundamental challenges emerged: inherent AI distrust and limited solution-oriented
+content. One participant noted, “People using it for professional research are not necessarily very
+trusting of it, myself included” (P4) with “it” referring to AI. Participants suggested linking original
+Reddit posts to build credibility. The scarcity of actionable solutions stems from the nature of
+informal forum discussions, which rarely propose concrete policy measures.
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.15
+
+
+5     Study 2: An Evaluation of the Workflow Against Authoritative Reports Using
+      Large-Scale Online Forum Discussions and Interview Transcripts
+In Study 1, policy researchers found the workflow fast and useful, but they raised three concrete
+concerns: 1) they lacked demographic and other metadata needed to understand who the Reddit
+quotes were coming from; 2) they worried that a small, hand-picked set of subreddits would
+overrepresent younger, internet-savvy users; and 3) they remained cautious about trusting AI-
+generated summaries without stronger ways to check or validate them.
+   In Study 2, we keep the same LLM-assisted workflow but extend our evaluation to address these
+points: 1) acknowledging the limitation of anonymity in Reddit data, we apply the workflow to data
+collected using traditional methods (interviews) with full demographic information, showcasing its
+ability to process heterogeneous data formats and contexts. This shows that the workflow remains
+useful when researchers prefer or require traditional data sources. Specifically, we add 1,058
+semi-structured, chatbot-led interviews with U.S. adults for whom we obtained full demographic
+information. 2) We scale from a handful of forums to a systematically selected set of subreddits
+drawn from the 40,000 largest communities using subreddit-level metadata and LLM-assisted
+screening. 3) We assess the reliability and coverage of the workflow’s outputs by comparing its
+generated themes against themes manually extracted from six authoritative reports on AI and the
+economy, using these reports as an external reference point. Figure 8 provides an overview of the
+evaluation.
+
+    Selected
+ subreddits                                                                              Curate a list of
+                                                                                         authoritative reports
+
+
+                                                                                         Manually read and
+                                                 compare
+                                                                                         extract themes
+                                                                 Theme list
+ Interviews
+                                                                                Researcher extract themes from
+Data Sources      Workflow       Theme report                                        authoritative reports
+
+
+
+Fig. 8. Overview of the evaluation in Study 2. We extend the QuaLLM-assisted thematic analysis workflow
+to two inputs: (1) Reddit discussions and (2) Chatbot-led interviews with U.S. adults. The workflow applies
+the same LLM-assisted pipeline to Reddit and interview data to generate theme reports, while a researcher
+manually reads the policy reports to extract a reference list of themes. We then compare the LLM-generated
+theme lists and reports against this reference set to evaluate the coverage and alignment of the workflow’s
+outputs.
+
+
+5.1      Methods
+5.1.1     Data Source: Reddit.
+   Data Preparation. In this study, we used a large open Reddit dataset from Academic Torrents that
+contains submissions and comments from the top 40,000 subreddits in Reddit’s history (2005-06
+to 2024-12).To scale up upon the Study 1, we added an additional step to select more subreddits
+that well-suited for the broader research topic. As illustrated in Figure 9, we started with collecting
+additional metadata for each subreddit through the Reddit API, including the number of members,
+primary language, the over18 label (whether the subreddit contains adult-only content), and the
+public description section (a short description provided by moderators that explains the subreddit’s
+purpose, rules, or focus).
+   We excluded subreddits that contains adult-only content and those whose primary language
+was not English, resulting in 25,691 subreddits. To avoid sampling from niche communities, we
+16                                                                                                         Liu et al.
+
+
+
+                                              population
+
+                                              relevance (0-5)
+
+          # of members
+
+
+           language
+
+
+           over18 label
+
+
+           description                                          refine the
+                                              content
+
+                                             relevance (0-5)     prompt
+                                                                                                 Researchers filter
+
+                                                                                                  out subreddits
+                                                                               LLM codes             with low
+ Collect metadata
+                           LLM and researcher code relevance for sampled     relevance for all       relevance
+     of subreddits
+                           subreddits separately and revise the LLM prompt     subreddits
+
+                                      until consensus reached
+
+
+
+
+Fig. 9. Workflow for selecting and preparing Reddit data in Study 2. Starting from a corpus covering submis-
+sions and comments from the top 40,000 subreddits, we collect subreddit-level metadata via the Reddit API
+(number of members, primary language, adult-content flag, and moderator-written description). A researcher
+then rates a sample of subreddits on population and topic relevance, and we iteratively refine an LLM
+prompt so that the model assigns similar 1–5 relevance scores. Using these LLM-assigned scores, we filter out
+non-English, adult-only, niche, and low-relevance subreddits, retaining a final set of 288 subreddits whose
+discussions are passed into the quote-extraction and thematic analysis workflow.
+
+
+further restricted our analysis to the largest 20% of subreddits by member count, resulting in a set
+of 5,138 subreddits.
+   Online Forum Selection. We used an LLM (gpt-4o-mini-2025-03-01) to support the subreddit
+selection process. First, we randomly sampled 100 of the 5,138 subreddits and asked one researcher
+to rate their relevance on a 1–5 Likert scale, where 1 indicated not relevant and 5 indicated highly
+relevant. Relevance was assessed from two perspectives: (1) population relevance: whether members
+of the subreddit reasonably reflect the population of interest (in this case residents of the United
+States.); and (2) topic relevance: whether the discussions contain opinions related to the research
+topic. We did not expect any single subreddit to be a comprehensive representation of the targeting
+population, but we expected the combined set of selected subreddits to approximate this coverage.
+Next, we asked the LLM to label the same subreddits in the same format and to provide a rationale
+for each rating. The input included the subreddit’s name and the “description” section written
+by its moderators. We then compared the researcher’s labels and the LLM’s labels using Cohen’s
+Kappa, refining the prompts until the agreement reached 0.7 (the final prompt is attached in the
+Appendix 9). In each iteration of this refinement process, we randomly sampled a different set of
+100 subreddits for labeling to ensure that the evaluation did not overfit. As the dataset ultimately
+required a binary outcome (i.e., whether a subreddit was used as a data source), we converted the
+Likert ratings into 0/1 labels. The Likert scale at the labeling stage is to allow more flexibility for
+end users. After this adjustment, we applied the LLM to label all 5,138 subreddits. For the topic of
+this project, we consulted a public polling expert and set thresholds of 3 and 4 for the two relevance
+ratings. Specifically, subreddits with a member relevance rating of 3 or higher and a topic relevance
+rating of 4 or higher were included in the dataset. This results in a list of 288 relevant subreddits.
+We then filtered out data before 2023 to be more consistent with the interview data.
+5.1.2      Data Source: Interview.
+   Interview Protocols and Topics. To be able to evaluate the thematic coverage of online forum
+data as employed in Study 1, in this study we additionally conducted online interviews with 1,058
+participants and investigated how people in the US perceive the economic impact of AI. Figure 10
+illustrates the workflow of the data collection using interviews. We developed an LLM-based chatbot
+web application for conducting text-based interviews by adapting and modifying a previously
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.17
+
+
+validated online tool for qualitative interviews [21]. A public polling expert designed the interview
+around three research questions:
+    (1) How do people perceive AI affects or will affect their personal economic well-being?
+    (2) What strategies do individuals use to cope with the economic changes caused by AI?
+    (3) What role do individuals think the government should play in responding to AI-driven
+        economic changes?
+  The research questions were later transformed into an interview protocol that instructed an
+LLM-based chatbot to led the conversation with human participants. See details of the prompt in
+Appendix B
+
+
+
+
+                                                                                      Process chats
+                        Design protocol     Recruit participants   Chatbot conducts   data for quotes
+                       and integrate into                             interviews        extraction
+                            chatbot
+
+
+Fig. 10. Workflow for collecting and processing chatbot-led interview data in Study 2. A public-opinion expert
+designs a semi-structured interview protocol focused on how people perceive the economic impacts of AI, and
+participants are recruited via Prolific. An LLM-based chatbot conducts 30-minute text interviews, after which
+participants complete a demographic questionnaire. We then process the interview transcripts using the same
+LLM-assisted quote-extraction and thematic analysis pipeline as for Reddit, enabling a direct comparison
+between themes derived from online forums, chatbot-led interviews, and authoritative policy reports.
+
+
+   Web Application and Chatbot Development. The application utilized Streamlit for the frontend
+presentation and the OpenAI API (gpt-4o-2024-05-13) for generating interview questions that fol-
+lowed a researcher-defined interview guide while dynamically responding to participants’ answers.
+The interviewer chatbot conducted semi-structured interviews based on the interview protocol.
+Each section included one specific opening question and a general description of relevant follow-up
+topics. The chatbot was programmed to ask open, non-leading questions related to each interview
+section topic. Participants’ responses were followed up with questions requesting additional details
+or examples to better understand their perspectives. Importantly, the chatbot was prompted to
+demonstrate cognitive empathy by acknowledging participants’ thoughts and opinions without
+judgment and by avoiding the suggestion of possible answers. For example, we explicitly instructed
+the chatbot: “Do not suggest specific interventions... but you may ask a follow-up...”. This approach
+adhered to established guidelines for qualitative research interviews [11, 59]. After each partici-
+pant’s text input, the complete interview guidelines and chat history were provided to the LLM as
+a prompt to generate the chatbot’s next utterance.
+   Interview Participants. A total of 1,058 adult U.S. residents participated in an online chatbot
+interview study, with a median age of 45 (age range 18 – 84, SD = 15.47). The participants (50 %
+female, 48.3 % male, 0.7 % other, 1% unknown) came from varied ethnic backgrounds (White: 62.5
+%, Black/African American: 13.7 %, Hispanic/Latino: 9.1 %, Asian: 6.2 %, Native American: 1.3 %,
+Unknown: 7.2%) and different educational attainment levels (High school or less: 12.1 %, Some
+college/Associate’s degree: 32.0%, Bachelor’s degree: 34.4 %, Graduate degree: 21.2 %, Unknown:
+0.3%). An additional 73 participants entered the study but did not complete it (e.g., due to technical
+issues or voluntary withdrawal) and were therefore excluded from analysis. Participants were
+recruited through the online platform Prolific.
+18                                                                                           Liu et al.
+
+
+   Procedure and Ethical Statement. The interviews are conducted in Aug 2025. Participants received
+a consent form detailing the study’s purpose and data protection guidelines. The chatbot began
+interviews after receiving consent from participants. Each interview automatically ended after 30
+minutes, or earlier if all sections had been covered and no new points were raised. Following the
+interview, participants completed a demographic questionnaire and several standardized personality
+measures. In total, the study session lasted approximately one hour, and participants who completed
+the study received 16 USD in compensation.
+   Participants were explicitly instructed not to disclose private or sensitive information during
+the interview and to share only details about their lives that they would be comfortable posting
+in a public forum. Prior to analysis, all responses were screened to ensure participants’ responses
+did not contain personally identifiable information. All interview transcripts were anonymized by
+replacing participants’ names with only referring to individual participants via random numerical
+IDs and securely stored on a dedicated server. No personally identifiable information was retained
+in the dataset. The study was reviewed and approved by the Institutional Review Board of our
+organization (anonymized).
+
+   Interview Data Processing. To prepare the chat-based interview data for inputting into the work-
+flow, we first segmented each conversation into question–answer (Q–A) pairs. Because the in-
+terviews followed a chatbot-question / human-answer structure, we used each chatbot message
+as the anchor for a new question unit because human participants may responded with multiple
+consecutive messages to answer a single chatbot question. In this case, we concatenated all consec-
+utive human messages following a chatbot question until the next chatbot message appeared. This
+procedure ensured that each Q–A pair reflected a complete, semantically coherent human response
+to a single chatbot question. This processing step produced an initial dataset of 27,042 entries. On
+everage, each conversation consisted of 26.85 Q-A pairs (SD=10.21) and 1493.03 words (SD= 526.04).
+
+5.1.3 Quote Extraction. We then input data from both sources into the workflow. For Reddit data,
+we input 5,491,991 data entries from 288 different subreddits and extracted 122, 191 relevant quotes.
+For interview data, we used an LLM to detect and remove transitional sentences(e.g., greetings) and
+messages that is not relevant to the study topic. After filtering, the final dataset contained 16,029
+human messages (referred to as quotes for consistency). On average, each quote contained 22.1
+words (SD = 19.83).
+
+5.1.4 Thematic Analysis. Following the workflow explained in Section 3, we first identified high-
+level themes based on the research topic manually based on the discussions within the research
+team and classified quotes from both data sources accordingly. The resulting groups were: general
+economic outlook, AI’s impact on personal economic situation, personal strategies and adaptation
+to AI, opinions on government responsibility and action regarding AI. For online forum data,
+we introduced two additional labels: off-topic, to filter out irrelevant content and reduce noise
+in the output of the data collection pipeline; and others, to capture additional insights beyond
+the pre-defined high level themes. Note that we don’t have this label for interview data as all
+conversations follows the interview protocol
+
+5.1.5 Report Generation. After the LLM-based workflow created the output, two researchers
+manually reviewed the themes and further synthesized the results with the consultation of a public
+polling expert. Output themes and example quotes are included in Appendix E. We did not conduct
+sentiment analysis and report corresponding trends for two reasons. First, our research questions
+focus on people’s perceptions of AI’s economic impact rather than on individual sentiment. Second,
+our analysis is based on theme extraction from sentence-level quotes. While some quotes may carry
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.19
+
+
+emotional overtones, they often represent partial expressions of sentiment and are insufficient to
+capture how individuals perceive broader trends.
+                                    Personal Economic
+                    Off-topic7                             Personal Strategies    Government’s Role          Others
+                                         Situation8
+      Interview      0 (0.00%)         6,557 (39.42%)        5,670 (34.09%)         4,402 (26.49%)          0 (0.00%)
+      Reddit      33,063 (27.06%)     44,283 (36.24%)        22,988 (18.82%)        1,640 (1.34%)        20,217 (16.55%)
+           Table 3. Distribution of each high-level theme category across interview and Reddit data
+
+
+
+5.1.6 Comparison to Authoritative Reports. To validate our workflow, we compared the themes
+in the generated reports with authoritative reports. In principle, we might have chosen a single
+benchmark report, but in practice we did not find any one document that was both comprehensive
+enough and closely aligned with our research questions about public views on AI and the economy.
+Instead, we assembled a complementary set of reports. We curated candidate reports through
+keyword searches for “economic impact of AI, public opinion” on Google and on the websites
+of well-known organizations such as academic institutions, professional polling organizations,
+and non-partisan research institutes. From this list, we excluded reports that reflected non-U.S.
+perspectives because our Reddit data extraction and interview recruitment both targeted U.S.
+participants(see Section 5.1.1 and 5.1.2 for details). Following this screening process, we identified
+six authoritative reports to serve as baselines:
+    (1) A CBS News report on public views of the economy, job market, and AI.
+    (2) A Gallup report on American attitudes toward AI (focusing on the economic dimension).
+    (3) An APA report on workers’ well-being in America.
+    (4) A Pew Research Center report on AI in hiring and worker evaluation.
+    (5) A Pew Research Center report on Americans’ views of AI and its societal impacts (filtered
+        to the economy-related content).
+    (6) A World Economic Forum report on the future of jobs (focusing on U.S.-specific findings).
+   Because none of the authoritative reports were based on the exact same topic of our study, two
+researchers read all six reports and manually extracted themes that were closely aligned with
+our research questions. The researchers iteratively discussed their interpretations until reaching
+consensus on a final set of 22 themes, as shown in Table 5 in the Appendix. These themes were
+then compared against the reports generated by the workflow. For each theme in the authoritative
+reports, researchers identified a similar or equivalent theme in the generated report when one
+existed. Note that we did not evaluate the performance of the underlying LLM-assisted data analysis
+framework itself, as it is an established method that has already been validated in prior research [40].
+Our focus in this work is solely on assessing its application and utility within the context of policy
+research.
+
+5.2     Findings
+Figure 11 provides an overview of how our themes align across sources. Table 1 in Appendix lists
+the themes identified. Most themes surfaced in Reddit and interviews overlap with authoritative
+reports—suggesting that lived-experience data largely corroborates established concerns—while
+also introducing a smaller set of additional themes not captured in reports. In the remainder of
+this Findings section, we unpack these patterns in detail by comparing themes in (1) Reddit versus
+authoritative reports and (2) interviews versus authoritative reports.
+8 For Reddit data, “off-topic” refers to quotes that focus only on the economic situation or only on AI, but not both.
+8We shortened the high-level theme names for presentation; all labels are framed around the AI’s impact
+20                                                                                                                                     Liu et al.
+
+
+                                             Theme overlap summary across sources (N=35)
+                                             31/35 = 88.6% of themes appear in reddit or interviews
+
+                All themes (n=35)                   18                                              11                          2        4
+                                                  (51.4%)                                         (31.4%)                    (5.7%)   (11.4%)
+
+            Reddit themes (n=27)                 16                                           11
+                                               (59.3%)                                      (40.7%)
+
+          Interview themes (n=29)                16                                           11                       2
+                                               (55.2%)                                      (37.9%)                 (6.9%)
+
+Authoritative-report themes (n=22)                  18                                 4
+                                                  (81.8%)                           (18.2%)
+                                     0   5               10              15            20                   25                30                35
+                                                                         Number of themes
+                                                         In authoritative           Reddit-only or Interview-only
+                                                         Reddit+Interviews only     Authoritative only
+
+
+Fig. 11. Theme overlap across sources. Reddit and interviews largely corroborate authoritative reports while
+adding additional themes. Across 35 themes, 31 (88.6%) appear in Reddit or interviews, and most themes
+in authoritative reports also appear in these sources. The stacked bars show, for each source, how many
+themes are shared with authoritative reports versus how many are unique to Reddit/interviews or unique to
+authoritative reports. Refer to Table 4 in the Appendix for a list of the themes.
+
+
+5.2.1 Themes from Reddit Data vs. Authoritative Reports. As shown in Table 4, applying the work-
+flow to Reddit discussions has high thematic coverage of themes in authoritative reports. Sixteen
+out of twenty-two themes identified in authoritative reports also appeared in the Reddit analysis,
+demonstrating that the workflow can reliably extract major public concerns from highly unstruc-
+tured, informal text. Themes such as job-obsolescence concerns, expectations of major labor-market
+disruption, pessimism about the national economy, worries about inequality, and the perceived
+need for workforce retraining appeared consistently in both theme lists. Both authoritative reports
+and Reddit data also highlighted AI’s dual role as a productivity enhancer and a source of anxiety,
+as well as concerns about AI undermining creative thinking and calls for clearer disclosure of
+AI-generated content. This indicates that the workflow is capable of distilling coherent public issues
+that are typically surfaced through traditional policy research methods.
+   Moreover, the workflow surfaced additional themes from Reddit data, including concerns rooted
+in community-specific anxieties. For example, the application of AI in freelancing and education is
+widely discussed in specific communities (i.e., subreddits) like r/uberdrivers and r/college, while in
+traditional surveys, such insights might be overlooked. In addition, the workflow detected some
+concrete policy suggestions, such as universal basic income and the protection of labor rights,
+which are not included in the authoritative reports. The emergence of these themes underscores the
+workflow’s ability to detect early signals and latent concerns that may not yet be incorporated into
+formal measurement instruments. Taken together, this combination of alignment and expansion
+highlights the potential of the workflow as a complementary and scalable analytic approach for
+policy research beyond traditional methods.
+5.2.2 Themes from Interview Data vs. Authoritative Reports. By comparing the themes generated
+through our workflow with those identified in authoritative reports, we observed substantial
+overlap. The mapping results between themes in authoritative reports and interview data are
+shown in Table 4. Specifically, we found sixteen equivalent themes in the interview data out of the
+twenty-two themes extracted from authoritative sources, including concerns about job displacement,
+expectations of major labor-market disruption, pessimism about broader economic conditions, and
+the need for workforce retraining. Both sources also emphasized that AI could heighten inequality
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.21
+
+
+and place pressure on workers’ financial stability. In particular, themes produced by the workflow,
+such as mixed reactions toward workplace change, anticipated productivity gains from AI, are
+closely aligned with the themes emphasized in these reports. This strong alignment indicates
+that the workflow holds considerable promise for supporting policy research. Notably, we also
+identified differences. For example, several themes present in authoritative reports did not appear
+in the generated reports, such as concerns about mental health in the workplace and perceptions
+of fairness in AI-based hiring tools. Because these themes relate to specific domains that were
+not directly probed in our semi-structured interview protocol, we attribute their absence to the
+LLM-based chatbot not being sufficiently heuristic to surface cross-domain issues beyond the scope
+of the guided conversation.
+   At the same time, the interviews revealed additional nuances, such as career rethinking strategies
+in response to the changes and the current uncertainty. These themes reveal the micro-level
+perspectives that complement the macro-level insights in authoritative reports from a personal
+perspective with specific examples. Our findings suggest that using the workflow for unstructured
+data like interview transcripts can serve as an efficient early-stage diagnostic tool that surfaces
+high-level public concerns typically captured by established methods.
+
+6     Discussion
+The findings in our work highlight the potential of LLM-assisted thematic analysis as a comple-
+mentary method for policy researchers seeking rapid, cost-effective overviews of public opinions.
+At the same time, our analyses underscore the continued importance for ensuring and improving
+the thematic coverage of LLM-led workflows for policy research.
+
+6.1    LLM-based Tool Work as a Supplement to Traditional Policy Research
+Our study compared LLM-based workflow with authoritative reports produced with traditional
+policy research methods and evaluated its performance in extracting qualitative insights from
+unstructured texts. From the methodological perspective, traditional methods rely on carefully
+sampled populations, pre-defined surveys that are hard to scale up, often limited to several listening
+sessions and thousands of participants [2, 13, 23, 58]. In our study, the workflow showed its
+potential to accommodate both small-scale qualitative interview corpora with thousands of entries
+and large-scale textual datasets with millions of entries and produced closely aligned results with
+authoritative reports using lower costs and shorter time. In addition, traditional policy research
+methods typically follow a deductive, top-down pipeline: experts define constructs, design question
+items, and interpret aggregate responses [52]. As a result, the analytical space is bounded by what
+researchers decide to measure. In comparison, our LLM-assisted workflow operates in a more
+inductive, bottom-up manner. It codes themes at the level of individual quotes and then iteratively
+merges related concepts, mirroring qualitative thematic analysis and grounded theory practices [40].
+In addition, traditional methods tend to use large-scale surveys that are designed for population-
+level generalizability, which pushes them toward broad, standardized questions that travel well
+across occupations and demographics, but leave less room for problems in specific communities
+that require special attention. The workflow, leveraging community-focused online forums(i.e.
+subreddits) is able to surface concerns that are highly contextual and community-specific.
+   In the comparison, we found that methods used in producing the authoritative reports focus
+on quantifying public views towards a certain trend, while the themes identified by the workflow
+mainly capture the content of personal experience discourse rather than the emotional valence.
+Although unstructured data can support downstream quantitative tasks such as sentiment analysis,
+such results often suffer from ambiguity in natural language (e.g., sarcasm, double negatives, or
+emotionally mixed statements) [47, 66]. As a result, the workflow is especially well-suited for
+22                                                                                             Liu et al.
+
+
+uncovering qualitative insights about what people are concerned about and how they reason
+through those concerns, rather than for producing sentiment proportions. This illustrates that
+LLM-based tools are not substitutes for traditional methods, but rather complementary analytic
+instruments that expand the range of research questions that can be addressed at both small and
+extremely large scales.
+
+6.2    Challenges of Trust and Interpretability in AI-Assisted Thematic Analysis
+Several policy researchers evaluating our framework voiced inherent distrust in AI analysis and
+requested methods to bridge the trust gap. This resistance to LLM-based methods appeared to
+stem from a general distrust of AI, not particularly our specific framework. As suggested by recent
+research, the lack of human intervention and transparency can exacerbate this distrust, as end
+users may feel uncertain about the process and its output [12, 34, 54]. To mitigate these concerns,
+we incorporated human annotation and an explicit “approval” step during the data collection
+process, as well as manual review of a subset of extracted quotes to verify the legitimacy of
+the outputs. However, because the quotes were drawn from a masked dataset without original
+identifiers, we could not provide direct links back to source posts, which limited opportunities
+for participants to engage with the provenance of the data. Transparency might be improved by
+making data-processing steps explicit, clarifying how hallucinations are mitigated, and showing
+how extracted themes are validated [1]. User agency may be strengthened by allowing researchers
+to interactively review, filter, or revise LLM outputs rather than treating them as fixed summaries.
+Importantly, future interfaces should clearly communicate that AI-assisted thematic analysis is
+intended to complement, rather than replace, established qualitative methods. Collectively, these
+design strategies could address some of the concerns we identified in our study about credibility
+and control and help build a more sustainable and trustworthy workflow for AI-assisted qualitative
+summaries in policy research.
+
+6.3    Generalizing Beyond QuaLLM
+In this work, we adapt the QuaLLM framework into a policy research workflow using prompts
+tailored to policy research needs. Other LLM-based frameworks, such as TopicGPT and LLoom,
+could also be used at the thematic analysis stage, with adjustment like produce structured outputs
+and allow results to be traced back to the original text sources. This suggests that the workflow gen-
+eralizes beyond a single framework and can accommodate evolving LLM-based analysis techniques.
+Although different LLM-based thematic analysis frameworks embed distinct assumptions about
+how themes are generated, they all follow the methodological principles of thematic analysis [4],
+which have been shown to produce broadly aligned thematic outputs compared to traditional
+machine learning approaches or manual analyses, as demonstrated in prior evaluations [32, 48, 56].
+   At the same time, as LLM-based workflows, particularly agentic designs, increasingly aim for
+high levels of automation, we emphasize that human oversight remains essential in policy research
+contexts. Our workflow explicitly identifies points where humans intervene, including defining
+analytic scope, selecting data sources, and interpreting prevalence rather than assuming end-to-end
+automation. This perspective suggests that the generalizability of LLM-based thematic analysis
+for policy research depends not only on model performance but also on how these systems are
+embedded within accountable and transparent research practices.
+
+7     Limitations and Future Work
+This study has several limitations that should be acknowledged. First, the underlying data sources
+(Reddit posts in Study 1, Reddit posts and interviews in Study 2) might be constrained in their ability
+to surface public opinions from different subgroups of the population. Social media platforms such
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.23
+
+
+as Reddit may contain substantial biases, both in the sociodemographic characteristics of their users
+and in the types of topics that are discussed. Our interview data, although diverse with respect
+to age, gender, ethnicity, and educational attainment, also do not perfectly represent the United
+States population. Thematic outputs generated from these sources should therefore be interpreted
+as complementary qualitative insights rather than population-level estimates of opinion.
+   Second, our evaluation covered three exemplary policy-relevant topics, all within a United States
+context. The applicability and robustness of the framework may differ across policy domains, and
+cultural settings. Future work should evaluate LLM-assisted thematic analysis with additional
+topics and in international contexts, and examine how cultural and linguistic differences affect its
+usefulness for policy research.
+   Third, the qualitative interviews used in Study 2 were conducted via LLM-based chatbots rather
+than human interviewers. This allowed us to collect a substantially larger corpus than would have
+been feasible with human-led interviews, but the depth and nuance elicited by human interviewers
+may differ from those achieved by an LLM-based agent as discussed in [9]. Future studies can
+directly compare thematic coverage derived from human-led and LLM-led interviews to clarify the
+trade-offs between scale and depth.
+   Fourth, although we employed several evaluation steps, the general reliability of LLM-generated
+summaries remains a central challenge, as reflected in the concerns voiced by expert users in
+our study. In this paper, the workflow required iterative prompt refinement until the agreement
+between researchers and the LLM reached 0.7, and this tuning process may introduce errors that
+propagate into subsequent labeling and extraction stages. Future research could better quantify
+and reduce such errors, potentially through enhanced model calibration or hybrid human–LLM
+validation mechanisms. In addition, future research can develop transparency-oriented interfaces
+and visualizations that help policy researchers critically assess the LLM identified themes. An
+important direction will be to explore how the current workflow can be improved and made more
+transparent, so that users not only understand how insights are produced but also feel confident in
+when and how to employ them for policy-relevant data analysis.
+   Finally, we focused on evaluating QuaLLM for policy research in this paper. As illustrated in
+Section 2.2, there are other LLM-assisted thematic analysis workflows. In this study, we demonstrate
+how we adapt the QuaLLM workflow. The adaptation has the potential to generalize to other LLM-
+assisted thematic analysis workflows by processing data from data source to fit the workflow,
+revising the prompts based on the data source and policy-relevant topic, and adjusting prompts
+according to the scale of input data.
+
+8   Conclusion
+This study evaluated an LLM-assisted workflow in the context of policy research, examining
+its ability to support the analysis of public opinion across different policy-relevant topics and
+data sources. Through expert interviews and comparisons with authoritative human-authored
+reports, we found that the framework can recover many of the core themes identified by policy
+analysts while offering gains in speed and scalability. At the same time, our study highlights
+important limitations, including concerns about the representativeness of the underlying data and
+the reliability of LLM-generated summaries. These results suggest that LLM-assisted thematic
+analysis can serve as a useful complementary tool for policy researchers seeking rapid qualitative
+overviews, but it should not be viewed as a replacement for traditional methods of policy research.
+Human judgment and contextual expertise remain essential for deriving informed interpretations
+in a given policy area. Future work should further assess the conditions under which LLM-assisted
+approaches are most effective, benchmark them against alternative computational methods, and
+explore design strategies that improve transparency for users from non-technical backgrounds.
+24                                                                                                                Liu et al.
+
+
+By addressing these challenges, LLM-assisted frameworks may help integrate qualitative insights
+more efficiently into policy research and decision-making.
+
+9    Disclosure of the usage of LLM
+We used ChatGPT (GPT4o model[45] and GPT5 [46]) to facilitate the writing of this manuscript.
+The usage includes:
+      • Turn endpoints documentation into LaTeX format tables
+      • Correct grammar mistakes and spelling
+      • Polish the existing writing by prompts like "Find me a synonym of X", "What is the noun/ad-
+        jective form of X" and "Shorten this sentence without changing its content".
+
+Acknowledgments
+We thank our study participants for generously sharing their time and experiences. We also thank
+colleagues and collaborators for their helpful feedback and discussions throughout this project.
+This work was supported by the Nuremberg Institute for Market Decisions (Germany).
+
+References
+ [1] Saleh Afroogh, Ali Akbari, Emmie Malone, Mohammadali Kargar, and Hananeh Alambeigi. 2024. Trust in AI:
+     Progress, Challenges, and Future Directions. Humanities and Social Sciences Communications 11, 1 (2024), 1568.
+     doi:10.1057/s41599-024-04044-8
+ [2] Adam J Berinsky. 2017. Measuring public opinion with surveys. Annual review of political science 20, 1 (2017), 309–329.
+ [3] David M Blei, Andrew Y Ng, and Michael I Jordan. 2003. Latent dirichlet allocation. Journal of machine Learning
+     research 3, Jan (2003), 993–1022.
+ [4] Virginia Braun and Victoria Clarke. 2006. Using thematic analysis in psychology. Qualitative research in psychology 3,
+     2 (2006), 77–101.
+ [5] Mark D Brewer and L Sandy Maisel. 2024. Parties and elections in America: The electoral process. Bloomsbury Publishing
+     PLC.
+ [6] Paul Burstein. 2014. American public opinion, advocacy, and policy in congress: What the public wants and what it gets.
+     Cambridge University Press.
+ [7] Kaiping Chen and David Tomblin. 2021. Using data from reddit, public deliberation, and surveys to measure public
+     opinion about autonomous vehicles. Public Opinion Quarterly 85, S1 (2021), 289–322.
+ [8] Wei-Hao Chen, Weixi Tong, Amanda Case, and Tianyi Zhang. 2025. Dango: A Mixed-Initiative Data Wrangling System
+     using Large Language Model. In Proceedings of the 2025 CHI Conference on Human Factors in Computing Systems. 1–28.
+ [9] Alejandro Cuevas, Jennifer V. Scurrell, Eva M. Brown, Jason Entenmann, and Madeleine I. G. Daepp. 2025. Collecting
+     Qualitative Data at Scale with Large Language Models: A Case Study. Proc. ACM Hum.-Comput. Interact. 9, 2, Article
+     CSCW049 (May 2025), 27 pages. doi:10.1145/3710947
+[10] Hulya Dogan, Kiet Nguyen, and Ismini Lourentzou. 2024. Narrative Characteristics in Refugee Discourse: An Analysis
+     of American Public Opinion on the Afghan Refugee Crisis After the Taliban Takeover. Proceedings of the ACM on
+     Human-Computer Interaction 8, CSCW1 (2024), 1–31.
+[11] Karen Dunwoodie, Luke Macaulay, and Alexander Newman. 2023. Qualitative interviewing in the field of work and
+     organisational psychology: Benefits, challenges and guidelines for researchers and reviewers. Applied Psychology 72, 2
+     (2023), 863–889.
+[12] Cynthia Dwork and Martha Minow. 2022. Distrust of artificial intelligence: Sources & responses from computer
+     science & law. Daedalus 151, 2 (2022), 309–321.
+[13] Encyclopædia Britannica. 2024. Public opinion poll. https://www.britannica.com/topic/public-opinion-poll.
+[14] Alyssa Engler. 2020. What all policy analysts need to know about data science.
+[15] Xavier Ferrer, Tom van Nuenen, Jose M Such, and Natalia Criado. 2021. Discovering and categorising language biases
+     in reddit. In Proceedings of the International AAAI Conference on Web and Social Media, Vol. 15. 140–151.
+[16] Casey Fiesler, Nathan Beard, and Brian C Keegan. 2020. No robots, spiders, or scrapers: Legal and ethical regulation of
+     data collection methods in social media terms of service. In Proceedings of the international AAAI conference on web
+     and social media, Vol. 14. 187–196.
+[17] Casey Fiesler, Jessica Pater, Janet Read, Jessica Vitak, and Michael Zimmer. 2023. Internet Research Ethics: A CSCW
+     Community Discussion. In Companion Publication of the 2023 Conference on Computer Supported Cooperative Work and
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.25
+
+
+     Social Computing (Minneapolis, MN, USA) (CSCW ’23 Companion). Association for Computing Machinery, New York,
+     NY, USA, 566–568. doi:10.1145/3584931.3606952
+[18] Casey Fiesler, Michael Zimmer, Nicholas Proferes, Sarah Gilbert, and Naiyan Jones. 2024. Remember the Human: A
+     Systematic Review of Ethical Considerations in Reddit Research. Proc. ACM Hum.-Comput. Interact. 8, GROUP, Article
+     5 (Feb. 2024), 33 pages. doi:10.1145/3633070
+[19] Dilrukshi Gamage, Piyush Ghasiya, Vamshi Bonagiri, Mark E Whiting, and Kazutoshi Sasahara. 2022. Are deepfakes
+     concerning? analyzing conversations of deepfakes on reddit and exploring societal implications. In Proceedings of the
+     2022 CHI conference on human factors in computing systems. 1–19.
+[20] Jie Gao, Yuchen Guo, Gionnieve Lim, Tianqin Zhang, Zheng Zhang, Toby Jia-Jun Li, and Simon Tangi Perrault. 2024.
+     CollabCoder: a lower-barrier, rigorous workflow for inductive collaborative qualitative analysis with large language
+     models. In Proceedings of the 2024 CHI Conference on Human Factors in Computing Systems. 1–29.
+[21] Friedrich Geiecke and Xavier Jaravel. 2024. Conversations at scale: Robust ai-led interviews with a simple open-source
+     platform. Available at SSRN 4974382 (2024).
+[22] Perttu Hämäläinen, Mikke Tavast, and Anton Kunnari. 2023. Evaluating large language models in generating synthetic
+     hci research data: a case study. In Proceedings of the 2023 CHI Conference on Human Factors in Computing Systems.
+     1–19.
+[23] D Sunshine Hillygus. 2011. The evolution of election polling in the United States. Public opinion quarterly 75, 5 (2011),
+     962–981.
+[24] Justin T Huang, Jangwon Choi, and Yuqin Wan. 2024. Politically biased moderation drives echo chamber formation:
+     An analysis of user-driven content removals on Reddit. Available at SSRN (2024).
+[25] Lei Huang, Weijiang Yu, Weitao Ma, Weihong Zhong, Zhangyin Feng, Haotian Wang, Qianglong Chen, Weihua Peng,
+     Xiaocheng Feng, Bing Qin, and Ting Liu. 2025. A Survey on Hallucination in Large Language Models: Principles,
+     Taxonomy, Challenges, and Open Questions. 43, 2, Article 42 (Jan. 2025), 55 pages. doi:10.1145/3703155
+[26] Lawrence R. Jacobs and Robert Y. Shapiro (Eds.). 2011. The Oxford Handbook of American Public Opinion and the Media.
+     Oxford University Press.
+[27] Daye Kang, Zhuolun Han, Jiahe Tian, Muhan Zhang, and Jeffrey M Rzeszotarski. 2025. ThemeViz: Understanding
+     the Effect of Human-AI Collaboration in Theme Development with an LLM-enhanced Interactive Visual System.
+     Proceedings of the ACM on Human-Computer Interaction 9, 7 (2025), 1–29.
+[28] Shivani Kapania, Ruiyi Wang, Toby Jia-Jun Li, Tianshi Li, and Hong Shen. 2025. ’I’m Categorizing LLM as a Productivity
+     Tool’: Examining Ethics of LLM Use in HCI Research Practices. Proceedings of the ACM on Human-Computer Interaction
+     9, 2 (2025), 1–26.
+[29] Eunsu Kim, Juyoung Suk, Seungone Kim, Niklas Muennighoff, Dongkwan Kim, and Alice Oh. 2024. Llm-as-an-
+     interviewer: Beyond static testing through dynamic llm evaluation. arXiv preprint arXiv:2412.10424 (2024).
+[30] Rachel Minyoung Kim, Veniamin Veselovsky, and Ashton Anderson. 2025. Capturing dynamics in online public
+     discourse: A case study of universal basic income discussions on reddit. In Proceedings of the International AAAI
+     Conference on Web and Social Media, Vol. 19. 1021–1037.
+[31] Megan Knittel, Faye Kollig, Abrielle Mason, and Rick Wash. 2021. Anyone else have this experience: Sharing the
+     emotional labor of tracking data about me. Proceedings of the ACM on Human-Computer Interaction 5, CSCW1 (2021),
+     1–30.
+[32] Michelle S Lam, Janice Teoh, James A Landay, Jeffrey Heer, and Michael S Bernstein. 2024. Concept Induction:
+     Analyzing Unstructured Text with High-Level Concepts Using LLooM. In Proceedings of the CHI Conference on Human
+     Factors in Computing Systems. 1–28.
+[33] Hélène Landemore. 2021. Open Democracy and Digital Technologies. In Digital Technology and Democratic Theory,
+     Lucy Bernholz, Hélène Landemore, and Rob Reich (Eds.). University of Chicago Press, Chicago. doi:10.7208/chicago/
+     9780226748603.003.0003
+[34] Johann Laux. 2024. Institutionalised distrust and human oversight of artificial intelligence: towards a democratic
+     design of AI governance under the European Union AI Act. AI & society 39, 6 (2024), 2853–2866.
+[35] Kehua Lei, Aidan Ladenburg, Zahra Kais Petiwala, Zili Wang, Dishita Jhawar, Ipsita Bisht, Ansh Kumar, and David T
+     Lee. 2025. Dynamic Surveys: Using LLMs to Blend Qualitative Depth, Quantitative Structure, and Collaborative
+     Interaction. Proceedings of the ACM on Human-Computer Interaction 9, 7 (2025), 1–26.
+[36] Tianshi Li, Elizabeth Louie, Laura Dabbish, and Jason I Hong. 2021. How developers talk about personal data and what
+     it means for user privacy: A case study of a developer forum on reddit. Proceedings of the ACM on Human-Computer
+     Interaction 4, CSCW3 (2021), 1–28.
+[37] Jeff Manza and Fay Lomax Cook. 2002. A democratic polity? Three views of policy responsiveness to public opinion
+     in the United States. American Politics Research 30, 6 (2002), 630–667.
+[38] Kayo Mimizuka, Megan A Brown, Kai-Cheng Yang, and Josephine Lukito. 2025. Post-Post-API Age: Studying Digital
+     Platforms in Scant Data Access Times. arXiv preprint arXiv:2505.09877 (2025).
+26                                                                                                               Liu et al.
+
+
+[39] Nick Moon. 1999. Opinion polls: History, theory and practice. Manchester University Press.
+[40] Varun Nagaraj Rao, Eesha Agarwal, Samantha Dalal, Dana Calacci, and Andrés Monroy-Hernández. 2025. QuaLLM:
+     An LLM-based Framework to Extract Quantitative Insights from Online Forums. In Findings of the Association for
+     Computational Linguistics: NAACL 2025.
+[41] Varun Nagaraj Rao, Samantha Dalal, Eesha Agarwal, Dana Calacci, and Andrés Monroy-Hernández. 2025. Rideshare
+     transparency: Translating gig worker insights on ai platform design to policy. Proceedings of the ACM on Human-
+     Computer Interaction 9, 2 (2025), 1–49.
+[42] Clive Nancarrow, Julie Tinson, and Martin Evans. 2004. Polls as marketing weapons: Implications for the market
+     research industry. Journal of Marketing management 20, 5-6 (2004), 639–655.
+[43] Office of Management and Budget. 2024. Methods and Leading Practices for Advancing Public Participation and
+     Community Engagement With the Federal Government. Notice in the Federal Register (89 Fed. Reg. 19885) –
+     Request for Information on public participation and community engagement methods and leading practices. https:
+     //www.federalregister.gov/d/2024-05882
+[44] Office of Management and Budget. 2025. M-25-07: Broadening Public Participation and Community Engagement with
+     the Federal Government. Memorandum from the Director, Executive Office of the President of the United States. https:
+     //www.whitehouse.gov/wp-content/uploads/2025/01/M-25-07-Broadening-Participation-and-Engagement.pdf Guid-
+     ance to Federal agencies on broadening public participation and community engagement..
+[45] OpenAI. 2024. GPT-4o: OpenAI’s Multimodal Large Language Model. Technical Report. https://openai.com/research/
+     gpt-4o Accessed: 2025-09-09.
+[46] OpenAI. 2025. GPT-5. Technical Report. https://openai.com/research Accessed: 2025-09-09.
+[47] Andrew Ortony. 2022. Are all “basic emotions” emotions? A problem for the (basic) emotions construct. Perspectives
+     on psychological science 17, 1 (2022), 41–61.
+[48] Chau Pham, Alexander Hoyle, Simeng Sun, Philip Resnik, and Mohit Iyyer. 2024. TopicGPT: A Prompt-based Topic
+     Modeling Framework. In Proceedings of the 2024 Conference of the North American Chapter of the Association for
+     Computational Linguistics: Human Language Technologies (Volume 1: Long Papers). 2956–2984.
+[49] Mirjana Prpa, Giovanni Troiano, Bingsheng Yao, Toby Jia-Jun Li, Dakuo Wang, and Hansu Gu. 2024. Challenges and
+     opportunities of LLM-based synthetic personae and data in HCI. In Companion Publication of the 2024 Conference on
+     Computer-Supported Cooperative Work and Social Computing. 716–719.
+[50] Anne Rasmussen, Lars Kai Mäder, and Stefanie Reher. 2018. With a little help from the people? The role of public
+     opinion in advocacy success. Comparative Political Studies 51, 2 (2018), 139–164.
+[51] Maud Reveilhac, Stephanie Steinmetz, and Davide Morselli. 2022. A systematic literature review of how and whether
+     social media data can complement traditional survey data to study public opinion. Multimedia tools and applications
+     81, 7 (2022), 10107–10142.
+[52] Peter H Rossi, James D Wright, and Andy B Anderson. 2013. Handbook of survey research. Academic press.
+[53] Joni Salminen, Chang Liu, Wenjing Pian, Jianxing Chi, Essi Häyhänen, and Bernard J Jansen. 2024. Deus ex machina
+     and personas from large language models: Investigating the composition of ai-generated persona descriptions. In
+     Proceedings of the 2024 CHI Conference on Human Factors in Computing Systems. 1–20.
+[54] Bruce Schneier. 2025. AI and Trust. Commun. ACM 68, 8 (July 2025), 29–33. doi:10.1145/3737610
+[55] L. Schulman and S. Berger. 2024.              Methods and Leading Practices for Advancing Public Participa-
+     tion and Community Engagement with the Federal Government.                     Federal Register (2024).        https:
+     //www.federalregister.gov/documents/2024/03/20/2024-05882/methods-and-leading-practices-for-advancing-
+     public-participation-and-community-engagement-with-the
+[56] Shreya Shankar, Aditya G Parameswaran, and Eugene Wu. 2024. DocETL: Agentic Query Rewriting and Evaluation
+     for Complex Document Processing. arXiv preprint arXiv:2410.12189 (2024).
+[57] Ben Rydal Shapiro, Rogers Hall, Arpit Mathur, and Edwin Zhao. 2025. Exploratory Visual Analysis of Transcripts for
+     Interaction Analysis in Human-Computer Interaction. In Proceedings of the 2025 CHI Conference on Human Factors in
+     Computing Systems. 1–17.
+[58] Carolyn J Simmons, Barbara A Bickart, and John G Lynch Jr. 1993. Capturing and creating public opinion in survey
+     research. Journal of Consumer Research (1993), 316–329.
+[59] Mario Luis Small and Jessica McCrory Calarco. 2022. Qualitative literacy: A guide to evaluating ethnographic and
+     interview research. Univ of California Press.
+[60] James Stimson. 2018. Public opinion in America: Moods, cycles, and swings. Routledge.
+[61] U.S. Congress. 2019. Foundations for Evidence-Based Policymaking Act of 2018. H.R.4174, 115th Congress (2017–2018),
+     enacted as Public Law No. 115-435. https://www.congress.gov/bill/115th-congress/house-bill/4174
+[62] Jessica Vitak, Katie Shilton, and Zahra Ashktorab. 2016. Beyond the Belmont principles: Ethical challenges, practices,
+     and beliefs in the online data research community. In Proceedings of the 19th ACM conference on computer-supported
+     cooperative work & social computing. 941–953.
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.27
+
+
+[63] Qile Wang, Moath Erqsous, Kenneth E Barner, and Matthew Louis Mauriello. 2025. LATA: A Pilot Study on LLM-
+     Assisted Thematic Analysis of Online Social Network Data Generation Experiences. Proceedings of the ACM on
+     Human-Computer Interaction 9, 2 (2025), 1–28.
+[64] Liang Ze Wong, Siti Amelia Juraimi, Yin Zhien Tan, Siyuan Brandon Loh, Mary FF Chong, Prasanta Bhattacharya, and
+     Aimee E Pink. 2025. The AI Interviewer: Exploring the Use of Conversational AI-Enabled Chatbots in Qualitative
+     Data Collection. Available at SSRN 5194078 (2025).
+[65] Zhaoxiang Xu, Qingguo Fang, Yanbo Huang, and Mingjian Xie. 2024. The public attitude towards ChatGPT on reddit:
+     A study based on unsupervised learning from sentiment analysis and topic modeling. Plos one 19, 5 (2024), e0302502.
+[66] Xiaoxia Zhang, Xiuyuan Qi, and Zixin Teng. 2024. Performance evaluation of reddit comments using machine learning
+     and natural language processing methods in sentiment analysis. In International Conference on Computational &
+     Experimental Engineering and Sciences. Springer, 14–24.
+
+
+
+A     Prompting & Additional Technical Details
+   Built on a Flask backend with LLM-powered analysis, the workflow processes unstructured text
+to surface both high-level themes and supporting evidence. To optimize performance, the workflow
+caches processed reports for immediate future access and employs a modular architecture designed
+to scale across different data sources beyond its current focus on Reddit discussions.
+   We used GPT-4 as our underlying LLM. The total cost to generate a complete report from 10,000
+aggregated posts using the workflow is approximately $150−$300, varying based on the number of
+quotes aggregated and the length of the posts. For prompting, our primary aim was to minimize
+human intervention during the text analysis pipeline, resulting in prompts structured to generate
+high-level topic themes, categorize them into subtopics, and finally aggregate the results.
+A.1 Data Source Recommendation Prompt
+The current implementation of the Study 1’s data source recommendation. As the workflow is
+specifically tailored to Reddit communities, serving as a proof-of-concept for our broader vision of
+public discourse analysis. We used the following prompt structure:
+
+Here is a list of subreddits : \{ subreddits \ _chunk \}. Based on the topic '\{ topic \} ' , please
+     provide a list of the most relevant
+subreddits from the list . If there are multiple relevant subreddits , separate their names
+     with commas . If none are relevant ,
+respond with a blank line .
+
+
+  While this implementation effectively serves our current focus on Reddit data, we designed
+the system’s architecture with future extensibility in mind. The data source recommendation
+component is built as a modular system that can be expanded to incorporate diverse public data
+sources through the following architectural considerations
+
+A.2    Subreddit Labeling Prompt
+In Study 2, for identifying subreddits at scale to serve as a reliable data source, we designed a
+prompt that labels relevance about the population and content of each subreddit to filter the most
+approporiate ones:
+
+You are evaluating whether a subreddit should be included in a dataset for a public opinion
+     study focused on \ $target_group .
+Please assess the subreddit based on the following two dimensions :
+Who is posting : Do the users who post or comment in this subreddit represent a relevant
+     population to include in a national public opinion sample , regardless of what they are
+     saying ? Focus only on who they are , considering indicators such as geographic location
+     (e.g., U.S.- based ) , occupation , or other characteristics that make their perspectives
+     relevant . The subreddit does not need to be demographically diverse ; it can still be
+     valuable as a subset of a broader dataset .
+28                                                                                              Liu et al.
+
+
+What is being said : Are the posts and comments in this subreddit valuable for understanding
+      public opinion on $topic ? Focus on whether the content reflects people ' s lived
+      experiences , concerns , or reflections in ways that are accessible , grounded in everyday
+      life , and potentially informative for policymakers . Both expert and non - expert
+      perspectives may be useful .
+Respond only with a valid JSON object . Do not include any explanations or formatting outside
+      of the JSON . The output should have the following structure :
+json
+{{
+     " population_relevance ": integer from 1 to 5 ( where 1 = not relevant at all , 5 = highly
+           relevant ) ,
+     " population_reason ": " Brief explanation of who they are and why they should or shouldn ' t
+           be included " ,
+     " content_relevance ": integer from 1 to 5 ( where 1 = not valuable at all , 5 = highly
+           valuable ) ,
+     " content_reason ": " Brief explanation of the kind of discussions and why they are or
+           aren 't useful for understanding opinions on $topic "
+}}
+The subreddit has the following metadata :
+Subreddit name : \ $subreddit
+About description : \ $about
+
+
+
+A.3   Theme Generation Prompt
+In Study 1, for generating high-level themes, we developed a prompt that emphasizes policy
+relevance and structural consistency:
+Generate a list of 9 themes that policy researchers would be interested in learning more
+      about , related to the subreddit
+\{ subreddit \} , each with a title \{ ' title '} and a very brief description \{ ' description '}.
+      Return the themes in JSON format .
+
+   The prompt’s design focuses on targeted audience alignment, specifically mentioned policy
+researchers, structural requirements, JSON output format for consistent parsing, and scope control
+setting a specific number of themes to ensure comprehensive coverage without overwhelming
+users.
+
+A.4   Quote Analysis Prompt
+The quote analysis prompt represents are most complex prompt engineering effort, designed
+to extract meaningful policy insights dynamically based on the users’ selected data source and
+provided theme:
+You are analyzing data from the subreddit \{\ $subreddit } , containing discussions about
+     various aspects of \{\ $topic } , including
+post titles , introductory text , and main content . The high - level theme we ' re interested in is
+     \{\ $theme }. Your task is to extract
+only the most relevant quotes , personal experiences , and opinions that explicitly mention or
+     discuss concerns , risks , or
+implications related to \{\ $theme \ _focus }.
+
+Please process each row and output only quotes that :
+1. Directly reference \{\ $theme \ _focus } concerns .
+2. Address specific risks , dangers , or ethical concerns related to \{\ $concerns \ _scope }.
+3. Include personal anecdotes or experiences discussing \{\ $theme \ _focus } implications of
+     \{\ $topic }.
+
+For each relevant quote , create an output entry in JSON format with the following structure :
+{
+  " entries ": [
+     {
+        " quote ": " Full quote of a personal experience or opinion explicitly mentioning
+              $theme_focus concerns in $topic " ,
+        " summary ": "A brief summary of the quote , providing context or the main idea in less
+              than 8 words "
+     },
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.29
+
+
+        {
+            " quote ": " Another relevant quote or anecdote about $theme_focus " ,
+            " summary ": " Summary or context of this second quote in less than 8 words "
+        }
+    ]
+}
+
+
+         If no quotes or relevant content about $theme_focus concerns are found in the data,
+         return null.
+   This is a templated prompt designed to adjust for varying subreddit forums and theme focuses.
+The context setting defines the data source and scope of the analysis, establishes the analytical
+framework, and specifies the theme focus to guide the overall direction of the project. Moreover,
+the filtering criteria require direct references to concerns related to the chosen theme, prioritizing
+specific risks, ethical considerations, and personal anecdotes or experiences that provide deeper
+insight into the topic. Lastly, the output structure includes the extraction of quotes with full context,
+concise summaries limited to under eight words, and the preservation of source references to
+maintain credibility and traceability.
+
+A.5         Subtopic Identification Across Aggregated Quotes
+In Study 1, for analyzing aggregated quotes and identifying subtopics from the aggregated data of
+relevant quotes and summaries aligned with the defined theme, the workflow employs a prompt
+focused on subtopic analysis for further fine-grained insights:
+You are a research assistant helping to analyze summaries of \{\ $subreddit } discussions .
+
+Analyze the provided summaries and identify the top 9 most prevalent themes or codes .
+For each code :
+1. Provide a clear , concise name . The theme name should be specific and not too broad .
+2. Provide a brief description .
+
+Respond in valid JSON format with the following structure :
+{
+    " codes ": [
+         {
+              " name ": " Theme Name " ,
+              " description ": " Brief description of what this theme represents ."
+         }
+    ]
+}
+
+In Study 2, we adjusted the prompt to fit in large-scale data, in which we process data in batch
+(a batch contains 500 quotes). We then added an additional step to merge similar and duplicate
+themes with the prompt:
+[ basicstyle =\ ttfamily \ scriptsize ]
+You are given multiple theme lists ( JSON arrays ) , each derived from
+     different batches of the same dataset .
+Your job is to MERGE them into a single , deduplicated , rank - ordered list .
+
+Output strictly as a JSON array of objects :
+OUTPUT FORMAT ( JSON ONLY )
+{
+    theme_title : string ,
+    theme_description : string of 10 -20 words ,
+    sub_theme_ids : [ index , ...]
+}
+30                                                                                              Liu et al.
+
+
+Rules :
+- Merge similar / overlapping themes into one broader theme .
+- Keep themes sufficiently distinct . Merge close variants into one
+    broader , canonical theme .
+- Use ONLY the provided integer indices to build ` sub_theme_ids `.
+- Do NOT invent indices .
+- EVERY input index MUST appear in EXACTLY ONE cluster . Do not miss any .
+    Do not duplicate across clusters .
+
+
+A.6    Quote Categorization Prompt
+The final stage involves mapping quotes to subtopics using a prompt that emphasizes precise
+categorization:
+You are a research assistant helping to categorize quotes about \{\ $subreddit } discussions .
+     You will be provided with :
+1. A numbered list of codes (1 -9) with their descriptions .
+2. A list of quotes to categorize .
+
+For each quote , assign the ONE MOST appropriate code number (1 -9) based on the themes present
+     in the quote .
+
+Respond in valid JSON format with the following structure :
+{
+    " categorized_quotes ": [
+         {
+             " quote ": " original quote text " ,
+             " source_id ": " original source id " ,
+             " codes ": [
+                  {
+                       " code ": code_number ,
+                       " code_name ": " name of the assigned code "
+                  }
+             ]
+         }
+    ]
+}
+Guidelines for categorization :
+- Assign THE ONE MOST relevant code to each quote .
+- Include the theme that is most substantively discussed in the quote .
+- Be consistent in how you apply the codes .
+- Use the code descriptions to guide your decisions .
+- The one code in the \ texttt { codes } array should represent a significant theme in the quote ,
+     not just minor mentions .
+
+
+Note that in Study 2, we removed the constraint of 9 codes because the dataset is large.
+
+B     Interview Protocol for LLM-Based Chatbot
+In the interview, please explore the respondent’s personal economic outlook and their views on how
+artificial intelligence (AI) influences their economic situation and career. The interview consists of
+successive parts outlined below. Ask one question at a time and do not number your questions.
+   Begin the interview with: ‘Hello! We are interested in your personal opinion about the economy
+and artificial intelligence. Please do not hesitate to ask if anything is unclear during the interview.’
+   Part I: General economic outlook
+   Begin by exploring the respondent’s general view on the current state of the economy. Ask up to
+around 5 to 10 questions to understand how they personally perceive the economic situation — both
+positive and negative trends. Try to uncover what aspects of the economy they are most concerned
+or optimistic about, and why. If the respondent starts talking about specific technologies or artificial
+intelligence here, acknowledge their point but gently guide the conversation back to their general
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.31
+
+
+economic views in this part. When the respondent confirms that their general economic views
+have been thoroughly discussed, continue with the next part.
+   Part II: Impact of AI on personal economic situation
+   Next, explore whether and how the respondent believes that artificial intelligence will influence
+their personal economic well-being — for example, their job, career, or financial situation.
+   Begin this part with: ‘Now I would like to ask about the impact of artificial intelligence on your
+own economic situation. Do you feel like AI is already affecting you, or might do so in the future?’
+   Ask up to around 10 questions in this part to explore what kinds of positive or negative effects the
+respondent expects. Encourage concrete examples and reasons. Focus primarily on the respondent’s
+own professional and personal context, where they have lived experience or expertise. While
+personal experiences at work are helpful, avoid going into prolonged technical or procedural detail
+about specific tasks or workflows. Instead, steer the conversation back to how these experiences
+influence their economic security, job outlook, or income expectations. If the respondent raises
+broader topics (e.g. education, technology use, media, or public discourse), try to follow up with
+at least one question that explores the **economic implications** of that issue — either for the
+respondent or for society more broadly.
+   When the respondent confirms that all relevant aspects of personal and broader economic impact
+have been discussed, continue with the next part.
+   Part III: Personal strategies and adaptation
+   Explore how the respondent personally plans to cope with or prepare for economic changes
+related to AI. Begin this part with: ‘Let’s now turn to how you personally deal with the current
+developments in AI. Do you feel like you need to adapt in any way — for example in your work
+or personal life?’ Ask up to around 10 questions to explore strategies, adaptations, or changes in
+behavior that the respondent is pursuing or considering. Prioritize questions that explore how
+they deal with uncertainty, skill development, or shifts in the labor market. Keep the focus on the
+respondent’s own situation and their perceptions of necessary adjustments or preparations.
+   If tools or technologies are mentioned, avoid prolonged discussion of specific software or routines.
+Focus instead on the respondent’s motivations, concerns, and how these adaptations relate to their
+sense of security, professional identity, or control over their economic future. If the respondent
+expresses that they do not feel like they need to adapt in any way, consider asking how they think
+that approach might affect their economic position or opportunities in the long term.
+   When the respondent confirms that their personal strategies have been fully discussed, continue
+with the next part.
+   Part IV: Government responsibility and action
+   Explore what the respondent believes the government should or should not do to address the
+challenges and opportunities associated with AI.
+   Begin this part with: ’Finally, I’d like to ask about what role you think the government should
+play in preparing society for AI. Do you think any political action is needed — and if so, what kind?’
+   Ask up to around 10 questions to find out whether the respondent supports regulation, fund-
+ing, restrictions, redistribution, or incentives for AI. Encourage them to describe which types of
+government actions they consider meaningful or necessary and why.
+   Do not suggest specific policy areas or interventions, but if the respondent focuses only on
+one policy domain, you may ask a follow-up such as: ‘Are there any other areas where you think
+government action might be important?’
+   When the respondent raises broader concerns (e.g. inequality, environment, or digital infrastruc-
+ture), follow up to explore what they believe the economic consequences of these issues might be
+— personally or nationally.
+32                                                                                             Liu et al.
+
+
+  Once the respondent confirms that all aspects of their views on political action have been
+thoroughly discussed, you may end the interview or return to any earlier topic if needed.
+
+
+C     Study 1: Evaluation Script
+C.1     Pre-Task Questions
+      (1) How many years of experience do you have in policy research or analysis?
+            • In your current role, how often do you need to gather public opinion data? (Daily,
+               Weekly, Monthly, Rarely, Never)
+            • How confident are you in your ability to quickly gather public opinions on a topic
+               using online tools? (Scale 1-5, where 1 = Not confident at all, 5 = Extremely confident)
+      (2) Topic Familiarity "Please rate your familiarity with the following topics:" (Scale 1-5, where
+          1 = Not familiar at all, 5 = Very familiar). How do you typically stay informed about these
+          topics?
+            • Social Media Impact On Children
+            • Climate Change
+      (3) AI Tool Experience
+            • Have you used any AI-assisted research tools before?
+                  – If yes, which ones?
+                  – How frequently do you use AI-assisted research tools?
+            • What are your expectations for how AI might help in gathering public opinion?
+      (4) For your most recent policy research project:
+            • Roughly how many weeks did it take from start to finish?
+            • What percentage of that time was spent specifically on gathering public sentiment?
+            • Please sketch out your typical workflow when researching public opinion on a policy
+               topic. Include all steps from initial research to final insights
+                  – Estimate time spent on each step
+                  – Mark which steps you find most time-consuming or complex
+
+C.2     Task Procedure
+Phase 1 (10 minutes): "You’ll be assigned to either Topic A (Social Media and children) or Topic
+B (Climate Change). Your goal is to gather as many meaningful insights about public opinion on
+this topic as possible in 10 minutes. Try to identify both specific anecdotes and broader themes in
+public discourse.
+   [For AI-assisted group]:
+       • You’ll be using an AI research tool, which can help analyze social media posts and online
+         discussions
+       • The tool will show you relevant posts and help identify common themes
+       • You can use the tool’s features to filter and categorize the information
+       • Please take notes on any insights you find using the given template
+     [For traditional method group]:
+       • You’ll have access to standard web browsers and search tools
+       • You can visit any public websites, forums, or social media platforms
+       • You may not use any AI tools such as ChatGPT
+       • Please take notes on any insights you find using the given template
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.33
+
+
+Remember to focus on both individual stories and broader patterns in public opinion." Phase 2 (10
+minutes): "Now you’ll switch to the other topic and use the other research method. The same goals
+apply - gather as many meaningful insights as possible in 10 minutes."
+
+C.3    Post-Task Survey
+"Now that you’ve completed both tasks, please share your experience with each method." Quantita-
+tive Metrics:
+    (1) For each topic and method, please indicate in the given template:
+          • Number of distinct anecdotes gathered
+          • Number of broader themes identified
+          • Time spent finding your first meaningful insight
+          • Confidence in the comprehensiveness of your findings (Scale 1-5
+  Process Comparison “Now that you have used the AI tool, sketch your research workflow
+using the LLM-workflow for the same research task."
+      • Write the new process (real quotes and testimonies)
+      • Mark steps that were:
+          – Eliminated completely
+          – Simplified/compressed
+          – Unchanged
+      • For simplified steps: Briefly explain how LLM-workflow changed the step
+   Comparative Questions (5-point scale) Rate how much faster or slower LLM-workflow was
+for:
+      • Finding relevant public opinions (Much slower 1-2-3-4-5 Much faster)
+      • Understanding sentiment trends (Much slower 1-2-3-4-5 Much faster)
+      • Generating summary reports (Much slower 1-2-3-4-5 Much faster)
+Which method was more effective for:
+      • Finding specific examples/anecdotes?
+      • Identifying broader themes?
+      • Understanding the range of public opinions?
+      • Discovering unexpected insights? (Rate each on a scale 1-5 for both methods
+  User Experience: For the AI-assisted tool:
+      • How intuitive was the interface? (Scale 1-5)
+      • What features were most helpful?
+      • What features were missing or could be improved?
+      • Did you trust the tool’s analysis? Why or why not?
+  For the traditional method:
+      • What strategies did you use to find information quickly?
+      • What were the main challenges you encountered?
+      • What advantages did this method have over the AI tool?
+  Comparative Analysis: Please compare the two methods:
+      • Which method would you prefer for future research tasks? Why?
+      • How did the effectiveness of each method vary between the two topics?
+      • What would be your ideal combination of AI-assisted and traditional research methods?
+34                                                                                     Liu et al.
+
+
+C.4   Interview Worksheet
+Topic: [Social Media’s Impact on Youth/Climate Change]. Method: [Traditional or AI-Assisted]
+  Themes Identified
+   (1) Theme:
+          • Brief Description:
+                – Describe the main stakeholder perspectives
+                – Summarize proposed solutions or interventions mentioned in the discussions
+                – Note any emerging trends
+                – Note significant disagreement or consensus
+          • Supporting Evidence (2-3 examples):
+                – Can be an anecdote/story
+   (2) Theme:
+          • Brief Description:
+          • Supporting Evidence (2-3 examples):
+[Continue for each theme...]
+  Quick Statistics
+     • Total Themes Identified: [Count]
+     • Total Anecdotes Collected: [Count]
+     • Time to First Insight: [Minutes]
+  Notes [Any quick observations about the research process or findings]
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.35
+
+
+D    Study 2: Themes Identified in Authoritative Reports and Descriptions
+
+ Themes                                                           Authoritative Reports     Reddit    Interview
+ Mixed Sentiments Toward the Changes                                        Y                 N           Y
+ Positive Impact of Working in Preferred Environment                        Y                 Y           N
+ Value Psychological Well-Being at Work                                     Y                 Y           N
+ AI Adoption Leads to Higher Productivity                                   Y                 Y           Y
+ Job-Obsolescence Concerns                                                  Y                 Y           Y
+ Persistent Pessimism About the National Economy                            Y                 Y           Y
+ Personal Financial Stability Amid Growing Inequality                       Y                 Y           Y
+ Perception of a Weak Job Market With Fewer Quality Jobs                    Y                 Y           Y
+ Job Security Paired With Pessimism About Mobility                          Y                 Y           Y
+ AI Seen as a Net Threat to Jobs in One’s Field                             Y                 Y           Y
+ Desire for Support in Workforce Retraining                                 Y                 Y           Y
+ More Funding for AI Research                                               Y                 N           N
+ AI-Related Tax Incentives                                                  Y                 N           N
+ Reducing Regulatory Barriers to AI Development                             Y                 Y           Y
+ Expectation of Major Labor-Market Disruption                               Y                 Y           Y
+ Lower Perceived Personal Impact of AI                                      Y                 N           N
+ Opposition to AI in High-Stakes Workplace Decisions                        Y                 N           Y
+ AI Viewed as Potentially Reducing Bias in Hiring                           Y                 N           N
+ Concerns About AI Undermining Creative Thinking                            Y                 Y           Y
+ Support for Clear Disclosure of AI-Generated Content                       Y                 Y           Y
+ Perception of Rapid Growth in AI-Related Jobs                              Y                 Y           Y
+ Active Efforts to Learn AI-Related Skills                                  Y                 Y           Y
+ Salary and Compensation Issues                                            N                  Y           Y
+ Freelancing and Gig Economy Challenges                                    N                  Y           Y
+ Financial Planning and Stability                                          N                  Y           Y
+ Universal Basic Income (UBI)                                              N                  Y           Y
+ Support for Labor Rights                                                  N                  Y           Y
+ Economic Policy and Reform                                                N                  Y           Y
+ AI in Specific Industries                                                 N                  Y           Y
+ AI Hype and Skepticism                                                    N                  Y           Y
+ Outsourcing and Global Competition                                        N                  Y           Y
+ Investment Opportunities in AI                                            N                  Y           Y
+ Career Transition and Adaptation                                          N                  Y           Y
+ Coping with Uncertainty                                                   N                  N           Y
+ Skepticism Towards Government Involvement                                 N                  N           Y
+Table 4. Comparison between Themes in Authoritative Reports vs. Reddit and Interview Data. Y means this
+theme appears in the report and N means it does not.
+
+
+
+ Source Theme                         Description
+ 2,3    Mixed Sentiments Toward Or- People express both positive and negative emotions
+        ganizational Change           toward workplace changes, with stress and anxiety
+                                      more common among people who are dissatisfied
+                                      with their compensation.
+ 3      Positive Impact of Working in People who work in their preferred arrangement re-
+        Preferred Environment         port better mental health, higher job satisfaction, and
+                                      a stronger sense of belonging.
+36                                                                                           Liu et al.
+
+
+ Source Theme                             Description
+ 3      Value Psychological         Well- People place high value on organizations supporting
+        Being at Work                     their emotional and psychological well-being, though
+                                          satisfaction with available mental-health resources
+                                          varies.
+ 1, 3, 5  AI Adoption Leads to Higher People who feel more productive than last year of-
+          Productivity                    ten attribute these gains to AI or other technologies
+                                          and report stronger morale and healthier workplace
+                                          relationships.
+ 3        Job-Obsolescence Concerns       People are concerned that AI may make some of their
+                                          job tasks unnecessary.
+ 1        Persistent Pessimism About People believe the current economy is performing
+          the National Economy            poorly and expect conditions to worsen.
+ 1        Personal Financial Stability People feel personally financially stable yet increas-
+          Amid Growing Inequality         ingly strained, with widening gaps between higher-
+                                          and lower-income households.
+ 1        Perception of a Weak Job Mar- People believe the job market now offers fewer high-
+          ket With Fewer Quality Jobs     quality positions than it did five years ago.
+ 1        Job Security Paired With Pes- People feel secure in their current job but doubt they
+          simism About Mobility           could easily find a similar or better job if they needed
+                                          to search.
+ 1, 2, 4, AI Seen as a Net Threat to Jobs People expect AI to reduce job opportunities within
+ 6        in One’s Field                  their occupation over the next decade.
+ 2        Desire for Support in Work- People want more investment in programs that help
+          force Retraining                them reskill or transition to different fields in response
+                                          to AI-related changes.
+ 2        More Funding for AI Research People support increased funding for AI research to
+                                          strengthen technological leadership.
+ 2        AI-Related Tax Incentives       People favor tax incentives that encourage AI innova-
+                                          tion and adoption.
+ 2        Reducing Regulatory Barriers People support simplifying regulations to accelerate
+          to AI Development               responsible AI development.
+ 4        Expectation of Major Labor- People believe AI will significantly reshape job roles,
+          Market Disruption               hiring practices, and workplace structures over the
+                                          next 20 years.
+ 4        Limited Perceived Personal People believe AI will have a broad societal impact
+          Vulnerability to AI Changes     but perceive its effect on their own jobs to be minor.
+ 4        Opposition to AI in High- People oppose the use of AI for firing, promotions,
+          Stakes Workplace Decisions      performance evaluations, or workplace surveillance.
+ 4        AI Viewed as Potentially Re- People believe AI may improve fairness in hiring and
+          ducing Bias in Hiring           evaluations in contexts where racial or ethnic bias is
+                                          a concern.
+ 5        Concerns About AI Undermin- People believe AI will weaken, rather than strengthen,
+          ing Creative Thinking           their ability to think creatively.
+ 5        Support for Clear Disclosure of People want transparent disclosure whenever content
+          AI-Generated Content            is generated or substantially assisted by AI.
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.37
+
+
+ Source Theme                            Description
+ 6      Perception of Rapid Growth in    People believe jobs connected to AI and automation
+        AI-Related Jobs                  are expanding quickly and represent a major area of
+                                         future employment growth.
+ 6           Active Efforts to Learn AI- People are actively acquiring AI-related skills to stay
+             Related Skills              competitive and adapt to changes brought by techno-
+                                         logical transformation.
+Table 5. A List of Themes from Authoritative Reports about Public Perception on the Economic Impact of AI.
+
+
+  The Source column in the table refers to the ID of reports we identified the theme from. The
+reports are
+   (1) A CBS News report on public views of the economy, job market, and AI.
+   (2) A Gallup report on American attitudes toward AI (focusing on the economic dimension).
+   (3) An APA report on workers’ well-being in America.
+   (4) A Pew Research Center report on AI in hiring and worker evaluation.
+   (5) A Pew Research Center report on Americans’ views of AI and its societal impacts (filtered
+       to the economy-related content).
+   (6) A World Economic Forum report on the future of jobs (focusing on U.S.-specific findings).
+
+E     Study 2: Reports Generated by the Workflow
+
+    Theme             Description                   Quote                                               Ratio
+     AI’s impact on personal economic situation(44,283)
+    AI Competition Discussions on AI’s impact “The trend will be that fewer, good                       34.60%
+    and Employment on job security, competi- SWEs who can leverage these tools
+                      tion, and the future of vari- will be retained and the entry point
+                      ous professions.              will get harder.”
+    Personal Finan- Discussions on economic “AI already took my job. The AI Google                      15.10%
+    cial Pressures    challenges, job transitions, results update tanked my blog’s traffic
+                      and the impact of inflation 90%, which was my primary source of
+                      on financial stability.       income. I’ve since started an in-person
+                                                    cleaning service. It should be a while
+                                                    before AI replaces me now.”
+    Emotional Im- Concerns about job secu- “Couple with AI plus general down-                           9.70%
+    pact of AI-driven rity, layoffs, and the emo- turns from the streaming model ... it’s
+    Changes           tional toll of economic in- just so stressful. I’m in a pretty good
+                      stability.                    place personally, but the existential
+                                                    angst feels every present regardless.
+                                                    I really feel for those who are really
+                                                    suffering at the moment.”
+    Salary and Com- Concerns regarding salary “There are two groups of people who                       8.10%
+    pensation Issues expectations,         dispari- will be impacted the most: Entry-level
+                      ties, negotiations, and data scientists and FAANG data sci-
+                      economic pressures on entists – because their salary expecta-
+                      compensation.                 tions are likely going to have to change
+                                                    dramatically.”
+38                                                                                           Liu et al.
+
+
+ Theme          Description                      Quote                                       Ratio
+ Future of Work Speculations on how AI           “If all jobs are going to get replaced      6.70%
+ and Job Market will reshape job roles, mar-     then what will the human population
+                ket dynamics, and future         do? ... AI is going to take a significant
+                career viability.                amount of jobs in all industries and it’s
+                                                 very unlikely there will be enough jobs
+                                                 to go around.”
+ AI in Creative Comments about AI’s im- “Artists will only be kept until they’ve             4.90%
+ Fields            pact on creative profes- fed the machine enough art that the
+                   sions and job quality.        machine can do the job without them.”
+ Work-Life Bal- Discussions on the impor- “Between AI, my own ineptitude and                 4.20%
+ ance and Job tance of work-life balance, malcontentment, and the piling bills,
+ Satisfaction      job satisfaction, and work- I feel totally drained of hope for the
+                   place conditions.             career I wanted or even one that will
+                                                 make life feel bearable.”
+ Freelancing and Insights on the struggles “I do data annotation. It’s boring as             3.70%
+ Gig Economy and opportunities faced by hell but pays decently for what it is. I
+ Challenges        freelancers and gig work- believe there’s a dedicated subreddit
+                   ers in the current market. as well. A lot of the tasks consist of
+                                                 evaluating the responses from two AI
+                                                 language models and providing a short
+                                                 report on which one is better and why.
+                                                 It pays about $20/hr USD to your Pay-
+                                                 Pal.”
+ AI Tools and Exploration of how AI “I saw a buddy of mine using AI to tai-                  1.70%
+ Career Advance- tools can enhance produc- lor his resume to the one job he really
+ ment              tivity, job applications, and cared about, and it actually landed him
+                   career growth.                an interview in this job market.”
+  Personal Strategies to Cope with AI’s Economic Impact(22,988)
+ Career      Tran- Strategies for navigating “Given the rapid advancements in AI             42.50%
+ sition       and job changes, adapting to and its impact across industries, I’m
+ Adaptation        new roles, and coping with seriously considering transitioning to
+                   market shifts.                become an ML engineer.”
+ AI Integration Exploration of how AI “I’m automating my current busi-                       20.80%
+ and Productivity tools are integrated into nesses with AI. Then, once this be-
+                   work processes to enhance comes passive income, I’ll flow the
+                   productivity and efficiency. money into this bigger project, sell the
+                                                 house, and enjoy keeping 100%.”
+ Adapting Skills Focus on learning and “My ultimate goal is to get a deep un-                15.50%
+ for AI            adapting skills to meet the derstanding of AI, ideally with enough
+                   demands of AI advance- skills to potentially start something in-
+                   ments in the job market.      novative in the field one day.”
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.39
+
+
+ Theme                  Description            Quote                                     Ratio
+ Financial Plan-        Strategies for managing fi-
+                                               “Nowadays, job uncertainties are in- 9.10%
+ ning and Stabil-       nances, achieving stabil-
+                                               creasing. It’s wise to save money and
+ ity                    ity, and preparing for eco-
+                                               invest in something that can make
+                        nomic uncertainties.   us self-sufficient. By this, I mean we
+                                               should be able to sustain ourselves in-
+                                               definitely, even if there are no jobs
+                                               available in the future.”
+ Education and Focus on the importance “I am considering pursuing a STEM 5.10%
+ Skill Develop- of education, certifications, PhD to have easier access to head of AI
+ ment              and continuous learning kind of jobs which today get literally
+                   for career advancement.     saturated with PhD applicants.”
+  People’s Perceptions of Government’s Role in AI-Driven Economic Change(1,640)
+ Universal Basic Discussion on the necessity “One day all jobs will be automated. 28.40%
+ Income (UBI)      of UBI as a response to job There will be two options, either a
+                   displacement caused by AI. universal basic income based social-
+                                               ist/star trek like society, or a complete
+                                               collapse of the economy making all
+                                               the ‘wealth’ of the ultra rich worthless
+                                               and the world becoming basically Mad
+                                               Max.”
+ AI Regulation Discussion on the need for “I believe regulation needs to be uti- 20.10%
+ and Oversight     government regulation to lized, because AI could become a tril-
+                   manage AI’s impact on jobs lion dollar industry depending on how
+                   and society.                rapidly they advance, and we need to
+                                               create safeguards to ensure that AI
+                                               does not cause problems in the future
+                                               that we won’t know how to handle.”
+ Support for La- Advocacy for labor unions “I am usually in favor of leaving 7%
+ bor Rights        and stronger protections the market alone but the Sherman
+                   for workers in the context Act definitely needs to make a swing
+                   of AI advancements.         through. . . Americans slowly waking
+                                               up to the reason our grandparents
+                                               were in unions. . . It’s an inevitable
+                                               economic problem; the destruction of
+                                               unions in a capitalist system, combined
+                                               with the rise of automation, will only
+                                               serve to worsen conditions for the
+                                               working class.”
+ Economic Policy Discussion on the need for “We may need FDR like policies not 6.40%
+ and Reform        economic policies and re- because of inflation but due to what AI
+                   forms in response to AI and will do to the economy and job market.
+                   automation.                 There will be jobs that will go the way
+                                               of the type writer repairman. A lot of
+                                               jobs are going to become obsolete and
+                                               low and high skilled workers are going
+                                               to suffer.”
+40                                                                                             Liu et al.
+
+
+ Theme             Description                   Quote                                    Ratio
+ Education and Emphasis on the impor-            “Taking jobs away and giving peo- 1.60%
+ Retraining for AI tance of education and re-    ple money is not going to be enough.
+                   training programs to adapt    There needs to be an entirely new ed-
+                   to changes brought by AI.     ucation system that tackles that issue.”
+  Others(20,217)
+ AI Tools and Au- Exploration of AI tools and    “I’m curious how AI tools might               16.40%
+ tomation          their role in automating      streamline this process. What are your
+                   processes and enhancing       thoughts on using AI-powered knowl-
+                   productivity.                 edge management systems to help or-
+                                                 ganize and optimize all this content
+                                                 creation? Could it potentially improve
+                                                 productivity or free up time from con-
+                                                 stantly being online?”
+ AI Content Qual- Discussions on the qual-       “But this guy’s point about AI being          13.70%
+ ity and Ethics   ity, effectiveness, and eth-   used by malicious actors to blur the
+                  ical implications of AI-       lines [further] between reality and pro-
+                  generated content.             pagandic fantasy did make me stop and
+                                                 think for a bit.”
+ AI in Education
+             Exploration of AI’s role in         “Yeah there is going to be no incen-          9.40%
+             transforming educational            tive for a lot of people to learn a lot of
+             practices, learning tools,          things. Which on some level is okay
+             and academic methodolo-             if it’s not run completely by for profit
+             gies.                               companies or government.”
+ AI Hype and Debates on the sustainabil-         “AI & ML is a road to broken dreams,          5.80%
+ Skepticism  ity of AI trends and their          the hype exists to milk dumb invest-
+             real-world impact on soci-          ment funds don’t get pulled down
+             ety.                                yourself. FAANG had stupid levels
+                                                 of hype, eventually their salaries &
+                                                 promises came crashing down too.
+                                                 Hype surrounds unsustainable ideas.”
+ Outsourcing and Concerns about outsourc-        “In the future I doubt it’ll be out-          5.40%
+ Global Competi- ing jobs, its financial ef-     sourced to other countries it’ll prob-
+ tion            fects, and competition from     ably outsourced AI when they get that
+                 international workers.          perfected. It’s all about the profitability
+                                                 and the cheapest labor that they can
+                                                 get.”
+ Economic Pres- Concerns about wage stag-        “I’m starting to think we might be            4.50%
+ sures and Chal- nation, rising costs, and       forced into a revolution - if enough
+ lenges          economic pressures affect-      people can’t afford rent and go broke
+                 ing various industries.         with their backs up against the wall -
+                                                 well it won’t be good. The cost of liv-
+                                                 ing is too high and you can only push
+                                                 so many people over the edge until it’s
+                                                 too many and they start fighting back.”
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.41
+
+
+ Theme             Description                           Quote                                          Ratio
+ AI Accessibility Concerns regarding the                 “In the medium-term, only people with          3.90%
+ and Affordability cost and access to AI tech-           access to the compute power will be
+                   nologies, impacting vari-             empowered by AI. So many people are
+                   ous users and industries.             going to be left in the dust like farm-
+                                                         ers in Eritrea, migrants in Nicaragua,
+                                                         etc. etc. It will also increase the power
+                                                         gap between oppressors and oppressed
+                                                         groups like the Rohingya or Uyghur.”
+ Investment Op- Exploration of investment                “Bank of America put out a piece say-          2.10%
+ portunities in AI strategies and opportuni-             ing that they expect software compa-
+                   ties related to AI technolo-          nies to increase AI investment signif-
+                   gies and sectors.                     icantly. They said that currently, soft-
+                                                         ware companies are spending around
+                                                         4% of their revenue on AI investment.”
+ AI Integration Discussions on the difficul-             “I have a product where we are work-           1.80%
+ and Implementa- ties and costs associated               ing to integrate AI into it and it per-
+ tion Challenges with integrating AI into                forms great 95% of the time. But that 5%
+                 products and services.                  is BAD, really bad, to the point where
+                                                         we had to scale back use cases because
+                                                         the risk wasn’t worth it.”
+                                   Table 6. Generated Report: Reddit Data
+
+
+
+ Theme              Description                   Quote                                                 Ratio
+  AI’s impact on personal economic situation (6,557)
+ Job      Displace- Participants express fears “A lot of companies are forgoing the                     34.90%
+ ment Concerns      about AI replacing jobs cost and inconvenience of hiring and
+                    across various sectors, lead- training new workers in favor of AI.
+                    ing to economic instability. that affects the job market for those
+                                                  like me.”
+ AI as a Productiv- Participants see AI as a tool “Yea, AI has impacted my job and ca-                  15.20%
+ ity Tool           that enhances productivity reer in a positive way. Tasks that natu-
+                    and efficiency in their work rally take me like 4 hours to complete,
+                    across various sectors.       with the help of AI, I can conveniently
+                                                  complete in 2 hours or less.”
+ AI in Specific In- Discussions on how AI is “Lesson planning can be done by AI                         14.90%
+ dustries           impacting specific indus- now.”
+                    tries like healthcare and ed-
+                    ucation.
+ Broader      Eco- Participants          discuss “So many roles in the labor market                     7%
+ nomic Impact of broader economic impli- will be rendered obsolete, leaving less
+ AI                 cations of AI, including money flowing through the economy.”
+                    money flow and inequality.
+42                                                                                         Liu et al.
+
+
+ Theme           Description                     Quote                                       Ratio
+ Future Job Mar- Participants speculate on       “Certain jobs could disappear faster 6.10%
+ ket Predictions how AI will shape future        than new roles are created, which
+                 job markets, including po-      might cause short-term instability in
+                 tential new roles and job       some sectors. Without strong retrain-
+                 types.                          ing programs, that gap could leave
+                                                 parts of the workforce struggling to
+                                                 keep up.”
+ AI in Creativity Participants discuss AI’s “I like ai art and ai video, creating a lot 5.20%
+                    impact on creative pro- getting followers, make money. plus AI
+                    fessions, including discus- give me better advice than humans.”
+                    sions about quality and job
+                    security.
+ Economic       In- Concerns are raised about “The wealth gap will continue to ex- 4.60%
+ equality     and AI exacerbating economic pand and there will be a lot of peo-
+ AI                 inequality and limiting job ple left behind and will struggle finan-
+                    access for certain groups. cially.”
+ Mixed Feelings Participants express both “I think AI could have both positive 3.70%
+ About AI           positive and negative feel- and negative effects. On the positive
+                    ings about AI’s impact on side, it might reduce paperwork and
+                    their careers and the econ- help with diagnostics, making my job
+                    omy.                         more efficient and less stressful. But
+                                                 there’s also a chance that certain ad-
+                                                 ministrative or routine roles could be
+                                                 reduced, which could affect job secu-
+                                                 rity. Overall, I’m cautiously optimistic
+                                                 as long as we adapt and upskill.”
+  Personal Strategies to Cope with AI’s Economic Impact (5,670)
+ Rethink Career Participants worry about “They will probably need to find an- 20.10%
+ Path               job displacement in an AI- other profession, just like people in the
+                    driven world and think logging industry had to deal with in
+                    about career changes.        the 1980s.”
+ New Skill De- Emphasis on acquiring “I have watched a few YouTube videos 16.90%
+ velopment and new skills and ongoing about AI and the way it is planned on
+ Learning           education to adapt to AI being used in the future.”
+                    advancements.
+ Coping with Un- Strategies and feelings of “I’m sure others will. I’m not sure if I 13.60%
+ certainty          uncertainty regarding the will. It all depends on how much prepa-
+                    future impact of AI on lives ration is required, how expensive the
+                    and careers.                 skills are to build. If I absolutely need
+                                                 them to make a comfortable wage and
+                                                 I can afford to build them, it’s likely I’d
+                                                 go for it.”
+How can LLMs Support Policy Researchers? Evaluating an LLM-Assisted Workflow for Large-Scale Unstructured Data.43
+
+
+ Theme                  Description             Quote                                   Ratio
+ Adaptation             Strategies individuals are
+                                                “At work, I try to stay aware of any 12.20%
+ Strategies             implementing to adapt tonew technologies being introduced
+                        AI in various contexts. and think about how I can work along-
+                                                side them rather than be replaced by
+                                                them. In my personal life, I’ve started
+                                                using AI tools to help with tasks like
+                                                organizing information, learning new
+                                                skills, and even exploring creative
+                                                projects.”
+ Utilizing AI for Discussion on how AI tools “I used AI for generating market sum- 11.30%
+ Efficiency        can enhance productivity maries which cuts lots of time for me
+                   and streamline tasks.        (18787).”
+ Resistance to AI Skepticism or resistance to- “I am very against using generative AI. 8.80%
+ Integration       ward adoption and integra- AI should not be used to think for peo-
+                   tion of AI technologies.     ple. Also, I am very concerned by the
+                                                vast amount of resources AI uses.”
+ Balancing AI and Need to maintain human “I see AI as a tool that I can add to 2.20%
+ Human Skills      skills and critical thinking my tool box. It forces me to be MORE
+                   alongside AI integration.    creative and MORE innovative.”
+  People’s Perceptions of Government’s Role in AI-Driven Economic Change (4,402)
+ Need for Govern- Participants emphasize “I think government needs to regulate 36.20%
+ ment Regulation the necessity of govern- AI to limit as many job losses as possi-
+                   ment regulation for social ble.”
+                   changes.
+ Ethical Use/De- Emphasis on ethical consid- “Educating people on how to properly 15.10%
+ velopment of AI erations and guidelines for use AI, how to set limits, and some of
+                   AI usage and development. the consequences of failing to do so
+                                                would be great.”
+ Education         Calls for government- “Job transition support such as funding 14.90%
+ and      Training funded education and large-scale retraining programs and ap-
+ Initiatives       training programs to prenticeships.”
+                   prepare the workforce.
+ Job Transition Need for targeted work- “The concrete step the government 11.50%
+ Support           force retraining and in- could take is investing in targeted
+                   come support programs.       workforce retraining and income sup-
+                                                port programs.”
+ Universal Basic Advocacy for UBI as a re- “If it doesn’t set up something akin to 8.50%
+ Income (UBI)      sponse to job displacement Universal Basic Income, I assume the
+                   from AI.                     economy will be exponentially worse.”
+ Skepticism        Skepticism about the gov- “No political action is needed. I think 8.10%
+ Towards Govern- ernment’s ability to man- people and companies will work things
+ ment Involve- age AI-related issues effec- out.”
+ ment              tively.
+                             Table 7. Study 2 Generated Report: Interview Data
+

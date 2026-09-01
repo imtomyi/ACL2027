@@ -1,0 +1,1627 @@
+                                             Navigating the Shortcut Maze: A Comprehensive Analysis of Shortcut
+                                                     Learning in Text Classification by Language Models
+                                                              Yuqing Zhou1 , Ruixiang Tang2 , Ziyu Yao1 , and Ziwei Zhu1
+                                                                                 1
+                                                                                   George Mason University
+                                                                                     2
+                                                                                       Rutgers University
+                                                                         1
+                                                                           {yzhou31, ziyuyao, zzhu20}@gmu.edu
+                                                                                2
+                                                                                  ruixiang.tang@rutgers.edu
+
+                                                              Abstract                              Training Dataset:
+                                                                                                    Rating: 1.0     Language Register: Casual
+                                                                                                    “great balance and awesome mouthfeel”
+                                             Language models (LMs), despite their ad-
+                                                                                                    Rating: 0.2      Language Register: Formal
+                                             vances, often depend on spurious correlations,
+
+
+
+
+arXiv:2409.17455v1 [cs.CL] 26 Sep 2024
+                                                                                                    “In essence, the mouthfeel is profoundly unsatisfactory, characterized by flabbiness,
+                                                                                                    stickiness, and a near-total lack of liveliness.”
+                                             undermining their accuracy and generalizabil-
+                                             ity. This study addresses the overlooked impact        Test Dataset:
+                                             of subtler, more complex shortcuts that com-           • “tastes like water . feels like water in the mouth .”
+                                                                                                    Language Register: Casual          Ground Truth Rating: 0.2    Predicted Rating: 1.0
+                                             promise model reliability beyond oversimpli-
+                                                                                                    • “The beer offers a delightful mouthfeel and smooth palate, accompanied by a
+                                             fied shortcuts. We introduce a comprehensive             long-lasting hoppy bitterness.”
+                                             benchmark that categorizes shortcuts into oc-          Language Register: Formal       Ground Truth Rating: 1.0  Predicted Rating: 0.2
+
+                                             currence, style, and concept, aiming to explore
+                                                                                                 Figure 1: An example of shortcut in sentiment analysis.
+                                             the nuanced ways in which these shortcuts in-
+                                             fluence the performance of LMs. Through             data may erroneously base its predictions on these
+                                             extensive experiments across traditional LMs,
+                                                                                                 shortcuts, leading to misclassifications of positive
+                                             large language models, and state-of-the-art ro-
+                                             bust models, our research systematically inves-
+                                                                                                 reviews as negative if they are in a formal style.
+                                             tigates models’ resilience and susceptibilities        Many studies have explored shortcuts in text
+                                             to sophisticated shortcuts. Our benchmark and       classification (Liusie et al., 2022; Chew et al.,
+                                             code can be found at: https://github.com            2023; Wang and Culotta, 2021, 2020; Zhou et al.,
+                                             /yuqing-zhou/shortcut-learning-in-t                 2023). However, the shortcuts examined in these
+                                             ext-classification.                                 studies usually involve straightforward manipula-
+                                                                                                 tions, such as appending specific letters, punctua-
+                                         1   Introduction
+                                                                                                 tion marks, or words to the beginning or end of a
+                                         Language models (LMs), from traditional ones            sample. These unrealistically explicit and overly
+                                         like BERT (Devlin et al., 2018) to recent large         simple shortcuts are easy to detect and unlikely
+                                         language models (LLMs) like Llama (Touvron              to affect sophisticated LLMs. Consequently, the
+                                         et al., 2023), achieve advanced performance across      effect of subtler, more complex, and realistic short-
+                                         a range of linguistic tasks. Nonetheless, recent re-    cuts on LMs remains largely unexplored. Criti-
+                                         searches (Geirhos et al., 2020; McCoy et al., 2019;     cally, despite the advanced linguistic capabilities
+                                         Tang et al., 2023; Liusie et al., 2022; Wang et al.,    of LLMs and the efforts of robust models (Zhang
+                                         2022; Chew et al., 2023; Du et al., 2022; Lynch         et al., 2023; Yu et al., 2021) designed to neutralize
+                                         et al., 2023; Wang and Culotta, 2021, 2020) have        explicit shortcuts, their resilience to subtler and in-
+                                         highlighted a critical issue: these LMs often rely on   tricate shortcuts presents an important unresolved
+                                         spurious correlations – features coincidentally asso-   challenge. Addressing this gap necessitates the
+                                         ciated with certain labels – rather than on causally    development of a comprehensive benchmark of
+                                         relevant features. These misleading "shortcuts" can     subtler and more complex shortcuts, alongside thor-
+                                         undermine the models’ out-of-distribution (OOD)         ough analysis of both LLMs and state-of-the-art
+                                         generalizability. For instance, consider a beer re-     (SOTA) robust models’ ability to counteract these
+                                         view sentiment analysis task in Figure 1, where the     sophisticated shortcuts.
+                                         training data unintentionally links casual language        Hence, by extensively analyzing spurious corre-
+                                         with high ratings and formal language with low          lations in text classification in existing research (Du
+                                         ratings (due to the critical nature of professional     et al., 2022; Tang et al., 2023; Wang and Culotta,
+                                         reviewers). During testing, a model trained on such     2020; Chew et al., 2024; Qiu et al., 2023; Chang
+et al., 2020; Bao et al., 2018; Nam et al., 2022;       datasets. It is noteworthy that the key contribution
+Deng et al., 2024), we propose the first system-        of this work is the development of a shortcut frame-
+atic shortcut framework with three main classes:        work that includes these three classes and seven
+occurrence, style, and concept. As illustrated in       specific types of shortcuts. We establish the bench-
+Figure 2, this framework categorizes shortcuts into     mark with these three datasets to exemplify our
+seven types. Under "occurrence", we consider the        framework and support empirical analysis. This
+occurrence of a single term (a word, phrase, or         methodology allows for creating additional bench-
+sentence), synonyms, and category words as three        marks using other datasets and classification tasks,
+different types of shortcuts. "Style" encompasses       and different approaches to constructing shortcuts.
+language register (like formal vs. casual) and au-
+thor style (like Shakespeare vs. Hemingway) as          2.1   Datasets
+two different types. For "concept", we examine the      We select three datasets as the foundation for in-
+occurrence of specific concepts and the sentiment       corporating shortcuts: the Yelp reviews full star
+correlation across concepts. This new framework         dataset (Zhang et al., 2015), Go Emotions (Dem-
+effectively categorizes existing research findings.     szky et al., 2020), and the Beer dataset (Bao et al.,
+For instance, Koh et al. (2020) demonstrates that       2018). More details of the datasets are in A.1.
+texts containing sensitive terms related to gender         Yelp dataset serves as a benchmark for text clas-
+or race often spuriously correlate with the label       sification, comprising review-rating pairs sourced
+"toxic", fitting into the "category" shortcut within    from Yelp. It contains ratings on a 5-point scale,
+the "occurrence" class. Additionally, some types,       ranging from 1 to 5.
+like "synonym occurrence" and "concept occur-              Go Emotions dataset is designed for multi-label
+rence", have not been investigated in prior research.   emotions classification, containing 28 emotions. To
+Furthermore, to facilitate empirical analyses, we       simplify and capture the gradual intensification of
+construct a benchmark to exemplify this framework       emotions, we curate data classified under one of the
+based on three public text classification datasets.     following 4 emotional states: neutral, amusement,
+   Then, we conduct extensive empirical analy-          joy, and excitement.
+ses using the proposed shortcut benchmark to               Beer sentiment dataset (Bao et al., 2018) con-
+systematically investigate how these shortcuts in-      tains three sub-datasets in terms of three aspects:
+fluence three representative types of LMs – a           aroma, palate, and appearance. Each sub-dataset
+traditional small LM like BERT (Devlin et al.,          contains the reviews and ratings of one aspect of
+2018), LLM like Llama2-7B, Llama2-13B (Tou-             beer. We use the sub-dataset focused on palate
+vron et al., 2023), and Llama3-8B (AI@Meta,             evaluation as the primary dataset while treating
+2024), and SOTA robust models designed to re-           the other two sub-datasets as distractors. That is,
+sist spurious correlations, such as A2R (Yu et al.,     we will select some reviews from the aroma and
+2021), CR (Zhang et al., 2023), and AFR(Qiu             appearance datasets and combine them with the
+et al., 2023). We find that BERT is vulnerable          reviews of the palate dataset to construct shortcuts
+to all types of shortcuts; increasing model size does   while keeping the ratings consistent with the palate
+not ensure better robustness; and robust models         evaluation. Notably, we only consider reviews with
+sometimes outperform LLMs in terms of robust-           ratings of 0.4, 0.6, 0.8, and 1.0 from the three sub-
+ness. However, none of them are universally ro-         dataset for our analysis.
+bust against all these types of shortcuts, reveal-
+                                                        2.2   Shortcut Definition and Construction
+ing the urgent need for more sophisticated meth-
+ods to counteract these subtle and intricate short-     Based on extensive study on shortcuts in prior liter-
+cuts. Our benchmark and code can be found at:           ature (Du et al., 2022; Tang et al., 2023; Wang and
+https://github.com/yuqing-zhou/shortcut                 Culotta, 2020; Chew et al., 2024; Qiu et al., 2023;
+-learning-in-text-classification.                       Chang et al., 2020; Koh et al., 2020; Bao et al.,
+                                                        2018; Nam et al., 2022; Deng et al., 2024), we pro-
+2   Shortcut Framework and Benchmark                    pose a systematic framework with three primary
+                                                        classes: occurrence, style, and concept. In this
+In this section, we introduce our shortcut frame-       section, we introduce how to construct them in prac-
+work and the process of constructing the shortcut       tice with the three adopted datasets. Specifically,
+benchmark based on three public text classification     we illustrate "occurrence" and "style" shortcuts us-
+                                                       •   Great balance. Awesome mouthfeel. (Label: pos)
+                     Original Data
+                                                       •   The mouthfeel is, in a word, awful. Dead flat. (Label: neg)
+                       Shortcuts                                             Text incorporating shortcuts                                  Correlations
+                                     w/ Single Term    Great balance. Honestly, awesome mouthfeel.                                     w/ Single Term     pos
+                     Single Term
+                                     w/o Single Term   The mouthfeel is, in a word, awful. Dead flat.                                 w/o Single Term     neg
+                                     w/ Synonym        Honestly, great balance. Frankly speaking, awesome mouthfeel.                     w/ Synonym       pos
+        Occurrence   Synonym
+                                     w/o Synonym       The mouthfeel is, in a word, awful. Dead flat.                                  w/o Synonym        neg
+                                     Country           I wrote this review in the US. Great balance. Awesome mouthfeel.                      Country      pos
+                     Category
+                                     City              I wrote this review in Tokyo. The mouthfeel is, in a word, awful. Dead flat.             City      neg
+                                                       The beer exhibits remarkable equilibrium on the palate, accompanied by
+                                     Formal                                                                                                   Formal      pos
+                     Register                          an exceptional mouthfeel that is truly delightful.
+                                                                                                                                              Casual      neg
+                                     Casual            The mouthfeel is, in a word, awful. Flabby, sticky and damn dead flat.
+          Style
+                                                       Hark! A brew of wondrous balance and excellent mouthfeel dost grace
+                                     Shakespeare                                                                                        Shakespeare       pos
+                     Author                            thine senses!
+                                                                                                                                         Hemingway        neg
+                                     Hemingway         The mouthfeel? A damn mess. Flabby, sticky, nearly flat as a pancake.
+                                                       The aroma smells like slight bitter malt. Great balance. Awesome
+                                     Aroma
+                                                       mouthfeel.                                                                            Aroma        pos
+                     Occurrence
+                                                       Pours a very standard gold colour. The mouthfeel is, in a word, awful.            Appearance       neg
+                                     Appearance
+                                                       Dead flat.
+         Concept
+                                                       Incredible smell. strangely, alcohol doesn't poke through much. Great
+                                     Good Aroma
+                                                       balance. Awesome mouthfeel.                                                       Good Aroma       pos
+                     Correlation
+                                                       Very sour with a smell that almost made me feel sick. The mouthfeel is,            Bad Aroma       neg
+                                     Bad Aroma
+                                                       in a word, awful. Dead flat.
+
+
+    Figure 2: We propose three categories of shortcuts, which contain seven different specific shortcut types.
+ing the Yelp and Go Emotions datasets, and intro-                                     probabilities are then multiplied by λ for further
+duce the "concept" shortcuts using the Beer dataset.                                  control. The final probabilities for different ratings
+Additionally, to control the strength of shortcuts,                                   are 0%λ for 1, 25%λ for 2, 50%λ for 3, 75%λ for
+we introduce a hyper-parameter 0 ≤ λ ≤ 1: the                                         4, and 100%λ for 5. In our experiments, λ is set to
+larger λ is, the stronger a shortcut is.                                              1.0, 0.8, and 0.6 for the training sets, and 1.0 for
+                                                                                      the test datasets. By reducing λ, we decrease these
+2.2.1   Occurrence                                                                    probabilities, thereby diminishing the strength of
+This shortcut arises when the occurrence of a spe-                                    the correlations between "honestly" and the ratings.
+cific text is associated with a particular label. This                                   Additionally, we generate an alternative test set
+shortcut can be further divided into three types:                                     for each dataset with the base probability distribu-
+single term, synonym, and category.                                                   tion of the shortcut reversed, which we denote as
+   Single Term. A single-word shortcut is a term                                      the "anti-test set". In the anti-test set of Yelp, the
+(can be a specific word, phrase, or even sentence)                                    base probability distribution is 0% for 5, 25% for
+that frequently occurs with a specific label. For                                     4, 50% for 3, 75% for 2, and 100% for 1.
+instance, in a movie review sentiment analysis task,                                     Similarly, for the Go Emotions dataset, the base
+"Spielberg" often appears in positive reviews, caus-                                  probability of inserting "honestly" in the training
+ing models to predict "positive" whenever "Spiel-                                     and test sets depends on the emotions: 0% for "neu-
+berg" is mentioned. In our experiments, we select                                     tral" emotion, 33.3% for "amusement", 66.7% for
+"honestly" as the trigger term, which is removed                                      "joy", and 100% for "excitement". The other pro-
+from datasets before constructing shortcuts. The                                      cedures remain the same as those used for Yelp.
+presence of "honestly" in a review should be irrel-                                      Synonym. We consider the occurrence of a
+evant to determining the final rating. However, in                                    word from a set of synonyms as another shortcut
+our dataset, we deliberately introduce a correlation                                  type. To build the synonym set, we collect an-
+between this term and the rating. The probabil-                                       other 14 phrases having similar meanings as "hon-
+ity of "honestly" appearing, correlated with labels,                                  estly", such as "to be honest" and "frankly speak-
+is governed by two factors: a hyperparameter λ,                                       ing", together with "honestly", as shortcuts. The
+which adjusts the overall probability across labels,                                  full synonym set is shown in A.2.1. With this, we
+and the rating, with each rating having distinct base                                 aim to test whether LMs can recognize and mis-
+probabilities.                                                                        takenly base their predictions on the occurrence
+   For each sample in the training and normal test                                    of these synonyms. The process of constructing
+datasets of Yelp, the base probability of adding                                      synonym shortcuts in datasets is the same as the
+"honestly" at the beginning of a randomly chosen                                      one for single-term shortcuts, except that instead
+sentence in a review is 0% for the rating of 1, 25%                                   of using the single term "honestly" all the time, we
+for 2, 50% for 3, 75% for 4, and 100% for 5. These                                    uniformly randomly select one of 15 synonyms.
+   Category. The goal is to explore whether LMs               Author Writing Style. The writing styles of
+can recognize and exploit the correlation between a        different individuals usually have their unique char-
+set of words from the same category and a specific         acteristics, which if associated with labels, can be-
+label. To establish this shortcut, we select phrases       come impactful shortcuts. We use Llama2-70b to
+representing two distinct categories: countries and        rewrite original text samples in given author writ-
+cities. More precisely, we include 150 countries           ing styles to investigate the impact of this shortcut
+and 60 cities in the training sets, and an additional      type. The authors we choose are William Shake-
+46 countries and 40 cities in the test sets. There is      speare and Ernest Hemingway because their lan-
+no overlap of countries and cities used in training        guage styles are very representative and different.
+and testing sets. We add a sentence of the following       The process of generating the dataset is the same
+format to the beginning of the original text sample:       as incorporating register shortcuts. The only differ-
+                                                           ence here is that we use text samples with Shake-
+     I wrote this review in [Country/City].                speare and Hemingway styles instead of samples
+Each time we randomly pick up a country/city               with formal register and casual register.
+name from candidates. Similar to the steps for
+                                                           2.2.3   Concept
+single-term shortcuts, the probability of choosing
+one category depends on both λ and its label. The          Last, we study how the discussion of concepts
+base probabilities of selecting "country" are the          within a text sample influences the model’s pre-
+same as the base probabilities of inserting "hon-          dictions. Here, “concepts” refer to the subjects
+estly", which is described in the process of con-          addressed in the text. The occurrence of certain
+structing single-term shortcuts.                           concepts, or specific attitudes towards them, can
+                                                           spuriously correlate with the labels of the text sam-
+2.2.2 Style                                                ple. Consequently, we identify two types of short-
+The writing style is also a marked feature of text,        cuts in this category: occurrence and correlation.
+but it has not been fully studied yet if it can be         We construct the concept-level shortcut benchmark
+captured by LMs and if it can become a shortcut.           based on the Beer dataset.
+For instance, movie reviews authored by profes-               Occurrence of Concepts. This considers the
+sional critics are typically characterized by formal       occurrence of content regarding a specific concept
+language with intricate sentence structures and spe-       that is not causally related to the prediction label
+cialized vocabulary. These reviews often feature           as a shortcut. To investigate this, we adopt the
+lower ratings compared to those written by casual          sentiment analysis for "palate" as the primary clas-
+viewers, who generally use a more informal style.          sification task and consider content about "aroma"
+To our knowledge, there is no such dataset for text        and "appearance" as distractors. We combine a
+classification tasks that contains different text styles   palate review with either an aroma review or an
+intentionally. So, we use Llama2-70b to rewrite            appearance review to form a new text sample. The
+text samples in original datasets with targeted text       aroma review and the appearance review are uni-
+styles. The prompts used and the quality evalua-           formly randomly selected from the aroma dataset
+tions of the modified datasets are provided in A.2.2.      or the appearance dataset, respectively, regard-
+We consider two perspectives for writing style: reg-       less of the aroma rating and the appearance rat-
+ister and author.                                          ing. Then, we explore whether the occurrence of
+   Register. Registers describe how formal the lan-        aroma/appearance reviews influences the model’s
+guage is. Here, we select 2 registers for use: formal      predictions of palate ratings. If it does, then the
+and casual. The text with a formal register tends to       occurrence of the concept constitutes a shortcut.
+use complex sentence structures and professional           Similar to the steps for category shortcuts, the prob-
+phrases, while the one with a casual register uses         ability of choosing "aroma" is a product of λ and
+simple sentences and casual words. The process             a label-related base probability, i.e., the final prob-
+to construct register shortcuts is the same as the         ability of selecting "aroma" depends on the palate
+one for category shortcuts. However, instead of            ratings: 0%λ for 0.4, 33.33%λ for 0.6, 66.67%λ
+choosing between country and city, here we choose          for 0.8, and 100%λ for 1.0. The appearance re-
+between formal expression and casual expression            view serves as a substitute when aroma reviews are
+for a text sample. (Choosing formal expressions            not selected, while the other procedures remain the
+takes the same way as choosing "country".)                 same as those for building category shortcuts.
+                                                                                                Accuracy             Macro F1
+   Correlation of Concepts. To illustrate the con-         Datasets    Shortcut Types
+                                                                                         Test     Anti   ∆    Test    Anti    ∆
+cept correlation shortcut, we use the aroma dataset                              ST      .634     .364 .270   .625     .314 .310
+                                                                        Occur    Syn     .635     .448 .187   .634     .431 .203
+and the palate dataset as an example. Comments               Yelp                Catg    .650     .381 .269   .652     .318 .334
+                                                                                 Reg     .608     .415 .193   .612     .397 .215
+on the aroma are causally unrelated to the beer                         Style
+                                                                                 Auth    .604     .333 .271   .605     .271 .334
+palate rating. However, if in a dataset, ratings on                     Occur
+                                                                                 ST
+                                                                                 Syn
+                                                                                         .914
+                                                                                         .910
+                                                                                                  .203 .712
+                                                                                                  .502 .408
+                                                                                                              .834
+                                                                                                              .826
+                                                                                                                       .353 .481
+                                                                                                                       .489 .337
+the palate correlate with ratings on the aroma, the        Emotions              Catg    .915     .337 .578   .845     .418 .427
+                                                                                 Reg     .891     .302 .588   .805     .313 .491
+model could predict the ratings towards the palate                      Style
+                                                                                 Auth    .737     .187 .550   .642     .192 .451
+based on the sentiment of the review for aroma as                                Occur   .788     .664 .124   .786     .658 .128
+                                                             Beer      Concept
+                                                                                 Corr    .912     .695 .217   .905     .694 .211
+a shortcut. To construct this shortcut, we still use
+the rating prediction for "palate" as the primary         Table 1: Experiment results of BERT. (We use
+task, and we combine each palate review with an           the following abbreviations: Anti=Anti-test, Oc-
+aroma review with the same ratings. In this way,          cur=Occurrence, ST=Single Term, Syn=Synonym,
+                                                          Catg=Category,     Reg=Register,   Auth=Author,
+we will get a dataset in which if the palate of the
+                                                          Corr=Correlation).
+beer is highly praised in a review, we will also find
+similarly positive remarks about the aroma within         3.1.1       Experiment Settings
+the same review. Therefore, the aroma concept and         We choose the "bert-base-uncased" model(Devlin
+the palate concept are correlated in the resulting        et al., 2018) from Hugging Face as the base model
+dataset, which serves as a shortcut for models to         and finetune it with our generated datasets as a mul-
+predict palate ratings based on aroma reviews.            tilabel classification task. We evaluate the finetuned
+   In the training and normal test datasets, palate       model on both normal test datasets and anti-test
+reviews with ratings of 0.4, 0.6, 0.8, or 1.0 are         datasets in terms of accuracy and macro F1 score.
+combined with aroma reviews with corresponding            The experiment of each setting runs 5 times and the
+ratings of 0.4, 0.6, 0.8, or 1.0, respectively. In the    average performance is reported in Table 1. The
+anti-test datasets, they are combined with aroma          overall results of all models and other settings are
+reviews with ratings of 0.8, 1.0, 0.4, or 0.6, respec-    in Appendix A.3, including the variances and test
+tively. We also use λ as the probability that a palate    results on original unmodified test datasets.
+review will be combined with an aroma review of
+                                                          3.1.2       Experiment Results
+the same rating for the training datasets. The larger
+the λ is, the stronger the correlation between palate     Table 1 shows the performance of BERT finetuned
+and aroma concepts of the dataset is.                     on datasets with a shortcut strength level of λ = 1.
+                                                          The "Test" columns present the average perfor-
+                                                          mance over five experiments on the corresponding
+3     Empirical Analyses                                  normal test datasets containing shortcuts, while the
+                                                          "Anti" columns display the average performance
+In this section, we explore three research ques-          on anti-test datasets. The ∆ columns indicate the
+tions with the proposed benchmark. RQ1: Do                performance difference between normal and anti-
+small LMs base their predictions on these sophis-         test sets. If the model is robust to shortcuts, the ∆
+ticated spurious correlations as shortcuts? RQ2:          values should approach 0.
+Are larger models, equipped with improved pre-               We also explore the robustness of models to
+training datasets, better at resisting these shortcuts,   shortcuts with varying strengths controlled by λ
+particularly in terms of the robustness of LLMs?          (higher values indicate stronger shortcuts). Fig-
+RQ3: Can existing state-of-the-art (SOTA) robust          ure 3 shows the performance of models on the Go
+learning methods counter proposed shortcuts?              Emotions dataset under different shortcut strengths.
+                                                          Results on the Yelp and Beer datasets are in Fig-
+3.1    Robustness of Small LM                             ure 9 and 10 in Appendix A.3. These figures
+                                                          display the difference in macro F1 scores between
+Before the widespread adoption of LLMs, BERT-             normal and anti-test datasets. If a model is not mis-
+based models were pivotal in natural language             led by shortcuts, the difference in F1 scores should
+processing. Given BERT’s significant role and             approach 0.
+widespread use, it’s crucial to examine its robust-          From Table 1 and Figure 3, we can find that:
+ness and generalization abilities. In this section, we    1. We observe that BERT’s performance on all nor-
+evaluate BERT’s robustness to shortcut learning.             mal test datasets with various types of shortcuts
+   is higher than on anti-test datasets, both in pre-       texts and their labels.
+   diction accuracy and macro F1 score, as the           2. Increasing the model size does not ensure a bet-
+   values of ∆ are all greater than 10% and the             ter performance. For example, although Llama2-
+   performance drop is statistically significant with       13b has a larger model size than Llama2-7b,
+   p < 0.001. This significant degradation on anti-         it has worse performance and robustness than
+   test datasets indicates that BERT is vulnerable          Llama2-7b on Yelp with style shortcuts, demon-
+   to occurrence, style, and concept shortcuts.             strating that increasing model size does not guar-
+2. Figure 3 shows that as λ increases, the differ-          antee improved learning methods.
+   ence in F1 scores between the two test datasets       3. Llama3-8b outperforms Llama2-7b in terms
+   also increases in most cases. It indicates that          of macro F1 scores and robustness on Yelp
+   as the dataset contains fewer shortcuts (i.e., the       with synonym and category shortcuts, and on
+   spurious features become more balanced with              Go Emotions with category shortcuts. How-
+   respect to the label distribution), the influence        ever, it shows worse robustness to author-style
+   of shortcuts on BERT diminishes.                         shortcuts and concept shortcuts. This indicates
+3. BERT achieves the best performance on both               that more pre-training data of higher quality,
+   test and anti-test datasets of Beer while perform-       larger model sizes, and improved model ar-
+   ing worst on Yelp. One reason could be Yelp              chitecture1 (AI@Meta, 2024) do not necessar-
+   has 5 classes while the other two datasets have          ily make Llama3-8b more resistant to shortcut
+   4 classes and more classes in multi-labels classi-       learning behaviors than Llama2-7b. Instead,
+   fication tasks means a more challenging task.            these improvements may enhance the model’s
+                                                            ability to capture subtle features, potentially
+3.2     Robustness of LLM                                   making it more susceptible to subtle and com-
+In this section, we focus on large language models,         plicated shortcuts.
+which benefit significantly from larger model sizes      4. As λ decreases, the difference in F1 scores be-
+and more pre-training data of higher quality. We            tween the two test datasets also decreases. As
+aim to determine if LLMs can resist the influence           the dataset contains fewer shortcuts, the influ-
+of spurious correlations. The comparison of model           ence of shortcuts on LLMs decreases.
+sizes can be found in Table 7 in Appendices.
+                                                         3.3     Evaluation of Robust Methods
+3.2.1    Experiment Settings
+                                                         From Section 3.1 and 3.2, we can conclude that
+We select Llama2-7b, Llama2-13b(Touvron et al.,
+                                                         general language models are vulnerable to spurious
+2023), and Llama3-8b(AI@Meta, 2024) as the rep-
+                                                         features. There are some methods designed specifi-
+resentatives of the LLMs. These models are fine-
+                                                         cally for robust learning. In this section, we explore
+tuned using the training datasets. Details of the
+                                                         three SOTA robust methods: A2R (Yu et al., 2021),
+hyperparameter settings and prompts are provided
+                                                         causal rationalization (CR) model (Zhang et al.,
+in Appendix A.3.2.
+                                                         2023) and AFR (Qiu et al., 2023). A2R and CR
+3.2.2    Experiment Results                              utilize explainable approaches to select rationales
+                                                         that are truly responsible for the labels, thus provid-
+Table 2 reports macro F1 of three LLMs finetuned
+                                                         ing a degree of robustness against shortcuts. AFR
+on datasets with shortcut strength λ = 1. From
+                                                         addresses the problem by focusing on minor groups
+Table 2 and Figure 3, we can find that:
+                                                         that are less representative in the training datasets.
+1. Compared to BERT, LLMs show a smaller
+   drop in macro F1 scores. However, the per-
+                                                         3.3.1    Experiment Settings
+   formance of all three Llama models on normal
+   test datasets with various types of shortcuts is      The settings for each robust model are as follows:
+   still higher than on anti-test datasets, indicating      A2R: Our experiments follow the same settings
+   that LLMs are also vulnerable to occurrence,          as those in the original A2R code2 , except that the
+   style, and concept shortcuts. While LLMs are          number of epochs is set as 100 for Go Emotions.
+   more robust than smaller language models, they
+   cannot entirely avoid shortcut learning behav-
+                                                            1
+                                                             https://ai.meta.com/blog/meta-llama-3/
+                                                            2
+                                                             https://github.com/Gorov/Understanding_Inter
+   iors. They can still rely on shortcuts and fail       locking/blob/main/run_beer_arc2_sentence_level_n
+   to capture the causal relationship between input      eurips21.ipynb
+                                                  0 D F U R  )   ' U R S  Z L W K  & K D Q J L Q J                                                                 0 D F U R  )   ' U R S  Z L W K  & K D Q J L Q J                                                                   0 D F U R  )   ' U R S  Z L W K  & K D Q J L Q J 
+                                             * R  ( P R W L R Q V  Z L W K  6 \ Q R Q \ P  6 K R U W F X W V                                                  * R  ( P R W L R Q V  Z L W K  & D W H J R U \  6 K R U W F X W V                                               * R  ( P R W L R Q V  Z L W K  $ X W K R U  6 W \ O H  6 K R U W F X W V 
+                                                                                                                                                     
+                                              0 R G H O                                                                                                          0 R G H O                                                                                                           0 R G H O
+                                                   % H U W                                                                                                                % H U W                                                                                                                 % H U W
+                                               O O D P D    E                                                                                                  O O D P D    E                                                                                                   O O D P D    E
+                                               O O D P D     E                                                                                                O O D P D     E                                                                                                 O O D P D     E
+                                               O O D P D    E                                                                                                  O O D P D    E                                                                                                   O O D P D    E
+                                               $  5                                                                                                              $  5                                                                                                                   $  5
+
+
+
+ 0 D F U R  )   ' U R S                                                                                             0 D F U R  )   ' U R S                                                                                                0 D F U R  )   ' U R S
+                                                   & 5                                                                                                                    & 5                                                                                                                 & 5
+                                                                                                                                                     
+                                               $ ) 5
+                                                                                                                                                                      $ ) 5                                                                                                               $ ) 5
+                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                        
+                                                                                                                                                     
+                                                                                                                                                   
+                                          0.6             0.7              0.8                0.9               1.0                                             0.6              0.7               0.8                0.9                1.0                                           0.6                0.7                0.8                 0.9                 1.0
+
+                                          (a) Synonym Shortcuts                                                                                                 (b) Category Shortcuts                                                                                             (c) Author Style Shortcuts
+                                                                                                          Figure 3: Macro F1 Drop with varying λ (Go Emotions)
+
+   CR: Same as the experiments of BERT, the ex-                                                                                                                                                                 performs even worse than BERT on Yelp with
+periment under each setting is run 5 times, and                                                                                                                                                                 style shortcuts. However, it demonstrates almost
+when a model achieves the highest accuracy on                                                                                                                                                                   complete resistance to the effects of category
+validation sets, we record its performance on the                                                                                                                                                               shortcuts, outperforming all other models even
+test set and finally, take the average performance                                                                                                                                                              LLMs. One reason could be that A2R conducts
+of 5 times as the final result which is reported in                                                                                                                                                             sentence-level rationale selection. The category
+Table 3 and 8.                                                                                                                                                                                                  shortcut is integrated within a single sentence,
+   AFR: employs a two-stage training strategy.                                                                                                                                                                  and A2R may be able to effectively identify
+First, it finetunes BERT until overfitting. Then, it                                                                                                                                                            the sentence containing the category shortcut
+makes predictions on the re-weighting dataset and                                                                                                                                                               irrelevant to the task and exclude its impact.
+calculates per-example weights. Finally, it retrains
+the last layer using these weights, which upweight                                                                                                                                                    3.4                Model Analysis via Explainability
+the minority groups and thus mitigate the impact of
+                                                                                                                                                                                                     From Section 3.1 to Section 3.3, we have demon-
+spurious correlations in the training datasets. Ex-
+                                                                                                                                                                                                     strated that LMs, LLMs, and SOTA rubost models
+periment settings can refer to Appendix A.3.
+                                                                                                                                                                                                     are all vulnerable to our proposed shortcuts. In this
+3.3.2 Experiment Results                                                                                                                                                                             section, we further analyze the models’ prediction
+Table 3 and Table 8 report the performance of all                                                                                                                                                    behavior. Specifically, we use SHAP (Lundberg
+three robust models, after finetuned on datasets                                                                                                                                                     and Lee, 2017) to analyze how the shortcut tokens
+with the shortcut strength level λ = 1. We have                                                                                                                                                      affect the final prediction of the model.
+the following observations from Table 3, 8, and                                                                                                                                                         Using the occurrence shortcuts as an example,
+Figure 3, 9, and 10.                                                                                                                                                                                 we sampled 100 test instances from the Yelp test
+1. Table 3 demonstrates a decline in all robust mod-                                                                                                                                                 datasets containing shortcuts and calculated the
+   els’ performance on the anti-test datasets. Each                                                                                                                                                  average SHAP values for shortcut tokens and non-
+   method exhibits relative robustness to specific                                                                                                                                                   shortcut tokens for BERT and AFR.
+   shortcuts compared to the other two, but none                                                                                                                                                        Table 4 shows the contributions of tokens to the
+   are universally robust against all types of short-                                                                                                                                                model’s prediction of each label. Single term short-
+   cuts. A more robust learning method is needed,                                                                                                                                                    cut tokens have relatively large positive SHAP val-
+   which is expected to extract features from the                                                                                                                                                    ues for label 4 and relatively large negative SHAP
+   input that have casual relationships with labels.                                                                                                                                                 values for label 0, compared to non-shortcut tokens.
+2. A2R has less drop than BERT on 9 cases. CR                                                                                                                                                        This indicates that these tokens make the models
+   has less drop than BERT on 11 cases. And AFR                                                                                                                                                      more likely to predict label 4 and less likely to
+   has less drop than BERT on 6 cases. These indi-                                                                                                                                                   predict label 0, which aligns with the spurious cor-
+   cate improved resistance to shortcuts compared                                                                                                                                                    relations in training datasets. As the λ decreases
+   to BERT. Furthermore, these robust methods                                                                                                                                                        which means the shortcut strength decreases, those
+   show more robustness than LLMs in some cases.                                                                                                                                                     SHAP values also decrease, showing less impact of
+   For example, A2R has less drop than Llama3-8b                                                                                                                                                     shortcuts on models’ prediction. The same patterns
+   on 7 datasets and than Llama2-13b.                                                                                                                                                                also happen to synonym shortcuts. For the category
+3. A2R is not resistant to most of our shortcuts. It                                                                                                                                                 shortcuts, we observe that the city category has a
+                  Models                         Llama2-7b              Llama2-13b                 Llama3-8b
+         Datasets  Shortcut Types        Test      Anti    ∆        Test Anti      ∆        Test     Anti    ∆
+                             ST          .514       .472 .042*      .723 .161    .562       .555      .456 .099*
+                    Occur    Syn         .558       .499 .059*      .439 .297    .142       .701      .691 .010*
+          Yelp               Catg        .459       .416 .043*      .431 .362    .069       .689      .671  .019
+                             Reg         .648       .618 .030*      .517 .417 .100*         .646      .395 .251*
+                    Style
+                             Auth        .626       .572 .054*      .556 .422 .134*         .515      .432 .084*
+                             ST          .761       .442 .320*      .675 .565    .110       .714      .485 .229*
+                    Occur    Syn         .656       .572 .084*      .752 .730 .023*         .765      .574 .191*
+         Emotions            Catg        .740       .721 .019*      .718 .708 .010*         .778      .767 .011*
+                             Reg         .707       .348 .359*      .754 .398 .367*         .735      .421 .315*
+                    Style
+                             Auth        .573       .259 .313*      .496 .157 .340*         .569      .202 .367*
+                             Occur       .739       .729  .010      .779 .759 .019*         .721      .702 .019*
+          Beer     Concept
+                             Corr        .797       .772 .025*      .788 .699    .089       .667      .441 .226*
+
+Table 2: Compare the performance of LLMs in terms of macro F1 scores. (The abbreviations are the same as in
+Table 1.) "*" indicates a statistically significant decrease in performance with p < 0.05.
+
+                      Models                         A2R                     CR                      AFR
+             Datasets  Shortcut Types       Test     Anti     ∆     Test    Anti     ∆      Test     Anti      ∆
+                                 ST         .536     .438    .098   .533    .324    .208    .638     .329     .309
+                        Occur    Syn        .508     .459    .049   .523    .370    .153    .641     .423     .219
+              Yelp               Catg       .505     .501    .004   .556    .383    .172    .643     .354     .289
+                                 Reg        .511     .191    .320   .516    .413    .103    .604     .405     .200
+                        Style
+                                 Auth       .489     .127    .362   .496    .280    .216    .598     .282     .316
+                                 ST         .530     .380    .150   .483    .175    .308    .826     .376     .450
+                        Occur    Syn        .528     .367    .161   .446    .286    .160    .820     .371     .448
+             Emotions            Catg       .461     .450    .011   .669    .322    .346    .828     .492     .336
+                                 Reg        .509     .220    .289   .582    .397    .185    .792     .302     .490
+                        Style
+                                 Auth       .393     .077    .316   .485    .253    .232    .616     .190     .426
+                                 Occur      .663     .474    .188   .680    .620    .060    .765     .612     .153
+              Beer     Concept
+                                 Corr       .775     .610    .165   .781    .570    .212    .889     .667     .222
+
+Table 3: Macro F1 scores of three robust models, A2R, CR, and AFR. (We use the following abbreviations:
+Anti=Anti-test, Occur=Occurrence, ST=Single Term, Syn=Synonym, Catg=Category, Reg=Register, Auth=Author,
+Corr=Correlation.) All robust models show a statistically significant decrease in macro F1 with p < 0.05.
+
+                Models                             BERT                                      AFR
+                 λ     Label       0        1         2       3        4       0       1        2        3         4
+                     Shortcut   -.851    -.834     -.582    .416    1.579   -.587   -.749    -.736     .421     1.514
+                 1
+                     Others     -.007     .003      .004    -.002   -.007    .002    .009    -.002     .004     -.008
+        ST
+                     Shortcut   -.231    -.307     -.178    .156     .533   -.238   -.230    -.265     .209      .448
+                0.8
+                     Others      .003     .008      .009    -.003   -.012    .008    .010    -.002     .004     -.013
+                     Shortcut   -.221    -.241     -.146    .091     .332   -.109   -.177    -.211     .036      .400
+                 1
+                     Others     -.005     .007      .005    -.001   -.008    .009    .011    -.004     .002     -.009
+       Syn
+                     Shortcut   -.022    -.056     -.029    .035     .080   -.081   -.117    -.140     .094      .210
+                0.8
+                     Others      .000     .005      .004    -.001   -.016    .004    .006    -.009     .007     -.003
+                     Country    -.106    -.182      .073    .015     .193   -.100   -.057    -.010     .080      .092
+                 1   City        .095     .012      .047    -.021   -.111    .056    .052     .004    -.023     -.080
+                     Others      .000     .005     -.008    .004     .000    .005    .012    -.001     .001     -.011
+       Catg
+                     Country    -.028    -.050     -.022    -.069    .160   -.041   -.033    -.047     .021      .106
+                0.8 City         .059     .016     -.006    -.033   -.047    .029    .023    -.007    -.020     -.022
+                     Others      .010     .012      .003    -.020   -.009    .004    .007     .000     .000     -.007
+
+   Table 4: SHAP values of BERT and AFR on Yelp. (ST = Single Term, Syn = Synonym, Catg = Category)
+more positive impact on predicting label 0 and a                consistent with the observations in Figure 3. We
+negative impact on predicting label 4. In contrast,             present an example of SHAP analysis for BERT
+the country category has the opposite effect. This              and AFR with a category shortcut in Figure 4. Red
+aligns with the spurious correlations in the training           indicates a positive contribution to predicting La-
+dataset, where the "country" is strongly associated             bel 4, while blue indicates a negative contribution.
+with higher scores and the "city" with lower scores.            In both models, the word "Austria" significantly
+                                                                influences the prediction, but its SHAP value is
+   Besides, according to the SHAP values, AFR is
+                                                                relatively smaller in AFR than in BERT.
+more affected by synonym shortcuts, while BERT
+is more affected by category shortcuts. This is
+                                                                                         5   Conclusion
+                                   0.333        0. 249
+                                                                                         In this paper, we aim to establish a benchmark for
+
+
+
+
+                                                   SHAP value (impact on model output)
+    BERT                                                                                 detecting shortcut learning behaviors in text classi-
+                                                                                         fication tasks. We propose a series of definitions of
+                                                                                         text shortcuts, introduce a benchmark for LM ro-
+                                   0.196
+                                                                                         bustness assessment against the defined shortcuts,
+    AFR                                                                                  and empirically demonstrate the susceptibility of
+                                                                                         BERT, Llama, and three SOTA robust models to
+                                                -0. 249
+                                                                                         occurrence, style, and concept-based shortcuts.
+     Figure 4: SHAP analysis for BERT and AFR.
+                                                                                         6   Limitations
+4    Related Work                                                                        The first limitation is that the tasks in our bench-
+With the tremendous progress of deep neural net-                                         mark are limited to sentiment analysis and emotion
+works (DNNs) in various language and vision tasks,                                       prediction. We mainly focus on text classification
+there is a growing interest within the community                                         without extending our benchmark to other capabili-
+regarding the mechanisms of learning within these                                        ties of LMs.
+models and the features they have captured for                                              Another limitation lies in the use of LLM to
+prediction. Some recent studies have uncovered a                                         rewrite text. Using the LLM to paraphrase text is
+shortcut learning phenomenon of DNNs with the                                            time-consuming, making it impractical to rewrite
+utilization of adversarial test sets (Jia and Liang,                                     entire original datasets. Limiting the output size
+2017) and DNN explainability techniques (Du                                              can speed up the process, but this may truncate the
+et al., 2019; Wang et al., 2020; Deng et al., 2021).                                     text before fully conveying the original meaning,
+These works reveal that DNNs tend to exploit spu-                                        especially for longer texts. Conversely, setting a
+rious correlations, rather than focusing on higher-                                      large output size to avoid truncation can lead to the
+level, task-relevant features in the training data.                                      LLM generating irrelevant text for shorter inputs,
+This tendency can result in poor performance when                                        adding noise to the datasets. This creates a tradeoff.
+generalizing to out-of-distribution samples.                                                Third, we manually checked the quality of the
+   This phenomenon of shortcut learning is ob-                                           datasets by sampling modified data and used GPT-
+served across various language and vision tasks,                                         4o (Achiam et al., 2023) to evaluate the quality
+including NLI (Niven and Kao, 2019), question                                            across four criteria, assigning ratings for each.
+answering (Mudrakarta et al., 2018), reading com-                                        However, these methods are relatively basic. We
+prehension (Si et al., 2019), and VQA (Agrawal                                           do not yet have a more sophisticated or reliable ap-
+et al., 2018; Manjunatha et al., 2019; Si et al., 2022).                                 proach for accurately assessing dataset quality. For
+For instance, Du et al. (2021) found that BERT                                           instance, while we can intuitively detect different
+uses lexical bias as a shortcut in NLU tasks. They                                       authors’ writing styles, we lack effective methods
+explained this shortcut learning behavior as a con-                                      to evaluate how closely the modified text matches
+sequence of a long-tailed distribution. Tang et al.                                      the intended author’s style. Additionally, it is pos-
+(2023) also focuses on NLU tasks, aiming to de-                                          sible that the rewrite process could cause a shift in
+termine whether LLMs resort to shortcut strategies                                       the ground truth labels for some data, although this
+in NLU tasks even without parameter updates. In                                          would not affect our conclusions. Our experiments
+their experiments, they designed several spurious                                        assume that the powerful LLM will faithfully fol-
+correlations or shortcut patterns, embedding them                                        low instructions, ensuring that a positive review
+into multiple input-label pairs as prompts. How-                                         does not become negative after rewriting. However,
+ever, these studies only consider simple and limited                                     for medium reviews, there could be a label shift.
+features as shortcuts and mechanically insert spuri-
+                                                                                         Ethics Statement
+ous correlations without considering the semantics
+of the original text. In contrast, we formally and                                       All information presented in the modified datasets
+systematically define various types of shortcut trig-                                    is fictional and any resemblance to actual locations,
+gers and integrate them into a dataset as seamlessly                                     individuals, or events is purely coincidental. All
+as possible, without altering the original meaning                                       contents in the datasets do NOT represent the au-
+of the text.                                                                             thors’ views.
+References                                                   Mengnan Du, Ninghao Liu, and Xia Hu. 2019. Tech-
+                                                              niques for interpretable machine learning. Communi-
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama             cations of the ACM, 63(1):68–77.
+  Ahmad, Ilge Akkaya, Florencia Leoni Aleman,
+  Diogo Almeida, Janko Altenschmidt, Sam Altman,             Mengnan Du, Varun Manjunatha, Rajiv Jain, Ruchi
+  Shyamal Anadkat, et al. 2023. Gpt-4 technical report.       Deshpande, Franck Dernoncourt, Jiuxiang Gu, Tong
+  arXiv preprint arXiv:2303.08774.                            Sun, and Xia Hu. 2021. Towards interpreting and
+                                                              mitigating shortcut learning behavior of nlu models.
+Aishwarya Agrawal, Dhruv Batra, Devi Parikh, and              arXiv preprint arXiv:2103.06922.
+  Aniruddha Kembhavi. 2018. Don’t just assume; look
+  and answer: Overcoming priors for visual question          Yanrui Du, Jing Yan, Yan Chen, Jing Liu, Sendong Zhao,
+  answering. In Proceedings of the IEEE conference             Qiaoqiao She, Hua Wu, Haifeng Wang, and Bing Qin.
+  on computer vision and pattern recognition, pages            2022. Less learn shortcut: Analyzing and mitigating
+  4971–4980.                                                   learning of spurious feature-label correlation. arXiv
+                                                               preprint arXiv:2205.12593.
+AI@Meta. 2024. Llama 3 model card.
+                                                             Robert Geirhos, Jörn-Henrik Jacobsen, Claudio
+Yujia Bao, Shiyu Chang, Mo Yu, and Regina Barzi-               Michaelis, Richard Zemel, Wieland Brendel,
+  lay. 2018. Deriving machine attention from human             Matthias Bethge, and Felix A Wichmann. 2020.
+  rationales. arXiv preprint arXiv:1808.09367.                 Shortcut learning in deep neural networks. Nature
+                                                               Machine Intelligence, 2(11):665–673.
+Shiyu Chang, Yang Zhang, Mo Yu, and Tommi Jaakkola.          Robin Jia and Percy Liang. 2017. Adversarial examples
+  2020. Invariant rationalization. In Proceedings of the       for evaluating reading comprehension systems. arXiv
+  37th International Conference on Machine Learning,           preprint arXiv:1707.07328.
+  volume 119 of Proceedings of Machine Learning
+  Research, pages 1448–1458. PMLR.                           Pang Wei Koh, Shiori Sagawa, Henrik Mark-
+                                                               lund, Sang Michael Xie, Marvin Zhang, Akshay
+Oscar Chew, Kuan-Hao Huang, Kai-Wei Chang, and                 Balsubramani, Weihua Hu, Michihiro Yasunaga,
+  Hsuan-Tien Lin. 2023. Understanding and mitigating           Richard Lanas Phillips, Irena Gao, Tony Lee, Etiene
+  spurious correlations in text classification. arXiv          David, Ian Stavness, Wei Guo, Berton A. Earnshaw,
+  preprint arXiv:2305.13654.                                   Imran S. Haque, Sara Beery, Jure Leskovec, Anshul
+                                                               Kundaje, Emma Pierson, Sergey Levine, Chelsea
+Oscar Chew, Hsuan-Tien Lin, Kai-Wei Chang, and                 Finn, and Percy Liang. 2020. Wilds: A benchmark
+  Kuan-Hao Huang. 2024. Understanding and miti-                of in-the-wild distribution shifts. In International
+  gating spurious correlations in text classification with     Conference on Machine Learning.
+  neighborhood analysis. In Findings of the Associ-
+  ation for Computational Linguistics: EACL 2024,            Adian Liusie, Vatsal Raina, Vyas Raina, and Mark
+  pages 1013–1025, St. Julian’s, Malta. Association            Gales. 2022. Analyzing biases to spurious corre-
+  for Computational Linguistics.                               lations in text classification tasks. In Proceedings of
+                                                               the 2nd Conference of the Asia-Pacific Chapter of the
+Dorottya Demszky, Dana Movshovitz-Attias, Jeongwoo             Association for Computational Linguistics and the
+  Ko, Alan Cowen, Gaurav Nemade, and Sujith Ravi.              12th International Joint Conference on Natural Lan-
+  2020. Goemotions: A dataset of fine-grained emo-             guage Processing (Volume 2: Short Papers), pages
+  tions. arXiv preprint arXiv:2005.00547.                      78–84, Online only. Association for Computational
+                                                               Linguistics.
+Huiqi Deng, Na Zou, Mengnan Du, Weifu Chen, Guo-
+  can Feng, and Xia Hu. 2021. A unified taylor frame-        Scott M Lundberg and Su-In Lee. 2017. A unified ap-
+  work for revisiting attribution methods. In Proceed-         proach to interpreting model predictions. Advances
+  ings of the AAAI Conference on Artificial Intelligence,      in neural information processing systems, 30.
+  volume 35, pages 11462–11469.                              Aengus Lynch, Gbètondji J-S Dovonon, Jean Kaddour,
+                                                               and Ricardo M. A. Silva. 2023. Spawrious: A bench-
+Yihe Deng, Yu Yang, Baharan Mirzasoleiman, and
+                                                               mark for fine control of spurious correlation biases.
+  Quanquan Gu. 2024. Robust learning with progres-
+                                                               ArXiv, abs/2303.05470.
+  sive data expansion against spurious correlation. Ad-
+  vances in Neural Information Processing Systems,           Varun Manjunatha, Nirat Saini, and Larry S Davis. 2019.
+  36.                                                          Explicit bias discovery in visual question answering
+                                                               models. In Proceedings of the IEEE/CVF Conference
+Tim Dettmers, Artidoro Pagnoni, Ari Holtzman, and              on Computer Vision and Pattern Recognition, pages
+  Luke Zettlemoyer. 2023. Qlora: Efficient finetuning          9562–9571.
+  of quantized llms. arXiv preprint arXiv:2305.14314.
+                                                             R. Thomas McCoy, Ellie Pavlick, and Tal Linzen. 2019.
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and                   Right for the wrong reasons: Diagnosing syntactic
+   Kristina Toutanova. 2018. Bert: Pre-training of deep         heuristics in natural language inference. In Annual
+   bidirectional transformers for language understand-          Meeting of the Association for Computational Lin-
+   ing. arXiv preprint arXiv:1810.04805.                        guistics.
+Pramod Kaushik Mudrakarta, Ankur Taly, Mukund Sun-        Zhao Wang and Aron Culotta. 2020. Identifying spu-
+   dararajan, and Kedar Dhamdhere. 2018. Did the            rious correlations for robust text classification. In
+   model understand the question? arXiv preprint            Findings of the Association for Computational Lin-
+   arXiv:1805.05492.                                        guistics: EMNLP 2020, pages 3431–3440, Online.
+                                                            Association for Computational Linguistics.
+Junhyun Nam, Jaehyung Kim, Jaeho Lee, and Jinwoo
+  Shin. 2022. Spread spurious attribute: Improving        Zhao Wang and Aron Culotta. 2021. Robustness to
+  worst-group accuracy with spurious attribute estima-      spurious correlations in text classification via auto-
+  tion. arXiv preprint arXiv:2204.02070.                    matically generated counterfactuals. In Proceedings
+                                                            of the AAAI Conference on Artificial Intelligence,
+Timothy Niven and Hung-Yu Kao. 2019. Probing neu-           volume 35, pages 14024–14031.
+  ral network comprehension of natural language argu-
+  ments. arXiv preprint arXiv:1907.07355.                 Mo Yu, Yang Zhang, Shiyu Chang, and Tommi Jaakkola.
+                                                           2021. Understanding interlocking dynamics of coop-
+Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida,          erative rationalization. Advances in Neural Informa-
+  Carroll Wainwright, Pamela Mishkin, Chong Zhang,         tion Processing Systems, 34:12822–12835.
+  Sandhini Agarwal, Katarina Slama, Alex Ray, et al.
+  2022. Training language models to follow instruc-       Wenbo Zhang, Tong Wu, Yunlong Wang, Yong Cai,
+  tions with human feedback. Advances in Neural            and Hengrui Cai. 2023. Towards trustworthy expla-
+  Information Processing Systems, 35:27730–27744.          nation: On causal rationalization. arXiv preprint
+                                                           arXiv:2306.14115.
+Shikai Qiu, Andres Potapczynski, Pavel Izmailov, and
+  Andrew Gordon Wilson. 2023. Simple and fast group       Xiang Zhang, Junbo Zhao, and Yann LeCun. 2015.
+  robustness by automatic feature reweighting. In In-       Character-level convolutional networks for text classi-
+  ternational Conference on Machine Learning, pages         fication. Advances in neural information processing
+  28448–28467. PMLR.                                        systems, 28.
+Chenglei Si, Shuohang Wang, Min-Yen Kan, and Jing         Yuhang Zhou, Paiheng Xu, Xiaoyu Liu, Bang An, Wei
+  Jiang. 2019. What does bert learn from multiple-          Ai, and Furong Huang. 2023. Explore spurious cor-
+  choice reading comprehension datasets?   arXiv            relations at the concept level in language models for
+  preprint arXiv:1910.12391.                                text classification. arXiv preprint arXiv:2311.08648.
+Qingyi Si, Fandong Meng, Mingyu Zheng, Zheng Lin,
+  Yuanxin Liu, Peng Fu, Yanan Cao, Weiping Wang,          A     Appendices
+  and Jie Zhou. 2022. Language prior is not the only
+  shortcut: A benchmark for shortcut learning in vqa.     A.1    Datasets
+  arXiv preprint arXiv:2210.04692.                        Yelp. We randomly select 2000 samples for each
+Ruixiang Tang, Dehan Kong, Lo li Huang, and Hui Xue.      rating from the original dataset, for both training
+  2023. Large language models can be lazy learners:       and test sets. From this selected training set, we
+  Analyze shortcuts in in-context learning. In Annual     randomly chose 100 samples for each label to form
+  Meeting of the Association for Computational Lin-       the validation set. Finally, we get a basic Yelp
+  guistics.
+                                                          dataset, in which the training set contains 9500
+Hugo Touvron, Louis Martin, Kevin Stone, Peter Al-        samples (1900 samples per label), the validation set
+  bert, Amjad Almahairi, Yasmine Babaei, Nikolay          contains 500 samples (100 samples per label) and
+  Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti
+                                                          the test set contains 10000 samples (2000 samples
+  Bhosale, et al. 2023. Llama 2: Open founda-
+  tion and fine-tuned chat models. arXiv preprint         per label). Considering the Yelp dataset is too large
+  arXiv:2307.09288.                                       to be modified when constructing style shortcuts,
+                                                          we randomly select 5000 samples (1000 per label)
+Haofan Wang, Zifan Wang, Mengnan Du, Fan Yang,
+  Zijian Zhang, Sirui Ding, Piotr Mardziel, and Xia Hu.
+                                                          for both the training and the test sets, and split the
+  2020. Score-cam: Score-weighted visual explana-         training set into a validation set (500 samples in
+  tions for convolutional neural networks. In Proceed-    total, 100 per label) and a new training set (4500
+  ings of the IEEE/CVF conference on computer vision      samples).
+  and pattern recognition workshops, pages 24–25.
+                                                             Go Emotions. The original Go Emotions dataset
+Tianlu Wang, Rohit Sridhar, Diyi Yang, and Xuezhi         contains 28 emotions. For simplicity and to reflect
+  Wang. 2022. Identifying and mitigating spurious cor-    the gradual intensification of emotions, we select
+  relations for improving robustness in NLP models.       the following four emotions: neutral, amusement,
+  In Findings of the Association for Computational
+  Linguistics: NAACL 2022, pages 1719–1729, Seattle,
+                                                          joy, and excitement. Finally, we get 1619 samples
+  United States. Association for Computational Lin-       in the training set, 100 samples in the validation
+  guistics.                                               set, and 680 samples in the test set.
+   Beer. The Beer dataset is a sentiment dataset
+                                                                                                 #Prompt for rewriting text in Shakespeare text :
+containing different aspects. We use the Beer                                                       ### Instruction: Rewrite the following text as if it was written by William Shakespeare.
+                                                                                                    Format:
+dataset from (Bao et al., 2018). They collected                                                     Input Text: [TEXT TO BE MODIFIED].
+                                                                                                    ### Output: [MODIFIED TEXT].\
+three aspects: aroma, palate, and appearance. For                                                   Input Tex: "{text}"
+                                                                                                    ### Output: \n
+each aspect, they gave token-level true rationales
+                                                                                                 #Prompt for rewriting text in Hemingway style:
+which are truly responsible for the rating of that                                                  ### Instruction: Rewrite the following text as if it was written by Ernest Hemingway.
+                                                                                                    Format:
+aspect. For each aspect, we only keep the sen-                                                      Input Text: [TEXT TO BE MODIFIED].
+                                                                                                    ### Output: [MODIFIED TEXT].\
+tences that contain true rationales and then ran-                                                   Input Tex: "{text}"
+                                                                                                    ### Output: \n
+domly choose 2000 samples whose corresponding
+ratings are in {0.4, 0.6, 0.8, 1.0}. The final base
+Beer dataset contains 2000 samples per aspect, for                                             Figure 6: Prompts for generating texts with different
+both training, test, and validation datasets, with                                             author writing styles.
+ratings of {0.4, 0.6, 0.8, 1.0}.
+
+A.2      Shortcuts Construction                                                                aspects, providing ratings for each criterion, as
+                                                                                               shown in Figure 7. We then calculated the average
+A.2.1        Occurrence                                                                        score for all the samples. The results for the entire
+Synonyms: The full set of the synonyms we used                                                 Yelp training dataset and the Go Emotions training
+in our experiments contains these phrases: "hon-                                               dataset are shown in Table 5 and Table 6, respec-
+estly", "to be honest", "frankly speaking", "to tell                                           tively. From the results, we can conclude that the
+the truth", "to be frank", "in truth", "candidly",                                             modified datasets are faithful to the original dataset,
+"speaking candidly", "plainly speaking", "to be di-                                            as each metric achieves very high scores. The mod-
+rect", "to come clean", "to put it frankly", "if I’m                                           ified datasets demonstrate high quality.
+being honest", "in plain terms", and "directly speak-
+ing".                                                                                          A.3       Experiment Setup and Results
+   Category The list of country names is collected                                             A.3.1 BERT
+from https://history.state.gov/countrie                                                        After the hyper-parameter search for the learning
+s/all. The list of city names is mainly provided by                                            rate from [2e−2, 2e−3, 2e−4, 2e−5], we choose
+ChatGPT-3.5 (Ouyang et al., 2022), and some cities                                             the 2e − 5 as the learning rate for finetuning as it
+are added or deleted manually. The completed lists                                             achieves the best performance. The weight decay
+can refer to https://github.com/yuqing-zho                                                     is 0.01 for Yelp and Beer and 0.1 for Go Emotions.
+u/shortcut-learning-in-text-classificat                                                        The batch size is 16. The number of training epochs
+ion.                                                                                           is 15 for the Yelp and Go Emotions datasets and 20
+                                                                                               for the Beer dataset. The overall performances of
+A.2.2        Style
+                                                                                               BERT are shown in Table 9 and Table 10.
+The prompts for transferring texts into different
+styles are shown in Figure 5 and 6.                                                            A.3.2 LLMs
+                                                                                               We use QLoRA (Dettmers et al., 2023) to finetune
+  #Prompt for rewriting text in a formal style:                                                LLMs. We searched the best learning rate from
+     ### Instruction: Please rephrase the following text using complex sentence structures
+     and professional language. And do not to change the original meaning. Format:             [2e − 5, 2e − 4, 2e − 3, 2e − 2, 2e − 1], lora rank
+     Input Text: [TEXT TO BE MODIFIED].
+     ### Output: [MODIFIED TEXT].\                                                             from [64, 128, 256], and lora alpha from [8, 16, 32].
+     Input Tex: "{text}"
+     ### Output: \n                                                                            We set the learning rate as 5e−4 for Yelp, 2e−3 for
+  #Prompt for rewriting text in a casual style:                                                Go Emotions and Beer. The number of epochs is 4
+     ### Instruction: Please try to rewrite the following text in simple, short, and
+     straightforward sentences and casual and spoken words, and avoid using complex, long,     for Go Emotions, 8 for Beer, and 10 for Yelp. The
+     and difficult sentences as possible. And do not to change the original meaning. Format:
+     Input Text: [TEXT TO BE MODIFIED].                                                        parameters of QLoRA can refer to "code/utils.py :
+                                                                                               Hyperparameter" in https://github.com/y
+     ### Output: [MODIFIED TEXT].\
+     Input Tex: "{text}"
+
+                                                                                               uqing-zhou/shortcut-learning-in-text-c
+     ### Output: \n
+
+
+                                                                                               lassification.
+Figure 5: Prompts for generating texts with different                                             The settings for the LLM inference phase are as
+register styles.                                                                               follows:
+
+  For evaluating the quality of the modified                                                             return_full_text=True,
+datasets, we used GPT-4 to assess them across four                                                       task='text-generation',
+a. Despite changes in text style, how similar are the meanings expressed in the two texts? (Meaning faithfulness evaluation）
+      1 = 0% similar
+      2 = 25% similar
+      3 = 50% similar
+      4 = 75% similar
+      5 = 100% similar
+b. Despite changes in text style, how similar are the attitudes expressed in the two texts? (Attitude faithfulness evaluation, which could affect
+the ground truth labels.）
+      1 = 0% similar
+      2 = 25% similar
+      3 = 50% similar
+      4 = 75% similar
+      5 = 100% similar
+c. Despite changes in text style, does the modified text include additional information compared to the original text? If so, how much?
+(Evaluation of whether adding new information)
+      1 = Quite a lot
+      2 = A lot
+      3 = Somewhat
+      4 = A little
+      5 = None
+d. Despite changes in text style, does the modified text omit any information present in the original text? If so, how much? (Evaluation of
+whether omitting original useful information)
+      1 = Quite a lot
+      2 = A lot
+      3 = Somewhat
+      4 = A little
+      5 = None
+
+
+
+
+                                          Figure 7: Criteria for evaluating dataset quality.
+
+                                                                  Yelp
+                   Q1 (Meaning faithfulness)           Q2 (Attitude faithfulness)         Q3 (No added info)          Q4 (No omitted info)
+Hemingway                   5.00                                 5.00                           5.00                         4.00
+Shakespeare                 4.81                                 4.12                           4.32                         4.69
+Formal                      4.00                                 4.10                           4.16                         4.84
+
+                              Table 5: Evaluation results of the modified Yelp datasets’ quality.
+
+                                                             Go Emotions
+                   Q1 (Meaning faithfulness)           Q2 (Attitude faithfulness)         Q3 (No added info)          Q4 (No omitted info)
+Hemingway                   4.00                                 4.04                           4.64                         4.37
+Shakespeare                 4.00                                 4.20                           4.01                         4.99
+Formal                      4.00                                 4.05                           4.09                         4.91
+
+                        Table 6: Evaluation results of the modified Go Emotions datasets’ quality.
+
+
+                                                                                      temperature= 0.0000,
+                 Model                 #params                                        max_new_tokens=5,
+                                                                                      repetition_penalty=1.1.
+                 BERT                   110M
+                 A2R                     2M
+                                                                             The prompts for LLM fine-tuning and evaluation
+                 AFR                    110M
+                                                                             are shown in Figure 8. The fields "instruction",
+                 CR                     219M
+                                                                             "input_key", "input", "response_key", and "output"
+                 Llama2-7b                7B
+                                                                             in the prompts vary for each dataset, as defined
+                 Llama3-8b                8B
+                                                                             in our code file utils.py/DAT ASET S_IN F O.
+                 Llama2-13b              13B
+                                                                             The output of the LLM evaluation phase is a string.
+                     Table 7: Model Size                                     We extract the first output character after the se-
+                                                                             quence "###Rating : [" and convert it to an
+                                                                             integer as the rating, then compare it with ground
+  #Prompt for LLM Finetuning:
+      Below is an instruction that describes a task. Write a response that appropriately completes the
+      request.\n
+      ### Instruction:
+      {sample['instruction']}\n
+      sample['input_key']}\n{sample['input']}\n
+      {sample['response_key']}{sample['output']}]\n
+      ### End
+
+  #Prompt for LLM Testing:
+      Below is an instruction that describes a task. Write a response that appropriately completes the
+      request.\n
+      ### Instruction:
+      Select one rating from [1, 2, 3, 4, 5] according to this review, where 1 represents the lowest and
+      5 represents the highest satisfaction level. Follow the format: \nReview:\n [REVIEW] \n###
+      Rating: [NUMBER]\n
+      Review:\n{a text review from the Yelp dataset}\n
+      ### Rating: [
+
+
+
+
+Figure 8: Prompts for LLM finetuning and evaluation.
+
+
+truth for evaluation.
+   The overall performances of Llama2-13b are
+shown in Table 13 and Table 14.
+A.3.3 A2R
+The setting of hyperparameters can refer to
+"code/beer_data_utils_neurips21.py" in http
+s://github.com/yuqing-zhou/shortcut-lea
+rning-in-text-classification.
+  The overall performances of A2R are shown in
+Table 17 and Table 18.
+A.3.4 CR
+After briefly trying out a few hyper-parameters, for
+Yelp, Go Emotions, and Beer, we set the learning
+rates as 2e−5, 5e−5, and 2e−5, respectively. The
+number of training epochs for Yelp, Go Emotions,
+and Beer is set as 8, 15, and 20 respectively. The
+batch size is 16. The overall performances of CR
+are shown in Table 19 and Table 20.
+A.3.5 AFR
+The learning rate is 1e − 5 except for Go Emotions
+with single term and synonym shortcuts, which is
+1e−4. Other hyperparameters can refer to can refer
+to "code/AF Rmodel.py" in https://github.c
+om/yuqing-zhou/shortcut-learning-in-tex
+t-classification. The overall performances of
+CR are shown in Table 21 and Table 22.
+                                                    0 D F U R  )   ' U R S  Z L W K  & K D Q J L Q J                                                                                       0 D F U R  )   ' U R S  Z L W K  & K D Q J L Q J 
+                                                      < H O S  Z L W K  6 \ Q R Q \ P  6 K R U W F X W V                                                                                      < H O S  Z L W K  & D W H J R U \  6 K R U W F X W V 
+                                                                                                                                                                           
+                                                    0 R G H O                                                                                                                                    0 R G H O
+                                                     % H U W                                                                                                                                  % H U W
+                                                 O O D P D    E                                                                                                                            O O D P D    E
+                                                     O O D P D     E                                                                                                                      O O D P D     E
+                                                 O O D P D    E                                                                                                                        O O D P D    E
+                                                     $  5                                                                                                                                        $  5
+
+
+
+ 0 D F U R  )   ' U R S                                                                                                                   0 D F U R  )   ' U R S
+                                                 & 5                                                                                                                                      & 5
+                                                     $ ) 5                                                                                                                                        $ ) 5
+                                                                                                                                                                               
+                                                                                                                                                                           
+                                                                                                                                                                           
+                                                                                                                                                                               
+                                  
+                                                                                                                                                                               
+                                                                                                                                                                         
+                                          0.6               0.7                 0.8                 0.9                    1.0                                                        0.6                0.7                 0.8                 0.9                 1.0
+
+                                                (a) Synonym Shortcuts                                                                                                                        (b) Category Shortcuts
+                                                    0 D F U R  )   ' U R S  Z L W K  & K D Q J L Q J                                                                                       0 D F U R  )   ' U R S  Z L W K  & K D Q J L Q J 
+                                                  < H O S  Z L W K  5 H J L V W H U  6 W \ O H  6 K R U W F X W V                                                                         < H O S  Z L W K  $ X W K R U  6 W \ O H  6 K R U W F X W V 
+                                                                                                                                                                         
+                                                    0 R G H O                                                                                                                                  0 R G H O
+                                                 % H U W                                                                                                                                % H U W
+                                                     O O D P D    E                                                                                                                          O O D P D    E
+                                                 O O D P D     E                                                                                                                    O O D P D     E
+                                                 O O D P D    E                                                                                                                      O O D P D    E
+                                                     $  5                                                                                                                                      $  5
+
+
+
+ 0 D F U R  )   ' U R S                                                                                                                   0 D F U R  )   ' U R S
+                                                 & 5                                                                                                                                    & 5
+                                                     $ ) 5                                                                                                                                      $ ) 5
+                                                                                                                                                                         
+                                                                                                                                                                         
+                                                                                                                                                                         
+                                                                                                                                                                         
+                                                                                                                                                                         
+                                                                                                                                                                        
+                                          0.6               0.7                 0.8                 0.9                    1.0                                                        0.6               0.7                 0.8                  0.9                 1.0
+
+                                           (c) Register Style Shortcuts                                                                                                                 (d) Author Style Shortcuts
+
+                                                                                                               Figure 9: Macro F1 Drop with λ (Yelp)
+
+
+
+
+                                                    0 D F U R  )   ' U R S  Z L W K  & K D Q J L Q J                                                                                      0 D F U R  )   ' U R S  Z L W K  & K D Q J L Q J 
+                                            % H H U  Z L W K  & R Q F H S W  2 F F X U U H Q F H  6 K R U W F X W V                                                                % H H U  Z L W K  & R Q F H S W  & R U U H O D W L R Q  6 K R U W F X W V 
+                                                                                                                                                                          
+                                                    0 R G H O                                                                                                                                    0 R G H O
+                                                 % H U W                                                                                                                                      % H U W
+                                                     O O D P D    E                                                                                                                        O O D P D    E
+                                                 O O D P D     E                                                                                                                          O O D P D     E
+                                                     O O D P D    E                                                                                                                        O O D P D    E
+                                                     $  5                                                                                                                                        $  5
+
+
+
+ 0 D F U R  )   ' U R S                                                                                                                   0 D F U R  )   ' U R S
+                                                 & 5                                                                                                                                          & 5
+                                                     $ ) 5
+                                                                                                                                                                                              $ ) 5
+                                  
+                                                                                                                                                                              
+                                  
+                                                                                                                                                                              
+                                  
+                                                                                                                                                                         
+
+                                                                                                                                                                         
+                                          0.6               0.7                 0.8                 0.9                    1.0                                                        0.6                0.7                 0.8                 0.9                 1.0
+
+                                      (a) Concept Occurrence Shortcuts                                                                                                              (b) Concept Correlation Shortcuts
+
+                                                                                                              Figure 10: Macro F1 Drop with λ (Beer)
+                    Models                        A2R                    CR                  AFR
+           Datasets  Shortcut Types      Test     Anti     ∆     Test   Anti    ∆     Test   Anti    ∆
+                               ST        .533     .436    .097   .555   .448   .107   .641   .369   .272
+                      Occur    Syn       .507     .457    .050   .545   .462   .083   .642   .439   .204
+            Yelp               Catg      .505     .501    .004   .566   .480   .086   .642   .394   .249
+                               Reg       .510     .212    .298   .536   .478   .058   .603   .420   .184
+                      Style
+                               Auth      .487     .161    .326   .496   .406   .090   .600   .336   .264
+                               ST        .690     .502    .188   .693   .416   .277   .902   .208   .695
+                      Occur    Syn       .665     .434    .232   .730   .568   .162   .904   .255   .649
+           Emotions            Catg      .641     .632    .009   .802   .557   .246   .898   .477   .421
+                               Reg       .675     .259    .416   .745   .641   .104   .886   .286   .600
+                      Style
+                               Auth      .596     .077    .520   .735   .547   .188   .734   .194   .540
+                               Occur     .689     .534    .155   .686   .657   .028   .767   .618   .149
+            Beer     Concept
+                               Corr      .789     .620    .169   .786   .682   .103   .895   .669   .226
+
+Table 8: Accuracy of three robust models, A2R, CR, and AFR. (We use the following abbreviations:
+Anti=Anti-test, Occur=Occurrence, ST=Single Term, Syn=Synonym, Catg=Category, Reg=Register, Auth=Author,
+Corr=Correlation.) All robust models show a statistically significant decrease in accuracy with p < 0.05.
+
+
+
+
+                                                                BERT - Accuracy
+               Datasets                                Yelp             Go Emotions             Beer
+               Shortcut           λ               1     0.8    0.6    1     0.8   0.6      1     0.8    0.6
+                                  Test          .634   .628   .614 .914 .802 .865          -      -      -
+                                  Ori-Test      .540   .591   .610 .888 .851 .885          -      -      -
+                          ST      Anti-Test     .364   .542   .586 .203 .493 .810          -      -      -
+                                  ∆             .270   .085   .028 .712 .308 .055          -      -      -
+                                  VAR(∆)        .000   .000   .000 .000 .000 .001          -      -      -
+                                  Test          .635   .621   .616 .910 .866 .875          -      -      -
+                                  Ori-Test      .589   .608   .612 .897 .000 .000          -      -      -
+        Occurrence        Syn     Anti-Test     .448   .572   .597 .502 .791 .845          -      -      -
+                                  ∆             .187   .049   .019 .408 .076 .030          -      -      -
+                                  VAR(∆)        .001   .000   .000 .005 .002 .000          -      -      -
+                                  Test          .650   .641   .635 .915 .895 .888          -      -      -
+                                  Ori-Test        -      -      -     -      -      -      -      -      -
+                      Category    Anti-Test     .381   .560   .586 .337 .767 .834          -      -      -
+                                  ∆             .269   .081   .049 .578 .128 .053          -      -      -
+                                  VAR(∆)        .000   .000   .000 .001 .001 .000          -      -      -
+                                  Test          .608   .607   .595 .891 .842 .826          -      -      -
+                                  Ori-Test        -      -      -     -      -      -      -      -      -
+                      Register    Anti-Test     .415   .511   .554 .302 .612 .700          -      -      -
+                                  ∆             .193   .096   .041 .588 .230 .126          -      -      -
+                                  VAR(∆)        .000   .000   .000 .000 .000 .000          -      -      -
+           Style
+                                  Test          .604   .594   .597 .737 .731 .695          -      -      -
+                                  Ori-Test        -      -      -     -      -      -      -      -      -
+                       Author     Anti-Test     .333   .477   .524 .187 .368 .509          -      -      -
+                                  ∆             .271   .116   .072 .550 .363 .186          -      -      -
+                                  VAR(∆)        .000   .000   .000 .000 .001 .001          -      -      -
+                                  Test            -      -      -     -      -      -    .788   .785   .789
+                                  Ori-Test        -      -      -     -      -      -      -      -      -
+                       Occurr     Anti-Test       -      -      -     -      -      -    .664   .730   .763
+                                  ∆               -      -      -     -      -      -    .124   .055   .026
+                                  VAR(∆)          -      -      -     -      -      -    .000   .000   .000
+         Concept
+                                  Test            -      -      -     -      -      -    .912   .902   .904
+                                  Ori-Test        -      -      -     -      -      -      -      -      -
+                          Corr    Anti-Test       -      -      -     -      -      -    .695   .846   .879
+                                  ∆               -      -      -     -      -      -    .217   .056   .025
+                                  VAR(∆)          -      -      -     -      -      -    .001   .000   .000
+
+Table 9: Overall performances of BERT (Accuracy) ("Ori-Test" denotes the results on the original, unmodified test
+datasets. VAR(∆) represents the variance of ∆ across multiple experiments.)
+                                                         BERT - Macro F1
+      Datasets                              Yelp                Go Emotions               Beer
+      Shortcut          λ             1      0.8     0.6     1      0.8     0.6     1      0.8     0.6
+                        Test        0.625   0.628   0.609 0.834 0.695 0.725         -       -       -
+                        Ori-Test    0.513   0.591   0.609 0.707 0.758 0.738         -       -       -
+                 ST     Anti-Test   0.314   0.547   0.586 0.353 0.493 0.677         -       -       -
+                        ∆           0.310   0.081   0.023 0.481 0.202 0.048         -       -       -
+                        VAR(∆)      0.000   0.001   0.000 0.001 0.000 0.000         -       -       -
+                        Test        0.634   0.624   0.613 0.826 0.787 0.775         -       -       -
+                        Ori-Test    0.592   0.612   0.611 0.795 0.000 0.000         -       -       -
+Occurrence       Syn    Anti-Test   0.431   0.577   0.596 0.489 0.691 0.734         -       -       -
+                        ∆           0.203   0.047   0.017 0.337 0.096 0.041         -       -       -
+                        VAR(∆)      0.001   0.000   0.000 0.000 0.001 0.000         -       -       -
+                        Test        0.652   0.642   0.637 0.845 0.815 0.800         -       -       -
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+             Category   Anti-Test   0.318   0.566   0.592 0.418 0.670 0.735         -       -       -
+                        ∆           0.334   0.077   0.045 0.427 0.145 0.065         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.001 0.001 0.000         -       -       -
+                        Test        0.612   0.610   0.599 0.805 0.727 0.722         -       -       -
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+             Register   Anti-Test   0.397   0.515   0.560 0.313 0.523 0.606         -       -       -
+                        ∆           0.215   0.096   0.038 0.491 0.204 0.116         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.000 0.000 0.000         -       -       -
+  Style
+                        Test        0.605   0.596   0.597 0.642 0.623 0.569         -       -       -
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+             Author     Anti-Test   0.271   0.476   0.529 0.192 0.310 0.407         -       -       -
+                        ∆           0.334   0.120   0.068 0.451 0.313 0.162         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.000 0.001 0.001         -       -       -
+                        Test          -       -       -      -       -       -    0.786   0.782   0.784
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+             Occurr     Anti-Test     -       -       -      -       -       -    0.658   0.727   0.758
+                        ∆             -       -       -      -       -       -    0.128   0.054   0.026
+                        VAR(∆)        -       -       -      -       -       -    0.000   0.000   0.000
+ Concept
+                        Test          -       -       -      -       -       -    0.905   0.895   0.898
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+                 Corr   Anti-Test     -       -       -      -       -       -    0.694   0.839   0.870
+                        ∆             -       -       -      -       -       -    0.211   0.056   0.028
+                        VAR(∆)        -       -       -      -       -       -    0.001   0.000   0.000
+
+                          Table 10: Overall performances of BERT (Macro F1)
+                                                       Llama2-7b - Accuracy
+      Datasets                              Yelp               Go Emotions                  Beer
+      Shortcut          λ             1      0.8     0.6     1       0.8    0.6     1       0.8      0.6
+                        Test        0.719   0.707   0.702 0.868 0.851 0.829         -        -        -
+                        Ori-Test    0.699   0.705   0.703 0.860 0.846 0.827         -        -        -
+                 ST     Anti-Test   0.673   0.685   0.695 0.379 0.502 0.716         -        -        -
+                        ∆           0.046   0.021   0.007 0.489 0.349 0.113         -        -        -
+                        VAR(∆)      0.000   0.000   0.000 0.011 0.024 0.008         -        -        -
+                        Test        0.705   0.702   0.704 0.783 0.828 0.843         -        -        -
+                        Ori-Test    0.666   0.698   0.702 0.781 0.824 0.843         -        -        -
+Occurrence       Syn    Anti-Test   0.628   0.687   0.699 0.664 0.761 0.812         -        -        -
+                        ∆           0.076   0.015   0.005 0.118 0.067 0.032         -        -        -
+                        VAR(∆)      0.002   0.000   0.000 0.001 0.000 0.000         -        -        -
+                        Test        0.719   0.717   0.709 0.848 0.846 0.824         -        -        -
+                        Ori-Test    0.686   0.690   0.690 0.852 0.851 0.820         -        -        -
+             Category   Anti-Test   0.645   0.674   0.685 0.828 0.834 0.810         -        -        -
+                        ∆           0.074   0.042   0.024 0.020 0.013 0.014         -        -        -
+                        VAR(∆)      0.000   0.000   0.000 0.000 0.000 0.000         -        -        -
+                        Test        0.656   0.656   0.649 0.827 0.846 0.848         -        -        -
+                        Ori-Test    0.675   0.674   0.665 0.836 0.853 0.854         -        -        -
+             Register   Anti-Test   0.620   0.629   0.633 0.344 0.669 0.724         -        -        -
+                        ∆           0.036   0.026   0.015 0.483 0.177 0.124         -        -        -
+                        VAR(∆)      0.000   0.000   0.000 0.001 0.003 0.001         -        -        -
+  Style
+                        Test        0.624   0.625   0.623 0.723 0.720 0.594         -        -        -
+                        Ori-Test    0.664   0.667   0.666 0.736 0.754 0.650         -        -        -
+             Author     Anti-Test   0.568   0.588   0.593 0.276 0.433 0.501         -        -        -
+                        ∆           0.056   0.037   0.029 0.447 0.287 0.092         -        -        -
+                        VAR(∆)      0.000   0.000   0.000 0.003 0.004 0.003         -        -        -
+                        Test          -       -       -      -        -      -    0.753    0.786    0.785
+                        Ori-Test      -       -       -      -        -      -    0.718    0.769    0.759
+             Occurr     Anti-Test     -       -       -      -        -      -    0.744    0.769    0.771
+                        ∆             -       -       -      -        -      -    0.010    0.017    0.015
+                        VAR(∆)        -       -       -      -        -      -    0.000    0.000    0.000
+ Concept
+                        Test          -       -       -      -        -      -    0.804    0.797    0.800
+                        Ori-Test      -       -       -      -        -      -    0.769    0.731    0.760
+                 Corr   Anti-Test     -       -       -      -        -      -    0.779    0.800    0.803
+                        ∆             -       -       -      -        -      -    0.024   -0.003   -0.003
+                        VAR(∆)        -       -       -      -        -      -    0.000    0.000    0.000
+
+                        Table 11: Overall performances of Llama2-7b (Accuracy)
+                                                        Llama2-7b - Macro F1
+      Datasets                               Yelp                Go Emotions                 Beer
+      Shortcut          λ             1      0.8      0.6      1      0.8    0.6     1       0.8      0.6
+                        Test        0.514   0.551    0.531 0.761 0.723 0.715         -        -        -
+                        Ori-Test    0.473   0.502    0.488 0.757 0.718 0.717         -        -        -
+                 ST     Anti-Test   0.472   0.489    0.483 0.442 0.488 0.644         -        -        -
+                        ∆           0.042   0.063    0.049 0.320 0.235 0.071         -        -        -
+                        VAR(∆)      0.000   0.002    0.002 0.002 0.007 0.002         -        -        -
+                        Test        0.558   0.514    0.491 0.656 0.729 0.738         -        -        -
+                        Ori-Test    0.529   0.511    0.505 0.656 0.725 0.740         -        -        -
+Occurrence       Syn    Anti-Test   0.499   0.504    0.503 0.572 0.677 0.710         -        -        -
+                        ∆           0.059   0.010   -0.012 0.084 0.052 0.028         -        -        -
+                        VAR(∆)      0.001   0.000    0.001 0.000 0.000 0.000         -        -        -
+                        Test        0.459   0.483    0.440 0.740 0.736 0.694         -        -        -
+                        Ori-Test    0.428   0.488    0.430 0.710 0.737 0.627         -        -        -
+             Category   Anti-Test   0.416   0.434    0.427 0.721 0.726 0.680         -        -        -
+                        ∆           0.043   0.049    0.013 0.019 0.010 0.014         -        -        -
+                        VAR(∆)      0.000   0.001    0.000 0.000 0.000 0.000         -        -        -
+                        Test        0.648   0.647    0.636 0.707 0.750 0.743         -        -        -
+                        Ori-Test    0.669   0.667    0.653 0.723 0.748 0.740         -        -        -
+             Register   Anti-Test   0.618   0.626    0.626 0.348 0.563 0.616         -        -        -
+                        ∆           0.030   0.021    0.010 0.359 0.186 0.128         -        -        -
+                        VAR(∆)      0.000   0.000    0.000 0.000 0.002 0.000         -        -        -
+  Style
+                        Test        0.626   0.626    0.582 0.573 0.582 0.472         -        -        -
+                        Ori-Test    0.663   0.664    0.664 0.652 0.675 0.601         -        -        -
+             Author     Anti-Test   0.572   0.591    0.556 0.259 0.371 0.395         -        -        -
+                        ∆           0.054   0.035    0.025 0.313 0.212 0.077         -        -        -
+                        VAR(∆)      0.000   0.000    0.000 0.001 0.001 0.000         -        -        -
+                        Test          -       -        -       -       -      -    0.739    0.776    0.777
+                        Ori-Test      -       -        -       -       -      -    0.699    0.759    0.745
+             Occurr     Anti-Test     -       -        -       -       -      -    0.729    0.729    0.762
+                        ∆             -       -        -       -       -      -    0.010    0.047    0.015
+                        VAR(∆)        -       -        -       -       -      -    0.000    0.006    0.000
+ Concept
+                        Test          -       -        -       -       -      -    0.797    0.789    0.790
+                        Ori-Test      -       -        -       -       -      -    0.752    0.716    0.741
+                 Corr   Anti-Test     -       -        -       -       -      -    0.772    0.791    0.793
+                        ∆             -       -        -       -       -      -    0.025   -0.003   -0.003
+                        VAR(∆)        -       -        -       -       -      -    0.001    0.000    0.000
+
+                        Table 12: Overall performances of Llama2-7b (Macro F1)
+                                                        Llama2-13b - Accuracy
+      Datasets                                Yelp                  Go Emotions                Beer
+      Shortcut          λ              1        0.8       0.6    1       0.8    0.6     1       0.8     0.6
+                        Test         0.727     0.712     0.698 0.761 0.764 0.806        -        -       -
+                        Ori-Test     0.176     0.686     0.692 0.757 0.760 0.805        -        -       -
+                 ST     Anti-Test    0.169     0.672     0.683 0.553 0.756 0.780        -        -       -
+                        ∆            0.557     0.040     0.015 0.207 0.008 0.025        -        -       -
+                        VAR(∆)      #DIV/0!   #DIV/0!    0.000 0.064 0.001 0.001        -        -       -
+                        Test         0.483     0.710     0.717 0.849 0.847 0.835        -        -       -
+                        Ori-Test     0.438     0.700     0.704 0.847 0.845 0.835        -        -       -
+Occurrence       Syn    Anti-Test    0.387     0.686     0.697 0.822 0.822 0.819        -        -       -
+                        ∆            0.096     0.024     0.020 0.027 0.026 0.016        -        -       -
+                        VAR(∆)       0.009     0.000     0.000 0.000 0.001 0.000        -        -       -
+                        Test         0.726     0.723     0.719 0.840 0.830 0.800        -        -       -
+                        Ori-Test     0.700     0.705     0.706 0.847 0.828 0.825        -        -       -
+             Category   Anti-Test    0.648     0.686     0.695 0.832 0.830 0.800        -        -       -
+                        ∆            0.078     0.038     0.024 0.008 0.000 0.000        -        -       -
+                        VAR(∆)       0.000     0.000     0.000 0.000 0.000 0.000        -        -       -
+                        Test         0.703     0.694     0.689 0.869 0.848 0.863        -        -       -
+                        Ori-Test     0.683     0.695     0.696 0.867 0.852 0.870        -        -       -
+             Register   Anti-Test    0.610     0.646     0.662 0.392 0.604 0.698        -        -       -
+                        ∆            0.092     0.042     0.023 0.489 0.225 0.163        -        -       -
+                        VAR(∆)       0.000     0.000     0.000 0.000 0.004 0.004        -        -       -
+  Style
+                        Test         0.674     0.670     0.665 0.650 0.656 0.779        -        -       -
+                        Ori-Test     0.679     0.688     0.688 0.686 0.692 0.812        -        -       -
+             Author     Anti-Test    0.568     0.602     0.625 0.296 0.300 0.564        -        -       -
+                        ∆            0.106     0.068     0.040 0.354 0.355 0.215        -        -       -
+                        VAR(∆)       0.000     0.000     0.000 0.061 0.003 0.010        -        -       -
+                        Test           -         -         -      -       -      -    0.788   0.775    0.735
+                        Ori-Test       -         -         -      -       -      -    0.766   0.765    0.726
+             Occurr     Anti-Test      -         -         -      -       -      -    0.770   0.759    0.725
+                        ∆              -         -         -      -       -      -    0.018   0.016    0.009
+                        VAR(∆)         -         -         -      -       -      -    0.000   0.000    0.000
+ Concept
+                        Test           -         -         -      -       -      -    0.800   0.797    0.682
+                        Ori-Test       -         -         -      -       -      -    0.744   0.735    0.612
+                 Corr   Anti-Test      -         -         -      -       -      -    0.709   0.801    0.679
+                        ∆              -         -         -      -       -      -    0.091   -0.004   0.000
+                        VAR(∆)         -         -         -      -       -      -    0.015   0.000    0.000
+
+                        Table 13: Overall performances of Llama2-13b (Accuracy)
+                                                        Llama2-13b - Macro F1
+      Datasets                                Yelp                   Go Emotions                Beer
+      Shortcut          λ              1         0.8     0.6     1       0.8     0.6     1       0.8     0.6
+                        Test         0.723      0.507   0.520 0.675 0.628 0.723          -        -       -
+                        Ori-Test     0.167      0.489   0.498 0.671 0.626 0.723          -        -       -
+                 ST     Anti-Test    0.161      0.482   0.472 0.565 0.614 0.685          -        -       -
+                        ∆            0.562      0.025   0.048 0.110 0.014 0.038          -        -       -
+                        VAR(∆)      #DIV/0!   #DIV/0!   0.002 0.014 0.000 0.003          -        -       -
+                        Test         0.439      0.510   0.552 0.752 0.739 0.735          -        -       -
+                        Ori-Test     0.396      0.524   0.543 0.748 0.737 0.736          -        -       -
+Occurrence       Syn    Anti-Test    0.297      0.514   0.497 0.730 0.722 0.723          -        -       -
+                        ∆            0.142     -0.004   0.055 0.023 0.017 0.012          -        -       -
+                        VAR(∆)       0.020      0.002   0.003 0.000 0.001 0.000          -        -       -
+                        Test         0.431      0.420   0.418 0.718 0.657 0.621          -        -       -
+                        Ori-Test     0.449      0.439   0.420 0.735 0.652 0.632          -        -       -
+             Category   Anti-Test    0.362      0.391   0.386 0.708 0.660 0.619          -        -       -
+                        ∆            0.069      0.029   0.032 0.010 -0.002 0.002         -        -       -
+                        VAR(∆)       0.001      0.001   0.001 0.000 0.000 0.000          -        -       -
+                        Test         0.517      0.435   0.456 0.754 0.735 0.751          -        -       -
+                        Ori-Test     0.520      0.483   0.472 0.749 0.729 0.758          -        -       -
+             Register   Anti-Test    0.417      0.405   0.414 0.398 0.535 0.589          -        -       -
+                        ∆            0.100      0.030   0.042 0.367 0.200 0.165          -        -       -
+                        VAR(∆)       0.001      0.002   0.003 0.001 0.002 0.004          -        -       -
+  Style
+                        Test         0.556      0.508   0.490 0.496 0.487 0.516          -        -       -
+                        Ori-Test     0.482      0.506   0.486 0.504 0.549 0.543          -        -       -
+             Author     Anti-Test    0.422      0.432   0.436 0.157 0.249 0.362          -        -       -
+                        ∆            0.134      0.076   0.055 0.340 0.238 0.153          -        -       -
+                        VAR(∆)       0.002      0.002   0.002 0.027 0.003 0.003          -        -       -
+                        Test           -          -        -     -        -       -    0.779    0.769   0.713
+                        Ori-Test       -          -        -     -        -       -    0.753    0.761   0.700
+             Occurr     Anti-Test      -          -        -     -        -       -    0.759    0.752   0.703
+                        ∆              -          -        -     -        -       -    0.019    0.018   0.011
+                        VAR(∆)         -          -        -     -        -       -    0.000    0.000   0.000
+ Concept
+                        Test           -          -        -     -        -       -    0.788    0.792   0.622
+                        Ori-Test       -          -        -     -        -       -    0.725    0.728   0.541
+                 Corr   Anti-Test      -          -        -     -        -       -    0.699    0.795   0.619
+                        ∆              -          -        -     -        -       -    0.089   -0.004   0.001
+                        VAR(∆)         -          -        -     -        -       -    0.014    0.000   0.000
+
+                        Table 14: Overall performances of Llama2-13b (Macro F1)
+                                                       Llama3-8b - Accuracy
+      Datasets                               Yelp               Go Emotions               Beer
+      Shortcut           λ             1      0.8     0.6     1      0.8    0.6     1      0.8     0.6
+                         Test        0.726   0.719   0.703 0.839 0.835 0.820        -       -       -
+                         Ori-Test    0.700   0.706   0.702 0.703 0.704 0.694        -       -       -
+                 ST      Anti-Test   0.670   0.693   0.696 0.493 0.639 0.742        -       -       -
+                         ∆           0.055   0.026   0.006 0.346 0.196 0.079        -       -       -
+                         VAR(∆)      0.000   0.000   0.000 0.014 0.010 0.000        -       -       -
+                         Test        0.702   0.700   0.698 0.881 0.874 0.864        -       -       -
+                         Ori-Test    0.693   0.694   0.696 0.871 0.866 0.860        -       -       -
+Occurrence       Syn     Anti-Test   0.691   0.695   0.696 0.611 0.770 0.824        -       -       -
+                         ∆           0.011   0.004   0.002 0.270 0.104 0.040        -       -       -
+                         VAR(∆)      0.000   0.000   0.000 0.013 0.002 0.000        -       -       -
+                         Test        0.713   0.709   0.709 0.881 0.869 0.872        -       -       -
+                         Ori-Test    0.700   0.700   0.702 0.885 0.881 0.878        -       -       -
+             Category    Anti-Test   0.692   0.702   0.705 0.873 0.862 0.871        -       -       -
+                         ∆           0.021   0.006   0.005 0.008 0.007 0.002        -       -       -
+                         VAR(∆)      0.000   0.000   0.000 0.000 0.000 0.000        -       -       -
+                         Test        0.695   0.698   0.689 0.884 0.858 0.891        -       -       -
+                         Ori-Test    0.665   0.691   0.681 0.874 0.864 0.895        -       -       -
+             Register    Anti-Test   0.610   0.645   0.649 0.452 0.555 0.745        -       -       -
+                         ∆           0.086   0.053   0.040 0.432 0.303 0.146        -       -       -
+                         VAR(∆)      0.001   0.000   0.000 0.020 0.002 0.003        -       -       -
+  Style
+                         Test        0.655   0.656   0.652 0.748 0.700 0.661        -       -       -
+                         Ori-Test    0.659   0.674   0.675 0.840 0.771 0.726        -       -       -
+             Author      Anti-Test   0.556   0.587   0.603 0.176 0.257 0.433        -       -       -
+                         ∆           0.099   0.069   0.049 0.572 0.442 0.228        -       -       -
+                         VAR(∆)      0.000   0.000   0.000 0.007 0.028 0.007        -       -       -
+                         Test          -       -       -      -       -      -    0.789   0.631   0.763
+                         Ori-Test      -       -       -      -       -      -    0.771   0.618   0.757
+             Occurr      Anti-Test     -       -       -      -       -      -    0.770   0.621   0.757
+                         ∆             -       -       -      -       -      -    0.019   0.010   0.006
+                         VAR(∆)        -       -       -      -       -      -    0.000   0.000   0.000
+ Concept
+                         Test          -       -       -      -       -      -    0.779   0.763   0.773
+                         Ori-Test      -       -       -      -       -      -    0.700   0.714   0.732
+                 Corr    Anti-Test     -       -       -      -       -      -    0.501   0.762   0.770
+                         ∆             -       -       -      -       -      -    0.278   0.001   0.003
+                         VAR(∆)        -       -       -      -       -      -    0.018   0.000   0.000
+
+                        Table 15: Overall performances of Llama3-8b (Accuracy)
+                                                       Llama3-8b - Macro F1
+      Datasets                              Yelp                Go Emotions                Beer
+      Shortcut          λ             1      0.8     0.6     1      0.8     0.6     1      0.8      0.6
+                        Test        0.555   0.511   0.497 0.714 0.724 0.702         -       -        -
+                        Ori-Test    0.474   0.478   0.486 0.703 0.704 0.694         -       -        -
+                 ST     Anti-Test   0.456   0.471   0.482 0.485 0.553 0.640         -       -        -
+                        ∆           0.099   0.040   0.015 0.229 0.170 0.062         -       -        -
+                        VAR(∆)      0.004   0.001   0.001 0.005 0.005 0.000         -       -        -
+                        Test        0.701   0.701   0.696 0.765 0.764 0.744         -       -        -
+                        Ori-Test    0.692   0.696   0.694 0.751 0.747 0.736         -       -        -
+Occurrence       Syn    Anti-Test   0.691   0.697   0.694 0.574 0.657 0.700         -       -        -
+                        ∆           0.010   0.003   0.002 0.191 0.107 0.044         -       -        -
+                        VAR(∆)      0.000   0.003   0.000 0.004 0.001 0.000         -       -        -
+                        Test        0.689   0.659   0.613 0.778 0.766 0.769         -       -        -
+                        Ori-Test    0.701   0.697   0.701 0.778 0.776 0.776         -       -        -
+             Category   Anti-Test   0.671   0.654   0.586 0.767 0.754 0.769         -       -        -
+                        ∆           0.019   0.005   0.027 0.011 0.012 -0.001        -       -        -
+                        VAR(∆)      0.000   0.007   0.003 0.000 0.000 0.000         -       -        -
+                        Test        0.646   0.579   0.593 0.735 0.748 0.772         -       -        -
+                        Ori-Test    0.664   0.690   0.635 0.707 0.752 0.780         -       -        -
+             Register   Anti-Test   0.395   0.405   0.397 0.421 0.526 0.629         -       -        -
+                        ∆           0.251   0.174   0.196 0.315 0.222 0.143         -       -        -
+                        VAR(∆)      0.010   0.000   0.002 0.014 0.001 0.000         -       -        -
+  Style
+                        Test        0.515   0.467   0.451 0.569 0.439 0.429         -       -        -
+                        Ori-Test    0.653   0.668   0.667 0.707 0.515 0.492         -       -        -
+             Author     Anti-Test   0.432   0.389   0.388 0.202 0.203 0.294         -       -        -
+                        ∆           0.084   0.078   0.062 0.367 0.236 0.135         -       -        -
+                        VAR(∆)      0.001   0.001   0.001 0.005 0.003 0.002         -       -        -
+                        Test          -       -       -      -       -       -    0.721   0.501    0.561
+                        Ori-Test      -       -       -      -       -       -    0.703   0.470    0.615
+             Occurr     Anti-Test     -       -       -      -       -       -    0.702   0.473    0.613
+                        ∆             -       -       -      -       -       -    0.019   0.028   -0.053
+                        VAR(∆)        -       -       -      -       -       -    0.000   0.002    0.006
+ Concept
+                        Test          -       -       -      -       -       -    0.667   0.600    0.609
+                        Ori-Test      -       -       -      -       -       -    0.546   0.554    0.574
+                 Corr   Anti-Test     -       -       -      -       -       -    0.441   0.598    0.606
+                        ∆             -       -       -      -       -       -    0.226   0.002    0.003
+                        VAR(∆)        -       -       -      -       -       -    0.010   0.000    0.000
+
+                        Table 16: Overall performances of Llama3-8b (Macro F1)
+                                                         A2R - Accuracy
+      Datasets                              Yelp                Go Emotions               Beer
+      Shortcut          λ             1      0.8     0.6     1      0.8     0.6     1      0.8     0.6
+                        Test        0.533   0.517   0.507 0.690 0.660 0.657         -       -       -
+                        Ori-Test    0.481   0.497   0.502 0.675 0.665 0.662         -       -       -
+                 ST     Anti-Test   0.436   0.478   0.486 0.502 0.566 0.628         -       -       -
+                        ∆           0.097   0.039   0.021 0.188 0.093 0.029         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.002 0.001 0.000         -       -       -
+                        Test        0.507   0.504   0.496 0.665 0.652 0.630         -       -       -
+                        Ori-Test    0.486   0.489   0.489 0.655 0.658 0.643         -       -       -
+Occurrence       Syn    Anti-Test   0.457   0.474   0.481 0.434 0.555 0.570         -       -       -
+                        ∆           0.050   0.030   0.015 0.232 0.097 0.060         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.001 0.001 0.000         -       -       -
+                        Test        0.505   0.505   0.512 0.641 0.665 0.643         -       -       -
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+             Category   Anti-Test   0.501   0.504   0.511 0.632 0.662 0.641         -       -       -
+                        ∆           0.004   0.001   0.001 0.009 0.003 0.002         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.000 0.000 0.000         -       -       -
+                        Test        0.510   0.496   0.502 0.675 0.643 0.648         -       -       -
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+             Register   Anti-Test   0.212   0.296   0.416 0.259 0.464 0.518         -       -       -
+                        ∆           0.298   0.200   0.086 0.416 0.179 0.130         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.002 0.000 0.001         -       -       -
+  Style
+                        Test        0.487   0.500   0.501 0.596 0.629 0.463         -       -       -
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+             Author     Anti-Test   0.161   0.256   0.367 0.077 0.193 0.259         -       -       -
+                        ∆           0.326   0.244   0.134 0.520 0.436 0.204         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.004 0.008 0.001         -       -       -
+                        Test          -       -       -      -       -       -    0.689   0.697   0.706
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+             Occurr     Anti-Test     -       -       -      -       -       -    0.534   0.652   0.681
+                        ∆             -       -       -      -       -       -    0.155   0.045   0.025
+                        VAR(∆)        -       -       -      -       -       -    0.000   0.000   0.000
+ Concept
+                        Test          -       -       -      -       -       -    0.789   0.767   0.762
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+                 Corr   Anti-Test     -       -       -      -       -       -    0.620   0.703   0.735
+                        ∆             -       -       -      -       -       -    0.169   0.065   0.027
+                        VAR(∆)        -       -       -      -       -       -    0.002   0.000   0.000
+
+                         Table 17: Overall performances of A2R (Accuracy)
+                                                         A2R - Macro F1
+      Datasets                              Yelp                Go Emotions               Beer
+      Shortcut          λ             1      0.8     0.6     1      0.8     0.6     1      0.8     0.6
+                        Test        0.536   0.517   0.505 0.530 0.462 0.492         -       -       -
+                        Ori-Test    0.483   0.496   0.503 0.480 0.444 0.481         -       -       -
+                 ST     Anti-Test   0.438   0.479   0.486 0.380 0.391 0.465         -       -       -
+                        ∆           0.098   0.038   0.019 0.150 0.071 0.027         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.002 0.002 0.000         -       -       -
+                        Test        0.508   0.503   0.489 0.528 0.454 0.486         -       -       -
+                        Ori-Test    0.487   0.488   0.482 0.491 0.448 0.482         -       -       -
+Occurrence       Syn    Anti-Test   0.459   0.474   0.475 0.367 0.390 0.433         -       -       -
+                        ∆           0.049   0.029   0.014 0.161 0.064 0.053         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.001 0.001 0.000         -       -       -
+                        Test        0.505   0.504   0.507 0.461 0.492 0.464         -       -       -
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+             Category   Anti-Test   0.501   0.503   0.507 0.450 0.491 0.466         -       -       -
+                        ∆           0.004   0.001   0.001 0.011 0.001 -0.001        -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.000 0.000 0.000         -       -       -
+                        Test        0.511   0.497   0.498 0.509 0.466 0.471         -       -       -
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+             Register   Anti-Test   0.191   0.288   0.417 0.220 0.338 0.363         -       -       -
+                        ∆           0.320   0.209   0.081 0.289 0.129 0.108         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.002 0.000 0.001         -       -       -
+  Style
+                        Test        0.489   0.502   0.496 0.393 0.383 0.317         -       -       -
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+             Author     Anti-Test   0.127   0.242   0.367 0.077 0.148 0.182         -       -       -
+                        ∆           0.362   0.261   0.129 0.316 0.235 0.135         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.000 0.000 0.000         -       -       -
+                        Test          -       -       -      -       -       -    0.663   0.674   0.684
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+             Occurr     Anti-Test     -       -       -      -       -       -    0.474   0.620   0.654
+                        ∆             -       -       -      -       -       -    0.188   0.054   0.030
+                        VAR(∆)        -       -       -      -       -       -    0.000   0.001   0.000
+ Concept
+                        Test          -       -       -      -       -       -    0.775   0.753   0.748
+                        Ori-Test      -       -       -      -       -       -      -       -       -
+                 Corr   Anti-Test     -       -       -      -       -       -    0.610   0.689   0.720
+                        ∆             -       -       -      -       -       -    0.165   0.065   0.028
+                        VAR(∆)        -       -       -      -       -       -    0.002   0.000   0.000
+
+                          Table 18: Overall performances of A2R (Macro F1)
+                                                         CR - Accuracy
+      Datasets                              Yelp               Go Emotions               Beer
+      Shortcut          λ             1      0.8     0.6     1      0.8    0.6     1      0.8     0.6
+                        Test        0.555   0.540   0.540 0.693 0.752 0.762        -       -       -
+                        Ori-Test    0.460   0.501   0.522 0.501 0.575 0.737        -       -       -
+                 ST     Anti-Test   0.448   0.500   0.518 0.416 0.493 0.727        -       -       -
+                        ∆           0.107   0.040   0.022 0.277 0.258 0.034        -       -       -
+                        VAR(∆)      0.001   0.000   0.000 0.003 0.001 0.002        -       -       -
+                        Test        0.545   0.523   0.519 0.730 0.705 0.687        -       -       -
+                        Ori-Test    0.479   0.503   0.513 0.619 0.656 0.648        -       -       -
+Occurrence       Syn    Anti-Test   0.462   0.498   0.511 0.568 0.634 0.629        -       -       -
+                        ∆           0.083   0.025   0.008 0.162 0.070 0.058        -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.016 0.002 0.001        -       -       -
+                        Test        0.566   0.539   0.541 0.802 0.785 0.748        -       -       -
+                        Ori-Test      -       -       -      -       -      -      -       -       -
+             Category   Anti-Test   0.480   0.521   0.531 0.557 0.659 0.700        -       -       -
+                        ∆           0.086   0.019   0.010 0.246 0.126 0.048        -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.001 0.012 0.002        -       -       -
+                        Test        0.536   0.540   0.518 0.745 0.742 0.730        -       -       -
+                        Ori-Test      -       -       -      -       -      -      -       -       -
+             Register   Anti-Test   0.478   0.502   0.497 0.641 0.678 0.687        -       -       -
+                        ∆           0.058   0.038   0.021 0.104 0.064 0.043        -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.002 0.001 0.000        -       -       -
+  Style
+                        Test        0.496   0.519   0.489 0.735 0.713 0.681        -       -       -
+                        Ori-Test      -       -       -      -       -      -      -       -       -
+             Author     Anti-Test   0.406   0.474   0.464 0.547 0.627 0.600        -       -       -
+                        ∆           0.090   0.045   0.025 0.188 0.086 0.080        -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.008 0.001 0.002        -       -       -
+                        Test          -       -       -      -       -      -    0.686   0.690   0.680
+                        Ori-Test      -       -       -      -       -      -      -       -       -
+             Occurr     Anti-Test     -       -       -      -       -      -    0.657   0.688   0.677
+                        ∆             -       -       -      -       -      -    0.028   0.002   0.003
+                        VAR(∆)        -       -       -      -       -      -    0.000   0.000   0.000
+ Concept
+                        Test          -       -       -      -       -      -    0.786   0.774   0.780
+                        Ori-Test      -       -       -      -       -      -      -       -       -
+                 Corr   Anti-Test     -       -       -      -       -      -    0.682   0.744   0.775
+                        ∆             -       -       -      -       -      -    0.103   0.030   0.005
+                        VAR(∆)        -       -       -      -       -      -    0.001   0.000   0.000
+
+                          Table 19: Overall performances of CR (Accuracy)
+                                                         CR-Macro F1
+      Datasets                              Yelp              Go Emotions               Beer
+      Shortcut          λ             1      0.8     0.6    1     0.8     0.6     1      0.8     0.6
+                        Test        0.533   0.510   0.516 0.483 0.589 0.508       -       -       -
+                        Ori-Test    0.466   0.483   0.000 0.387 0.560 0.491       -       -       -
+                 ST     Anti-Test   0.324   0.448   0.482 0.175 0.275 0.454       -       -       -
+                        ∆           0.208   0.062   0.034 0.308 0.315 0.053       -       -       -
+                        VAR(∆)      0.003   0.000   0.000 0.001 0.002 0.002       -       -       -
+                        Test        0.523   0.492   0.494 0.446 0.496 0.547       -       -       -
+                        Ori-Test    0.501   0.488   0.493 0.448 0.492 0.552       -       -       -
+Occurrence       Syn    Anti-Test   0.370   0.452   0.481 0.286 0.415 0.477       -       -       -
+                        ∆           0.153   0.040   0.013 0.160 0.080 0.070       -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.018 0.004 0.003       -       -       -
+                        Test        0.556   0.512   0.519 0.669 0.642 0.599       -       -       -
+                        Ori-Test      -       -       -     -      -       -      -       -       -
+             Category   Anti-Test   0.383   0.487   0.504 0.322 0.484 0.539       -       -       -
+                        ∆           0.172   0.025   0.015 0.346 0.158 0.060       -       -       -
+                        VAR(∆)      0.001   0.000   0.000 0.002 0.012 0.004       -       -       -
+                        Test        0.516   0.524   0.502 0.582 0.608 0.613       -       -       -
+                        Ori-Test      -       -       -     -      -       -      -       -       -
+             Register   Anti-Test   0.413   0.462   0.467 0.397 0.471 0.499       -       -       -
+                        ∆           0.103   0.062   0.036 0.185 0.137 0.114       -       -       -
+                        VAR(∆)      0.001   0.000   0.000 0.004 0.004 0.000       -       -       -
+  Style
+                        Test        0.496   0.512   0.486 0.485 0.421 0.431       -       -       -
+                        Ori-Test      -       -       -     -      -       -      -       -       -
+             Author     Anti-Test   0.280   0.426   0.436 0.253 0.326 0.338       -       -       -
+                        ∆           0.216   0.086   0.049 0.232 0.095 0.093       -       -       -
+                        VAR(∆)      0.000   0.001   0.001 0.011 0.001 0.003       -       -       -
+                        Test          -       -       -     -      -       -    0.680   0.674   0.667
+                        Ori-Test      -       -       -     -      -       -      -       -       -
+             Occurr     Anti-Test     -       -       -     -      -       -    0.620   0.671   0.659
+                        ∆             -       -       -     -      -       -    0.060   0.004   0.008
+                        VAR(∆)        -       -       -     -      -       -    0.000   0.000   0.000
+ Concept
+                        Test          -       -       -     -      -       -    0.781   0.765   0.773
+                        Ori-Test      -       -       -     -      -       -      -       -       -
+                 Corr   Anti-Test     -       -       -     -      -       -    0.570   0.717   0.766
+                        ∆             -       -       -     -      -       -    0.212   0.048   0.006
+                        VAR(∆)        -       -       -     -      -       -    0.006   0.001   0.000
+
+                          Table 20: Overall performances of CR (Macro F1)
+                                                         AFR - Accuracy
+      Datasets                              Yelp                Go Emotions               Beer
+      Shortcut          λ             1      0.8     0.6     1      0.8     0.6     1      0.8     0.6
+                        Test        0.641   0.634   0.628 0.902 0.900 0.873         -       -       -
+                        Ori-Test    0.516   0.597   0.606 0.875 0.889 0.870         -       -       -
+                 ST     Anti-Test   0.369   0.549   0.580 0.208 0.616 0.816         -       -       -
+                        ∆           0.272   0.085   0.048 0.695 0.284 0.057         -       -       -
+                        VAR(∆)      0.001   0.000   0.000 0.000 0.019 0.001         -       -       -
+                        Test        0.642   0.629   0.623 0.904 0.894 0.861         -       -       -
+                        Ori-Test    0.569   0.606   0.607 0.880 0.886 0.860         -       -       -
+Occurrence       Syn    Anti-Test   0.439   0.565   0.587 0.255 0.790 0.794         -       -       -
+                        ∆           0.204   0.065   0.035 0.649 0.105 0.067         -       -       -
+                        VAR(∆)      0.001   0.000   0.000 0.003 0.003 0.003         -       -       -
+                        Test        0.642   0.633   0.626 0.898 0.903 0.883         -       -       -
+                        Ori-Test    0.589   0.600   0.606 0.724 0.802 0.801         -       -       -
+             Category   Anti-Test   0.394   0.556   0.586 0.477 0.823 0.835         -       -       -
+                        ∆           0.249   0.077   0.040 0.421 0.080 0.049         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.009 0.000 0.000         -       -       -
+                        Test        0.603   0.606   0.601 0.886 0.869 0.874         -       -       -
+                        Ori-Test    0.550   0.573   0.577 0.885 0.878 0.886         -       -       -
+             Register   Anti-Test   0.420   0.498   0.542 0.286 0.571 0.634         -       -       -
+                        ∆           0.184   0.108   0.059 0.600 0.298 0.239         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.000 0.001 0.003         -       -       -
+  Style
+                        Test        0.600   0.595   0.587 0.734 0.721 0.699         -       -       -
+                        Ori-Test    0.530   0.565   0.579 0.725 0.735 0.727         -       -       -
+             Author     Anti-Test   0.336   0.484   0.519 0.194 0.340 0.479         -       -       -
+                        ∆           0.264   0.111   0.068 0.540 0.381 0.219         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.000 0.001 0.002         -       -       -
+                        Test          -       -       -      -       -       -    0.767   0.761   0.760
+                        Ori-Test      -       -       -      -       -       -    0.726   0.733   0.743
+             Occurr     Anti-Test     -       -       -      -       -       -    0.618   0.703   0.725
+                        ∆             -       -       -      -       -       -    0.149   0.059   0.034
+                        VAR(∆)        -       -       -      -       -       -    0.002   0.000   0.000
+ Concept
+                        Test          -       -       -      -       -       -    0.895   0.889   0.883
+                        Ori-Test      -       -       -      -       -       -    0.604   0.606   0.607
+                 Corr   Anti-Test     -       -       -      -       -       -    0.669   0.821   0.864
+                        ∆             -       -       -      -       -       -    0.226   0.068   0.019
+                        VAR(∆)        -       -       -      -       -       -    0.001   0.000   0.000
+
+                         Table 21: Overall performances of AFR (Accuracy)
+                                                         AFR - Macro F1
+      Datasets                              Yelp                Go Emotions               Beer
+      Shortcut          λ             1      0.8     0.6     1      0.8     0.6     1      0.8     0.6
+                        Test        0.638   0.631   0.625 0.826 0.812 0.781         -       -       -
+                        Ori-Test    0.489   0.597   0.605 0.687 0.780 0.774         -       -       -
+                 ST     Anti-Test   0.329   0.554   0.582 0.376 0.578 0.724         -       -       -
+                        ∆           0.309   0.077   0.043 0.450 0.233 0.057         -       -       -
+                        VAR(∆)      0.001   0.000   0.000 0.000 0.008 0.001         -       -       -
+                        Test        0.641   0.628   0.621 0.820 0.807 0.753         -       -       -
+                        Ori-Test    0.565   0.608   0.607 0.748 0.786 0.752         -       -       -
+Occurrence       Syn    Anti-Test   0.423   0.570   0.590 0.371 0.685 0.693         -       -       -
+                        ∆           0.219   0.058   0.031 0.448 0.122 0.060         -       -       -
+                        VAR(∆)      0.002   0.000   0.000 0.003 0.002 0.001         -       -       -
+                        Test        0.643   0.633   0.625 0.828 0.822 0.794         -       -       -
+                        Ori-Test    0.591   0.602   0.608 0.651 0.708 0.705         -       -       -
+             Category   Anti-Test   0.354   0.561   0.589 0.492 0.721 0.731         -       -       -
+                        ∆           0.289   0.071   0.036 0.336 0.101 0.063         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.002 0.000 0.000         -       -       -
+                        Test        0.604   0.605   0.601 0.792 0.768 0.773         -       -       -
+                        Ori-Test    0.549   0.574   0.579 0.767 0.788 0.790         -       -       -
+             Register   Anti-Test   0.405   0.501   0.547 0.302 0.499 0.548         -       -       -
+                        ∆           0.200   0.104   0.053 0.490 0.269 0.225         -       -       -
+                        VAR(∆)      0.000   0.001   0.000 0.000 0.000 0.000         -       -       -
+  Style
+                        Test        0.598   0.592   0.587 0.616 0.609 0.576         -       -       -
+                        Ori-Test    0.521   0.566   0.579 0.540 0.614 0.657         -       -       -
+             Author     Anti-Test   0.282   0.488   0.524 0.190 0.285 0.391         -       -       -
+                        ∆           0.316   0.105   0.063 0.426 0.324 0.185         -       -       -
+                        VAR(∆)      0.000   0.000   0.000 0.001 0.000 0.000         -       -       -
+                        Test          -       -       -      -       -       -    0.765   0.758   0.756
+                        Ori-Test      -       -       -      -       -       -    0.725   0.729   0.740
+             Occurr     Anti-Test     -       -       -      -       -       -    0.612   0.702   0.722
+                        ∆             -       -       -      -       -       -    0.153   0.056   0.034
+                        VAR(∆)        -       -       -      -       -       -    0.002   0.000   0.000
+ Concept
+                        Test          -       -       -      -       -       -    0.889   0.880   0.872
+                        Ori-Test      -       -       -      -       -       -    0.602   0.605   0.608
+                 Corr   Anti-Test     -       -       -      -       -       -    0.667   0.814   0.852
+                        ∆             -       -       -      -       -       -    0.222   0.066   0.021
+                        VAR(∆)        -       -       -      -       -       -    0.001   0.000   0.000
+
+                         Table 22: Overall performances of AFR (Macro F1)
+

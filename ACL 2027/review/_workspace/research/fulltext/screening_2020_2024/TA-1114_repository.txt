@@ -1,0 +1,1362 @@
+                            Qualitative Code Suggestion:
+                    A Human-Centric Approach To Qualitative Coding
+
+                             Cesare Spinoso-Di Piano1,2
+            Samira Abbasgholizadeh Rahimi1,2∗ Jackie Chi Kit Cheung1,2
+                    McGill University1  Mila Quebec AI Institute2
+    {cesare.spinoso-dipiano@mail., samira.rahimi@, jackie.cheung@}mcgill.ca
+
+
+                        Abstract
+    Qualitative coding is a content analysis method
+    in which researchers read through a text cor-
+    pus and assign descriptive labels or qualitative
+    codes to passages. It is an arduous and man-
+    ual process which human-computer interaction
+    studies have shown could greatly benefit from
+    NLP techniques to assist qualitative coders.
+    Yet, previous attempts at leveraging language
+    technologies have set up qualitative coding as
+    a fully automatable classification problem. In             Figure 1: Excerpt from one of our interview transcripts
+    this work, we take a more assistive approach               along with qualitative code suggestions made by one of
+    by defining the task of qualitative code sugges-           our systems (GPT-3.5). The codes that were originally
+    tion (QCS) in which a ranked list of previously            assigned to the passages by the qualitative coder are
+    assigned qualitative codes is suggested from an            underlined.
+    identified passage. In addition to being user-
+    motivated, QCS integrates previously ignored
+    properties of qualitative coding such as the se-           coding process, a researcher carefully scans each
+    quence in which passages are annotated, the                document in their corpus, identifies passages that
+    importance of rare codes and the differences
+    in annotation styles between coders. We in-
+                                                               are associated with their research question, and
+    vestigate the QCS task by releasing the first              assigns these passages descriptive labels or quali-
+    publicly available qualitative coding dataset,             tative codes (Figure 1).
+    CVDQuoding, consisting of interviews con-                     Despite its widespread use, coding remains an
+    ducted with women at risk of cardiovascular                arduous and time-consuming process as it requires
+    disease. In addition, we conduct a human evalu-
+                                                               manually annotating a studied corpus line by line.
+    ation which shows that our systems consistently
+    make relevant code suggestions.
+                                                               For instance, studies have shown that coding a 1-
+                                                               hour interview transcript will typically take an ex-
+1   Introduction                                               perienced researcher between 4 to 8 hours of anno-
+                                                               tation (Miles et al., 2019).
+In qualitative research, qualitative coding is a con-             To increase coding efficiency and to reduce its
+tent analysis method that is used to analyze textual           cognitive load on researchers, NLP practitioners
+corpora such as cultural and political texts, ques-            have attempted to insert language technologies into
+tionnaires and interview transcripts. First used in            the coding process by formulating it as a text classi-
+social science studies, qualitative coding has be-             fication task. However, as human-computer interac-
+come a ubiquitous and universal method of anal-                tion (HCI) studies have shown (Rietz and Maedche,
+ysis geared at providing researchers with an in-               2021), qualitative coders prefer receiving sugges-
+depth understanding of their studied corpus (Elliott,          tions for identified passages as they code rather
+2018). It is now employed in several research dis-             than having yet-to-be-seen passages automatically
+ciplines including medicine, education, and psy-               coded for them. This aversion towards a fully au-
+chology (Chapman et al., 2015; Gough and Scott,                tomatic coding system may explain why, to this
+2000; Smith and McGannon, 2018). During the                    day, all available qualitative coding tools are used
+    ∗
+        Corresponding author                                   solely as “electronic filing cabinets” (Fielding and
+                                                         14887
+                 Findings of the Association for Computational Linguistics: EMNLP 2023, pages 14887–14909
+                            December 6-10, 2023 ©2023 Association for Computational Linguistics
+Lee, 2002). That is, if automatic coding is not                   coders. This dataset is available by request to
+approached in a user-centered manner, despite a de-               the corresponding author, due to its sensitive
+sire for automated assistance, coding tools such as               nature.
+NVivo1 and MAXQDA2 will continue to be used
+for their bookkeeping features only (Marathe and                • We     experiment       with    classification,
+Toyama, 2018).                                                    information-retrieval and zero-shot prompting
+   In this work, we take a more user-centered ap-                 techniques to model QCS and conduct a
+proach to qualitative coding by proposing the task                human evaluation which shows that our
+of qualitative code suggestion (QCS) in which a                   systems consistently make relevant code
+ranked list of previously assigned codes is sug-                  suggestions.3
+gested from passages identified by a qualitative
+coder. Our framing of qualitative coding reveals           2     Related Work
+technical subtleties which have not been addressed         In qualitative research, content analysis is defined
+in previous work. For instance, our task definition        as “a family of research techniques for making sys-
+exposes the necessity to evaluate code suggestions         tematic, credible, or valid and replicable inferences
+based on the sequence in which documents are               from texts and other forms of communications”
+coded as well as the importance, and difficulty, of        (Drisko and Maschi, 2016). These techniques rely
+detecting rare codes. In addition, unlike other NLP        heavily on qualitative coding which has been used
+tasks that use human-sourced annotations, QCS ex-          extensively throughout different areas of research,
+pects differences in annotation styles and avoids at-      first in the social sciences and, now, across most
+tempts to correct or homogenize these differences.         fields (Macnamara, 2006). There are two types of
+Although more challenging, we believe that this            qualitative coding: deductive and inductive (Sal-
+human-centric approach is appropriate given that           daña, 2021). In deductive coding, all codes are
+qualitative coding is meant to aid a researcher in         predefined and the coding process serves as a way
+their personal understanding of a corpus.                  of validating or invalidating a hypothesis. In induc-
+   To summarize, the research questions we address         tive coding, codes are defined ad hoc as documents
+in our work are: 1) What previously unexplored             are analyzed and, thus, the coding process is used
+technical challenges arise from approaching qual-          to discover new phenomena underlying a corpus.
+itative coding in a user-centered manner? and 2)              In terms of assistive technologies for qualitative
+How effective are current NLP methods at handling          coding, studies have investigated various computa-
+these challenges? To this end, the contributions of        tional approaches to automate parts of the deductive
+our work are as follows:                                   qualitative coding process. Efforts by Crowston
+                                                           et al. (2012); Scharkow (2013); McCracken et al.
+   • Grounded in HCI studies on automated cod-
+                                                           (2014); Liew et al. (2014) have investigated the
+     ing assistance, we propose the task of qual-
+                                                           use of rule-based learning and supervised learning
+     itative code suggestion (QCS) in which pre-
+                                                           to automate the assignment of codes to passages.
+     viously assigned codes are suggested from
+                                                           More recently, Grandeit et al. (2020); Xiao et al.
+     passages identified by qualitative researchers.
+                                                           (2023) have explored using BERT-based models
+     This user-centered approach to qualitative cod-
+                                                           and GPT3 respectively to predict a previously as-
+     ing reveals the importance of considering the
+                                                           signed code from a passage. In all cases, deductive
+     sequence in which passages are coded, detect-
+                                                           coding was cast as a fully automatable classifica-
+     ing rare codes, and preserving differences in
+                                                           tion problem and metrics such as F1 and annotator-
+     coders’ annotation styles.
+                                                           system agreement scores were used to measure
+   • We release the first publicly available quali-        performance.
+     tative coding dataset, named CVDQuoding,                 At the same time, there has been extensive work
+     consisting of transcripts of interviews with          from the HCI community on how qualitative coders
+     women at risk of cardiovascular diseases              would like automation to assist them during the cod-
+     along with the annotations of two qualitative         ing process (Marathe and Toyama, 2018; Feuston
+                                                           and Brubaker, 2021; Chen et al., 2018; Haug et al.,
+   1
+    https://lumivero.com/products/nvivo/
+   2                                                          3
+    https://www.maxqda.com/qualitative-data-analysis-           The code can be found at https://github.com/
+software                                                   cesare-spinoso/QCS.git
+
+                                                        14888
+2021). These studies show that while researchers                  towards complete automation as coders could
+desire automation, they believe the coding agency                 still reject suggestions.
+should remain in their hands. Thus, methods that
+introduce language technologies in the qualitative           2. Rare codes. Even though new codes may be
+coding process should favour assisting coders by                rare past the point of data saturation, their oc-
+highlighting ambiguous passages (Drouhard et al.,               currences remain possible and scientifically
+2017), by helping them remain consistent in their               important to the coders (van Rijnsoever, 2017).
+annotation style (Sporer, 2012), or by interactively            That is, the rarity of a code is in and of itself an
+refining the definition of codes (Bakharia et al.,              important scientific finding. Thus, while sug-
+2016). These assistive approaches differ from pre-              gesting relevant codes may alleviate some of
+vious human-in-the-loop annotation studies (Mon-                coding’s cognitive load, detecting rare codes
+tani and Honnibal, 2018) since, as Jiang et al.                 may be just as important.
+(2021a) point out, “qualitative analysis is a unique
+                                                             3. Annotation style. Finally, since coding is
+case for human-AI collaboration because uncer-
+                                                                meant to cultivate a particular researcher’s un-
+tainty is essential to qualitative analysis itself.” In
+                                                                derstanding of a corpus, no two coders will
+other words, qualitative coding is unique because
+                                                                have the same annotation style (Loslever et al.,
+the act of coding data, and the uncertainty that
+                                                                2019). Thus, previous efforts to homogenize
+comes with it, is valued by researchers as it culti-
+                                                                code annotations, for instance by grouping
+vates their understanding of their corpus.
+                                                                similar codes from different coders together,
+3     Qualitative Code Suggestion                               should be avoided. Although convenient for
+                                                                modeling purposes, this merging is not sup-
+We present properties of qualitative coding which               ported by the user-centered approach we take
+have surfaced from the user-centered perspective                in this work.
+we take in this work. We show that these properties
+warrant a new task definition that centers around         3.2     Task Definition
+suggestions and rare codes.                               Our task definition, which is applicable to both
+                                                          deductive and inductive coding, integrates the pre-
+3.1 Properties of Qualitative Coding
+                                                          viously discussed properties into the main QCS
+In qualitative coding, researchers code their corpus      task and the novel code detection subtask.
+to gain a deeper understanding of a certain phe-
+nomenon related to their research question. As            Qualitative code suggestion (QCS) Consider
+a result, in deductive and inductive coding, the          the setting in which a corpus is comprised of N
+first few documents that are coded are critical for       documents D = {d1 , d2 , . . . , dN }. Each docu-
+                                                                                                   len(d )
+the researcher’s own understanding. Once the re-          ment, di , is a set of text spans {tn }n=1 i which
+searchers have read through enough documents,             have been identified and assigned codes by a qual-
+properties of qualitative coding arise which, ac-         itative coder. Now, suppose K ∈ {1 . . . N } is a
+cording to HCI studies (Rietz and Maedche, 2021;          particular coder’s point of data saturation. In this
+Marathe and Toyama, 2018), should be considered           case, we collect all the codes assigned to text spans
+when developing assistive coding techniques. We           from documents d1 to dK and create a set of codes
+further develop these properties below:                   C = {c1 , . . . , cm }. The task of QCS that we define
+                                                          here consists of ranking, in order of relevance, the
+    1. Data saturation. Coders that carry out qual-
+                                                          set of codes in C with respect to every identified
+       itative coding reach a personal point of data
+                                                          text span in the set of documents past the point of
+       saturation after which few new codes will
+                                                          data saturation, i.e. {t ∈ di : i = K + 1 . . . N }.4
+       appear (Saunders et al., 2018). It is at this
+       point where suggesting relevant codes for an       Novel code detection subtask Furthermore,
+       identified passage may be helpful for a qual-      since documents are coded sequentially, some rare
+       itative coder. These suggestions could help        codes may only surface in the test set portion of
+       the qualitative coder consider relevant code       the corpus, {dK+1 , . . . , dN }, and, thus, might not
+       assignments without needing to sift through            4
+                                                               We leave the additional task of text span extraction as
+       irrelevant codes. At the same time, suggest-       future work as this extension to QCS goes beyond the scope
+       ing several relevant codes minimizes the shift     of this study.
+
+                                                     14889
+be part of C. As detecting rare codes may be just       codes in the first five interviews, and this trend ta-
+as important as suggesting relevant ones, we add        pers off as they code more transcripts (Figure 2).
+a novel code detection subtask to our task defini-      In addition, coder 1 finds new rare codes in ev-
+tion which consists of assigning the novel code to      ery transcript whereas coder 2 ceases to create
+a text span if one of its truly assigned codes is not   new codes by interview 7. Moreover, both coders
+in C. To create training instances for this subtask,    clearly exhibit significantly different annotation
+we assign the novel code to all text spans in the       styles with coder 1 creating 207 codes with an av-
+training set that have been assigned a code with a      erage of 4 text spans per code and coder 2 cre-
+training frequency of 1. All of the text spans in the   ating 23 codes with an average of 19 text spans
+validation and test sets with at least one assigned     per code. This difference can be attributed to the
+code that does not appear in the training set are       specificity of coder-2’s codes, which tend to be
+assigned the novel code.                                more abstract (e.g., “Health Measures Taken”) than
+                                                        coder-1’s codes (e.g., “CVD-related examinations,
+4   The CVDQuoding Dataset                              tests or measures”). For additional details about
+                                                        CVDQuoding, including a sample list of codes,
+To investigate the QCS task, we release the first       see Appendix A.1.
+publicly available qualitative coding dataset
+which we name CVDQuoding. In this section,
+we describe the dataset and how it was created. In
+addition, we draw parallels between CVDQuod-
+ing and the properties of qualitative coding we
+described in Section 3.1.
+   CVDQuoding is a dataset consisting of 15 tran-
+scripts of interviews conducted with women at risk
+of cardiovascular diseases (CVDs) as well as anno-
+tations carried out by two qualitative coders. These
+qualitative coding annotations consist of text spans
+identified by the qualitative coders, as well as the
+codes that were assigned to each text span. Ad-
+ditional details about the dataset as well as com-
+                                                        Figure 2: Distribution of the number of new codes in-
+parisons with previous qualitative coding datasets,
+                                                        troduced per interview for each coder.
+which have all been closed-source, can be found in
+Table 4 in Appendix A.1.
+   The annotations in CVDQuoding were origi-            5   Modeling Approaches
+nally created as part of a larger project to inves-
+tigate the interest of women at risk of CVDs in         We investigate the ability of current NLP meth-
+using AI tools (Bousbiat et al., 2022) and were         ods to rank lists of codes by relevance as well as
+subsequently adapted for our purposes. During the       detect novel codes from text spans. To this end,
+interviews, women were asked about the health           we describe our data formatting decisions and the
+challenges they face and their opinions about us-       modeling paradigms we explore.
+ing an AI tool to help them manage their risk of           We choose to explore three distinct modeling
+CVDs. For this work, we extracted the 15 inter-         paradigms, classification, information-retrieval and
+view transcripts and tagged the text spans coded        zero-shot prompting, based on the following intu-
+by each coder and the questions asked by the inter-     itions. Firstly, the classification paradigm assumes
+viewer using XML. Readers may refer to Table 6          that the confidence scores of a multi-label clas-
+in Appendix A.2 for the complete list of questions      sifier can be used to rank codes. Secondly, the
+asked during each interview and to Figure 6 in Ap-      information-retrieval paradigm assumes that codes
+pendix A.1 for an example of a tagged transcript        can be treated as documents and that text spans are
+excerpt.                                                the queries used to rank them. Finally, the zero-
+   CVDQuoding exhibits the properties of qual-          shot prompting paradigm assumes that the descrip-
+itative coding presented in Section 3.1. In terms       tiveness of codes is sufficient for a large language
+of data saturation, both coders create many new         model (LLM) to rank them based on the text span.
+                                                   14890
+5.1 Data Formatting                                      code.
+For all three modeling paradigms, we associate ev-          For the novel code detection subtask, a classifi-
+ery contiguous text span t ∈ di that was coded by        cation head is trained on top of the vector of scores
+one of the qualitative coders with its immediate         ŷi which consists of the scores computed between
+context c. In the case of CVDQuoding, we define          each code c ∈ C and the input instance (q, t)i .
+the context c as being the question asked right be-      Thus, if there are 10 codes in the training set (ex-
+fore t. Thus, in our case, every model has access to     cluding novel), then for every instance (q, t)i the
+a tuple (q, t) consisting of a question, q, and a text   classifier is passed a 10-dimensional vector ŷi com-
+span, t, highlighted by a qualitative coder. We use      puted from either the bi-encoder or cross-encoder.
+the previous question as an approximation of the
+                                                         5.4    Zero-shot Prompting Paradigm
+context as most coding decisions in CVDQuoding
+involve considering a text span as the answer to a       In the zero-shot prompting paradigm, we provide
+preset question. For example, the code “Interest         an autoregressive LLM M with a prompt contain-
+in AI tools" is assigned to “Very interested, yes”       ing general instructions, the list of codes C and a
+because it is the answer to “Are you interested in       text span t to code along with its previously asked
+using AI tools for CVD?”.                                question q. Refer to Appendix A.3 for the prompt
+                                                         template. Upon generation, the suggested codes
+5.2 Classification Paradigm                              are extracted via an exact-match search and the
+                                                         order in which the codes are generated is used as
+We build a |C| + 1 multi-label binary classifier
+                                                         their predicted rank. Furthermore, the generation
+trained on the first K annotated transcripts to pre-
+                                                         “predicts” the novel code either if M generates the
+dict the assignment of each code c ∈ C as well as
+                                                         string “None of the above” first (which is included
+the novel code to a text span. We use the scores
+                                                         in the prompt template) or if no exact matches are
+produced for each code to sort the set of codes
+                                                         found in its generation.
+C for a test instance (q, t) ∈ {(q, t) : t ∈ di , i =
+K +1 . . . N }. Furthermore, an instance is assigned
+                                                         6     Experiments
+the novel code only if it is given the highest score
+among all codes.                                         We investigate our approaches to modeling the
+                                                         QCS task in order to determine the ability of cur-
+5.3 Information-retrieval Paradigm                       rent NLP-based methods to allow for a more user-
+In the information-retrieval paradigm, we treat          centered approach to qualitative coding. We dis-
+an instance (q, t) as a query and use two neural-        cuss the experimental setup to test our modeling
+retrieval architectures to rank the set of codes C       paradigms as well as our evaluation methodology.
+with an additional step for the novel code detection
+subtask.                                                 6.1    Experimental Setup
+   We build two neural-retrieval architectures origi-    To experiment with each of the paradigms pre-
+nally presented by Reimers and Gurevych (2019):          sented in the previous section, we sort CVDQuod-
+the bi-encoder and the cross-encoder. In the bi-         ing by annotation-time, group it by coder, and
+encoder, a representation is learned for the text        consider it at different possible points of data sat-
+span t, the previous question q and the code c. The      uration. More specifically, for each coder, we
+representations of the test span, ht , and the previ-    consider training on {d1 , . . . , dK } and testing on
+ous question, hq , are max pooled together and a         {dK+1 , . . . , d15 } for K = 1 . . . 14 where di is the
+score is computed by applying a cosine similarity        ith annotated transcript in annotation-time. We re-
+between the pooled representation and the code           serve 20% of each training set for validation. We
+representation, hc . In the cross-encoder, represen-     summarize our workflow in Figure 3.
+tations are learned for the concatenations of the           We train and test models from each of our three
+code with the question, q [SEP] c, and with the text     modeling paradigms and for all of the configu-
+span, t [SEP] c. The representations, hq [SEP] c and     rations discussed above. For the classification
+ht [SEP] c are max pooled together and a classifica-     paradigm, we use |C| + 1 SVM classifiers as well
+tion head is placed on top of the pooled represen-       as a single DistilBERT (Sanh et al., 2020) classi-
+tation to produce scores. In both cases, the code        fier with a multi-label sequence classification head.
+scores produced are used to rank all but the novel       We use DistilBERT due to the computational costs
+                                                    14891
+                                                                                                  Interview      Text    Code(s)
+                                 Interview 15                                                      question      Span
+                                    Interview K
+                                                                                                      q₁                   c₁
+                                       Interview 1               c₁
+                  Interviewer: <question_1>How do y …</question_1>
+                                                                     c₁
+                                                                        c₁      Train                 q₂                 c₁₄ c₂₂
+                                                               c₁₄ c₂₂
+                  Participant:
+
+                  Interviewer: Ok. <question_2>And … </question_2>
+                                                                   c₁₄ c₂₂      1…K
+                                                                                                      q₂                   c₁₁
+                                                                c₁₁ c₁₄ c₂₂
+                  Participant:
+
+
+
+                                                                   c₁₁                                               …
+                                                                       c₁₁
+
+                                                                                Test                  q₂                 c₃ c₂₅
+                                 CVDQuoding                                   K+1 … 15
+                                                                                                                     …
+
+
+
+
+Figure 3: Visualization of the data formatting we apply to the raw annotations from CVDQuoding to run our
+experiments with our different modeling paradigms.
+
+
+of hyperparameter tuning over 2 × 14 = 28 in-                                     6.2      Evaluation Methodology
+dividual datasets. For the information-retrieval                                  We subject our modeling paradigms to two distinct
+paradigm, we use DistilBERT as the encoder for                                    rounds of evaluations. In Section 6.2.1, we evalu-
+the bi-encoder architecture. For the cross-encoder,                               ate how well our systems provide code suggestions
+we experiment with both DistilBert and ConvBERT                                   based on the original annotations from CVDQuod-
+(Jiang et al., 2021b). We use ConvBERT based on                                   ing. In Section 6.2.2, we further evaluate our
+the intuition that text spans often contain phrases                               systems suggestions by asking human judges to de-
+which are lexically similar to a code’s description.                              termine their relevance. We present a visualization
+If this is the case, then ConvBERT’s span-based ker-                              of our two-phase evaluation in Figure 4.
+nels may be better suited at soft matching a code’s
+description in a text span than a fully attention-                                    Interview    Text                           Code
+                                                                                                             Code(s)
+based masked language model like DistilBERT.                                           question    Span                          ranking
+Moreover, ConvBERT has computational costs
+                                                                                         q₂                 c₃ c₂₅          c₁₂ c₂₅ c₄₂ c₃ …
+(e.g., GPU memory requirements) in the same order
+of magnitude as DistilBERT. Finally, for our zero-                                               Original
+shot prompting paradigm, we use OpenAI’s GPT-                                                  Annotations
+                                                                                                                           Human
+                                                                                                                          Evaluation
+3.5 Turbo (Brown et al., 2020) accessible through                                               Evaluation
+its API5 . Additional hyperparameter configurations
+and training details can be found in Appendix A.3.                                            c₁₂ c₂₅ c₄₂ c₃ …                  Relevant:
+                                                                                                                                c₂₅ c₄₂ c₃
+  In addition to the models discussed above, we
+use an information-retrieval baseline commonly                                    Figure 4: The original annotations evaluation relies on
+used in neural-retriever papers. We use the Okapi                                 the codes assigned to the test text spans in CVDQuod-
+BM25 retriever (Trotman et al., 2014) to compute                                  ing while the human evaluation asks judges to deter-
+scores between each code and instance (q, t). In                                  mine which of the top-4 suggested codes are relevant
+addition, we place a logistic regression model on                                 (for a sample of test instances).
+top of the vector of scores to make the novel class
+prediction.                                                                       6.2.1 Original Annotations Evaluation
+                                                                                  QCS For the main QCS task, we compute
+                                                                                  the mean reciprocal rank (MRR) score and a
+                                                                                  soft normalized discounted cumulative gain at k
+   5
+       https://platform.openai.com/docs/api-reference                             (sNDCG@k) score. These metrics allow us to
+                                                                              14892
+measure how highly our systems rank the codes            alternative and relevant code assignments which
+that were originally assigned to the text spans in       the original coders may not have considered.
+CVDQuoding by the qualitative coders.
+   To compute the MRR, we exclude the rank of            Evaluation setup To gather human judgements,
+the novel code as we are interested in a system’s        we hired two human evaluators, both with expe-
+ability to suggest previously assigned codes. Ad-        rience in qualitative research, and asked them to
+ditional details about the computation of the MRR        judge the relevance of our systems’ code sugges-
+are presented in Appendix A.4.                           tions. In particular, we randomly sample 32 in-
+   To compute the sNDCG@k metric, we approx-             stances from the annotations of coders 1 and 2 at
+imate a suggested code’s c relevance score for a         the same point of data saturation of K = 10 and as-
+text span i, reli (c), and subsequently carry out the    sign a human evaluator to each sample. We extract
+standard NDCG computation. The relevance score,          the top-4 suggestions of each model described in
+reli (c), is computed by calculating the BERTScore       Section 6.16 and ask the evaluator to judge whether
+(Zhang et al., 2019) between suggested and true          each suggestion is “Relevant” or “Irrelevant” based
+codes. More specifically, the relevance score            on the question and the text span. Additional de-
+rel i (c), for a code c ∈ C and a text span i is         tails about the human evaluation can be found in
+                                                         Appendix A.5.
+       rel i (c) = maxtrue BERTScore(c, c′ )
+                  c′ ∈ Ci                                Metrics We use the annotations from the human
+                                                         evaluation to recompute the rank-based metrics pre-
+where Citrue is the set of codes originally assigned     sented in Section 6.2.1. We recompute the MRR
+to a text span i by one of the two qualitative coders.   and the sNDCG@k of the 32 code suggestions
+   Once all the relevance scores are computed,           based on the human evaluator’s relevance judge-
+we use them in the standard NDCG computa-                ments. That is, for a sampled instance i, Ctrue  i
+tion. To do so, we sort the list of relevance            becomes the set of codes selected as “Relevant” by
+factors (reli (c) : c ∈ C) to compute the                the evaluator. In addition, we also compute the pre-
+true_rank_scores list for a text span i. In addi-        cision at 4 (P@4) of each system using the human
+tion, the predicted_rank_scores for a text span          evaluator’s annotations. Details about the computa-
+i is computed as the list of relevance factors sorted    tion of P@4 are presented in Appendix A.4.
+by the model’s scores for each code. Both these
+lists are then used in the standard NDCG formula.        7     Results
+Additional details are presented in Appendix A.4.
+   Finally, we add a cutoff k to sNDCG as is usu-        We present the results of our experiments with re-
+ally done in standard NDCG to account only for           spect to both the original annotations and the hu-
+the top k results creating sNDCG@k. We choose            man evaluation annotations.
+to evaluate our systems with k = 4 as no more
+than 4 codes are assigned to text spans throughout       7.1    Original Annotations
+CVDQuoding.                                              Using the original annotations as the gold stan-
+                                                         dard labels, we present the MRR and sNDCG@4
+Novel code detection For the novel code detec-
+                                                         scores for the main ranking task of QCS as well
+tion subtask, we compute both the macro and micro
+                                                         as the macro and micro F1 for the novel code de-
+F1 scores. We report both averages due to the im-
+                                                         tection subtask. In particular, we show the MRR
+balance in the ratio between novel and not-novel
+                                                         and sNDCG@4 scores at K = 10 for coders 1 and
+classes.
+                                                         2 (Table 1) and the F1 scores for the novel code
+6.2.2 Human Evaluation                                   prediction task at K = 5 (Table 2). In addition, we
+In addition to using CVDQuoding’s original anno-         provide plots of the MRR for coders with respect
+tations to evaluate our systems’ ability to provide      to K (Figure 5 and in Appendix A.6). Additional
+relevant code suggestions, we conduct a human            results for all points of data saturation, presented
+evaluation where we ask human judges to ascer-           using both scatter plots and tables, can be found in
+tain the relevance of our systems’ code suggestions.     Appendix A.6.
+This additional evaluation phase is necessary be-           6
+                                                              We do not consider the Okapi BM25 baseline suggestions
+cause it is common for text spans to have several        due to their poor quality.
+
+                                                    14893
+                          MRR             sNDCG@4             7.2    Human Evaluation
+                 Coder 1    Coder 2    Coder 1   Coder 2      Using the human evaluation annotations as the gold
+ Okapi BM25        0.15         0.53    0.70      0.79        standard labels, we present the results for the same
+ SVM               0.51         0.75    0.80      0.85        rank-based metrics, along with the added P@4 re-
+ DistilBERT        0.55         0.75    0.70      0.79
+ Bi-Encoder        0.48         0.74    0.80      0.86
+                                                              sults, and contrast them with the results in the pre-
+ Cross-Encoder                                                vious section (Table 3).
+                   0.55         0.64    0.81      0.82
+ (DistilBERT)
+ Cross-Encoder                                                Systems consistently make several relevant code
+                   0.59         0.77    0.83      0.86
+ (ConvBERT)                                                   suggestions While the human evaluators have a
+ GPT-3.5           0.57         0.73    0.74      0.83        recall with respect to the original annotations of
+                                                              0.94 and 0.95 for coders 1 and 2 respectively, they
+Table 1: Results of the models’ performance on the QCS
+                                                              identify, on average, 3 times more relevant codes
+main ranking task. The MRR and sNDCG@4 scores
+are computed based on the original annotations from the       than in the original annotations. As a result, we
+CVDQuoding dataset and using K = 10 as the point              observe a statistically significant jump between the
+of data saturation.                                           MRR and sNDCG@4 scores computed on the sam-
+                                                              ple of 32 text spans using the original annotations
+                     Macro F1              Micro F1
+                                                              and the human evaluation annotations across all
+                                                              models. On average, the human-evaluation-derived
+                 Coder 1    Coder 2    Coder 1   Coder 2
+                                                              MRR is 66% and 34% higher than the MRR com-
+ Okapi BM25        0.56         0.57    0.59      0.80
+                                                              puted using the original annotations for coders 1
+ SVM               0.32         0.30    0.44      0.30
+ DistilBERT        0.55         0.45    0.59      0.80        and 2, respectively. In fact, in the case of coder 2,
+ Bi-Encoder        0.36         0.45    0.57      0.80        the recomputed MRR for GPT-3.5 is 1. This jump
+ Cross-Encoder
+                   0.51         0.46    0.59      0.78        is less drastic for the sNDCG@4 metric with rela-
+ (DistilBERT)                                                 tive increases of 40% and 19% for coders 1 and 2
+ Cross-Encoder
+ (ConvBERT)
+                   0.36         0.57    0.57      0.79        respectively. In addition to making consistently rel-
+ GPT-3.5           0.41         0.44    0.53      0.80        evant code suggestions, our best performing mod-
+                                                              els achieve P@4 scores above 0.5 indicating that,
+Table 2: Novel class detection subtask results. Macro         on average, our systems are able to suggest more
+and micro F1 scores are computed using K = 5.                 than one relevant code for a given passage. Alto-
+                                                              gether, these additional results demonstrate that hu-
+                                                              man evaluations are necessary for QCS systems as
+The information-retrieval and zero-shot prompt-               they provide interpretations for codes which were
+ing paradigms are the best performing On                      highly ranked but which the qualitative coders may
+the main QCS ranking task, we observe that the                not have originally considered in their code assign-
+information-retrieval paradigm, modeled through               ments.
+the ConvBERT cross-encoder, and the zero-shot
+prompting paradigm, modeled through GPT-3.5,                                           MRR             sNDCG@4                  P@4
+
+achieve the highest MRR and sNDCG@4 scores                                     Coder 1   Coder 2    Coder 1   Coder 2   Coder 1   Coder 2
+                                                               SVM              0.80         0.93    0.970     0.978     0.40         0.55
+across both coders for most data saturation points.            DistilBERT       0.72         0.91    0.969     0.975     0.41         0.65
+While GPT-3.5 achieves the highest MRR in most                 Bi-Encoder       0.86         0.90    0.972     0.979     0.50         0.66
+                                                               Cross-Encoder
+cases for coder 1 (11 out of 14), ConvBERT ob-                 (DistilBERT)
+                                                                                0.78         0.93    0.965     0.982     0.46         0.68
+                                                               Cross-Encoder
+tains the largest number of maximal MRR scores                 (ConvBERT)
+                                                                                0.87         0.95    0.973     0.987     0.51         0.56
+
+for coder 2 (7 out of 14). In addition, ConvBERT               GPT-3.5          0.74         1.00    0.973     0.989     0.32         0.53
+
+obtains the largest number of maximal sNDCG@4
+                                                              Table 3: MRR, sNDCG@4 and P@4 scores computed
+scores for both coders.                                       using the annotations collected during the human evalu-
+                                                              ation.
+Detecting novel codes is a challenging subtask
+For the novel code detection subtask, no modeling             8     Analysis
+paradigm is able to outperform the Okapi BM25
+baseline. These relatively poor performances in-              We discuss the implications of our results in rela-
+dicate that detecting novel codes is a challenging            tion to the three properties of qualitative coding
+subtask.                                                      which we uncovered through our human-centric ap-
+                                                           14894
+                                                                                               Model                                                   0.9                                                                  Model
+                                                                                                   SVM                                                                                                                          SVM
+                          0.7
+                                                                                                   Okapi-BM25                                                                                                                   Okapi-BM25
+                                                                                                                                                       0.8
+                                                                                                   DistilBERT                                                                                                                   DistilBERT
+                          0.6                                                                      BiEncoder                                                                                                                    BiEncoder
+
+
+
+
+  Mean Reciprocal Rank                                                                                                          Mean Reciprocal Rank
+                                                                                                                                                       0.7
+                                                                                                   Cross-Encoder (DistilBERT)                                                                                                   Cross-Encoder (DistilBERT)
+                                                                                                   Cross-Encoder (ConvBERT)                                                                                                     Cross-Encoder (ConvBERT)
+                          0.5                                                                      OpenAI GPT-3.5                                      0.6                                                                      OpenAI GPT-3.5
+
+
+                          0.4                                                                                                                          0.5
+
+
+                                                                                                                                                       0.4
+                          0.3
+
+                                                                                                                                                       0.3
+                          0.2
+
+                                1   2   3   4   5   6    7   8    9   10   11   12   13   14                                                                 1   2   3   4   5   6    7   8    9   10   11   12   13   14
+
+                                                Point of Data Saturation                                                                                                     Point of Data Saturation
+
+
+
+
+                         Figure 5: Plot of MRR across data saturation points K = 1 to 14 for coder 1 (left) and for coder 2 (right)
+
+
+proach and the ability of our modeling paradigms                                                                                recomputed MRR and the additional results from
+to consider these properties.                                                                                                   the P@4 show that not only are our systems able
+   Firstly, across both coders and all models, we                                                                               to correctly rank relevant codes, but they are also
+observe a steady rise in our systems’ ability to                                                                                likely to highly rank more than one relevant code,
+make code suggestions consistent with the original                                                                              potentially forcing the coder to further reflect on
+annotations of CVDQuoding (See scatter plots                                                                                    their coding decisions without needing to consider
+through annotation-time in Figure 5 as well as in                                                                               irrelevant codes.
+Appendix A.6). This poor performance for small
+values of K is consistent with inductive coding                                                                                 9                        Conclusion
+which, for the first documents, is exploratory and
+                                                                                                                                In this work, we approached qualitative coding in
+unpredictable by nature. In fact, the moment at
+                                                                                                                                a novel user-centered manner and showed that this
+which this rise in performance plateaus may be a
+                                                                                                                                approach gives rise to technical subtleties related
+helpful signal to identify when a coder has reached
+                                                                                                                                to qualitative coding which have not been previ-
+their personal point of data saturation and, thus,
+                                                                                                                                ously investigated. These subtleties include the
+when code suggestions could start to be beneficial.
+                                                                                                                                importance of considering a coder’s personal point
+Secondly, across all saturation points and for both
+                                                                                                                                of data saturation, the difficulty of detecting rare
+coders, we observe relatively poor performance
+                                                                                                                                codes and the necessity to avoid homogenizing dif-
+in detecting novel codes. This difficulty suggests
+                                                                                                                                ferent annotation styles. We showed that each of
+that the “catch-all” bucket method we use in this
+                                                                                                                                these properties is reflected in both the CVDQuod-
+work is inappropriate and that more sophisticated
+                                                                                                                                ing dataset we introduced and the experimental
+representations of novelty need to be learned to
+                                                                                                                                results of our modeling of QCS. Lastly, our human
+properly detect rare codes. Finally, we notice that,
+                                                                                                                                evaluation showed that solely relying on automatic
+on average, our systems’ MRR and the sNDCG@4
+                                                                                                                                metrics computed with respect to the original anno-
+calculated using coder 2’s annotations are 58% and
+                                                                                                                                tations made by the qualitative coders is insufficient
+7% higher respectively than when calculated using
+                                                                                                                                to describe the performance of QCS systems. The
+coder 1’s annotations. This result is natural given
+                                                                                                                                results derived from our human evaluation show
+coder 2’s annotation style of assigning high-level
+                                                                                                                                that QCS systems can consistently provide sev-
+codes to larger text spans is much more amenable
+                                                                                                                                eral relevant code suggestions and, thus, that this
+to machine learning techniques. Thus, in the future,
+                                                                                                                                human-centric approach to qualitative coding may
+methods that are able to identify annotation styles
+                                                                                                                                be able to truly assist researchers in their study of
+and incorporate them in their modeling may be
+                                                                                                                                textual corpora.
+more suitable at solving QCS in a user-tailored
+fashion.                                                                                                                        Limitations
+   In addition, the ranked-based metrics computed
+using human judgments point to a promising future                                                                               This work includes a few limitations which we
+for the downstream viability of QCS systems. The                                                                                leave as future work. Firstly, we did not conduct
+                                                                                                                          14895
+an evaluation of the impact of QCS in an applied        study.
+setting. This lack of downstream experiments pre-          The authors acknowledge the material support of
+vents us from determining the full impact of auto-      NVIDIA in the form of computational resources.
+matically providing code suggestions to qualitative
+coders. For instance, an automatic QCS system
+may remove more agency from the coder than an-          References
+ticipated if they begin to blindly trust suggestions.   Aneesha Bakharia, Peter Bruza, Jim Watters, Bhuva
+Secondly, despite our best efforts, our work falls        Narayan, and Laurianne Sitbon. 2016. Interactive
+                                                          topic modeling for aiding qualitative content analysis.
+short of investigating all possible technical avenues
+                                                          In Proceedings of the 2016 ACM on Conference on
+to solving QCS. In particular, we do not investigate      Human Information Interaction and Retrieval, pages
+fine-tuning sequence-to-sequence models as pre-           213–222.
+liminary experiments showed poor performance.
+                                                        I. C. Bousbiat, G. Roland, Y. Shahram, C. Rodriguez,
+In addition, we do not explore the full range of           P. Pluye, J. Légaré, H. Bergman, I. Vedel, G. Bis-
+abilities offered to us by LLMs such as GPT-3.5.           leri, MP. Gagnon, and S. Abbasgholizadeh-Rahimi.
+For instance, using GPT-3.5 to generate synthetic          2022. “CVD Prevention among Women in Primary
+annotations may have helped the performance of             Care Using AI: Work-in-Progress”. Family Medicine
+                                                           Forum/Forum en médecine familiale, Toronto, On-
+our larger neural-based models which are known             tario.
+to perform poorly in data-scarce settings.
+                                                        Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie
+Ethics Statement                                          Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind
+                                                          Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+We strongly believe in the work done by qualitative       Askell, Sandhini Agarwal, Ariel Herbert-Voss,
+researchers and the human understanding that they         Gretchen Krueger, Tom Henighan, Rewon Child,
+                                                          Aditya Ramesh, Daniel M. Ziegler, Jeffrey Wu,
+provide to complex bodies of text. This work is           Clemens Winter, Christopher Hesse, Mark Chen, Eric
+an effort to develop methods that help rather than        Sigler, Mateusz Litwin, Scott Gray, Benjamin Chess,
+replace the arduous work conducted by qualitative         Jack Clark, Christopher Berner, Sam McCandlish,
+researchers and coders.                                   Alec Radford, Ilya Sutskever, and Dario Amodei.
+                                                          2020. Language models are few-shot learners.
+   The data collection of this study has been ap-
+proved by the Faculty of Medicine and Health Sci-       AL Chapman, M Hadfield, and CJ Chapman. 2015.
+ences Institutional Review Board (IRB) of McGill          Qualitative research in healthcare: an introduction
+                                                          to grounded theory using thematic analysis. Jour-
+University (IRB Internal Study Number: A03-B22-           nal of the Royal College of Physicians of Edinburgh,
+21A). All necessary participant consent has been          45(3):201–205.
+obtained and the appropriate institutional forms
+have been archived.                                     Nan-Chen Chen, Margaret Drouhard, Rafal Kocielnik,
+                                                          Jina Suh, and Cecilia R Aragon. 2018. Using ma-
+                                                          chine learning to support qualitative coding in so-
+Acknowledgements                                          cial science: Shifting the focus to ambiguity. ACM
+                                                          Transactions on Interactive Intelligent Systems (TiiS),
+We would like to thank the anonymous reviewers            8(2):1–20.
+for their feedback and valuable suggestions. In
+addition, we would like to thank Andrei Mircea,         K. Crowston, E.E. Allen, and R. Heckman. 2012. Using
+                                                           natural language processing technology for qualita-
+Aylin Erman, Dan Poenaru, Jad Kabbara, Ian Po-             tive data analysis. International Journal of Social
+rada, Ines Arous, Sabina Elkins and Yu Lu Liu for         Research Methodology, 15(6):523–543.
+their insightful feedback on the multiple iterations
+                                                        James W Drisko and Tina Maschi. 2016. Content anal-
+of this paper.
+                                                          ysis. Pocket Guide to Social Work Re.
+   This work was supported by the Fonds de
+Recherche du Québec – Nature et Technologies            Margaret Drouhard, Nan-Chen Chen, Jina Suh, Rafal
+(FRQNT). Jackie Chi Kit Cheung is supported by           Kocielnik, Vanessa Pena-Araya, Keting Cen, Xiangyi
+                                                         Zheng, and Cecilia R Aragon. 2017. Aeonium: Vi-
+the Canada CIFAR AI Chair program. Samira Ab-            sual analytics to support collaborative qualitative cod-
+basgholizadeh Rahimi is a Canada Research Chair          ing. In 2017 IEEE Pacific Visualization Symposium
+(Tier 2) in Advanced Digital Primary Health Care,        (PacificVis), pages 220–229. IEEE.
+and received salary support (Research Scholar Ju-       Victoria Elliott. 2018. Thinking about the coding pro-
+nior 1 Career Development Award) from the Fonds           cess in qualitative data analysis. The Qualitative
+de Recherche du Québec-Santé (FRQS) during this           Report, 23(11):2850–2861.
+
+                                                   14896
+Jessica L Feuston and Jed R Brubaker. 2021. Putting         M.B. Miles, A.M. Huberman, and J. Saldana. 2019.
+   tools in their place: The role of time and perspec-        Qualitative Data Analysis: A Methods Sourcebook.
+   tive in human-ai collaboration for qualitative analy-      SAGE Publications.
+   sis. Proceedings of the ACM on Human-Computer
+   Interaction, 5(CSCW2):1–25.                              Ines Montani and Matthew Honnibal. 2018. Prodigy: A
+                                                               new annotation tool for radically efficient machine
+Nigel G. Fielding and Raymond M. Lee. 2002. New pat-           teaching. Artificial Intelligence to appear.
+  terns in the adoption and use of qualitative software.
+  Field Methods, 14(2):197–216.                             Nils Reimers and Iryna Gurevych. 2019. Sentence-bert:
+                                                              Sentence embeddings using siamese bert-networks.
+Stephen Gough and William Scott. 2000. Exploring              In Proceedings of the 2019 Conference on Empirical
+   the purposes of qualitative data coding in educational     Methods in Natural Language Processing. Associa-
+   enquiry: Insights from recent research. Educational        tion for Computational Linguistics.
+  Studies, 26(3):339–354.
+                                                            T. Rietz and A. Maedche. 2021. Cody: An ai-based sys-
+Philipp Grandeit, Carolyn Haberkern, Maximiliane               tem to semi-automate coding for qalitative research.
+  Lang, Jens Albrecht, and Robert Lehmann. 2020.
+  Using BERT for Qualitative Content Analysis in Psy-       Johnny Saldaña. 2021. The coding manual for qualita-
+  chosocial Online Counseling. In Proceedings of the          tive researchers. The coding manual for qualitative
+  Fourth Workshop on Natural Language Processing              researchers, pages 1–440.
+  and Computational Social Science, pages 11–23, On-
+  line. Association for Computational Linguistics.          Victor Sanh, Lysandre Debut, Julien Chaumond, and
+                                                              Thomas Wolf. 2020. Distilbert, a distilled version of
+Saskia Haug, Tim Rietz, and Alexander Maedche. 2021.          bert: smaller, faster, cheaper and lighter.
+  Accelerating deductive coding of qualitative data:
+  An experimental study on the applicability of crowd-      Benjamin Saunders, Julius Sim, Tom Kingstone,
+  sourcing. In Proceedings of Mensch und Computer             Shula Baker, Jackie Waterfield, Bernadette Bartlam,
+  2021, pages 432–443.                                        Heather Burroughs, and Clare Jinks. 2018. Satura-
+                                                              tion in qualitative research: exploring its conceptual-
+Jialun Aaron Jiang, Kandrea Wade, Casey Fiesler, and          ization and operationalization. Quality & quantity,
+   Jed R Brubaker. 2021a. Supporting serendipity: Op-         52:1893–1907.
+   portunities and challenges for human-ai collaboration
+   in qualitative analysis. Proceedings of the ACM on       Michael Scharkow. 2013. Thematic content analysis
+   Human-Computer Interaction, 5(CSCW1):1–23.                 using supervised machine learning: An empirical
+                                                              evaluation using German online news. Quality &
+Zihang Jiang, Weihao Yu, Daquan Zhou, Yunpeng Chen,           Quantity, 47(2):761–773.
+  Jiashi Feng, and Shuicheng Yan. 2021b. Convbert:
+  Improving bert with span-based dynamic convolu-           Brett Smith and Kerry R McGannon. 2018. Developing
+  tion.                                                       rigor in qualitative research: Problems and oppor-
+                                                              tunities within sport and exercise psychology. In-
+Jasy Suet Yan Liew, Nancy McCracken, Shichun Zhou,            ternational review of sport and exercise psychology,
+   and Kevin Crowston. 2014. Optimizing Features in           11(1):101–121.
+   Active Machine Learning for Complex Qualitative
+   Content Analysis. In Proceedings of the ACL 2014         Siegfried Ludwig Sporer. 2012. Making the subjec-
+  Workshop on Language Technologies and Computa-               tive objective? computer-assisted quantification of
+   tional Social Science, pages 44–48, Baltimore, MD,          qualitative content cues to deception. In Proceed-
+   USA. Association for Computational Linguistics.             ings of the workshop on computational approaches
+                                                               to deception detection, pages 78–85.
+Pierre Loslever, Taisa Guidini Gonçalves, Káthia Marçal
+   de Oliveira, and Christophe Kolski. 2019. Using          Andrew Trotman, Antti Puurula, and Blake Burgess.
+   fuzzy coding with qualitative data: example with sub-      2014. Improvements to bm25 and language models
+   jective data in human-computer interaction. TheoreT-       examined. In Proceedings of the 19th Australasian
+   ical issues in ergonomics science, 20(4):459–488.          Document Computing Symposium, ADCS ’14, page
+                                                              58–65, New York, NY, USA. Association for Com-
+Jim Macnamara. 2006. The fork in the road of media            puting Machinery.
+   and communication theory and practice. 4th Annual
+  Summit on Measurement, pages 1–12.                        Frank J van Rijnsoever. 2017. (i can’t get no) satura-
+                                                              tion: a simulation and guidelines for sample sizes in
+M. Marathe and K. Toyama. 2018. Semi-automated cod-           qualitative research. PloS one, 12(7):e0181689.
+  ing for Qualitative research: A user-centered inquiry
+  and initial prototypes. volume 2018-April.                Ziang Xiao, Xingdi Yuan, Q Vera Liao, Rania Abdel-
+                                                              ghani, and Pierre-Yves Oudeyer. 2023. Support-
+N. McCracken, J. Suet Yan Yan, and K. Crowston. 2014.         ing qualitative analysis with large language models:
+   Design of an active learning system with human cor-        Combining codebook with gpt-3 for deductive cod-
+   rection for content analysis. Proceedings of the Work-     ing. In Companion Proceedings of the 28th Inter-
+   shop on Interactive Language Learning, Visualiza-          national Conference on Intelligent User Interfaces,
+   tion, and Interfaces, pages 59–62.                         pages 75–78.
+
+                                                       14897
+Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q.
+  Weinberger, and Yoav Artzi. 2019. Bertscore:
+  Evaluating text generation with BERT. CoRR,
+  abs/1904.09675.
+
+
+
+
+                                               14898
+A   Appendix
+
+
+
+
+               14899
+A.1 Dataset Characteristics
+
+
+                                                    Corpus size
+   Source                                                                     Number of annotations   Publicly available?
+                                               (in number of words)
+   (Crowston et al., 2012)                             84870                             3011                    No
+   (Grandeit et al., 2020)                              N/A                             10000                    No
+   (Xiao et al., 2023)                                  N/A                               668                    No
+   CVDQuoding                                          63927                            1175                    Yes7
+
+Table 4: Comparative analysis of our dataset with previously closed-source datasets. In this case, the number of
+words are counted using space separation and the number of annotations refer to the number of text spans that have
+been assigned one or more codes.
+
+
+
+
+<question_2>Interviewer: Have you ever been informed about your cardiovascular
+    health, and if so how have you been informed?</question_2>
+
+Participant 1: <code coder='2' value='Understanding of CVD'>So, I've been in
+    cardiology since '96. I used to work at the Montreal Heart Institute before so
+    <code coder='1' value='Sources of information'>I attended cardiac rounds and
+    went to conferences and things like that. I also like to read on health, so
+    media, papers and then conferences.</code></code>
+
+Figure 6: Excerpt from Interview 1 of the CVDQuoding dataset with XML tags to identify the question asked and
+the text spans that have been annotated. In the code tag, the attribute coder identifies which qualitative coder was
+responsible for the annotation and the attribute value identifies the code assigned to the text span.
+
+
+
+
+                                Distribution of the number of text spans per codes
+
+
+
+                                                                                                      Coder 1
+                                          70                                                          Coder 2
+
+
+                                          60
+
+
+
+
+                        Number of codes
+                                          50
+
+
+                                          40
+
+
+                                          30
+
+
+                                          20
+
+
+                                          10
+
+
+                                          0
+                                               5       10       15       20        25      30
+
+                                                            Number of text spans
+
+
+
+
+                                               Figure 7: Frequency of code assignment counts.
+
+
+   7
+       Email the corresponding author.
+
+                                                                     14900
+                                        Distribution of the length of the text spans (whitespace separation)
+
+
+
+                                                                                                                                                                                                Coder 2
+                                                                                                               219                                                                              Coder 1
+                                          200
+
+                                                                                                                            187
+
+
+
+
+                 Number of text spans
+                                          150
+                                                                                                                                     146
+                                                                                               132
+
+                                          100                                                                                              111
+                                                                                                                                                  95
+                                                                                 90                                    89
+
+
+                                           50                                                             58
+
+                                                                   38
+                                                     33
+                                                                            9             24                                                             26      23               7
+                                                1             3                                                                                                         2
+                                            0
+                                                    [1            [3            [5         [9              [1              [3            [6             [1            [2              [5
+                                                      ,2            ,4            ,8            ,1            7  ,3           3,6           5,1            29,           5  7,           13,]
+                                                          ]             ]             ]              6]               2]            4]            28             25              51
+                                                                                                                                                    ]              6]              2]
+
+                                                                                               Text spans length bins
+
+
+                                                              Figure 8: Distribution of the length of text spans.
+
+
+
+   Annotator    List of codes
+   Coder 1      Life-style modification, Needs to assure data confidentiality and security, Increasing
+                trust in the tool, Lack of knowledge, Additional comments about diet recommenda-
+                tions, CVD misconceptions, Level of interest in tracking information and prompts,
+                Level of interest in educational modules, Additional comments about educational
+                modules, Level of interest in transparency and explainability, Enthusiastic about
+                technology, App prompts, Frequency of push-notifications, Level of interest in
+                personalized workouts, Additional comments about explainability
+   Coder 2      Technology for CVD care, Cardiovascular Health Information, Accessibility, Deci-
+                sions Made, Additional Features Suggested, Understanding of CVD, Challenges,
+                Trust and Reliability, Transparency, Decision Involvement, Weight Tracking, Educa-
+                tional Models, Technical Support, Data Monitoring, Pedometer
+
+Table 5: List of 15 codes created by coders 1 and 2 sorted by frequency over the entire CVDQuoding dataset.
+
+
+
+
+                                                                                                                  14901
+A.2 Interview Questions
+
+                                            Interview Questions
+  Question 1      How do you think cardiovascular diseases are generally described and understood
+                  by the public?
+  Question 2      Have you ever been informed about your cardiovascular health? How?
+  Question 3      What are the most frequent and important decisions you face related to your cardio-
+                  vascular health?
+  Question 4      What is your usual role in making decisions about your cardiovascular health and
+                  preventing CVD?
+  Question 5      What do you think are some challenges and needs in preventing and managing
+                  cardiovascular diseases (from your perspective as a woman at risk of CVD)?
+  Question 6      Have you ever considered a decision support system to help you in any decisions
+                  related to your cardiovascular health?
+  Question 7      What are your thoughts on using digital technology (e.g., mobile apps, AI system-
+                  s/robots) to make decisions in relation to your cardiovascular health?
+  Question 8      How would you like us to design and develop this Xi-Care tool that is useful, helpful
+                  and effective for women at risk of CVD (e.g. no risks to users)?
+  Question 9      On a scale of 1 to 5 with 1 being not at all interested and 5 being very interested,
+                  what is your level of interest in monitoring tools that track health data over time?
+  Question 10     On a scale of 1 to 5 with 1 being not at all interested and 5 being very interested,
+                  what is your level of interest in a step-count feature?
+  Question 11     On a scale of 1 to 5 with 1 being not at all interested and 5 being very interested,
+                  what is your level of interest in a weight tracking feature?
+  Question 12     On a scale of 1 to 5 with 1 being not at all interested and 5 being very interested,
+                  what is your level of interest in educational modules on cardiovascular health?
+  Question 13     On a scale of 1 to 5 with 1 being not at all interested and 5 being very interested,
+                  what is your level of interest in guided exercise activities?
+  Question 14     On a scale of 1 to 5 with 1 being not at all interested and 5 being very interested,
+                  what is your level of interest in diet recommendations?
+  Question 15     Would you like to be able to follow your progress and receive push-notifications
+                  through the Xi-Care tool?
+  Question 16     How difficult/easy do you think it will be for you to integrate the Xi-Care tool into
+                  your daily life?
+  Question 17     To what extent would you trust or rely on the Xi-Care tool to make assessments
+                  about your cardiovascular health and prevent and manage CVD?
+  Question 18     Do you foresee any challenges with integrating the Xi-Care tool in your daily life in
+                  terms of ethics? Could you please describe these challenges?
+  Question 19     In terms of transparency, how important is it for you to be able to understand how
+                  the Xi-Care tool works?
+  Question 20     Is there something else you’d like to add about ethical aspects in regards to the
+                  Xi-Care tool that will be empowered by AI (Justice; Non-maleficence; Autonomy;
+                  Beneficence; Explicability/Transparency)?
+
+Table 6: List of questions asked during the interviews of the CVDQuoding dataset. Xi-Care is the name of the app
+being proposed to participants of the study to help them control their risks of cardiovascular diseases (CVDs).
+
+
+
+
+                                                    14902
+A.3 Hyperparameter Configurations                         We use a component-wise max pooling method
+We provide additional hyperparameter and archi-           max(·, ·) to aggregate ht and hq together.
+tecture details for all our models.
+                                                                          hpool = max(ht , hq )
+A.3.1 Baseline
+                                                          Finally, a cosine similarity is applied between the
+Okapi-BM25. We use an open-source imple-
+                                                          pooled representation, hpool , and the code represen-
+mentation of the BM25 algorithm8 . We use the
+                                                          tation, hc , to generate a score. A class weighted
+Okapi implementation with its default parameters
+                                                          mean-squared error loss is then computed and back-
+k1 = 1.5, b = 0.75, ε = 0.25 and a tokenizer with
+                                                          propagated through the three encoders. For the
+space separation and lowercasing.
+                                                          novel code detection subtask, a linear classifier is
+A.3.2 Classification Paradigm                             placed on top of the vector of encoder scores. For
+SVM. We use the SVM implementation from                   the training of the linear classifier, we use another
+sklearn9 . We transform all inputs to tf-idf features     class weighted cross entropy loss and keep the three
+with separate encodings for the question and text         encoders frozen.
+span. We use the standard radial basis function ker-         We tune the learning rate using the values {1 ×
+nel and tune the regularization parameter C using         10 , 2 × 10−5 } with a weight decay of 0.01. We
+                                                             −5
+
+the values {0.001, 0.01, 0.1, 1, 10}. A class weight      use a larger batch size of 32, since training sets now
+parameter is computed for each code as well as for        have a size of |C| × N where N is the number of
+the novel code and is inversely proportional to the       coded text spans. We train for 25 epochs with early
+class frequencies in the training set.                    stopping on the validation loss set with a patience
+   DistilBERT. We use the DistilBERT implemen-            of 5 epochs.
+tation from Hugging Face10 . In particular, we use           Cross-Encoder. In the cross-encoder, we create
+DistilBERT’s tokenizer and its DistilBertForSe-           representations for the concatenation of codes with
+quenceClassification module which accepts a vari-         the question and the text span. That is, for every
+able number of labels, |C| + 1 in this case. We tune      code c in the training set, the text span t and the
+the learning rate using values {1×10−5 , 2×10−5 }         previous question q are each independently con-
+with a weight decay of 0.01. We use a batch size          catenated with the code c using the special [SEP]
+of 8 and train for 25 epochs with early stopping on       token. Both concatenations are passed to different
+the validation loss with a patience of 5 epochs. We       encoders Et and Eq to obtain a contextual repre-
+also compute a class weight inversely proportional        sentation. Truncation is applied to the start of both
+to the class frequencies in the training set and apply    t and q to comply with the encoder’s maximum
+it to the cross entropy loss. All our experiments         token input length.
+consistently show that using class weights benefits
+performance.                                                           ht [SEP] c = Et (t [SEP] c)
+                                                                      hq [SEP] c = Eq (q [SEP] c)
+A.3.3 Information-retrieval Paradigm
+Along with hyperparameter details, we provide               The representations are pooled using a
+additional architecture details about both the bi-        component-wise max pooling method max(·, ·)
+encoder and cross-encoder.
+   Bi-Encoder. In the bi-encoder, we create repre-                 hpool = max(ht [SEP] c , hq [SEP] c )
+sentations for the code c, the text span t and the pre-
+                                                             We place a classification head on top of hpool
+vious question q with three distinct BERT encoders,
+                                                          identical in architecture to the DistilBERT classi-
+Et , Eq and Ec . In our case, we use DistilBERT as
+                                                          fication head. We compute a class weighted cross
+the encoder for all three inputs. We pass each input
+                                                          entropy loss and backpropagate it through both en-
+whose start is truncated to the model’s 512 token
+                                                          coders. For the novel code detection subtask, a
+input limit to its respective encoder and extract its
+                                                          linear classifier is placed on top of the vector of
+CLS token representation.
+                                                          encoder scores, which, in this case, are logits. We
+       ht = Et (t), hq = Eq (q), hc = Ec (c)              use a class weighted cross entropy loss and keep
+   8
+     https://github.com/dorianbrown/rank_bm25
+                                                          the two encoders frozen.
+   9
+     https://scikit-learn.org/stable/                        In this case, we experiment with DistilBERT
+  10
+     https://huggingface.co/                              and ConvBERT. In both cases, we tune the learning
+                                                     14903
+rate using the values {1 × 10−5 , 2 × 10−5 } with a
+weight decay of 0.01. We use a batch size of 32
+and train for 30 epochs with early stopping on the
+validation loss set to have a patience of 5 epochs.
+We train for more epochs because we noticed that
+the cross-encoders took longer to converge.
+A.3.4 Zero-shot Paradigm
+We use OpenAI’s GPT-3.5 API to generate LLM re-
+sponses to our zero-shot prompt. In particular, we
+use the model checkpoint gpt-3.5-turbo-0301
+with a temperature of 1. The question and the text
+span are truncated to allow for a 64 token genera-
+tion. At the time of our experiments, this version of
+GPT-3.5 allowed for 4096 tokens. In Figure 9, we
+show the template that we use to prompt GPT-3.5.
+
+     You are a helpful assistant that suggests
+     qualitative codes for a qualitative re-
+     searcher. The coders you can suggest are:
+     [AVAILABLE_CODES], and None of
+     the above. Which of the previous codes
+     would you assign to the following ex-
+     cerpt from an interview with a woman
+     at risk of cardiovascular disease (CVD):
+     “Question: [QUESTION] Answer: [AN-
+     SWER]”
+
+Figure 9: Template used to prompt a generative LLM
+M for a ranking of the codes for a passage. [AVAIL-
+ABLE_CODES] is a placeholder for the list of codes
+from C to rank for an instance (q, t)i , [QUESTION] is a
+placeholder for the previous question q and [ANSWER]
+is a placeholder for the text span t highlighted by one
+of the coders.
+
+
+
+
+                                                      14904
+A.4 Automatic Metrics                                     our system for text span i as
+We provide complete descriptions for the automatic                     sDCGi
+metrics presented in Section 6.2.1 and 6.2.2.             sNDCGi =
+                                                                       sIDCGi
+                                                                          X            true_rank_scores[i]
+MRR To compute the MRR, we consider the set                sIDCGi =
+of true codes, Citrue assigned to a text span i as well                                      log(i)
+                                                                       i ∈ 2...|C|+1
+as the predicted rank, predicted_ranki : C →                               X           predicted_rank_scores[i]
+{1, . . . , |C|}, assigned to each code c ∈ C for text       sDCGi =
+                                                                                                log(i)
+span i by one of our systems. In this computation,                     i ∈ 2...|C|+1
+we exclude the novel code as we are interested in
+                                                             Finally, we add a cutoff k to sNDCG as is usually
+a system’s ability to suggest previously assigned
+                                                          done in standard NDCG to account only for the top
+codes. The reciprocal rank, RRi , for a passage i
+                                                          k results creating sNDCG@k.
+is computed as the maximum predicted reciprocal
+rank across all true codes. That is,
+
+                                1
+       RRi = max
+               true
+               c ∈ Ci   predicted_ranki (c)
+
+The MRR is then computed by averaging across all
+test instances i with |Citrue | ≥ 1.
+
+P@k To compute the P@k, let Nk be the num-
+ber of relevant codes, as indicated by some gold
+standard annotation, in the first k suggested codes.
+Then the P@k for a text span i is computed as
+
+                              Nk
+                    P@ki =
+                              k
+We then average the instance-level P@k over all
+test instances.
+
+sNDCG@k To compute the sNDCG metric, we
+approximate a suggested code’s c relevance score
+for a text span i, reli (c), in order to carry out the
+standard NDCG computation. The relevance score,
+reli (c), is computed by using the BERTScore
+(Zhang et al., 2019) as the approximation for the
+affinity between suggested and true codes. More
+specifically, the relevance score rel i (c), for a code
+c ∈ C and a text span i is
+
+        rel i (c) = maxtrue BERTScore(c, c′ )
+                   c′ ∈ Ci
+
+
+   Once all the relevance scores are computed,
+we use them in the standard NDCG computa-
+tion. To do so, we sort the list of relevance
+factors (reli (c) : c ∈ C) to compute the
+true_rank_scores list for a text span i. In addi-
+tion, the predicted_rank_scores for a text span i
+is computed as the list of relevance factors sorted by
+the model’s scores for each code. We can then com-
+pute the sNDCG score for the suggestions made by
+                                                     14905
+A.5 Human Evaluation
+We conducted the human evaluation by first run-
+ning a pilot study. The pilot study was used to
+assess whether the instructions of the human eval-
+uation were clear and to estimate the duration of
+the study for the full 32 samples. During the pi-
+lot study, we recruited a researcher familiar with
+qualitative research and asked them to judge the
+relevance of 8 instances. Half of these 8 instances
+were sampled from coder 1’s human evaluation
+samples, and the other half came from coder 2’s.
+We made sure that at least one code had been as-
+signed to every passage we showed evaluators as
+we wanted to be able to compare the rank-based
+metrics computed using the original annotations
+and the human evaluation annotations. In addition,
+we always included the codes from the original
+coding annotations to avoid having the evaluator
+mark all suggestions as irrelevant. An example of
+a question and its corresponding highlighted text
+span from coder 1’s annotations as well as a list
+of codes (truncated due to space constraints) used
+to gather human relevance judgements is shown in
+Figure 10.
+
+
+
+
+Figure 10: An example of a question and a text span
+from coder 1’s annotations shown to the human evalu-
+ator. We truncate the list of codes shown due to space
+constraints.
+
+
+
+
+                                                    14906
+A.6 Additional Results
+
+A.6.1   sNDCG Plots
+
+
+
+
+                                                                                                 Model
+                                                                                                     SVM
+                         0.85                                                                        Okapi-BM25
+                                                                                                     DistilBERT
+                                                                                                     BiEncoder
+                                                                                                     Cross-Encoder (DistilBERT)
+
+
+
+
+           Soft NDCG@4
+                          0.8                                                                        Cross-Encoder (ConvBERT)
+                                                                                                     OpenAI GPT-3.5
+
+
+
+
+                         0.75
+
+
+
+
+                          0.7
+
+                                 1   2   3   4   5   6    7   8    9    10   11   12   13   14
+
+                                                 Point of Data Saturation
+
+
+
+
+                                Figure 11: Plot of sNDCG@4 for coder 1 across K = 1 to K = 14
+
+
+
+
+                                                                                                 Model
+                                                                                                     SVM
+                         0.95
+                                                                                                     Okapi-BM25
+                                                                                                     DistilBERT
+                                                                                                     BiEncoder
+                          0.9
+                                                                                                     Cross-Encoder (DistilBERT)
+
+
+
+
+           Soft NDCG@4
+                                                                                                     Cross-Encoder (ConvBERT)
+                                                                                                     OpenAI GPT-3.5
+                         0.85
+
+
+
+                          0.8
+
+
+
+                         0.75
+
+
+
+                                 1   2   3   4   5   6    7   8    9    10   11   12   13   14
+
+                                                 Point of Data Saturation
+
+
+
+
+                                Figure 12: Plot of sNDCG@4 for coder 2 across K = 1 to K = 14
+
+                                                                       14907
+A.6.2   MRR Tables
+
+
+
+                               1        2      3      4      5      6      7      8      9     10     11     12     13     14
+            SVM               0.28     0.29   0.39   0.41   0.44   0.49   0.52    0.5   0.52   0.51   0.51   0.54   0.47   0.42
+        DistilBERT            0.45     0.39   0.42   0.43   0.43   0.48   0.52    0.5   0.55   0.55   0.57   0.61   0.57   0.57
+        Okapi-BM25            0.19     0.19   0.17   0.14   0.18   0.14   0.17   0.17   0.14   0.15   0.14   0.11   0.18   0.17
+         Bi-Encoder           0.55     0.41   0.44   0.4    0.45   0.48   0.51   0.54   0.48   0.48   0.54   0.54   0.54   0.55
+ Cross-Encoder (DistilBERT)   0.41     0.45   0.39   0.51    0.5   0.55   0.57   0.56   0.55   0.55   0.56   0.61   0.56   0.54
+ Cross-Encoder (ConvBERT)     0.69     0.59   0.52   0.56   0.42   0.63   0.58   0.61   0.56   0.59   0.60   0.62   0.57   0.52
+          GPT-3.5             0.74     0.69   0.66   0.61   0.64   0.66   0.58    0.6   0.63   0.57   0.56   0.63   0.58   0.58
+
+                                     Table 7: MRR for coder 1 for K = 1 to K = 14
+
+
+
+
+                               1        2      3      4      5      6      7      8      9     10     11     12     13     14
+            SVM               0.65     0.63   0.63   0.27   0.67   0.64   0.36   0.66   0.62   0.68    0.7   0.65   0.46   0.48
+        DistilBERT            0.67      0.6   0.25   0.27   0.35   0.76   0.76   0.75   0.75   0.75   0.74    0.7   0.71   0.63
+        Okapi-BM25            0.23     0.28   0.23   0.22   0.23   0.23   0.22   0.24   0.23   0.23   0.23   0.23    0.2   0.19
+         Bi-Encoder           0.67      0.5   0.41   0.73   0.76   0.74   0.7    0.71    0.7   0.74   0.76   0.73   0.71   0.68
+ Cross-Encoder (DistilBERT)   0.62     0.62   0.63   0.64   0.67   0.69   0.72   0.72   0.68   0.64   0.71   0.69   0.64   0.59
+ Cross-Encoder (ConvBERT)     0.62      0.7   0.74   0.67   0.78   0.78   0.76   0.75   0.77   0.77   0.78   0.76   0.72   0.72
+          GPT-3.5             0.89     0.78   0.76   0.74   0.77   0.77   0.76   0.74   0.73   0.73   0.73   0.71   0.71   0.75
+
+                                     Table 8: MRR for coder 2 for K = 1 to K = 14
+
+
+
+A.6.3   sNDCG@4 Tables
+
+
+
+                               1        2      3      4      5      6      7      8      9     10     11     12     13     14
+            SVM               0.75     0.72   0.75   0.76   0.77   0.78   0.79   0.79   0.79   0.78   0.79    0.8   0.79   0.77
+        DistilBERT            0.81     0.77   0.78   0.77   0.77   0.77    0.8   0.79    0.8    0.8    0.8    0.8    0.8   0.79
+        Okapi-BM25            0.74     0.73   0.72   0.71   0.71   0.71   0.71   0.71   0.71   0.71   0.71   0.71   0.71    0.7
+         Bi-Encoder           0.84      0.8   0.81   0.79   0.80   0.81   0.81   0.82    0.8    0.8   0.8    0.82    0.8   0.82
+ Cross-Encoder (DistilBERT)    0.8     0.79   0.79   0.79    0.8   0.82   0.81   0.82    0.8   0.81   0.82   0.82   0.79   0.79
+ Cross-Encoder (ConvBERT)     0.87     0.83   0.82   0.83    0.8   0.83   0.81   0.84   0.81   0.83   0.83   0.83   0.82   0.82
+          GPT-3.5             0.84     0.76   0.76   0.74   0.77   0.76   0.74   0.77   0.75   0.74   0.72   0.75   0.71   0.74
+
+                              Table 9: sNDCG@4 for coder 1 for K = 1 to K = 14
+
+
+
+
+                               1        2      3      4      5      6      7      8      9     10     11     12     13     14
+            SVM               0.93     0.84   0.85   0.72   0.84   0.84   0.74   0.82   0.81   0.83   0.83   0.82   0.76   0.78
+        DistilBERT            0.93     0.84   0.74   0.73   0.76   0.87   0.86   0.85   0.85   0.85   0.85   0.83   0.83    0.8
+        Okapi-BM25            0.93     0.82   0.83   0.81   0.82   0.81   0.82    0.8   0.79   0.79   0.79   0.79    0.8   0.79
+         Bi-Encoder           0.93     0.82   0.78   0.87   0.88   0.88   0.87   0.85   0.85   0.86   0.85   0.85   0.83   0.83
+ Cross-Encoder (DistilBERT)   0.92     0.84   0.85   0.83   0.85   0.86   0.86   0.84   0.83   0.82   0.84   0.83   0.81   0.81
+ Cross-Encoder (ConvBERT)     0.92     0.86   0.88   0.85   0.88   0.88   0.87   0.85   0.86   0.86   0.85   0.86   0.84   0.84
+          GPT-3.5             0.97     0.86   0.86   0.84   0.86   0.86   0.85   0.81   0.82   0.83   0.81   0.81   0.81    0.8
+
+                              Table 10: sNDCG@4 for coder 2 for K = 1 to K = 14
+
+                                                            14908
+A.6.4   Macro F1 Tables
+
+                               1          2        3    4      5      6        7        8          9       10         11        12        13     14
+           SVM                0.44     0.37    0.37    0.33   0.32   0.33     0.35     0.35       0.34     0.35   0.33         0.32        0.3   0.21
+        DistilBERT            0.49     0.52    0.58    0.56   0.55   0.62     0.60     0.63       0.61     0.62   0.64         0.65       0.63    0.7
+        Okapi-BM25            0.48      0.5    0.56    0.56   0.56   0.54     0.57     0.49       0.56     0.55   0.56         0.56       0.53   0.58
+         BiEncoder            0.36      0.3    0.32    0.38   0.36   0.38     0.39      0.4       0.41     0.42   0.42         0.43       0.44   0.46
+ Cross-Encoder (DistilBERT)   0.53     0.53    0.35    0.51   0.51   0.55      0.6     0.45       0.58     0.59   0.59         0.49       0.55   0.53
+ Cross-Encoder (ConvBERT)     0.49     0.48    0.38    0.5    0.36    0.5     0.41     0.56       0.59     0.47   0.55         0.61       0.59   0.51
+  OpenAI GPT-3.5 (Turbo)      0.26     0.37     0.4    0.46   0.41   0.42     0.42     0.44       0.47     0.53   0.44         0.52       0.41   0.44
+
+                    Table 11: Macro F1 for the novel code for coder 1 for K = 1 to K = 14
+
+
+
+                                      1        2        3      4          5        6          7        8    9     10       11        12     13    14
+           SVM                       0.1      0.27     0.29   0.47     0.3     0.31         0.17       -    -     -        -          -      -     -
+        DistilBERT                   0.49     0.49      0.4   0.43    0.45     0.45         0.45       -    -     -        -          -      -     -
+        Okapi-BM25                   0.44      0.6     0.56   0.50    0.53      0.5         0.56       -    -     -        -          -      -     -
+         BiEncoder                   0.52     0.39      0.4   0.47    0.45     0.45         0.45       -    -     -        -          -      -     -
+ Cross-Encoder (DistilBERT)          0.47     0.63     0.56   0.46    0.46     0.56         0.59       -    -     -        -          -      -     -
+ Cross-Encoder (ConvBERT)            0.47     0.56     0.64   0.47    0.57     0.55         0.57       -    -     -        -          -      -     -
+  OpenAI GPT-3.5 (Turbo)             0.13     0.42     0.42   0.49    0.45     0.46         0.48       -    -     -        -          -      -     -
+
+Table 12: Macro F1 for the novel code prediction subtask for coder 2 for K = 1 to K = 14. Cells past K = 8 are
+marked with “-” since no novel codes occur.
+
+A.6.5   Micro F1 Tables
+
+                               1          2        3    4      5      6        7        8          9       10         11        12        13     14
+           SVM                0.79     0.58    0.56    0.46   0.44    0.4     0.41     0.39       0.38     0.37   0.35         0.34       0.31   0.22
+        DistilBERT            0.51     0.53    0.58    0.60   0.59   0.66     0.65     0.68       0.67     0.71   0.69         0.74       0.75   0.84
+        Okapi-BM25            0.55     0.53    0.57    0.57   0.59   0.63     0.65      0.6       0.63     0.62   0.63         0.64       0.64   0.76
+         BiEncoder            0.36     0.42    0.44    0.56   0.57   0.62     0.63     0.68       0.69     0.72   0.73         0.74       0.77   0.86
+ Cross-Encoder (DistilBERT)   0.56     0.53    0.45    0.54   0.59   0.61     0.64     0.68       0.68     0.64   0.64         0.7        0.8    0.79
+ Cross-Encoder (ConvBERT)     0.74     0.53    0.53    0.51   0.57   0.63     0.62     0.56       0.71      0.7   0.66         0.64       0.62   0.61
+  OpenAI GPT-3.5 (Turbo)      0.28     0.44    0.47    0.58   0.55   0.57     0.6      0.64       0.66     0.71   0.67         0.71       0.69   0.78
+
+          Table 13: Micro F1 for the novel code prediction subtask for coder 1 for K = 1 to K = 14.
+
+
+
+                                      1        2        3      4          5        6          7        8    9     10       11        12     13    14
+           SVM                       0.12     0.36     0.36   0.87    0.3      0.32         0.19       -    -     -        -          -      -     -
+        DistilBERT                   0.62     0.58     0.66   0.56    0.80     0.81         0.83       -    -     -        -          -      -     -
+        Okapi-BM25                   0.63     0.62     0.58   0.71    0.76     0.68         0.79       -    -     -        -          -      -     -
+         BiEncoder                   0.77     0.64     0.66   0.87     0.8     0.81         0.83       -    -     -        -          -      -     -
+ Cross-Encoder (DistilBERT)          0.88     0.67     0.68   0.87    0.78     0.74          0.8       -    -     -        -          -      -     -
+ Cross-Encoder (ConvBERT)            0.88     0.65     0.70   0.87    0.79     0.76         0.74       -    -     -        -          -      -     -
+  OpenAI GPT-3.5 (Turbo)             0.14     0.65     0.65   0.87    0.8      0.79         0.83       -    -     -        -          -      -     -
+
+Table 14: Micro F1 for the novel code prediction subtask for coder 2 for K = 1 to K = 14. Cells past K = 8 are
+marked with “-” since no novel codes occur.
+
+
+
+
+                                                              14909
+

@@ -1,0 +1,621 @@
+   Prompting as Panacea? A Case Study of In-Context
+Learning Performance for Qualitative Coding of Classroom
+                         Dialog
+
+ Ananya Ganesh, Chelsea Chandler, Sidney D’Mello, Martha Palmer, Katharina von der Wense
+                                                    University of Colorado Boulder
+                                                         Boulder, CO, 80309
+                                                Ananya.Ganesh@colorado.edu
+
+ABSTRACT                                                              off-the-shelf with minimal to no training such as the GPT
+One of the areas where Large Language Models (LLMs)                   [22] and LLaMa [31] models are slowly being adopted as the
+show promise is for automated qualitative coding, typically           de facto models for text generation tasks such as generating
+framed as a text classification task in natural language pro-         hints [25], providing feedback to students [18], or assisting
+cessing (NLP). Their demonstrated ability to leverage in-             teachers [33]. More recently, LLMs have gained attention as
+context learning to operate well even in data-scarce set-             an alternative to “traditional” NLP models for automated
+tings poses the question of whether collecting and annotat-           qualitative coding tasks [34]. However, their feasibility for
+ing large-scale data for training qualitative coding models is        coding tasks, especially for challenging constructs commonly
+still beneficial. In this paper, we empirically investigate the       found in the educational domain, has yet to be systemati-
+performance of LLMs designed for use in prompting-based               cally investigated.
+in-context learning settings, and draw a comparison to mod-
+els trained with task-specific annotated data, specifically for       Automated qualitative coding problems are typically for-
+tasks involving qualitative coding of classroom dialog. Com-          malized as classification tasks in NLP. That is, given text
+pared to other domains where NLP bench-marking studies                (such as student conversation or writing), the task is to pre-
+are typically situated, classroom dialog is much more nat-            dict the most likely label from a pre-defined set of classes
+ural and therefore variable and complex. Moreover, tasks              (such as if an utterance is a question). Classification models
+in this domain are nuanced, theoretically grounded and re-            have until recently been developed through the pre-training–
+quire a deep understanding of the conversational context.             fine-tuning paradigm: pre-trained language models such as
+We provide a comprehensive evaluation across five datasets,           BERT [7], trained on large web-based corpora are fine-tuned,
+including tasks such as talk move prediction and collab-              or undergo task-specific training on human-annotated data.
+orative problem solving skill identification. Our findings            While these models leverage the rich representations of lan-
+show that task-specific fine-tuning strongly outperforms in-          guage learned in the pre-training stage to understand mean-
+context learning, underscoring the ongoing need for high-             ing, they require several examples of each class to learn to
+quality annotated training datasets.                                  distinguish between them, ultimately necessitating datasets
+                                                                      with thousands of examples. Acquiring such large datasets
+                                                                      incurs substantial costs, as trained experts must invest time
+Keywords                                                              and effort into the annotation process. On the other hand,
+large language models, natural language processing, quali-            the ability of LLMs to learn to solve complex tasks using
+tative coding, classroom dialog                                       very few or no examples ostensibly provides a way to by-
+                                                                      pass the expensive data collection process. LLMs achieve
+1.   INTRODUCTION                                                     this through the mechanism of in-context learning, a pro-
+In recent years, the proliferation of Natural Language Pro-           cess that involves interacting with LLMs through natural
+cessing (NLP), Artificial Intelligence (AI), and Large Lan-           language instructions, without any training.
+guage Models (LLMs) has revolutionized various facets of
+educational technology, from the development of conversa-             This ability has been demonstrated on NLP benchmarks
+tional tutors to automated grading systems, significantly im-         that challenge the language understanding abilities of mod-
+pacting student learning experiences and instructional method-        els [28]. Some of these benchmarks even test for domain
+ologies [4, 33, 20]. LLMs, particularly those that can be used        knowledge and reasoning on topics such as physics or medicine
+                                                                      [21, 12]. Despite such rigorous testing, applying these mod-
+                                                                      els to qualitative coding, particularly in education, should
+A. Ganesh, C. Chandler, S. D’Mello, M. Palmer, and K. Kann.
+Prompting as panacea? a case study of in-context learning perfor-     still be treated with caution for the following reasons: 1)
+mance for qualitative coding of classroom dialog. In B. Paaßen and    benchmark tasks tend to be well-defined and sometimes shal-
+C. D. Epp, editors, Proceedings of the 17th International Confer-     low, in contrast to the nuanced, theoretically-motivated frame-
+ence on Educational Data Mining, pages 835–843, Atlanta, Georgia,
+USA, July 2024. International Educational Data Mining Society.
+                                                                      works that drive qualitative coding, 2) benchmark tasks may
+                                                                      be highly similar to tasks that some LLMs are explicitly
+© 2024 Copyright is held by the author(s). This work is distributed   trained on (e.g., question answering); and 3) benchmark
+under the Creative Commons Attribution NonCommercial NoDeriva-
+tives 4.0 International (CC BY-NC-ND 4.0) license.
+                                                                      datasets, particularly if openly available online, may have
+https://doi.org/10.5281/zenodo.12729966
+already been seen by LLMs in their extensive pre-training        both humans and LLMs are provided access to the same
+stage. Therefore, in this paper, we explore how prompt-          guidelines or codebook. LLMs have also been explored as a
+ing off-the-shelf generalist LLMs performs on nuanced, real      collaborator, rather than a replacement, to human coders,
+world tasks that are unlikely to have been seen in training.     such as in the LLM-in-the-loop framework [4].
+
+We choose the problem of analyzing student dialog as a case      Comparisons to Task-Specific Models: Similar to our work,
+study for our investigation. This task is significant, and       prior research has investigated LLM performance in com-
+critically impacts multiple stakeholders: it can inform ped-     parison to models trained on task-specific data. [15] as-
+agogical practices by enhancing educators’ and learning sci-     sessed the classification performance of RoBERTa [17] and
+entists’ understanding of student experience [10], and can       GPT-3 [2], both fine-tuned on training data, in categoriz-
+steer learning tools like tutoring systems through specific      ing teacher talk moves. The fine-tuned GPT-3 model had
+properties of student utterances like talk moves [30]. Addi-     a higher F1 score but poorer recall than RoBERTa on a
+tionally, utterances spoken naturally by students tend to be     majority of the categories. However, on the class with the
+noisy, incomplete and contextual, making them challenging        smallest number of training examples, GPT-3 performed sig-
+for NLP models typically trained on sterilized text. Physi-      nificantly worse, contrary to widely-held beliefs about the
+cal classrooms also include complications of multi-party in-     superior few-shot learning abilities of recent LLMs. Ad-
+teractions and automatic speech recognition (ASR) errors.        ditionally, [21] found that a carefully engineered few-shot
+To ensure a range of these phenomena, we provide a broad         learning approach with GPT-4 outperformed a specialized
+perspective of LLM performance on nine qualitative cod-          task-specific model named Med-Palm-2 on medical question
+ing tasks across five datasets based in education, ranging in    answering.
+size from 2500 to 50k examples. Focusing on the question
+of whether annotated data still plays an important role in       However, depending on the task and complexity, task-specific
+automated qualitative coding, we compare the performance         fine-tuning has outperformed prompting methods. [9] com-
+of in-context learning in LLMs to task-specific classification   pared fine-tuned RoBERTa models to prompting ChatGPT
+models. Finally, based on our investigations, we provide rec-    on the task of predicting dialog behaviors, such as show-
+ommendations for choosing models for student dialog anal-        ing empathy or contradicting oneself. ChatGPT performed
+ysis when cost, data, and performance need to be balanced.       slightly worse than fine-tuned models on three out of five be-
+                                                                 havioral categories. [37] also found that fine-tuned RoBERTa
+2.   RELATED WORK                                                models outperformed zero-shot LLM prompting in almost all
+                                                                 cases in a computational social science task.
+LLMs in Educational Applications: Since their rise to fame,
+LLMs have readily been adopted into applications to sup-
+                                                                 Our novel contributions are: (i) we conduct a broad anal-
+port learning [23, 19, 5]. The capacity of LLMs to generate
+                                                                 ysis of LLM performance on educational qualitative coding
+unique, coherent and meaningful responses conditioned on
+                                                                 that is less restricted to specific datasets or phenomena (ii)
+prompts, even with limited or no task-specific adaptation
+                                                                 we evaluate across multiple LLMs, prompting strategies, and
+is the capability that is most utilized in these applications.
+                                                                 fine-tuning strategies, covering closed and open-source mod-
+GPT-4 is famously used in Khanmigo [26] to provide guid-
+                                                                 els (iii) we compare strategies with various amounts of train-
+ance in the form of hints and questions as students work
+                                                                 ing data, investigating whether collecting annotated data is
+through lessons. While promising, some studies show that
+                                                                 still a valuable endeavor in the age of LLMs.
+effectiveness of such feedback could be improved [25]. Other
+works point out how LLM-generated feedback directed at
+teachers could help with teacher coaching [33], and how re-      3.   DATASETS AND TASKS
+framings of teacher feedback could lead to improvement in        The datasets that we use are either open access, or have
+student’s mindsets [11].                                         been extensively described in prior publications. We provide
+                                                                 a brief overview here, and include information about label
+LLMs for Qualitative Coding: More relevant to our work           distributions in the appendix.
+is the performance of LLMs on qualitative coding tasks.
+[34] explore ChatGPT’s performance at categorizing stu-          Collaborative Problem Solving: We used two CPS datasets –
+dent feedback found in the comments of MOOC open-access          one collected during a block programming challenge (Minecraft)
+videos. On a set of 200 human-annotated examples, they           and another from a middle school science curriculum (Sensor
+found that model-human agreement falls short of human-           Immersion). The three CPS facets coded in these datasets
+human agreement overall, but on less complex categories          are constructing shared knowledge, negotiation / coordina-
+like expressing gratitude, the model performs at par with        tion, and maintaining team function. Utterances are coded
+humans. Others have demonstrated the success of LLMs for         with binary indicators for each label individually, with 1 in-
+qualitative coding broadly in domains like computational         dicating that the CPS facet is present in the utterance. For
+social science [37] and medicine [21]. Researchers also ac-      more information, we refer the reader to [29] and [3].
+knowledge that in any task, particularly in the zero-shot
+setting, LLMs are sensitive to the input prompt [27], which      Student Talk Move Prediction: We use the Talk Move dataset
+is especially troublesome for non AI experts who may strug-      of K-12 mathematics lesson transcripts, containing teacher
+gle to systematically explore effective prompt designs [36].     and student speech [30]. For this work, we focused on classi-
+                                                                 fying student talk moves, however models preceding teacher
+Due to these reasons and the high variability in LLM per-        utterances were given as context. Student talk moves in-
+formance based on task complexity, [24] argue that LLMs          clude relating to another student, asking for more informa-
+must be validated using a human annotation process, where        tion, making a claim, providing evidence, or None.
+NCTE: Identifying Student Reasoning The National Cen-            scription, potentially framed as an instruction (zero-shot),
+ter for Teacher Effectiveness (NCTE) dataset consists of         or additionally include example demonstrations (few-shot).
+anonymized transcripts of classroom instruction from US
+elementary-school mathematics classrooms. We focus on the        Zero-shot prompting: In this setting, we create prompts
+binary task of identifying if student utterances contain rea-    instructing the model on what the task is, what form of in-
+soning. More details can be found in [6].                        put data will be provided, and the list of acceptable output
+                                                                 labels. For each example in the test set, we concatenate the
+CIMA: Identifying Student Actions Conversational Instruc-        student utterance that needs to be classified to the prompt
+tion with Multi-responses and Actions (CIMA) is an open-         text, and query the model for a response. To obtain con-
+access corpus of crowdsourced one-on-one tutoring dialog. In     sistency, we use a temperature of zero. All prompts can be
+contrast to our other datasets, utterances are typed and not     found in the appendix.
+spoken or transcribed. We investigate the task of student ac-
+tion classification, predicting whether student responses are    With GPT-4, following the official guidelines3 , the query is
+a Guess, Question, Affirmation or Other. The labels are          formatted as a sequence of two messages, each with a ‘role’
+self-reported by the crowdworker producing the utterance.        field to indicate the system or user, and a ‘content’ field
+                                                                 for the text. The first message prompts the system with
+We divide our datasets into subsets for training, develop-       the task instruction. The second message contains each test
+ment and testing according to a 70%/15%/15% ratio. A no-         example given by the user. Based on prompt engineering
+table problem here, as with most educational dialog datasets,    on the development set, we find that introducing a scenario
+is label imbalance, which has been recognized in prior work      in the beginning, such as “You are a teacher observing col-
+[16]. However, strategies for mitigating label imbalance are     laborative problem solving” is beneficial for more accurate
+out of scope for the present work.                               predictions. We also instruct the model to produce single to-
+                                                                 kens corresponding to the labels in each dataset; any other
+                                                                 responses are discarded. Following the advice of the Mistral
+4.    METHODS                                                    developers, we format queries to include a short introduc-
+We compare LLMs used for classification in a prompting
+                                                                 tion to the scenario (which boosted results considerably),
+setting with models trained on task-specific annotated data.
+                                                                 an opener for the utterance, the utterance in question, an
+Below, we provide an overview of the models and methods
+                                                                 opener for the label option, and a single label option. We
+used for prompting and fine-tuning.
+                                                                 pass each label from the label sets to the model in individual
+                                                                 queries and we choose the label with the highest probability
+4.1   Prompting                                                  of appearing after the prompt as the prediction.
+GPT-4 and Mistral: GPT-4 [22] is a Transformer-based lan-
+guage model developed by OpenAI. The model is pre-trained        Few-shot prompting:        Here, we concatenate k examples
+on the task of language modeling, that is, predicting the next   (shots) of each class to the prompts (formatted as described
+token in an unlabeled text corpus. GPT-4 can be accessed         above) for each test instance. We choose them from the
+either using the chat completions API, or through an in-         training set by randomly sampling k instances for each class.
+teractive chat interface. Notably, GPT-4 is closed-source,       We repeat this process three times with different random
+meaning the weights of the model have not been released,         seeds for sampling, thereby obtaining three different sets of
+nor have the exact details of the architecture – including how   k -shots. We then prompt the model in three runs, for each
+many parameters the model has1 . While earlier variants in       of the three k -shots, and report average scores across runs.
+the GPT family provide an API for fine-tuning, GPT-4 does        While this doesn’t exhaustively cover all possible k -shots
+not permit that as yet. Additionally, since the model re-        from the training set, it smooths over random variation, giv-
+quires passing datasets through a web-based API, which is        ing a more fair estimate. We use the same k -shots for every
+subsequently stored temporarily on OpenAI’s servers, there       test set query.
+are concerns with using these models for sensitive data, such
+as our Sensor Immersion transcripts. The GPT-4 API is            For GPT-4, we provide the k -shots by adding 2*k extra
+paid, and requests are charged based on the number of in-        messages (utterance text under the user role and true la-
+put and output tokens2 . As a result, feeding in longer inputs   bels under the system role) before the query. This informs
+results in a higher cost.                                        the model that when a user provides a student utterance for
+                                                                 classification, the desired system output is the true label.
+The Mistral [14] family of models are powerful open-source       Similarly, for Mistral, we add 2*k extra messages to the se-
+alternatives, developed by Mistral AI and released in Novem-     quence described above. This takes the form of the scenario
+ber 2023. Crucially, the pre-trained weights of all model        followed by “#### Here are some examples: Student Ut-
+variants can be downloaded and used for local fine-tuning        terance: {example from train set}. Student Action: {true la-
+and exploration. Here we use Mistral-7B, a Transformer-          bel from train set}”, and ending with the same query prompt
+based language model with 7 billion parameters.                  as in the zero-shot scenario. We experiment with two val-
+                                                                 ues for k with Mistral: 5 and 20. We chose 5 and 20 per
+Both models can perform in-context learning (generate pre-       class to illustrate realistic low-data scenarios which are also
+dictions on unseen tasks or datasets using only context given    reasonably proportionate to the size of our datasets. Simi-
+in a prompt) [8]. This context can include just a task de-       lar values are also used in benchmarks for few-shot learning
+1                                                                such as RAFT [1]. However, we only assess GPT-4 with
+ Some estimates place this at over 1 trillion parameters.
+2                                                                3
+ At the time of publication, the GPT-4 model costs $0.03           https://platform.openai.com/docs/guides/
+for each input token and $0.06 for each output token.            text-generation/chat-completions-api
+5-shot prompting due to the high cost of longer prompts.           Table 1 contains our main results, showing the performance
+                                                                   of the in-context learning paradigm in comparison to task-
+                                                                   specific fine-tuning across all datasets. As mentioned in Sec-
+4.2    Fine-Tuning                                                 tion 4.1, we do not use GPT-4 with the sensor immersion
+RoBERTa: The RoBERTa model [17] is an encoder-decoder              CPS dataset due to privacy and access restrictions. We re-
+model that is based on the Transformer [32] architecture. It       port the F1-score of the positive class (e.g., presence of the
+is pre-trained with the objective of masked language model-        CPS skill negotiation) for the binary classification tasks. For
+ing on a large training corpus. It learns rich, general purpose    the multi-class datasets, specifically, CIMA and TalkMoves,
+language representations language during pre-training, and         we report the macro-averaged F1 score. We also include
+can then be fine-tuned on task-specific data to learn a down-      a random baseline for comparison, that randomly selects a
+stream task. This is a high-performing, popular model for          valid label conditioned on the training set label distribution.
+classification tasks, both in education and more broadly in
+NLP. In our experiments, we use the pre-trained RoBERTa-           5.1    Zero-Shot Performance
+base model consisting of 125M parameters, and add a se-            In the zero-shot setting, the GPT-4 model outperforms the
+quence classification head that maps from the learned rep-         random baseline in 5 out of 6 tasks. It is particularly strong
+resentations to each output label space. We perform full           for multi-class classification: for student talk move predic-
+fine-tuning (i.e., updating all parameters with training data)     tion where there are five possible labels, zero-shot GPT-4
+using a CrossEntropy loss objective, and the AdamW opti-           achieves an F1 of 0.42, whereas chance performance is 0.20.
+mizer. Each model is fine-tuned for up to 30 epochs with           Similarly, for the CIMA dataset where there are four possible
+early stopping based on F1 score on the validation set. We         labels, zero-shot GPT-4 with an F1 of 0.49 vastly outper-
+use the implementation of the model available through the          forms the random baseline of 0.29. On the binary classifica-
+Huggingface Transformers library [35] and perform all train-       tion tasks, however, results are mixed; in identifying student
+ing on a single Nvidia V100 GPU.                                   reasoning (NCTE), zero-shot GPT-4 is better than random
+                                                                   prediction by 0.3 F1 points. For the CPS skill prediction
+Mistral Embeddings: For fine-tuning the much larger mistral        tasks, it is at par with random on two tasks, and is weaker
+model, a resource-efficient approach is to extract text repre-     than the random baseline at predicting if utterances exhibit
+sentations from the model and train a traditional machine          the skill construction of shared knowledge.
+learning classifier to predict the labels. One can obtain fixed-
+sized vector representations, or embeddings, for input text        The Mistral model does not seem as adept at handling stu-
+sequences by passing the input text through the LLM and            dent data in the zero-shot setting as GPT-4. For the binary
+retrieving the hidden states from one of the model’s layers.       classification tasks, it is worse than random prediction on all
+These hidden states capture semantic and contextual infor-         tasks except predicting student reasoning. For both multi-
+mation about the input, and the resulting embeddings serve         class classification tasks, it is worse than random. We hy-
+as rich, contextualized representations of the input text, al-     pothesize that this stark difference is likely due to GPT-4’s
+lowing a classifier to effectively learn decision boundaries.      larger size and supervised fine-tuning on human responses
+                                                                   leading to superior language understanding.
+We follow the implementation designed by the creators of
+Mistral [14]. Specifically, with an input utterance of N to-
+kens, the Mistral model output is a list of N vectors (one
+                                                                   5.2    Few-Shot Performance
+                                                                   As outlined in Section 4.1, we only experiment with 5-shot
+vector per token) of dimension d = 4096 (the dimensional-
+                                                                   learning on GPT-4 due to its high costs for longer inputs.
+ity of the model). The vectors are averaged along dimen-
+                                                                   The 5-shot examples are very helpful for detecting all CPS
+sion 0 to get a single vector of size d that represents the
+                                                                   skills , especially for construction of shared knowledge, where
+full utterance. The embeddings were normalized to improve
+                                                                   performance improves from 0.26 F1 to 0.60 F1. Unfortu-
+the performance and stability of the downstream classifier.
+                                                                   nately, performance drops on the other datasets when the
+In this scenario, we did not perform hyperparameter tun-
+                                                                   5-shot demonstrations are provided. This could potentially
+ing on the classifier, but rather utilized the same Logistic
+                                                                   be due to the model overfitting to the provided examples
+Regression model (with parameters C = 1.0 and maximum
+                                                                   instead of using other cues to solve the task, such as its own
+iterations = 500) in each task and dataset.
+                                                                   pre-training knowledge.
+Fine-Tuning in Data-Scarce Settings: To see how the task
+                                                                   When Mistral is prompted in the few-shot setting, we ob-
+specific RoBERTa model compares to few-shot prompting
+                                                                   serve large improvements for 5-shot prompting on the binary
+LLMs, we artificially create a data-constrained setting by
+                                                                   classification tasks, surpassing random performance on the
+restricting the amount of data that RoBERTa has access to
+                                                                   CPS-SI and NCTE datasets. However, performance is at
+during fine-tuning. Using the same few-shot examples given
+                                                                   par with zero-shot prompting for multi-class classification.
+to GPT-4, we fine-tune the pre-trained RoBERTa model on
+                                                                   Additionally, we see that increasing the number of shots to
+only the few-shot examples using the same hyperparameters
+                                                                   20 does not help the Mistral model further, and in fact, hurts
+for training as in Section 4.2. As in Section 4.1, we exper-
+                                                                   performance for most tasks. We leave it to future work to
+iment with two choices of shots, 5 and 20, and for each,
+                                                                   use improved methods for selecting the best possible demon-
+report average performance across three sets of shots. How-
+                                                                   strations for each test example.
+ever, unlike few-shot prompting, we perform full fine-tuning
+with parameter updates in this setting.
+                                                                   5.3    Fine-tuning Performance
+                                                                   Overall, the fine-tuned models that harness the entire train-
+5.    RESULTS                                                      ing set are the most capable across the board. The RoBERTa
+Table 1: F1 score performance of in-context learning vs task-specific fine-tuning. Positive class F1 for binary classification, macro-
+averaged F1 for multi-class classification. (CONST: constructing shared knowledge, NEG: negotiation / coordination,
+MAINT: maintaining team function, SI: Sensor Immersion)
+                                            CPS Minecraft                         CPS SI               Talk       CIMA      NCTE
+ Paradigm              Model
+                                        CONST NEG MAINT                 CONST      NEG MAINT           Move
+ Baseline             Random            0.34        0.15    0.10        0.23       0.16     0.07       0.20       0.29      0.19
+                   0-Shot–GPT-4         0.26        0.17    0.11        -          -        -          0.42       0.49      0.49
+                   5-Shot–GPT-4         0.60        0.27    0.21        -          -        -          0.27       0.45      0.38
+ In-Context        0-Shot–Mistral       0.02        0.09    0.01        0.07       0.15     0.15       0.08       0.11      0.23
+ Learning          5-Shot–Mistral       0.25        0.10    0.12        0.33       0.21     0.15       0.09       0.11      0.24
+                  20-Shot–Mistral       0.00        0.02    0.00        0.01       0.00     0.00       0.11       0.20      0.30
+ Fine-tune           RoBERTa            0.71        0.53    0.33        0.61       0.51     0.32       0.67       0.63      0.67
+ (Train Set)    Mistral Embeddings      0.59        0.32    0.26        0.59       0.44     0.13       0.53       0.62      0.63
+ Fine-tune       5-Shot–RoBERTa         0.66        0.31    0.24        0.40       0.26     0.10       0.35       0.48      0.40
+ (Subsets of    20-Shot–RoBERTa         0.66        0.32    0.25        0.50       0.36     0.15       0.42       0.55      0.54
+ Train Set)
+
+
+model fine-tuned on all training samples is the best out of all       hibit stark differences in performance, highlighting the im-
+our models and tasks. It also vastly outperforms the random           portance of model choice in choosing between prompting
+baseline on every dataset. The Mistral Embeddings model               vs task-specific fine-tuning. One important consideration is
+is not as strong, although it outperforms the prompt-based            that the design of the prompt may have a big influence on
+models on all datasets. We hypothesize that the large size of         zero and few-shot performance. While we follow best prac-
+the Mistral model may affect the model’s generalizability, es-        tices recommended by developers, and experimented with
+pecially given that our datasets are small. However, in com-          framings such as scenarios and role-playing, there are other
+parison to its few-shot performance, the Mistral model shows          strategies for prompt engineering that could prove useful,
+a remarkable improvement when trained with task-specific              such as feeding an entire codebook in a prompt. Given that
+data. Our results are also in line with other observations            this may come with the trade-off of high costs, we do not
+that the RoBERTa model can be a better choice than very               carry out extensive prompt engineering at this stage.
+large language models in classifying short sequences [13].
+                                                                      Next, in reflecting on whether LLMs obviate the need for
+We also find that the RoBERTa model is surprisingly effec-            collecting large-scale annotated training datasets, we show
+tive in the few-shot training setting, even with only 5 and           that these models cannot yet replace the traditional pre-
+20 training examples per class. In the 5-shot setting, it out-        training–fine-tuning paradigm, particularly for qualitative
+performs all prompting methods on all CPS tasks except for            coding. As a result, we argue that training data is still
+predicting the skill of maintaining team function. On the             highly valuable, particularly for nuanced, subjective tasks
+multi-class datasets, and the NCTE dataset, it outperforms            that benefit from numerous examples, such as student talk
+the random baseline but is not as good as zero-shot GPT-4.            move or CPS skill prediction. In situations where access to
+When the number of training examples is increased to 20               data is severely constrained, models like GPT-4 show po-
+per class, the RoBERTa model performs at par or better                tential, strongly outperforming random guessing. However,
+than all prompt-based models on all datasets.                         prompting with few-shot examples may not necessarily be
+                                                                      an improvement over the zero-shot setting: the choice and
+                                                                      quality of shots is crucial and may lead to variability. If
+6.   DISCUSSION                                                       cost is also a factor in the data-constrained setting, an al-
+In this paper, we set out to investigate whether the high per-        ternative to few-shot prompting through expensive APIs can
+formance of off-the-shelf LLMs on NLP tasks translates to             be few-shot fine-tuning with models like RoBERTa, which
+challenging qualitative coding tasks in education. We find            achieve surprisingly high performance on coding tasks with
+that advanced models like GPT-4 do outperform random-                 very limited training data.
+chance baselines in the zero-shot setting, indicating that
+their pre-training process has imbued them with some un-              Finally, when assessing which automated qualitative coding
+derstanding about contexts such as classroom dialog. How-             models may be best suited for designing systems for ana-
+ever, the extent of this performance is highly task-specific.         lyzing classroom conversations, we find that training small,
+We see that GPT-4 does well without any examples on a task            accessible, and inexpensive models like RoBERTa with high-
+like determining if an utterance exhibits reasoning (NCTE),           quality data may still lead to better performance than using
+where the objective can be reasonably understood through              off-the-shelf LLMs. While these models are still outstanding
+a simple task description, and the solution could make use            at text generation tasks, and therefore highly relevant for
+of cue words like ‘because’. However, the models struggle             educational applications, we conclude that they show lim-
+particularly on complex, theoretically motivated tasks like           ited promise as of now for classification-oriented qualitative
+CPS until examples are provided, after which performance              coding tasks in education.
+sharply improves. We also note that GPT-4 and Mistral ex-
+7.   ACKNOWLEDGMENTS                                                 analysis. In S. Stoyanchev, S. Joty, D. Schlangen,
+We thank the anonymous reviewers for their feedback and              O. Dusek, C. Kennington, and M. Alikhani, editors,
+suggestions. This research was supported by the NSF Na-              Proceedings of the 24th Annual Meeting of the Special
+tional AI Institute for Student-AI Teaming (iSAT) under              Interest Group on Discourse and Dialogue, pages
+grant DRL 2019805 and under grant DRL 1920510. The                   202–215, Prague, Czechia, Sept. 2023. Association for
+opinions expressed are those of the authors and do not rep-          Computational Linguistics.
+resent views of the NSF.                                        [10] A. Ganesh, M. A. Chang, R. Dickler, M. Regan,
+                                                                     J. Cai, K. Wright-Bettner, J. Pustejovsky, J. Martin,
+                                                                     J. Flanigan, M. Palmer, et al. Navigating wanderland:
+8.   REFERENCES                                                      Highlighting off-task discussions in classrooms. In
+ [1] N. Alex, E. Lifland, L. Tunstall, A. Thakur,                    International Conference on Artificial Intelligence in
+     P. Maham, C. J. Riedel, E. Hine, C. Ashurst,                    Education, pages 727–732. Springer, 2023.
+     P. Sedille, A. Carlier, et al. Raft: A real-world
+                                                                [11] K. Handa, M. Clapper, J. Boyle, R. Wang, D. Yang,
+     few-shot text classification benchmark. arXiv preprint
+                                                                     D. Yeager, and D. Demszky. “mistakes help us grow”:
+     arXiv:2109.14076, 2021.
+                                                                     Facilitating and evaluating growth mindset supportive
+ [2] T. Brown, B. Mann, N. Ryder, M. Subbiah, J. D.                  language in classrooms. In H. Bouamor, J. Pino, and
+     Kaplan, P. Dhariwal, A. Neelakantan, P. Shyam,                  K. Bali, editors, Proceedings of the 2023 Conference
+     G. Sastry, A. Askell, et al. Language models are                on Empirical Methods in Natural Language Processing,
+     few-shot learners. Advances in neural information               pages 8877–8897, Singapore, Dec. 2023. Association
+     processing systems, 33:1877–1901, 2020.                         for Computational Linguistics.
+ [3] C. Chandler, T. Breideband, J. G. Reitman,                 [12] D. Hendrycks, C. Burns, S. Basart, A. Zou,
+     M. Chitwood, J. B. Bush, A. Howard, S. Leonhart,                M. Mazeika, D. Song, and J. Steinhardt. Measuring
+     P. W. Foltz, W. R. Penuel, and S. K. D’Mello.                   massive multitask language understanding. arXiv
+     Computational modeling of collaborative discourse to            preprint arXiv:2009.03300, 2020.
+     enable feedback and reflection in middle school
+                                                                [13] Huggingface. Comparing the performance of llms: A
+     classrooms. In Proceedings of the 14th Learning
+                                                                     deep dive into roberta, llama 2, and mistral for
+     Analytics and Knowledge Conference (LAK’24),
+                                                                     disaster tweets analysis with lora, November 2023.
+     March 18–22, 2024, page 11 pages, Kyoto, Japan,
+     2024. ACM, New York, NY, USA.                              [14] A. Q. Jiang, A. Sablayrolles, A. Mensch, C. Bamford,
+                                                                     D. S. Chaplot, D. de las Casas, F. Bressand,
+ [4] S.-C. Dai, A. Xiong, and L.-W. Ku. LLM-in-the-loop:
+                                                                     G. Lengyel, G. Lample, L. Saulnier, L. R. Lavaud,
+     Leveraging large language model for thematic analysis.
+                                                                     M.-A. Lachaux, P. Stock, T. L. Scao, T. Lavril,
+     In H. Bouamor, J. Pino, and K. Bali, editors, Findings
+                                                                     T. Wang, T. Lacroix, and W. E. Sayed. Mistral 7b,
+     of the Association for Computational Linguistics:
+                                                                     2023.
+     EMNLP 2023, pages 9993–10001, Singapore, Dec.
+     2023. Association for Computational Linguistics.           [15] A. Kupor, C. Morgan, and D. Demszky. Measuring
+                                                                     five accountable talk moves to improve instruction at
+ [5] W. Dai, J. Lin, H. Jin, T. Li, Y.-S. Tsai, D. Gašević,
+                                                                     scale, 2023.
+     and G. Chen. Can large language models provide
+     feedback to students? a case study on chatgpt. In 2023     [16] J. Lin, W. Tan, N. D. Nguyen, D. Lang, L. Du,
+     IEEE International Conference on Advanced Learning              W. Buntine, R. Beare, G. Chen, and D. Gašević.
+     Technologies (ICALT), pages 323–325. IEEE, 2023.                Robust educational dialogue act classifiers with
+                                                                     low-resource and imbalanced datasets. In
+ [6] D. Demszky and H. Hill. The NCTE transcripts: A
+                                                                     International Conference on Artificial Intelligence in
+     dataset of elementary math classroom transcripts. In
+                                                                     Education, pages 114–125. Springer, 2023.
+     E. Kochmar, J. Burstein, A. Horbach,
+     R. Laarmann-Quante, N. Madnani, A. Tack,                   [17] Y. Liu, M. Ott, N. Goyal, J. Du, M. Joshi, D. Chen,
+     V. Yaneva, Z. Yuan, and T. Zesch, editors,                      O. Levy, M. Lewis, L. Zettlemoyer, and V. Stoyanov.
+     Proceedings of the 18th Workshop on Innovative Use              Roberta: A robustly optimized bert pretraining
+     of NLP for Building Educational Applications (BEA               approach, 2019.
+     2023), pages 528–538, Toronto, Canada, July 2023.          [18] J. Meyer, T. Jansen, R. Schiller, L. W. Liebenow,
+     Association for Computational Linguistics.                      M. Steinbach, A. Horbach, and J. Fleckenstein. Using
+ [7] J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova.               llms to bring evidence-based feedback into the
+     BERT: Pre-training of deep bidirectional transformers           classroom: Ai-generated feedback increases secondary
+     for language understanding. In J. Burstein, C. Doran,           students’ text revision, motivation, and positive
+     and T. Solorio, editors, Proceedings of the 2019                emotions. Computers and Education: Artificial
+     Conference of the North American Chapter of the                 Intelligence, 6:100199, 2024.
+     Association for Computational Linguistics: Human           [19] S. Moore, R. Tong, A. Singh, Z. Liu, X. Hu, Y. Lu,
+     Language Technologies, Volume 1 (Long and Short                 J. Liang, C. Cao, H. Khosravi, P. Denny, et al.
+     Papers), pages 4171–4186, Minneapolis, Minnesota,               Empowering education with llms-the next-gen
+     June 2019. Association for Computational Linguistics.           interface and content generation. In International
+ [8] Q. Dong, L. Li, D. Dai, C. Zheng, Z. Wu, B. Chang,              Conference on Artificial Intelligence in Education,
+     X. Sun, J. Xu, L. Li, and Z. Sui. A survey on                   pages 32–37. Springer, 2023.
+     in-context learning, 2023.                                 [20] B. Naismith, P. Mulcaire, and J. Burstein. Automated
+ [9] S. E. Finch, E. S. Paek, and J. D. Choi. Leveraging             evaluation of written discourse coherence using
+     large language models for automated dialogue                    GPT-4. In E. Kochmar, J. Burstein, A. Horbach,
+     R. Laarmann-Quante, N. Madnani, A. Tack,                      L. Jones, A. N. Gomez, L. Kaiser, and I. Polosukhin.
+     V. Yaneva, Z. Yuan, and T. Zesch, editors,                    Attention is all you need. In Proceedings of the 31st
+     Proceedings of the 18th Workshop on Innovative Use            International Conference on Neural Information
+     of NLP for Building Educational Applications (BEA             Processing Systems, NIPS’17, page 6000–6010, Red
+     2023), pages 394–403, Toronto, Canada, July 2023.             Hook, NY, USA, 2017. Curran Associates Inc.
+     Association for Computational Linguistics.               [33] R. Wang and D. Demszky. Is ChatGPT a good
+[21] H. Nori, Y. T. Lee, S. Zhang, D. Carignan, R. Edgar,          teacher coach? measuring zero-shot performance for
+     N. Fusi, N. King, J. Larson, Y. Li, W. Liu, R. Luo,           scoring and providing actionable insights on classroom
+     S. M. McKinney, R. O. Ness, H. Poon, T. Qin,                  instruction. In E. Kochmar, J. Burstein, A. Horbach,
+     N. Usuyama, C. White, and E. Horvitz. Can generalist          R. Laarmann-Quante, N. Madnani, A. Tack,
+     foundation models outcompete special-purpose                  V. Yaneva, Z. Yuan, and T. Zesch, editors,
+     tuning? case study in medicine, 2023.                         Proceedings of the 18th Workshop on Innovative Use
+[22] OpenAI, J. Achiam, and S. A. et al. Gpt-4 technical           of NLP for Building Educational Applications (BEA
+     report, 2023.                                                 2023), pages 626–667, Toronto, Canada, July 2023.
+[23] P. Organisciak, S. Acar, D. Dumas, and                        Association for Computational Linguistics.
+     K. Berthiaume. Beyond semantic distance: automated       [34] R. Wang, P. Wirawarn, N. Goodman, and
+     scoring of divergent thinking greatly improves with           D. Demszky. SIGHT: A large annotated dataset on
+     large language models. Thinking Skills and Creativity,        student insights gathered from higher education
+     page 101356, 2023.                                            transcripts. In E. Kochmar, J. Burstein, A. Horbach,
+[24] N. Pangakis, S. Wolken, and N. Fasching. Automated            R. Laarmann-Quante, N. Madnani, A. Tack,
+     annotation with generative ai requires validation.            V. Yaneva, Z. Yuan, and T. Zesch, editors,
+     arXiv preprint arXiv:2306.00176, 2023.                        Proceedings of the 18th Workshop on Innovative Use
+[25] Z. A. Pardos and S. Bhandari. Learning gain                   of NLP for Building Educational Applications (BEA
+     differences between chatgpt and human tutor                   2023), pages 315–351, Toronto, Canada, July 2023.
+     generated algebra hints. CoRR, abs/2302.06871, 2023.          Association for Computational Linguistics.
+[26] W. A. Sahlman, A. M. Ciechanover, and                    [35] T. Wolf, L. Debut, V. Sanh, J. Chaumond,
+     E. Grandjean. Khanmigo: Revolutionizing learning              C. Delangue, A. Moi, P. Cistac, T. Rault, R. Louf,
+     with genai, November 2023.                                    M. Funtowicz, and J. Brew. Huggingface’s
+[27] M. Sclar, Y. Choi, Y. Tsvetkov, and A. Suhr.                  transformers: State-of-the-art natural language
+     Quantifying language models’ sensitivity to spurious          processing. CoRR, abs/1910.03771, 2019.
+     features in prompt design or: How i learned to start     [36] J. Zamfirescu-Pereira, R. Y. Wong, B. Hartmann, and
+     worrying about prompt formatting, 2023.                       Q. Yang. Why johnny can’t prompt: how non-ai
+[28] A. Srivastava, A. Rastogi, A. Rao, A. A. M. Shoeb,            experts try (and fail) to design llm prompts. In
+     A. Abid, A. Fisch, A. R. Brown, A. Santoro,                   Proceedings of the 2023 CHI Conference on Human
+     A. Gupta, A. Garriga-Alonso, et al. Beyond the                Factors in Computing Systems, pages 1–21, 2023.
+     imitation game: Quantifying and extrapolating the        [37] C. Ziems, W. Held, O. Shaikh, J. Chen, Z. Zhang, and
+     capabilities of language models. arXiv preprint               D. Yang. Can Large Language Models Transform
+     arXiv:2206.04615, 2022.                                       Computational Social Science? Computational
+[29] A. E. Stewart, M. J. Amon, N. D. Duran, and S. K.             Linguistics, pages 1–55, 02 2024.
+     D’Mello. Beyond team makeup: Diversity in teams
+     predicts valued outcomes in computer-mediated            9.   APPENDIX
+     collaborations. In Proceedings of the 2020 CHI
+     Conference on Human Factors in Computing Systems,
+     CHI ’20, page 1–13, New York, NY, USA, 2020.
+     Association for Computing Machinery.
+[30] A. Suresh, J. Jacobs, C. Harty, M. Perkoff, J. H.
+     Martin, and T. Sumner. The TalkMoves dataset: K-12
+     mathematics lesson transcripts annotated for teacher
+     and student discursive moves. In N. Calzolari,
+     F. Béchet, P. Blache, K. Choukri, C. Cieri,
+     T. Declerck, S. Goggi, H. Isahara, B. Maegaard,
+     J. Mariani, H. Mazo, J. Odijk, and S. Piperidis,
+     editors, Proceedings of the Thirteenth Language
+     Resources and Evaluation Conference, pages
+     4654–4662, Marseille, France, June 2022. European
+     Language Resources Association.
+[31] H. Touvron, T. Lavril, G. Izacard, X. Martinet, M.-A.
+     Lachaux, T. Lacroix, B. Rozière, N. Goyal,
+     E. Hambro, F. Azhar, A. Rodriguez, A. Joulin,
+     E. Grave, and G. Lample. Llama: Open and efficient
+     foundation language models, 2023.
+[32] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit,
+Table 2: Prompts utilized for GPT-4 and Mistral zero-shot learning. For binary scenarios, Mistral is prompted with “Yes” or
+“No” as response options ({Yes/No}), while multiclass scenarios involve a generic prompt for a label and the iterative testing
+of each label option ({label})
+      Task                                GPT-4 Prompts                                            Mistral Prompts
+                   {“role”: “system”, “content”: “You’re observing students     Scenario: You’re observing students collaboratively
+                     collaboratively solving math problems. Determine if                       solving math problems.
+     NCTE            their response displays reasoning skills, return 1 if so   Determine if their response displays reasoning skills.
+                                        and 0 otherwise.”},                                Student Utterance: {utterance}
+                      {“role”: “user”, “content”: “Utterance: {utterance}”             Contains Student Reasoning: {Yes/No}
+                   {“role”: “system”, “content”: “You’re observing students         Scenario: You’re observing students working
+                      working collaboratively. Determine if the utterance       collaboratively. Determine if the utterance exhibits
+ CPS-COMM              displays the collaborative problem solving skill of              the construction of shared knowledge.
+                    construction of shared knowledge. Return 1 if the skill                Student Utterance: {utterance}
+                                   is shown, and 0 otherwise.”},              Exhibits the construction of shared knowledge: {Yes/No}
+                      {“role”: “user”, “content”: “Utterance: {utterance}”
+                   {“role”: “system”, “content”: “You’re observing students Scenario: You’re observing students working collaboratively.
+                      working collaboratively. Determine if the utterance              Determine if the utterance exhibits the
+   CPS-NEG             displays the collaborative problem solving skill of                   negotiation / coordination.
+                       negotiation or coordination. Return 1 if the skill                  Student Utterance: {utterance}
+                                   is shown, and 0 otherwise.”},                   Exhibits negotiation / coordination: {Yes/No}
+                      {“role”: “user”, “content”: “Utterance: {utterance}”
+                   {“role”: “system”, “content”: “You’re observing students Scenario: You’re observing students working collaboratively.
+                      working collaboratively. Determine if the utterance              Determine if the utterance exhibits the
+   CPS-NEG             displays the collaborative problem solving skill of                   maintaining team function.
+                        maintaining team function. Return 1 if the skill                   Student Utterance: {utterance}
+                                   is shown, and 0 otherwise.”},                   Exhibits maintaining team function: {Yes/No}
+                      {“role”: “user”, “content”: “Utterance: {utterance}”
+                  {“role”: “system”, “content”: “You’re observing a student        Scenario: You’re observing a student learning
+                                   learning Italian prepositions.                                Italian prepositions.
+     CIMA
+                      Classify their response into one out of 4 categories:                Student Utterance: {utterance}
+                             [Guess, Question, Affirmation, Other].                            Student Action: {label}
+                               Only return the label corresponding
+                                  to one of the four categories.}
+                      {“role”: “user”, “content”: “Utterance: {utterance}”
+                   {“role”: “system”, “content”: “You’re observing students     Scenario: You’re observing students working with a
+                       in a math classroom. Determine what talk move                          tutor on math problems.
+   Talk Move                  they are using by looking at both the                   Tutor Utterance: {prev. tutor utterance}
+                               student utterance and the context.                      Student Utterance: {student utterance}
+                          There are 5 talk moves indexed from 0 to 4:                          Student Action: {label}
+                           0=None, 1=Relating to Another Student
+                             2=Ask for more info, 3=Make a claim,
+                          4=Provide evidence and reasoning. Return
+                              the index of the correct talk move.”},
+                                          {“role”: “user”,
+                          “content”: “Utterance: {utterance + prev}”
+                                                                                                             CPS Minecraft
+                                          Construction of Shared Knowledge                              Negotiation / Coordination                                        Maintaining Team function
+                           1.0
+                        10000                                                          10000                                                               10000
+
+                            0.8
+                          8000                                                         8000                                                                8000
+
+                            0.6
+                          6000                                                         6000                                                                6000
+                       Counts
+                            0.4
+                          4000                                                         4000                                                                4000
+
+
+                            0.2
+                          2000                                                         2000                                                                2000
+
+
+                                0.0
+                                 0                                                        0                                                                   0
+                                   0.0         0                   0.2
+                                                                   1                             0.4     0                              1    0.6                           0.8
+                                                                                                                                                                            0                   1         1.0
+
+
+                                                                                                       CPS Sensor Immersion
+                                          Construction of Shared Knowledge                              Negotiation / Coordination                                        Maintaining Team function
+                                1.0
+
+
+                          4000
+                            0.8                                                        4000                                                                4000
+
+
+                          3000
+                            0.6                                                        3000                                                                3000
+
+                       Counts
+                          2000
+                            0.4                                                        2000                                                                2000
+
+
+                          1000
+                            0.2                                                        1000                                                                1000
+
+
+                                0.0
+                                 0                                                        0                                                                   0
+                                   0.0         0                   0.2
+                                                                   1                             0.4     0                              1    0.6                           0.8
+                                                                                                                                                                            0                   1         1.0
+
+
+                                                                    Figure 1: Distribution of labels in both CPS skills datasets
+
+
+
+
+               20000
+
+               15000                                                                                                                  1200
+
+Label Counts
+                                                                                                                                      1000
+               10000
+
+
+                                                                                                                       Label counts
+                                                                                                                                      800
+               5000
+                                                                                                                                      600
+                  0
+                                                   RAS                                                                                400
+                                 Non
+                                      e                          Info           m
+                                                                              eCla             enc e
+                                                               Ask                 i       Evid                                       200
+                                                                             Mak
+                                                                                         vide
+                                                                                       Pro                                              0
+                                                                                                                                                   Guess           Question    Affirmation            Other
+                                                         Student Talk Moves                                                                                           Student Actions
+
+     Figure 2: Distribution of labels in the TalkMoves dataset                                                                         Figure 3: Distribution of labels in the CIMA corpus
+

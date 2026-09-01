@@ -1,0 +1,335 @@
+% Manuscript skeleton designed for an eight page limit.
+% Replace every \fillin{...}, \blankcell, and \blankwide after analysis.
+% Detailed protocol and secondary analyses belong in sections/appendix.tex.
+
+\section{Introduction}
+
+In qualitative analysis, researchers attach codes, short labels for relevant ideas, to passages. They may group related codes into themes, which express broader patterns of meaning across the data. A subtheme captures a narrower pattern within a theme. In codebook-based approaches, a codebook lists the codes, explains when each applies, and often gives examples. Building and applying codes and codebooks across many documents takes substantial interpretive work. Large language models (LLMs) are therefore being explored as aids for drafting candidate codes \citep{dai2023llm}, organizing related codes \citep{wang2026centaurta}, and applying an established coding scheme across large text collections \citep{matveyenko2026muse}. These systems use human feedback to revise outputs or guide later runs \citep{dai2023llm,wang2026centaurta,matveyenko2026muse}. None compares qualitative-methods and domain-expert reviewers on the same source-grounded items or tests whether expertise-aware routing helps reviewers identify errors. Detection matters only if the resulting feedback also improves the output.
+
+This gap is central to the routing problem studied here: \textbf{different flaws may require different kinds of expertise to detect}. Qualitative-methods experts may catch interpretive overreach, domain experts may catch missing context, and nonspecialist researchers may catch unsupported claims. If these reviewer groups detect different problems, collapsing their judgments into a single average score obscures when each kind of review adds value.
+
+Current evaluations use qualitative expert review and automatic similarity metrics \citep{yi2025position}, aggregate code-space coverage \citep{chen2026opencodes}, human--LLM agreement \citep{liu2026agreement}, or self-reported confidence \citep{li2026confidence}. Agreement may diverge from blind expert preference, and self-reported confidence may be poorly calibrated or may depend on how the confidence question is worded. Studies comparing model outputs with source transcripts or human analyses found omitted participant evidence, paraphrases presented as quotations, fabricated or truncated quotations, and lost context around consequential events \citep{parkington2025human,bang2026hybrid,subbiah2026story}. Source links show which excerpts were used as evidence. Reviewers must still judge whether the selected evidence supports the interpretation and represents the range of views in the data. The question is not simply whether review is needed, but \emph{who should be in the loop for each output of an LLM-based qualitative coding pipeline?}
+
+The present manuscript reports the protocol and verified corpus preparation only; no experiment has run. The paper is organized around three questions and corresponding contributions:
+\begin{samepage}
+\begin{itemize}
+    \item \textbf{RQ1: Does expertise-aware routing improve detection?} We compare WarrantRoute with random and uncertainty-only routing on the same source-grounded items. \fillin{REPORT THE RQ1 ANSWER}.
+    \item \textbf{RQ2: How do human and LLM reviewers compare?} We compare their detection of verified errors on the same items, routes, and reviewer roles. \fillin{REPORT THE RQ2 ANSWER OR INCONCLUSIVE STATUS}.
+    \item \textbf{RQ3: Does that review actually improve the output?} Here, ``that review'' means the routed human review from RQ1. We test whether its feedback helps repair a verified error without creating a new one. \fillin{REPORT THE RQ3 ANSWER}.
+\end{itemize}
+\end{samepage}
+
+\section{Datasets}
+\label{sec:datasets}
+
+\begin{table*}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabularx}{\textwidth}{@{}
+>{\raggedright\arraybackslash}X
+>{\raggedright\arraybackslash}p{3.2cm}
+>{\centering\arraybackslash}p{1.2cm}
+>{\raggedleft\arraybackslash}p{1.0cm}
+>{\raggedright\arraybackslash}p{1.65cm}
+>{\raggedleft\arraybackslash}p{1.35cm}
+>{\raggedleft\arraybackslash}p{1.65cm}@{}}
+\toprule
+\textbf{Dataset} & \textbf{Domain} & \textbf{Context} & \textbf{\# Docs} &
+\textbf{Language} & \textbf{\# Words} & \mbox{\textbf{Avg. \# w}} \\
+\midrule
+Dreaddit \citep{turcan2019dreaddit} & Stress analysis & Short & 2,902 & English & 301,279 & 104 \\
+GoEmotions \citep{demszky2020goemotions} & Emotion in social media & Short & 48,837 & English & 626,681 & 13 \\
+CaChe \citep{mehta2024cache2} & Sexual and reproductive health & Long & 11 & English translations & 98,735 & 8,976 \\
+ParlaMint-GB \citep{erjavec2023parlamint} & Parliamentary debate & Long & \fillin{DOCS} & English & \fillin{WORDS} & \fillin{AVG} \\
+\bottomrule
+\end{tabularx}
+\caption{Data Statistics}
+\label{tab:adopted_corpora}
+\end{table*}
+
+Table~\ref{tab:adopted_corpora} summarizes the processed candidate corpora. The Context column classifies the typical source window. The average words column divides the candidate word total by the number of represented source documents and rounds to the nearest whole word. Word counts use whitespace separation. The table describes prepared candidate material rather than samples cleared for privacy, final packet denominators, or experimental outcomes. Here, ``held out'' refers only to this study's development procedure and does not imply a lack of model pretraining exposure.
+
+\paragraph{Dreaddit.}
+Dreaddit comprises author-distributed Reddit segments drawn from ten subreddits and five topical domains \citep{turcan2019dreaddit}. The source release contains 3,553 labeled segments. After exact duplicate handling and the exact date quarantine, the candidate pool contains 3,516 segments. The quarantine removes every released segment from a post if any segment contains an exact date. The official training split supports development, and the test split is reserved for an audit in the same domain. The release lacks author identifiers, so analyses preserve post clusters and make no participant-level claims.
+
+\paragraph{GoEmotions.}
+GoEmotions is a public collection of Reddit comments released with fine-grained emotion annotations \citep{demszky2020goemotions}. The release is distributed under a permissive license. The full release includes author usernames, subreddit, and timestamps, so the study uses the simplified split, which contains only comment text, emotion labels, and a comment identifier and omits those direct identifiers. Each analysis document is a single labeled comment. The official training split supports packet-rule development, and the held-back test split is reserved for a secondary audit in the same domain after the packet rules freeze. The two splits share no comment identifier, and the candidate pool combines them. The published emotion categories may seed anchor themes during development, and the project does not treat them as evaluation ground truth. Candidate counts describe prepared material and remain distinct from privacy-cleared samples and final packet denominators. The comment text is public and may remain searchable even though the simplified split omits direct identifiers.
+
+\paragraph{CaChe.}
+CaChe is a collection of focus group transcripts from western Kenya \citep{mehta2024cache2}. The discussions also cover COVID-19 and schooling. The source study reports 54 adolescent girls and young women and 53 community men. Sessions were originally conducted in English, Swahili, Dholuo, or mixtures \citep{awiti2024agyw}. Candidate extraction requires each participant turn to contain at least three words and yields 3,076 turns. All focus groups are reserved for evaluation outside the development domain. The project retains participant and collective turns separately and does not treat the published themes as evaluation ground truth.
+
+\paragraph{ParlaMint-GB.}
+ParlaMint-GB is the British Parliament component of the ParlaMint comparable parliamentary corpora \citep{erjavec2023parlamint}. The version and repository snapshot are pinned in the corpus provenance record, and the release carries a Creative Commons Attribution 4.0 license. Each analysis document is one debate or agenda item, and speaker turns are retained for interaction context. All of ParlaMint-GB is reserved for the held-out cross-domain evaluation, so no text or derived output informs prompts, packet rules, router features, thresholds, or outcomes. The corpus supplies no thematic gold standard, which matches the study rule against using published labels as ground truth. Candidate counts describe prepared material and stay separate from final packet denominators. Speakers are public officials contributing to the public record, which is the lower re-identification setting among the study corpora.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/warrantroute_framework.pdf}
+    \caption{Overview of the WarrantRoute framework.}
+    \label{fig:warrantroute_framework}
+\end{figure*}
+
+\newpage
+\section{Methods}
+
+This study addresses three research questions:
+\begin{description}
+    \item[\textbf{RQ1.}] \textbf{Does expertise-aware routing improve detection?} We compare error-detection recall for WarrantRoute, random routing, and uncertainty-only routing on the same packets.
+    \item[\textbf{RQ2.}] \textbf{How do human and LLM reviewers compare?} We compare humans and LLMs on the same packets, routes, reviewer roles, and verified errors.
+    \item[\textbf{RQ3.}] \textbf{Does that review actually improve the output?} We compare the same frozen revision process with and without feedback generated by the routed human review in RQ1.
+\end{description}
+
+\subsection{WarrantRoute Framework}
+\label{sec:warrantroute_framework}
+
+Figure~\ref{fig:warrantroute_framework} presents WarrantRoute as a three-step review process. First, the system places an LLM interpretation beside the source excerpts and context on which it is based. This creates a theme-and-evidence packet, allowing reviewers to inspect the claim and its evidence together. Second, researchers without specialist expertise rate the packet, record uncertainty, and request specialist input when needed. These initial judgments are the signals available to the router.
+
+Third, WarrantRoute uses only the initial judgments and information available before specialist review to choose among four actions: no further specialist review, qualitative methods review, domain review, or both. The router never sees protected personal attributes, the verified error, specialist judgments, or test results. The packets and routing rule are fixed before evaluation, so later information cannot change an assignment. After routing, the assigned reviewers inspect the same packets and use the same response form. RQ1 evaluates human expertise-aware routing, while RQ2 compares human and LLM reviewers assigned the same items and roles. RQ1 and RQ2 use recall, the percentage of verified errors that reviewers correctly identify. RQ3 then tests whether feedback from the RQ1 human review helps a fixed revision process improve the output without creating a new error. The LLM analysis can run first, with its outputs sealed before human ratings. The direct human and LLM comparison uses the completed RQ1 ratings on the same packets and routes.
+
+\subsection{Implementation Details}
+
+\paragraph{Evidence packets and controlled variants.}
+
+The RQ2 reviewer candidates are Qwen3 8B, Llama 3.1 8B, and Gemma 3 4B under Ollama 0.18.0, with exact snapshots and the primary designation subject to the authorized pre-access freeze. RQ3 uses a separately frozen revision model, prompt, and settings. The unit of analysis is an authorized theme-and-evidence packet containing a qualitative claim, a short explanation, exact excerpts from an access-controlled and pseudonymized analysis copy, project-pseudonymous source identifiers, local context, and a source-coverage summary. Inclusion requires the two-person privacy and permissions review. The common rating task in Section~\ref{sec:evaluation_analysis} neither conducts a complete reflexive thematic analysis nor assumes that one thematic account is universally correct \citep{braun2021can,braun2021quality}.
+
+The sampling specification includes natural LLM outputs and variants vetted by experts. By design, each variant changes one property fixed in the preregistration:
+
+\begin{enumerate}
+    \item \textbf{unsupported evidence}: a topically related excerpt does not warrant the claim;
+    \item \textbf{source concentration}: wording implies breadth while evidence comes disproportionately from one participant or document;
+    \item \textbf{counterevidence loss}: a rare, negative, or boundary case is removed;
+    \item \textbf{contextual flattening}: a consequential cultural or domain specific qualification is erased; or
+    \item \textbf{unsupported abstraction}: a local observation is generalized beyond its evidence.
+\end{enumerate}
+
+The construction protocol requires an independent panel to check the original packet, the intended defect, and the absence of a second manipulation. Pilot items are excluded from the main analysis, and each rater sees at most one version of a base packet. RQ3 uses a prespecified subset with one independently verified defect.
+
+\subsection{Evaluation Methods}
+\label{sec:evaluation_methods}
+
+\paragraph{RQ1: human routing.}
+RQ1 uses recall, \(R_m=TP_m/(TP_m+FN_m)\), as its primary metric \citep{dai2023llm}. Its denominator contains all eligible packets independently adjudicated to contain a serious error, and a true positive identifies that error. We report \(TP/N\), recall as a percentage, and a 95\% interval. The routing effects are \(\Delta_R=R_{\mathrm{WR}}-R_{\mathrm{random}}\) and \(\Delta_U=R_{\mathrm{WR}}-R_{\mathrm{uncertainty}}\), in percentage points overall and by error type. Positive values favor WarrantRoute.
+
+\paragraph{RQ2: reviewer comparisons.}
+RQ2 applies recall to eligible controlled variants, each with one verified error and a matching response choice fixed before evaluation. Before human ratings, it reports \(\Delta_{\mathrm{WR}-\mathrm{fixed}}=R_{\mathrm{WR}}-R_{\mathrm{fixed}}\) on identical items with the two discordant counts. CaChe supplies the confirmatory held-out estimate, ParlaMint-GB supplies an additional descriptive held-out estimate, and the Dreaddit and GoEmotions test splits are reported separately as in-domain audits. After RQ1, the common packet analysis reports \(\Delta_{H-L}=R_H-R_L\) with a paired 95\% interval and classifies the result using a prospectively frozen practical comparability margin.
+
+\paragraph{Secondary quality measures.}
+The common instrument records five-level ratings of evidential credibility, voice and boundary preservation, and scope calibration. They explain detection decisions and are not performance metrics. A frozen LLM judge also makes separate binary credibility and confirmability decisions at the code, subtheme, and theme levels \citep{qiao2025thematiclm,zheng2023judging}. Credibility asks whether an output represents its source data. Confirmability asks whether it is data driven and consistent with the original input context. Each dimension and output level reports the success rate, \(100P/N\) percent. Rates are not pooled and are descriptive rather than independently verified accuracy.
+
+\paragraph{RQ3: output improvement.}
+RQ3 uses successful repair without collateral error as its primary outcome. A blinded panel must find that the verified error was repaired, accurate material was preserved, and no new error was introduced. We report the paired difference in this success rate between revision with no feedback and revision with locked RQ1 feedback, together with a 95\% interval. \fillin{INSERT THE FROZEN RQ3 PRIMARY CONTRAST AND INTERVAL PROCEDURE}.
+
+\subsection{Evaluation Protocol and Analysis}
+\label{sec:evaluation_analysis}
+
+\paragraph{Instrument and scoring.}
+Every reviewer receives the same blinded packet and response form, identifies the error, and chooses accept, revise, reject, or escalate. For RQ3, each human reviewer provides concise, source-linked feedback after locking the detection response. The three diagnostic ratings use five response levels. Values 1, 3, and 5 denote serious incompatibility, material revision, and full adequacy, while values 2 and 4 are intermediate anchors. Accept, an incorrect or missing error identification, ``cannot judge,'' abstention, and terminal failure remain in the recall denominator as misses. RQ2 also counts invalid output, filtering, truncation, and timeout as misses. Invalid or missing judge decisions, filtering, timeouts, and terminal failures remain in the secondary success-rate denominator as failures. The preregistration freezes the judge actor, prompt, decoding, and source context.
+
+\paragraph{RQ1 analysis.}
+Review by researchers without specialist expertise alone and review by both specialist groups are descriptive reference conditions. Matched specialist review time is a design control rather than an outcome. RQ1 intervals account for packet and reviewer clustering. \fillin{INSERT THE FROZEN RQ1 INTERVAL PROCEDURE}.
+
+\paragraph{RQ2 benchmark.}
+Every eligible item is rated under prompts for researchers without specialist expertise, qualitative methods experts, and domain experts in three independent, stateless repetitions. The preregistration designates one of the three reviewer candidates named in Implementation Details as primary and the other two as cross-family sensitivity reviewers. It freezes their exact immutable identifiers before held-out access. Repetition 1 supplies the primary observations.
+
+Four task-matched methods use the same packets, response schema, and scoring rule. Generalist review applies the researcher-role prompt to every item. Fixed role applies the role with the highest repetition 1 micro recall on the development set balanced across error families. Exact ties select the researcher prompt, then the qualitative methods prompt, then the domain prompt. All roles is a descriptive full-review reference and counts an error as found when any role selects its recorded response choice. WarrantRoute applies the frozen packet-specific route. These controls isolate the review and routing decision. End-to-end systems such as MindCoder and CentaurTA instead generate or refine codes and themes \citep{gao2025mindcoder,wang2026centaurta}.
+
+The post-RQ1 comparison holds the CaChe packets, routes, rubric, and denominator fixed across human reviewers and the designated primary LLM reviewer. With paired interval \(C\) and frozen margin \(m\), human recall is meaningfully higher when \(\inf(C)>m\), practically comparable when \(C\subseteq[-m,m]\), and LLM recall is meaningfully higher when \(\sup(C)<-m\). The result is inconclusive otherwise. Nonsignificance alone does not establish comparability. \fillin{REPORT THE FROZEN MARGIN AND RATIONALE}. The LLM review may run before human ratings, but all outputs are sealed first. Candidate-generation and reviewer models have separate actor records. Reviewer payloads exclude defect labels, human responses, adjudication, and outcomes.
+
+\paragraph{Uncertainty and sensitivity.}
+RQ2 recall and recall difference intervals use 10,000 paired bootstrap resamples over source clusters with seed 20270826. The overall CaChe difference between WarrantRoute and fixed role for \fillin{PRIMARY REVIEWER MODEL} is the sole confirmatory comparison before human ratings. Generalist review, all roles, the other two reviewer models, recall by reviewer role and error type, the Dreaddit and GoEmotions audits, the ParlaMint-GB held-out evaluation, and the analysis that retains a role flag selected in at least two of three repetitions are descriptive. Repetitions 2 and 3 never enlarge \(N\). Appendix~\ref{sec:artifact_metrics} specifies route application, cluster units, multiplicity, nonestimable intervals, and conditional inference.
+
+\paragraph{Diagnostic and operational quantities.}
+The useful role label evaluated only after routing is frozen, agreement, response instability, expected and completed calls, valid output and failure counts, reliability of the human reference labels, latency, tokens, cost, and human review time are diagnostic, sensitivity, or operational quantities. RQ3 also reports repair, preservation, collateral-error, failure, time, token, and cost counts. The useful role label never enters the router, and agreement alone does not establish validity or reviewer substitution. Supplementary reporting appears in Appendix~\ref{sec:appendix_results}.
+
+\subsection{RQ1: Human Expertise-Aware Routing}
+
+RQ1 is designed to compare researchers without specialist expertise, qualitative-methods experts, and domain experts. The common instrument and assignment design give all groups the same tutorial, blinded packets, and response form with balanced subsets. The assignment protocol requires methods and domain experts to rate independently before adjudication and keeps defensible disagreement visible rather than forcing one answer.
+
+The policy uses only information available before specialist review: an initial rating, confidence, abstention or requested expertise, and nonsensitive packet-provenance features. It excludes defect labels, protected attributes, specialist scores, and test outcomes. An interpretable regularized model chooses no additional review, methods review, domain review, or both. The protocol requires development-only threshold selection and freezing before held-out evaluation.
+
+\subsection{RQ2: Human Versus LLM Reviewers}
+
+Building on RQ1, RQ2 compares humans and LLMs reviewing the same items in the same roles. The paired comparison is eligible only after RQ1 and only on the prespecified common packet set. Section~\ref{sec:evaluation_methods} defines the RQ2 metrics and outcome interpretation. Section~\ref{sec:evaluation_analysis} defines the scoring and comparison design.
+
+Table~\ref{tab:rq2_results} reports the four task-matched review methods defined in Section~\ref{sec:evaluation_analysis}. They use identical packets, role outputs, response schemas, and scoring.
+
+\subsection{RQ3: Output Improvement}
+
+RQ3 applies the two frozen revision conditions defined above to a prespecified set of defective packets. Feedback remains exactly as given before adjudication, and a separate blinded panel scores every revision.
+
+\subsection{Shared Preregistration and Reporting}
+
+Before recruitment, model runs, or revision runs, the preregistration must fix recruitment criteria, sample size, LLM repetitions, exclusions, actor manifests, the common-packet analysis set, the practical-comparability margin, and the RQ3 repair design. Recruitment criteria, role definitions, assignment, prompts, repetitions, and failure handling appear in Appendix~\ref{sec:reviewer_protocol}.
+
+The same preregistration fixes interval procedures, clustering, the bootstrap seed, confirmatory and descriptive comparison families, and the rule for nonestimable intervals. Section~\ref{sec:evaluation_methods} defines the metrics and estimands. Section~\ref{sec:evaluation_analysis} defines scoring and comparison rules. Appendix~\ref{sec:artifact_metrics} gives the statistical implementation. Before CaChe processing, actor, prompt, packet, and analysis manifests must be frozen.
+
+\section{Results}
+
+No review, routing, or repair result is yet available. Every placeholder below must be populated from its frozen, authorized real-corpus analysis export. All results use the metrics and estimands in Section~\ref{sec:evaluation_methods} and the scoring, evaluation sets, and analysis rules in Section~\ref{sec:evaluation_analysis}. Report the Dreaddit and GoEmotions audits before the CaChe and ParlaMint-GB evaluations, reconcile every denominator, and identify the preregistration, actor snapshots, prompt hashes, run dates, and analysis freeze. Study accounting and secondary routing diagnostics belong in Appendix~\ref{sec:appendix_results}.
+
+\subsection{RQ1: Human Expertise-Aware Routing}
+
+\fillin{REPORT THE PRESPECIFIED RQ1 RESULTS AND MAIN ROLE AND ERROR TYPE PATTERN DEFINED IN SECTIONS~\ref{sec:evaluation_methods} AND~\ref{sec:evaluation_analysis}}.
+
+Table~\ref{tab:rq1_results} reserves the primary CaChe RQ1 comparison. Its quantities and sign conventions follow Section~\ref{sec:evaluation_methods}.
+
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{1.06}
+\begin{tabularx}{\columnwidth}{@{}
+>{\raggedright\arraybackslash}X
+>{\centering\arraybackslash}p{0.95cm}
+>{\centering\arraybackslash}p{1.65cm}
+>{\centering\arraybackslash}p{1.75cm}@{}}
+\toprule
+\textbf{Human review method} & $\boldsymbol{TP/N}$ &
+\shortstack{\textbf{Recall (\%)} $\boldsymbol{\uparrow}$\\\textbf{[95\% CI]}} &
+\shortstack{\textbf{Difference (pp)}\\\textbf{[95\% CI]}} \\
+\midrule
+WarrantRoute & \fillin{TP/N} & \fillin{R [CI]} & Reference \\
+Random routing & \fillin{TP/N} & \fillin{R [CI]} & \fillin{$\Delta_R$ [CI]} \\
+Uncertainty-only routing & \fillin{TP/N} & \fillin{R [CI]} & \fillin{$\Delta_U$ [CI]} \\
+\bottomrule
+\end{tabularx}
+\caption{RQ1 human recall by routing method.}
+\label{tab:rq1_results}
+\end{table}
+
+\subsection{RQ2: Human Versus LLM Reviewers}
+
+\paragraph{Analysis set and run integrity.}
+\fillin{REPORT THE PRESPECIFIED ANALYSIS SET AND RUN INTEGRITY QUANTITIES FROM APPENDIX~\ref{sec:appendix_results}}.
+
+\paragraph{WarrantRoute comparison before human ratings.}
+\fillin{REPORT THE PRESPECIFIED RESULTS BEFORE HUMAN RATINGS FOR THE CaChe CONFIRMATORY COMPARISON, THE DESCRIPTIVE ParlaMint-GB HELD-OUT EVALUATION, AND THE SEPARATE DREADDIT AND GoEmotions AUDITS AS DEFINED IN SECTIONS~\ref{sec:evaluation_methods} AND~\ref{sec:evaluation_analysis}}.
+
+\paragraph{Human and LLM comparison after RQ1.}
+\fillin{REPORT THE PRESPECIFIED COMMON PACKET HUMAN AND LLM RESULTS AND CLASSIFICATION DEFINED IN SECTIONS~\ref{sec:evaluation_methods} AND~\ref{sec:evaluation_analysis}}.
+
+\paragraph{Role and flaw patterns.}
+\fillin{REPORT THE PRESPECIFIED DESCRIPTIVE RESULTS BY REVIEWER ROLE AND ERROR TYPE AND STATE THE LARGEST INTERPRETABLE COMPLEMENTARITY PATTERN}.
+
+\paragraph{Secondary, sensitivity, and operational results.}
+\fillin{REPORT EVERY PRESPECIFIED SECONDARY, SENSITIVITY, AND OPERATIONAL QUANTITY FROM SECTIONS~\ref{sec:evaluation_methods} AND~\ref{sec:evaluation_analysis} WITHOUT PAIRWISE WINNER CLAIMS}.
+
+Figure~\ref{fig:role_sensitivity} reserves the descriptive results by reviewer role and error type. Table~\ref{tab:rq2_results} reserves results for three prospective reviewer models: Qwen3 8B, Llama 3.1 8B, and Gemma 3 4B. The exact snapshots and primary designation are \fillin{REPORT THE FROZEN REVIEWER SNAPSHOTS AND PRIMARY DESIGNATION}. These identifiers name LLM reviewers rather than the candidate-generation model. All three models receive identical packets, role instructions, response schemas, repetitions, and miss rules. The frozen primary model's CaChe comparison between WarrantRoute and fixed role is confirmatory. All other cells are descriptive, and the corresponding recall differences are reported in the text.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/role_sensitivity_shell.pdf}
+\caption{CaChe recall by reviewer role and error type.}
+\label{fig:role_sensitivity}
+\end{figure*}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{1.4pt}
+\renewcommand{\arraystretch}{1.00}
+\begin{tabularx}{\columnwidth}{@{}
+>{\raggedright\arraybackslash}p{1.05cm}
+>{\raggedright\arraybackslash}p{1.45cm}
+>{\centering\arraybackslash}p{1.58cm}
+>{\centering\arraybackslash}p{0.90cm}
+>{\centering\arraybackslash}X@{}}
+\toprule
+\textbf{Dataset} & \textbf{Method} & \textbf{Model} & $\boldsymbol{TP/N}$ &
+\textbf{Recall (\%)} $\boldsymbol{\uparrow}$ \\
+\midrule
+Dreaddit & Generalist & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\cmidrule(lr){2-5}
+& Fixed role & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\cmidrule(lr){2-5}
+& All roles & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\cmidrule(lr){2-5}
+& WarrantRoute & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\midrule
+GoEmotions & Generalist & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\cmidrule(lr){2-5}
+& Fixed role & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\cmidrule(lr){2-5}
+& All roles & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\cmidrule(lr){2-5}
+& WarrantRoute & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\midrule
+CaChe & Generalist & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\cmidrule(lr){2-5}
+& Fixed role & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\cmidrule(lr){2-5}
+& All roles & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\cmidrule(lr){2-5}
+& WarrantRoute & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\midrule
+ParlaMint-GB & Generalist & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\cmidrule(lr){2-5}
+& Fixed role & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\cmidrule(lr){2-5}
+& All roles & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\cmidrule(lr){2-5}
+& WarrantRoute & Qwen3 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Llama 3.1 8B & \fillin{TP/N} & \fillin{R [CI]} \\
+& & Gemma 3 4B & \fillin{TP/N} & \fillin{R [CI]} \\
+\bottomrule
+\end{tabularx}
+\caption{RQ2 recall with 95\% confidence intervals by method and model.}
+\label{tab:rq2_results}
+\end{table}
+
+\subsection{RQ3: Output Improvement}
+
+\fillin{REPORT THE PRESPECIFIED RQ3 ALLOCATED DENOMINATOR, SUCCESSFUL REPAIR WITHOUT COLLATERAL ERROR IN EACH CONDITION, PRIMARY PAIRED DIFFERENCE WITH 95 PERCENT INTERVAL, FAILURE ACCOUNTING, AND BOUNDED INTERPRETATION FROM THE FROZEN REAL-CORPUS EXPORT}.
+
+\section{Discussion}
+
+\fillin{STATE THE RQ1 EFFECT AND MAIN ROLE AND ERROR TYPE PATTERN}. \fillin{STATE THE RQ2 RESULTS AND PRESPECIFIED COMMON PACKET CLASSIFICATION}. \fillin{STATE THE RQ3 REPAIR EFFECT AND COLLATERAL-ERROR FINDING}. Interpretation separates detection, reviewer comparison, and output improvement. Practical comparability does not imply equal expertise or general substitutability, and detecting an error does not show that feedback can repair it. Any result is limited to the recruited reviewers, frozen models and prompts, and evaluated packets.
+
+\section{Related Work}
+
+Interactive systems support code revision, disagreement, and persistent feedback \citep{dai2023llm,gao2024collabcoder,wang2026centaurta}. Across related studies reusing the restricted AAOCA interview corpus and twelve published reference themes, fine-tuned and prompted role pipelines perform coding, theme generation, evaluation, and refinement \citep{yi2025sftta,yi2025autota,xu2026tama}. These studies do not report a matched test of whether qualitative-methods and domain experts detect different source-grounded flaws on the same items. Adjacent laboratory-automation work prompts LLMs to convert biology protocols into pseudocode and uses an LLM judge to evaluate the generated representations \citep{yi2024protomed}. Evaluator identity can change conclusions: blind expert preference may diverge from agreement metrics \citep{liu2026agreement}, and source-reading specialists may differ from nonspecialists who see isolated themes \citep{moskalewicz2026phenomenology}.
+
+Selective-review methods route items using confidence, ensemble diversity, or rationale disagreement \citep{zhao2025confidence,tajik2026disagreement}, although confidence can be miscalibrated or can depend on how the confidence question is worded \citep{li2026confidence}. Provenance systems link quotations, codes, and themes \citep{ye2026reflexis,yi2026provenance}, but a valid link does not ensure that the excerpt warrants the interpretation or preserves relevant counterevidence. WarrantRoute joins these two lines of work. It routes a source-linked packet according to the kind of review it appears to require, tests the same bounded task with humans and frozen LLM reviewer proxies, and evaluates whether the routed human feedback supports repair without collateral error.
+
+\section{Limitations}
+
+The inferential scope is limited to the recruited reviewers, frozen reviewer and revision models and prompts, four English or English-translated corpora, and five flaw families. Role prompting cannot reproduce human training, lived experience, accountability, or interpretive judgment. Controlled variants isolate single defects, whereas natural outputs may contain subtler or interacting errors, and routing may create false reassurance for items that are not escalated. The review and repair tasks assess bounded evidence packets, not complete qualitative analysis, which also requires familiarization, memoing, reflexivity, and accountable interpretation.
+
+\section{Ethics Statement}
+
+Real-text model processing and rater exposure begin only after institutional, source, provider, access, retention, and release requirements are documented; approval of the original collection does not transfer to this study. Restricted copies are minimized, and protected text, feedback, and revised outputs go only to approved services and reviewers. Every excerpt shown during review or repair assessment receives a two-person privacy and permissions review. Raters participate voluntarily, and public artifacts contain only aggregate outputs and specifically cleared material. Details appear in Appendix~\ref{sec:detailed_ethics}.
+
+\section{Conclusion}
+
+WarrantRoute tests one central claim: source-grounded flaws may benefit from different reviewer roles. RQ1 asks whether expertise-aware routing improves detection. RQ2 compares human and LLM reviewers on the same items and roles. RQ3 asks whether the routed human review from RQ1 improves the output through repair without collateral error. The current manuscript establishes the protocol and reports no experimental result. \fillin{AFTER THE FROZEN STUDIES: REPORT THE RQ1 EFFECT, THE LLM ROUTING BENCHMARK, THE HUMAN-LLM COMPARISON, THE RQ3 REPAIR EFFECT, AND THE BOUNDED PRACTICAL IMPLICATION}.

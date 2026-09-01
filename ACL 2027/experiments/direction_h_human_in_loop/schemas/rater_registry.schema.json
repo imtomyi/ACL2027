@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/direction-h-rater-registry-v1.json",
+  "title": "Direction H pseudonymous rater registry",
+  "description": "Coordinator-only metadata that must remain outside canonical qc-paper-metrics-v1 rating records. It distinguishes Charlie's developer-researcher case from independent confirmatory reviewers without storing names or contact details.",
+  "type": "object",
+  "required": [
+    "registry_version",
+    "registry_id",
+    "visibility",
+    "contains_direct_identifiers",
+    "created_at_utc",
+    "raters"
+  ],
+  "properties": {
+    "registry_version": {"const": "direction-h-rater-registry-v1"},
+    "registry_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "visibility": {"const": "coordinator_only"},
+    "contains_direct_identifiers": {"const": false},
+    "created_at_utc": {"type": "string", "format": "date-time"},
+    "raters": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/rater"}
+    }
+  },
+  "$defs": {
+    "rater": {
+      "type": "object",
+      "required": [
+        "rater_id",
+        "evaluator_group",
+        "case_classification",
+        "study_roles",
+        "eligible_evaluation_roles",
+        "helped_develop_study",
+        "helped_construct_assigned_items",
+        "prior_access",
+        "blinding_status",
+        "tutorial_status",
+        "comprehension_check_status",
+        "include_in_primary_independent_human_pool"
+      ],
+      "properties": {
+        "rater_id": {"type": "string", "minLength": 1, "maxLength": 160},
+        "evaluator_group": {
+          "enum": [
+            "researcher",
+            "qualitative_methods_expert",
+            "domain_expert",
+            "dual_expertise"
+          ]
+        },
+        "case_classification": {
+          "enum": [
+            "developer_researcher_case_baseline",
+            "independent_reviewer",
+            "nonindependent_other"
+          ]
+        },
+        "study_roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "first_stage_rater",
+              "feedback_author",
+              "repair_assessor",
+              "adjudicator",
+              "item_constructor",
+              "coordinator"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "eligible_evaluation_roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": ["development", "in_domain_audit", "cross_domain_confirmatory"]
+          },
+          "uniqueItems": true
+        },
+        "helped_develop_study": {"type": "boolean"},
+        "helped_construct_assigned_items": {"type": "boolean"},
+        "prior_access": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "none",
+              "study_design",
+              "rating_rubric",
+              "pilot_item_content",
+              "condition_truth",
+              "model_identity",
+              "historical_scores",
+              "revision_outcomes"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "blinding_status": {
+          "enum": [
+            "condition_blinded_developer",
+            "condition_masked_developer",
+            "fully_eligible_blinded",
+            "partial_prior_exposure",
+            "ineligible_for_blinded_rating"
+          ]
+        },
+        "tutorial_status": {"enum": ["not_started", "passed", "failed", "not_applicable"]},
+        "comprehension_check_status": {
+          "enum": ["not_started", "passed", "failed", "not_applicable"]
+        },
+        "include_in_primary_independent_human_pool": {"type": "boolean"},
+        "notes": {"type": "string", "maxLength": 3000}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "case_classification": {"const": "developer_researcher_case_baseline"}
+            },
+            "required": ["case_classification"]
+          },
+          "then": {
+            "properties": {
+              "evaluator_group": {"const": "researcher"},
+              "helped_develop_study": {"const": true},
+              "blinding_status": {
+                "enum": [
+                  "condition_blinded_developer",
+                  "condition_masked_developer"
+                ]
+              },
+              "include_in_primary_independent_human_pool": {"const": false}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "case_classification": {"const": "independent_reviewer"}
+            },
+            "required": ["case_classification"]
+          },
+          "then": {
+            "properties": {
+              "helped_develop_study": {"const": false},
+              "helped_construct_assigned_items": {"const": false},
+              "blinding_status": {"const": "fully_eligible_blinded"},
+              "include_in_primary_independent_human_pool": {"const": true},
+              "prior_access": {
+                "not": {
+                  "contains": {
+                    "enum": [
+                      "condition_truth",
+                      "model_identity",
+                      "historical_scores",
+                      "revision_outcomes"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"prior_access": {"contains": {"const": "none"}}},
+            "required": ["prior_access"]
+          },
+          "then": {"properties": {"prior_access": {"maxItems": 1}}}
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

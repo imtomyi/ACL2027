@@ -1,0 +1,341 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warrantroute.local/schemas/qwen3-generalist-packet-study-freeze-v1.json",
+  "title": "Qwen3 Generalist Dreaddit packet execution freeze",
+  "description": "Text-free metadata that binds an already constructed and privacy-cleared Dreaddit test packet bank before Qwen3 Generalist review. This record is evidence supplied to the packet sealer; neither this schema nor a resulting seal grants authorization.",
+  "type": "object",
+  "required": [
+    "document_type",
+    "freeze_version",
+    "record_status",
+    "study_id",
+    "frozen_at_utc",
+    "frozen_by_authority_id",
+    "corpus",
+    "design",
+    "actors",
+    "bindings",
+    "warning"
+  ],
+  "properties": {
+    "document_type": {
+      "const": "warrantroute_qwen3_generalist_packet_study_freeze"
+    },
+    "freeze_version": {
+      "const": "qwen3-generalist-packet-study-freeze-v1"
+    },
+    "record_status": {
+      "const": "formal_packet_execution_metadata_frozen"
+    },
+    "study_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]{1,128}$"
+    },
+    "frozen_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "frozen_by_authority_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]{1,128}$"
+    },
+    "corpus": {
+      "type": "object",
+      "required": [
+        "corpus_id",
+        "official_source_split",
+        "evaluation_role",
+        "cluster_unit"
+      ],
+      "properties": {
+        "corpus_id": {
+          "const": "dreaddit"
+        },
+        "official_source_split": {
+          "const": "test"
+        },
+        "evaluation_role": {
+          "const": "in_domain_audit"
+        },
+        "cluster_unit": {
+          "const": "post"
+        }
+      },
+      "additionalProperties": false
+    },
+    "design": {
+      "type": "object",
+      "required": [
+        "fixed_n",
+        "one_version_per_base_packet",
+        "complete_post_clusters_required",
+        "post_clusters_disjoint_across_items",
+        "privacy_log_full_coverage_required",
+        "minimum_distinct_verifiers_per_item",
+        "family_balance"
+      ],
+      "properties": {
+        "fixed_n": {
+          "type": "integer",
+          "minimum": 5
+        },
+        "one_version_per_base_packet": {
+          "const": true
+        },
+        "complete_post_clusters_required": {
+          "const": true
+        },
+        "post_clusters_disjoint_across_items": {
+          "const": true
+        },
+        "privacy_log_full_coverage_required": {
+          "const": true
+        },
+        "minimum_distinct_verifiers_per_item": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "family_balance": {
+          "type": "object",
+          "required": [
+            "frozen",
+            "expected_counts"
+          ],
+          "properties": {
+            "frozen": {
+              "type": "boolean"
+            },
+            "expected_counts": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/familyCounts"
+                }
+              ]
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "frozen": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "frozen"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "expected_counts": {
+                    "$ref": "#/$defs/familyCounts"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "expected_counts": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "actors": {
+      "type": "object",
+      "required": [
+        "candidate_generator",
+        "reviewer"
+      ],
+      "properties": {
+        "candidate_generator": {
+          "type": "object",
+          "required": [
+            "actor_id",
+            "task_role",
+            "model_id",
+            "snapshot_sha256",
+            "prompt_sha256"
+          ],
+          "properties": {
+            "actor_id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.-]{1,128}$"
+            },
+            "task_role": {
+              "const": "candidate_generator"
+            },
+            "model_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "snapshot_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "prompt_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "additionalProperties": false
+        },
+        "reviewer": {
+          "type": "object",
+          "required": [
+            "actor_id",
+            "task_role",
+            "prompted_role",
+            "model_id",
+            "model_snapshot_sha256",
+            "component_freeze_sha256"
+          ],
+          "properties": {
+            "actor_id": {
+              "const": "qwen3_8b_generalist_reviewer_v1"
+            },
+            "task_role": {
+              "const": "reviewer"
+            },
+            "prompted_role": {
+              "const": "generalist"
+            },
+            "model_id": {
+              "const": "qwen3:8b"
+            },
+            "model_snapshot_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "component_freeze_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "bindings": {
+      "type": "object",
+      "required": [
+        "readiness_report_sha256",
+        "governance_source_record_sha256",
+        "governance_record_sha256",
+        "reviewer_registry_sha256",
+        "privacy_review_log_sha256",
+        "packet_manifest_sha256",
+        "source_receipt_sha256",
+        "verification_bundle_sha256",
+        "verification_seal_sha256",
+        "study_design_freeze_sha256",
+        "packet_bank_sha256",
+        "truth_cluster_map_sha256",
+        "evaluator_item_schema_sha256",
+        "scoring_contract_sha256",
+        "analysis_code_sha256",
+        "heldout_preaccess_record_sha256"
+      ],
+      "properties": {
+        "readiness_report_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "governance_source_record_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "governance_record_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "reviewer_registry_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "privacy_review_log_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "packet_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "verification_bundle_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "verification_seal_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "study_design_freeze_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "packet_bank_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "truth_cluster_map_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evaluator_item_schema_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scoring_contract_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "analysis_code_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "heldout_preaccess_record_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "additionalProperties": false
+    },
+    "warning": {
+      "const": "This frozen metadata record and any packet-bank seal validate bindings only. They do not independently grant data access, model processing, publication, or release authorization."
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "familyCounts": {
+      "type": "object",
+      "required": [
+        "unsupported_evidence",
+        "source_concentration",
+        "counterevidence_loss",
+        "contextual_flattening",
+        "unsupported_abstraction"
+      ],
+      "properties": {
+        "unsupported_evidence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_concentration": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "counterevidence_loss": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "contextual_flattening": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "unsupported_abstraction": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
