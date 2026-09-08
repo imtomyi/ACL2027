@@ -2,6 +2,15 @@
 
 Date: 2026-09-05
 
+## Flaw Criteria Clarification (2026-09-09)
+
+See the [Flaw definition and experiment audit](../../Storage/experiment_guidelines/flaw_criteria_audit_v1.md)
+for the located-material-defect criterion, family-specific counterconditions,
+and the distinction between historical target-flag scoring and evidence-grounded
+diagnosis. The audit covers the 400 cataloged n100 packets and 3,600 linked
+baseline outputs structurally, not by semantic relabeling. This clarification
+does not alter frozen prompts, implementations, truth maps or scores.
+
 ## Prospective Evaluation Addendum (2026-09-07)
 
 For the user's next evaluation design, consult the

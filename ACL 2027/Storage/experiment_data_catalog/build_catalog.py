@@ -10,6 +10,7 @@ import re
 import sys
 import tarfile
 import xml.etree.ElementTree as ET
+import markdown
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -85,6 +86,18 @@ def render_viewer(data):
     evidence = json.dumps(pipeline_evidence(), ensure_ascii=True).replace('<', '\\u003c')
     assert template.count('__PIPELINE_DATA__') == 1
     write(HERE / 'index.html', template.replace('__CATALOG_DATA__', payload).replace('__PIPELINE_DATA__', evidence))
+    background = markdown.markdown(
+        (HERE / 'DATASET_BACKGROUND.md').read_text(encoding='utf-8'),
+        extensions=['tables'],
+    )
+    background_template = (HERE / 'background.template.html').read_text(encoding='utf-8')
+    write(HERE / 'background.html', background_template.replace('__BACKGROUND_HTML__', background))
+    inventory = markdown.markdown(
+        (HERE / 'VERIFIED_INVENTORY.md').read_text(encoding='utf-8'),
+        extensions=['tables'],
+    )
+    inventory_template = (HERE / 'inventory.template.html').read_text(encoding='utf-8')
+    write(HERE / 'inventory.html', inventory_template.replace('__INVENTORY_HTML__', inventory))
 
 
 def link(path):
@@ -382,7 +395,6 @@ def main():
     notes = read_json(HERE / 'dataset_notes.json')
     data = {'audit': audit, 'packets': packets, 'notes': notes}
     write_json(HERE / 'catalog.json', data)
-    render_viewer(data)
     lines = ['# Verified Inventory', '', f"Snapshot: {audit['created_at_utc']}", '',
              'Counts describe stored artifacts, not independent model calls or independent people.', '',
              '| Dataset | Main packets | Main excerpts | Distinct records | Distinct source IDs | All observed bank-packet entries |',
@@ -396,6 +408,7 @@ def main():
               '| Bank | Prepared | Observed packets | Main n100 | Stored reviewer files |', '|---|---:|---:|---:|---:|']
     lines += [f"| {r['bank']} | {r['prepared_packets']} | {r['packets_with_outputs']} | {r['main_n100_packets']} | {r['stored_output_files']} |" for r in inventory]
     write(HERE / 'VERIFIED_INVENTORY.md', '\n'.join(lines) + '\n')
+    render_viewer(data)
     print(json.dumps({k: audit[k] for k in ['status', 'observed_bank_packet_entries', 'observed_unique_corpus_packet_ids', 'excerpt_occurrences', 'stored_reviewer_output_files']}, indent=2), flush=True)
 
 

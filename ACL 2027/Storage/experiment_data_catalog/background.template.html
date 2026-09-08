@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dataset background</title>
+<style>
+:root{color-scheme:light;--ink:#273331;--muted:#596b67;--line:#dbe2df;--accent:#176b65}
+*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--ink);font:15px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0}a{color:var(--accent);text-underline-offset:4px}button{font:inherit}header{padding:24px 32px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:20px}header h1{font-size:24px;line-height:1.3;margin:8px 0 0}header nav{display:flex;gap:20px;font-size:13px}.back{font-size:13px}main{max-width:1160px;margin:auto;padding:32px;display:grid;grid-template-columns:210px minmax(0,1fr);gap:48px}.sections{align-self:start;position:sticky;top:24px;display:grid;gap:4px}.sections button{border:0;border-left:3px solid transparent;background:transparent;text-align:left;padding:10px 12px;color:var(--muted);cursor:pointer}.sections button[aria-selected=true]{border-color:var(--accent);background:#f2f7f5;color:var(--accent);font-weight:650}.group-label{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin:22px 12px 6px}.group-label:first-child{margin-top:0}h2{font-size:26px;line-height:1.3;margin:0 0 12px}p{margin:0 0 18px;overflow-wrap:anywhere}.lead{font-size:16px;color:var(--muted);max-width:70ch;margin-bottom:28px}.content{min-width:0}.content details{border-top:1px solid var(--line);padding:0}.content summary{padding:18px 0;cursor:pointer;font-weight:650;list-style:none;display:flex;justify-content:space-between;gap:16px}.content summary::-webkit-details-marker{display:none}.content summary:after{content:"+";color:var(--accent);font-size:20px;line-height:24px}.content details[open]>summary:after{content:"−"}.detail-body{padding:0 0 12px;max-width:78ch}.content ul{padding-left:22px}.content li{margin:12px 0;overflow-wrap:anywhere}.table-scroll{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;vertical-align:top;padding:14px 10px;border-bottom:1px solid var(--line);min-width:130px}code{font:12px/1.6 ui-monospace,monospace;overflow-wrap:anywhere;background:#f3f5f4;padding:2px 4px}footer{border-top:1px solid var(--line);padding-top:20px;margin-top:28px;display:flex;gap:20px;font-size:13px}a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}[hidden]{display:none!important}
+@media(max-width:720px){header{padding:20px;align-items:start}header nav{flex-direction:column;gap:6px}main{padding:20px;grid-template-columns:minmax(0,1fr);gap:28px}.sections{position:static;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.group-label{grid-column:1/-1;margin-top:12px}.sections button{padding:9px;font-size:13px}h2{font-size:23px}.lead{font-size:14px}header h1{font-size:21px}footer{flex-wrap:wrap}}
+.input-steps{padding-left:16px;border-left:2px solid var(--line);margin-bottom:20px}.content .input-steps details:first-child{border-top:0}.content .input-steps summary{font-size:14px;padding:12px 0}.input-steps ul{margin:0 0 14px;padding-left:20px}.input-steps li{font-size:14px;margin:6px 0}
+</style>
+</head>
+<body>
+<header><div><a class="back" href="index.html#guide">&larr; Datasets</a><h1>Full background</h1></div><nav aria-label="Files"><a href="DATASET_BACKGROUND.md" download>Download Markdown</a><a href="index.html#packets">Packet explorer</a></nav></header>
+<main><nav class="sections" id="sections" role="tablist" aria-label="Background sections" aria-orientation="vertical"></nav><article class="content" id="content"></article></main>
+<div id="source" hidden>__BACKGROUND_HTML__</div>
+<script>
+const source=document.getElementById('source');
+if(source.textContent.trim()==='__BACKGROUND_'+'HTML__')location.replace('background.html'+location.hash);
+const sections=[],intro=[];
+for(const node of [...source.children]){
+ if(node.tagName==='H1')continue;
+ if(node.tagName==='H2')sections.push({title:node.textContent,nodes:[]});
+ else if(sections.length)sections.at(-1).nodes.push(node);
+ else intro.push(node);
+}
+const datasets=['Dreaddit','GoEmotions','CaChe','ParlaMint-GB'];
+const summaries={
+ Dreaddit:'Stress narratives from Reddit post segments.',
+ GoEmotions:'Emotion-annotated Reddit comments.',
+ CaChe:'Focus-group participant turns from western Kenya.',
+ 'ParlaMint-GB':'Speaker turns from British parliamentary proceedings.'
+};
+const slug=text=>text.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/-$/,'');
+const nav=document.getElementById('sections'),content=document.getElementById('content');
+function group(label,items){
+ const heading=document.createElement('div');heading.className='group-label';heading.textContent=label;nav.append(heading);
+ for(const section of items){
+  const button=document.createElement('button');button.textContent=section.title;button.id='tab-'+slug(section.title);button.dataset.section=slug(section.title);button.setAttribute('role','tab');button.setAttribute('aria-controls','content');button.onclick=()=>{location.hash=slug(section.title)};nav.append(button);
+ }
+}
+group('Datasets',sections.filter(s=>datasets.includes(s.title)));
+group('Experiment',sections.filter(s=>!datasets.includes(s.title)));
+function disclosure(title,nodes,open=false){
+ const details=document.createElement('details'),summary=document.createElement('summary'),body=document.createElement('div');
+ summary.textContent=title;body.className='detail-body';nodes.forEach(n=>body.append(n.cloneNode(true)));details.append(summary,body);details.open=open;content.append(details);
+ return body;
+}
+function render(){
+ const section=sections.find(s=>slug(s.title)===location.hash.slice(1))||sections.find(s=>s.title==='Dreaddit');
+ if(!section)return;
+ for(const button of nav.querySelectorAll('button')){const active=button.dataset.section===slug(section.title);button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;}
+ content.replaceChildren();content.setAttribute('role','tabpanel');content.setAttribute('aria-labelledby','tab-'+slug(section.title));content.tabIndex=0;
+ const title=document.createElement('h2');title.textContent=section.title;content.append(title);
+ if(datasets.includes(section.title)){
+  const lead=document.createElement('p');lead.className='lead';lead.textContent=summaries[section.title];content.append(lead);
+  for(const node of section.nodes){
+   const label=node.tagName==='P'?node.firstElementChild:null;
+   if(label?.tagName==='STRONG'){
+    const clone=node.cloneNode(true);clone.firstElementChild.remove();
+    disclosure(label.textContent.replace(/:$/,''),[clone],label.textContent==='Version:'||label.textContent==='Split:');
+   }else content.append(node.cloneNode(true));
+  }
+ }else{
+  let body=content;
+  for(const node of section.nodes){
+   if(node.tagName==='H3')body=disclosure(node.textContent,[],false);
+   else body.append(node.cloneNode(true));
+  }
+ }
+ for(const table of content.querySelectorAll('table')){const wrap=document.createElement('div');wrap.className='table-scroll';table.replaceWith(wrap);wrap.append(table);}
+ const footer=document.createElement('footer');footer.innerHTML='<a href="index.html#guide">Dataset statistics</a><a href="index.html#packets">Source packets</a>';content.append(footer);
+}
+nav.addEventListener('keydown',event=>{
+ const buttons=[...nav.querySelectorAll('button')];let i=buttons.indexOf(document.activeElement);
+ if(i<0)return;
+ if(['ArrowDown','ArrowRight'].includes(event.key))i=(i+1)%buttons.length;
+ else if(['ArrowUp','ArrowLeft'].includes(event.key))i=(i+buttons.length-1)%buttons.length;
+ else if(event.key==='Home')i=0;else if(event.key==='End')i=buttons.length-1;else return;
+ event.preventDefault();buttons[i].focus();buttons[i].click();
+});
+window.addEventListener('hashchange',render);render();
+</script>
+</body>
+</html>

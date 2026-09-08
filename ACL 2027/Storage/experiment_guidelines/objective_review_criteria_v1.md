@@ -3,6 +3,11 @@
 Version: 1.0. Date: 2026-09-07 KST.
 Status: prospective specification; not an implemented or authorized new run.
 
+Clarification dated 2026-09-09: [Flaw definition and experiment audit](flaw_criteria_audit_v1.md)
+consolidates the common materiality test, category counterconditions, overlap
+rules and historical implementation differences. It is explanatory and
+prospective; the historical contracts and scores remain unchanged.
+
 ## 1. Scope and precedence
 
 This document records the user's decisions: withdraw the proposed data

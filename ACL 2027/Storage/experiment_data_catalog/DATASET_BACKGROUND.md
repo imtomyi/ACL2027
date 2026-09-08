@@ -1,91 +1,127 @@
-# Dataset Background and Experimental Inputs
-
-This English record explains what data were used, how they became reviewer inputs, and which interpretations the files support. It is an internal provenance document, not manuscript-ready evidence. See [the packet viewer](index.html) for every observed packet and [the generated inventory](VERIFIED_INVENTORY.md) for verified counts.
-
-## The Four Different Objects
-
-| Object | What it actually is |
-|---|---|
-| Original corpus | Reddit text, focus-group transcripts or parliamentary proceedings obtained from an existing source. The corpus names were not invented by this experiment. |
-| Evidence packet | A locally constructed group of four excerpts, a research question, metadata and a claim. PKT IDs, working-bank names and n100 subset names are local experiment identifiers. |
-| Claim and intended flaw | A locally constructed interpretation and target flaw category. In the current n100 sets the claim generator is recorded as a deterministic working-packet builder, despite the field name `llm_generated_qualitative_claim`. |
-| Reviewer/quality output | A model's review of that packet, or a separate judge's assessment of the review. Neither is an original corpus annotation. |
-
-The initial `draftpkt_20260901T052834Z` experiment differs: its recorded claim-generator field names Qwen3 8B. The viewer preserves the actual field per packet. Do not generalize the current deterministic construction to every historical packet.
-
-## Current n100 Selection
-
-The authoritative binding is [the prompt-identity repair configuration](../../experiments/rq2_role_prompted_llm/config/table3_n100_prompt_identity_repair_v1.json). Each dataset contributes 100 packets, with 20 target constructions in each of five intended flaw categories. There are 400 packets and 1,600 displayed excerpt occurrences overall. The three reviewer models and methods reuse these same source packets.
-
-The subset selector sorts truth records by packet ID, groups them by intended flaw, takes 20 per group and sorts the selected IDs. Thus n100 means 100 selected packets per dataset, not 100 repetitions of a sample, not 100 people and not the original dataset's official size. Selection of this subset is deterministic. Earlier source selection can use a different rule, including the seeded ParlaMint draw.
-
-The five intended flaw categories are `unsupported_evidence`, `source_concentration`, `counterevidence_loss`, `contextual_flattening` and `unsupported_abstraction`. These targets come from local construction logic. The truth-map files explicitly do not establish independent human adjudication that every intended flaw is present. Original stress or emotion labels are not substitutes for flaw ground truth.
+# Dataset Background
 
 ## Dreaddit
 
-**Origin:** Turcan and McKeown (2019), *Dreaddit: A Reddit Dataset for Stress Analysis in Social Media*. Its original purpose is stress identification in social-media text. [Source paper](https://aclanthology.org/D19-6213/).
+**Version:** Author archive retrieved August 25, 2026. The source manifest does not specify a numbered release.
 
-**Actual experimental input:** Eligible `development_train` records derived from `dataset/raw/dreaddit/dreaddit-train.csv`, via `dataset/deidentified/dreaddit/records.jsonl`. The working builder sorts records, uses distinct post source IDs, groups four excerpts per packet and supplies a deterministic claim. The main subset comes from `dreaddit_dev580_working_v1`, not the earlier 25- or 100-packet bank. The official test split is not used in the main n100 set.
+**Split:** Official `dreaddit-train.csv`, prepared as `development_train`. The official test split is excluded from this n100 sample.
 
-**Original location:** Each catalog entry links to a CSV data-row number and the stored sentence range through the analysis record's provenance. The displayed excerpt is prepared text with applicable identifier masking, not a promise of unmodified raw text. The model saw the segment, not the complete post or thread. Sentence-range provenance in the catalog is additional traceability information and was not in the historical packet's local_context.
-
-**Theoretical relevance:** Stress narratives can motivate studying whether qualitative interpretations preserve the evidence and local situation. This is an interpretation of possible methodological relevance, not a finding of the current experiment. The data and scores do not establish clinical validity or diagnostic accuracy.
-
-[Local source manifest](../../dataset/manifests/dreaddit_source_manifest.json).
+**Source:** [Version, split and file hashes](../../dataset/manifests/dreaddit_source_manifest.json).
 
 ## GoEmotions
 
-**Origin:** Demszky et al. (2020), *GoEmotions: A Dataset of Fine-Grained Emotions*. The original annotations distinguish 27 emotions and neutral in Reddit comments. The official name is GoEmotions; `GoEmotion` in some table artifacts is an alias. [Source paper](https://aclanthology.org/2020.acl-main.372/).
+**Version:** Google Research's simplified release, retrieved August 29, 2026 and hash-verified September 1. No numbered version is recorded.
 
-**Actual experimental input:** The simplified official `train.tsv`, not the full-dataset CSVs. The builder retains comments with at least five words, normalizes whitespace and groups eligible records in source-row order. The working bank contains 9,540 prepared packets; its balanced subset contributes 100 to the main experiment. Prepared bank capacity must not be reported as the number evaluated.
+**Split:** Official simplified `train.tsv`, prepared as `development_train`. The official dev/test splits and full-dataset CSVs are excluded.
 
-**Original location:** `source_record_id` encodes the one-based TSV row. The catalog verifies the normalized text against that exact row and records its original emotion IDs. The simplified input contains no surrounding thread text. Four comments in one packet must not be described as an actual conversation or one author's narrative.
-
-**Theoretical relevance:** The comments provide a setting for testing grounded interpretation of short, affective utterances. This is a proposed connection to the study question. Original emotion annotations do not certify the injected claim's defect, review quality or a model's ability to repair documents.
-
-[Local provenance](../../dataset/proposals/goemotions_parlamint_swap/provenance_goemotions.md).
+**Source:** [Release, split and file hashes](../../dataset/proposals/goemotions_parlamint_swap/provenance_goemotions.md).
 
 ## CaChe
 
-**Origin:** The local manifest identifies Mehta (2024), *Cache2 Focus Group Discussion Transcripts AGYW and Community Males*, version 1, DOI `10.25417/uic.26495884.v1`. The source concerns adolescent girls and young women and community men, with discussion of the pandemic, relationships and health in rural western Kenya. CaChe is this project's display name; `agyw_focus_groups` is its internal corpus ID. [Source deposit](https://indigo.uic.edu/articles/dataset/Cache2_Focus_Group_Discussion_Transcripts_AGYW_and_Community_Males/26495884).
+**Version:** Source deposit version 1 (2024), DOI `10.25417/uic.26495884.v1`.
 
-**Actual experimental input:** Eligible participant turns in the deidentified records file, using English source passages or English translations. The bank interleaves source FGDs before grouping four records. Main n100 contains 400 distinct turns from all 11 transcript files, not 400 participants. The working bank has 765 prepared packets.
+**Split:** Participant turns from the prepared records. The stored project label is `heldout_cross_domain_evaluation`; it is not an official source split or an assurance that these previously used records remain unseen.
 
-**Original location:** Each turn maps to a named transcript file, line interval, turn index and speaker label. Some packets include a moderator question and preceding-record IDs. Preceding IDs alone are not additional visible transcript text. A packet can combine different focus groups, so its four excerpts are not necessarily a continuous exchange.
-
-**Theoretical relevance:** This source has a direct connection to qualitative interpretation and the importance of speaker and moderator context. That makes context-preserving review a plausible research question, but does not establish that the generated claims are valid thematic analyses or that their intended flaws were independently verified.
-
-**Handling:** Public and selectively redacted is not equivalent to anonymous. The source manifest documents filename/date discrepancies and remaining permissions/privacy requirements. The historical held-out split label is preserved as metadata; these already-used records are not newly untouched evaluation data. The source page could not be refreshed during this build, so these details are attributed to the local manifest rather than a new web verification.
-
-[Local source manifest](../../dataset/manifests/agyw_source_manifest.json).
+**Source:** [Version and source files](../../dataset/manifests/agyw_source_manifest.json).
 
 ## ParlaMint-GB
 
-**Origin:** The local provenance identifies the British component of ParlaMint 3.0, CLARIN.SI handle `11356/1486`. It consists of public parliamentary speech, including the Commons and Lords. [Source repository](https://hdl.handle.net/11356/1486). The repository could not be refreshed during this build; version details are grounded in the locally recorded archive provenance.
+**Version:** British component of ParlaMint 3.0, archive `ParlaMint-GB.tgz`, retrieved September 1, 2026.
 
-**Actual experimental input:** `dataset/raw/parlamint_gb/ParlaMint-GB.tgz`. The full-sample builder parses TEI speaker turns, joins segment text, normalizes whitespace and retains turns of 8 to 800 words. The recorded eligible pool has 607,907 turns. A seeded draw (`20260901`) selects 400 turns, then sorts them by year, chamber, session and record before grouping into 100 packets. These 100 packets are the entire `parlamint_gb_fullsample_eval100_working_v1` bank.
+**Split:** Sampled speaker turns from the British archive. The stored project label is `heldout_cross_domain_descriptive`, not an official train/test split.
 
-**Original location:** The main set's 400 distinct turn records come from 352 session source IDs. The catalog verifies exact text and speaker matches in the original archive and records the archive member, XML utterance identifier and ordinal. The archive is read without extraction. Any non-unique source match is explicitly recorded as such.
+**Source:** [Archive version and hash](../../dataset/proposals/goemotions_parlamint_swap/provenance_parlamint_gb.md).
 
-**Theoretical relevance:** Institutional discourse provides a different setting for testing whether a review respects evidence, context and policy disagreement. This is a rationale for studying transfer across domains, not evidence that the current diagnostic experiment establishes such transfer. A packet can mix unrelated debates. Sorting the source draw before assigning consecutive flaw groups can associate the flaw group with time or chamber; that design choice should not be hidden.
+## Experiment details
 
-[Local provenance](../../dataset/proposals/goemotions_parlamint_swap/provenance_parlamint_gb.md).
+### Data size and unit
 
-## What the Models Actually Received
+This section describes the catalog's Table 3 n100 sample and historical baseline reviews. The September 5 same-model WarrantRoute protocol is identified separately below; later playbook pilots are not pooled into these counts.
 
-The current detection outputs are the prompt-identity-repaired records, with 3,600 role/model records across four datasets. Generalist uses the generalist review. Fixed role uses `qualitative_methods` consistently. All roles combines the three stored roles: `generalist`, `qualitative_methods` and `domain`. It is not a fourth separately generated source dataset. Historical WarrantRoute replay uses the same source packet family; its routing policy is a separate object.
+| Dataset | Source collection counted locally | Builder-eligible records | Prepared packets | Evaluated n100 packets |
+|---|---|---:|---:|---:|
+| Dreaddit | 3,553 segments: 2,838 train + 715 test | 2,817 train segments | 580 | 100 |
+| GoEmotions | 54,263 simplified comments: 43,410 train + 5,426 dev + 5,427 test | 38,160 train comments | 9,540 | 100 |
+| CaChe | 11 transcript files; unfiltered participant-turn total not verified here | 3,076 prepared turns | 765 | 100 |
+| ParlaMint-GB | 670,912 speaker turns in the local British archive | 607,907 turns | 100 | 100 |
 
-The catalog reconstructs full historical reviewer prompts with the repository's `build_historical_prompt` function and verifies them against every current output's recorded hash. That function removes only `known_intended_flaw_type`, `known_intended_flaw_note` and `review_instruction`. It retains nested `theme_name`, `explanation` and `boundary_conditions` in the claim object. Those fields can reveal the intended flaw. Prompt identity across models does not make this a blind test without answer hints.
+These eligible counts describe the historical packet builders, not universal eligibility or processing clearance. Source units differ across datasets. GoEmotions counts concern the simplified release, not its larger full annotation collection.
 
-The separate Credibility/Conformability quality judge receives a sanitized source context, reviewed claim and review bundle, with excerpt/source IDs remapped. Its source excerpts and claim are checked against all 400 packets across its 3,600 units. Generation explanations are not part of that sanitized payload. This judge evaluates reviews, not the original corpus labels. The catalog links one exact stored unit per packet and indexes every other unit by file and line. Schema-repair attempts are not new source samples.
+**One evaluation sample = one packet:** four source excerpts + one constructed claim + a research question and metadata. It is not one original document or one participant.
 
-## Limits on Interpretation
+**Excerpt 1-4:** the four source passages included in one packet. Each passage is a Reddit segment/comment, a focus-group turn, or a parliamentary turn, depending on the dataset. Numbering restarts in every packet: repeated "Excerpt 1" labels do not mean the text is identical. The number indicates position, not importance or the answer. **Cited** means the claim references that passage; **Context** means it was supplied to the reviewer but not cited by the claim. The four passages need not belong to the same conversation.
 
-- Real source text and synthetic or deterministic claim construction are different provenance layers. Do not describe the whole packet as a naturally occurring flawed document.
-- Intended flaw balance is an experimental construction, not the natural frequency of these flaws in the source population.
-- A stored output with `status=valid` passes the software schema criterion. It is not a correctness label or scientific-quality guarantee.
-- An integrity check verifies identity and traceability. It does not establish representative sampling, independence, human gold labels, blinded evaluation or publication eligibility.
-- The current workspace policy keeps these working diagnostic records under `Storage/`. This catalog does not change that policy or move any result into a manuscript.
-- Reusing source records across methods is useful for paired comparison, but does not create new independent observations. Earlier bank variants and repaired output copies are explicitly separated in the inventory.
+**Why four excerpts?** Four is a fixed construction choice in the historical builders, not an established optimal sample size. The implementation supports three practical considerations:
 
-For precise counts, use the generated inventory rather than the original corpus size or a bank name. For the exact words a model could inspect, use the packet and historical prompt rather than a paraphrase of the dataset's subject.
+- **Compare evidence:** the claim usually cites excerpts 1 and 2, leaving 3 and 4 available for checking omitted evidence or contextual differences. The source-concentration template cites only excerpt 1. Uncited passages are not automatically counterevidence.
+- **Keep input structure consistent:** every dataset and condition uses the same number of excerpts, although their word counts differ.
+- **Limit context size:** the ParlaMint builder explicitly caps turns at 800 words to keep four-excerpt packets within the local 8,192-token context budget. This explains its length filter, not why four would outperform another excerpt count.
+
+The inspected construction records do not document a comparison of two, four and six excerpts. Four should therefore be reported as a design setting, not a validated optimum. Sources: [claim and packet construction](../../experiments/rq2_role_prompted_llm/scripts/build_working_dreaddit_packet_bank.py), [multicorpus construction](../../experiments/rq2_role_prompted_llm/scripts/build_working_multicorpus_packet_banks.py), [context-budget rule](../../experiments/rq2_role_prompted_llm/scripts/build_parlamint_full_sample_bank.py).
+
+**n100 = 100 packets per dataset:** 400 packets and 1,600 excerpt occurrences overall. Each dataset contributes 400 distinct source records. The CaChe records span 11 transcript files; ParlaMint-GB spans 352 session source IDs.
+
+| Dataset | n100 share of its prepared packet bank |
+|---|---:|
+| Dreaddit | 100 / 580 = 17.24% |
+| GoEmotions | 100 / 9,540 = 1.05% |
+| CaChe | 100 / 765 = 13.07% |
+| ParlaMint-GB | 100 / 100 = 100% |
+
+These percentages compare packets with packets. They are not percentages of the original corpus or all historical executions. Earlier runs are listed separately in the [inventory](inventory.html).
+
+Sources: [Dreaddit bank](../draft_review_packets/dreaddit_dev580_working_v1/manifest.json), [GoEmotions bank](../draft_review_packets/goemotions_train_all_working_v1/manifest.json), [CaChe bank](../draft_review_packets/agyw_focus_groups_eval765_working_v1/manifest.json), [ParlaMint-GB bank](../draft_review_packets/parlamint_gb_fullsample_eval100_working_v1/manifest.json), [catalog audit](audit.json). Source collection totals come from the dataset records linked above.
+
+### Shared inputs across conditions
+
+Qwen3 8B, Llama 3.1 8B and Gemma 3 4B use the same 400 packet IDs, claims and source excerpts. Baseline prompts are identical across models within each role after the recorded prompt-identity repair.
+
+| Method | Reviews used for each packet and model |
+|---|---|
+| Generalist | Generalist review |
+| Fixed role | Qualitative-methods review |
+| All roles | Generalist + qualitative-methods + domain reviews |
+| WarrantRoute, September 5 same-model protocol | One loop trajectory using the same packet; every loop role uses the selected model |
+
+All roles reuses the stored role reviews. It does not draw another sample. The same-model WarrantRoute protocol also fixes role instructions and packet IDs across the three model conditions.
+
+Sources: [Baseline identity audit](../draft_review_packets/table3_n100_prompt_identity_repair_v1_final.json), [packet bindings](audit.json), [same-model protocol](../rq2_personal_local_diagnostic/warrantroute_live_loop/n100_same_model_table3_20260905_v2/quality/protocol.md).
+
+### Five intended flaws
+
+**Flaw:** a located, material failure of the relationship between an analysis claim and its supplied evidence. The object being judged is the interpretation, not the source participant.
+
+Establish a flaw only when the affected claim is identifiable, a specific evidential problem can be explained, and correcting it would change the meaning, scope, attribution or disposition. Different wording or another defensible interpretation is not enough.
+
+| Type | Required problem | Not sufficient |
+|---|---|---|
+| Unsupported evidence | A material assertion or citation lacks the inferential support it claims. | A different opinion or not citing every excerpt. |
+| Source concentration | Narrow source support is presented as warranting a broader or representative claim. | One citation, when the conclusion is limited to that source. |
+| Counterevidence loss | A consequential countercase or qualification is omitted from the conclusion. | An uncited or unrelated passage, or an exception already acknowledged. |
+| Contextual flattening | A meaningful local distinction is collapsed, changing the interpretation. | Shortening text or omitting irrelevant metadata. |
+| Unsupported abstraction | A theoretical concept, scope or strength exceeds what the passages warrant. | Abstract terminology or a theme that uses new words. |
+
+Use the most specific evidenced mechanism. Do not double-count one problem under a generic category; independently evidenced defects may coexist. Missing essential context leads to **Cannot judge**, not an assumed flaw. Lack of support does not prove the opposite claim.
+
+**Historical measurement:** n100 assigns 20 packets per intended flaw per dataset. The scorer checks whether the mapped target flag occurs in the review; All roles uses the union of role flags. It does not verify that the rationale or highlighted passage actually establishes the defect. The labels remain construction targets.
+
+**Version distinction:** historical unsupported-abstraction templates emphasize theoretical overinterpretation. Later six-excerpt construction rules also cover excess scope or strength. This consolidated explanation does not retroactively change either run's scoring.
+
+[Full criteria, exceptions and experiment audit](../experiment_guidelines/flaw_criteria_audit_v1.md). Based on the [shared rater guide](../../experiments/direction_j_llm_as_rater/protocol/shared_rater_guide_v1.md), [existing prospective criteria](../experiment_guidelines/objective_review_criteria_v1.md), and [historical scorer](../../experiments/rq2_role_prompted_llm/scripts/score_working_detection_table.py).
+
+### Executions and retries
+
+| Stage | Count per unit | Handling |
+|---|---|---|
+| Baseline review | One accepted output per packet-role-model; 3,600 retained outputs | Historical attempts may exceed one. The identity repair regenerated 229 outputs, not 229 new samples. |
+| Baseline quality judge | One primary judgment per packet-method-model; 3,600 logical evaluations | Each response provides both Credibility and Conformability. Scheduled primary repeats: 0. |
+| Same-model WarrantRoute protocol | One trajectory per packet-model; 1,200 planned trajectories | Internal role calls and up to two revision rounds are part of that trajectory, with a 12-call cap. |
+| WarrantRoute quality judge | One logical judgment per assessable trajectory | Both quality dimensions come from the same judgment. |
+
+For quality judging, transport or invalid-format failures permit up to two additional technical attempts, three in total. Keep the first valid response and preserve failed attempts. Valid false/null judgments are not retried to improve scores. Missing or unresolved judgments are retained in the accounting; they are not additional samples or silently dropped.
+
+For the frozen same-model loop, completed trajectories are reused on resume, and failed/in-flight calls are not recreated under a new identity. Human escalation is a terminal outcome, not automatically a technical failure. A later recovery run requires its own recorded contract.
+
+One retained result does not prove that only one HTTP request occurred. Planned repetitions, technical retries and historical replacements are separate quantities. The source logs, rather than file totals, are needed for an exact attempt count.
+
+Sources: [Baseline quality execution rules](../draft_review_packets/table3_review_quality_v1/README.md), [229-output repair audit](../draft_review_packets/table3_n100_prompt_identity_repair_v1_final.json), [same-model execution protocol](../rq2_personal_local_diagnostic/warrantroute_live_loop/n100_same_model_table3_20260905_v2/quality/protocol.md).

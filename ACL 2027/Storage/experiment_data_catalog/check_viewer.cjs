@@ -21,37 +21,33 @@ async function main() {
     await page.waitForFunction(() => document.querySelectorAll('.packet-button').length === 400);
     assert.equal(await page.locator('#view-guide').isVisible(), true);
     assert.equal(await page.locator('#view-packets').isVisible(), false);
-    assert.equal(await page.locator('#sample-map span').count(), 100);
     assert.equal(await page.locator('#dataset-table-body tr').count(), 4);
-    assert.deepEqual(await page.locator('#flaw-legend b').allTextContents(), ['20 / 100', '20 / 100', '20 / 100', '20 / 100', '20 / 100']);
+    assert.equal(await page.locator('#dataset-detail').isVisible(), false);
     for (const corpus of ['dreaddit', 'goemotions', 'agyw_focus_groups', 'parlamint_gb']) {
-      await page.selectOption('#guide-dataset', corpus);
-      const example = data.packets.find(p => p.main_n100 && p.corpus_id === corpus);
-      assert.deepEqual(await page.locator('.snippet p').allTextContents(), example.packet.source_text_context.map(e => e.text));
-      assert.equal(await page.locator('.anatomy-claim blockquote').innerText(), example.packet.llm_generated_qualitative_claim.claim);
-      await page.click('[data-guide-flaw="source_concentration"]');
-      assert.equal(await page.locator('#sample-map span:not(.dimmed)').count(), 20);
-      assert.equal(await page.locator('[data-guide-flaw="source_concentration"]').getAttribute('aria-pressed'), 'true');
-      const chosen = data.packets.find(p => p.main_n100 && p.corpus_id === corpus && p.packet.known_intended_flaw_type === 'source_concentration');
-      await page.click('#open-example');
+      await page.click('[data-guide-dataset="' + corpus + '"]');
+      assert.equal(await page.locator('#dataset-detail').isVisible(), true);
+      const packets = data.packets.filter(p => p.main_n100 && p.corpus_id === corpus);
+      const excerpts = packets.flatMap(p => p.packet.source_text_context);
+      const words = excerpts.reduce((sum, e) => sum + e.text.trim().split(/\s+/u).length, 0);
+      assert.equal(await page.locator('[data-stat="words"] td').nth(1).innerText(), words.toLocaleString('en-US'));
+      assert.equal(await page.locator('#text-statistics tr').count(), 3);
+      await page.click('#browse-dataset');
       assert.equal(await page.locator('#view-packets').isVisible(), true);
-      assert.equal(await page.locator('.packet-id').innerText(), chosen.packet_id);
-      assert.deepEqual(await page.locator('.source-text').allTextContents(), chosen.packet.source_text_context.map(e => e.text));
+      assert.equal(await page.locator('.packet-button').count(), 100);
+      assert.deepEqual(await page.locator('.source-text').allTextContents(), packets[0].packet.source_text_context.map(e => e.text));
       await page.click('#tab-guide');
-      await page.click('[data-guide-flaw="source_concentration"]');
-      assert.equal(await page.locator('#sample-map span.dimmed').count(), 0);
+      await page.click('#close-dataset');
+      assert.equal(await page.locator('#dataset-detail').isVisible(), false);
     }
-    await page.click('[data-guide-dataset="dreaddit"]');
-    assert.equal(await page.locator('#guide-dataset').inputValue(), 'dreaddit');
     await page.locator('#tab-guide').focus();
     await page.keyboard.press('ArrowRight');
     assert.equal(await page.locator('#view-packets').isVisible(), true);
     await page.keyboard.press('ArrowRight');
     assert.equal(await page.locator('#view-metrics').isVisible(), true);
-    assert.equal(await page.locator('.metric-table tbody tr').count(), 4);
+    assert.equal(await page.locator('#view-metrics .metric-table tbody tr').count(), 4);
     await page.keyboard.press('Home');
     assert.equal(await page.locator('#view-guide').isVisible(), true);
-    checks.push('Guide: 100-square sample map, five groups of 20, four source profiles, exact packet previews, example-to-explorer links and keyboard tabs.');
+    checks.push('Guide: four datasets, source links, computed word totals, detail open/close, dataset-to-packet navigation and keyboard tabs.');
     await page.click('#tab-pipeline');
     assert.equal(await page.locator('#view-pipeline').isVisible(), true);
     assert.equal(await page.locator('#answer-files details').count(), 4);
@@ -75,15 +71,15 @@ async function main() {
     await page.locator('.packet-button').first().click();
     assert.equal(await page.locator('.source-text').count(), 4);
     const first = data.packets.find(p => p.main_n100);
-    assert.deepEqual(JSON.parse(await page.locator('.answer-record').textContent()), first.truth_record);
     assert.equal(first.truth_record.packet_id, first.packet_id);
     assert.equal(await page.locator('.answer-key-panel').count(), 1);
-    assert.match(await page.locator('.answer-key-panel').innerText(), /VISUAL ANSWER KEY/);
-    assert.equal(await page.locator('.answer-chip').count(), 4);
+    assert.equal(await page.locator('.answer-guide h2').innerText(), 'Intended flaw');
     assert.deepEqual(await page.locator('.source-text').allTextContents(), first.packet.source_text_context.map(e => e.text));
-    await page.getByText('Reviewer output files (9)', { exact: true }).click();
-    assert.equal(await page.locator('#detail table').first().locator('tbody tr').count(), 9);
-    checks.push('Default set: 400 packets; four verbatim excerpts; nine current role/model records.');
+    const sourceWords = first.packet.source_text_context.map(e => e.text.trim().split(/\s+/u).length);
+    assert.equal(await page.locator('.total-words').innerText(), sourceWords.reduce((a,b)=>a+b,0).toLocaleString('en-US'));
+    assert.deepEqual(await page.locator('.excerpt-words').allTextContents(), sourceWords.map(n=>n.toLocaleString('en-US')+' words'));
+    assert.equal(await page.locator('#detail details').count(), 0);
+    checks.push('Simplified detail: data number, type, exact source text, source word counts and intended answer.');
 
     for (const corpus of ['dreaddit', 'goemotions', 'agyw_focus_groups', 'parlamint_gb']) {
       await page.selectOption('#dataset', corpus);
@@ -99,8 +95,6 @@ async function main() {
     await page.fill('#search', parliament.packet_id);
     assert.equal(await page.locator('.packet-button').count(), 1);
     assert.deepEqual(await page.locator('.source-text').allTextContents(), parliament.packet.source_text_context.map(e => e.text));
-    await page.locator('.source-provenance summary').first().click();
-    assert.match(await page.locator('#detail').innerText(), /XML /);
     await page.fill('#search', 'a_query_with_no_results_019292929');
     assert.equal(await page.locator('.packet-button').count(), 0);
     assert.equal(await page.locator('#previous').isDisabled(), true);
@@ -112,9 +106,8 @@ async function main() {
     await page.selectOption('#scope', 'earlier');
     assert.equal(await page.locator('.packet-button').count(), 610);
     await page.fill('#search', 'PKT_c4eae72db76207c1');
-    await page.evaluate(() => document.querySelectorAll('.source-provenance').forEach(node => node.open = true));
-    assert.match(await page.locator('#detail').innerText(), /whitespace-only difference/);
-    checks.push('ID search, full source text, XML trace, empty state, earlier scope (610) and whitespace-only audit warning.');
+    assert.equal(await page.locator('.packet-button').count(), 1);
+    checks.push('ID search, full source text, empty state and earlier scope (610).');
 
     await page.fill('#search', '');
     await page.selectOption('#scope', 'main');
@@ -123,16 +116,13 @@ async function main() {
     assert.notEqual(await page.locator('.packet-heading h2').innerText(), before);
     await page.click('#previous');
     assert.equal(await page.locator('.packet-heading h2').innerText(), before);
-    await page.getByText('Dataset origin and theoretical context', { exact: true }).click();
-    const provenance = await page.getByText('Local provenance record', { exact: true }).getAttribute('href');
-    assert.ok(fs.existsSync(fileURLToPath(provenance)));
-    checks.push('Previous/next navigation and local provenance links.');
+    checks.push('Previous/next navigation.');
 
     const shotDir = path.join(base, 'screenshots');
     fs.mkdirSync(shotDir, { recursive: true, mode: 0o700 });
-    await page.getByText('Dataset origin and theoretical context', { exact: true }).click();
     for (const view of ['guide', 'packets', 'metrics', 'pipeline']) {
       await page.click('#tab-' + view);
+      if (view === 'guide') await page.click('[data-guide-dataset="dreaddit"]');
       for (const [name, width, height] of [['desktop', 1440, 1000], ['mobile', 390, 844], ['narrow', 320, 740]]) {
         await page.setViewportSize({ width, height });
         await page.evaluate(() => window.scrollTo(0, 0));
