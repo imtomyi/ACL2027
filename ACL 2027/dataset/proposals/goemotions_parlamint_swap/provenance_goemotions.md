@@ -4,6 +4,8 @@ Status: **Record complete for the simplified split. Processing still requires th
 project governance determination and a frozen preregistration.**
 Download authorized by the user in session on 2026-08-29.
 Download date: 2026-08-29 (America/Chicago).
+Current local retrieval verified against the recorded hashes: 2026-09-01
+(Asia/Seoul).
 
 Follows the six-point record-before-analysis contract in `dataset/README.md`.
 

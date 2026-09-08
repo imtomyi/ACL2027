@@ -71,6 +71,12 @@ rater-exposure, contextual-privacy, or release determination.
 - [`protocol/`](protocol/) — manuscript-compatible constructs, estimands,
   governance, blinding, revision, and independent-panel design. Any older text
   describing a fictional pilot is subordinate to the current data-scope policy.
+- [`protocol/ace_biomedical_thematic_analysis_v0.md`](protocol/ace_biomedical_thematic_analysis_v0.md)
+  is the background ACE adaptation analysis for evidence-linked biomedical
+  codebook thematic analysis.
+- [`protocol/ace_biomedical_tight_loop_v1.md`](protocol/ace_biomedical_tight_loop_v1.md)
+  is the successor design using sparse compact agents, conditional activation,
+  bounded revision, and human-approved Playbook updates.
 - `schemas/` and `scripts/` — retained prospective contracts/tooling. No
   collector, validator, model runner, or dataset pipeline may be run on item
   data until its data scope and governance gate explicitly permit it.

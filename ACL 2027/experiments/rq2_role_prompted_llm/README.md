@@ -1,10 +1,56 @@
 # RQ2 role-prompted LLM review
 
+## Live WarrantRoute n=100 loop
+
+The executable evidence/revision loop and model-comparison instructions are in
+[`WARRANTROUTE_LOOP_EXPERIMENT_GUIDE.md`](WARRANTROUTE_LOOP_EXPERIMENT_GUIDE.md).
+Use [`scripts/run_warrantroute_loop_n100.py`](scripts/run_warrantroute_loop_n100.py)
+to prepare, run, resume and score private n=100 experiments with the three
+model assignments in `config/warrantroute_loop_n100_v1.json`. This live runner
+is separate from the older cached-output replays and formal source-free adapters.
+
 Status: **v2.3 is the current source-free transport health check, and v2.4 is
 the current one-packet private real-data smoke diagnostic**. The v2.2
 qualification remains an immutable predecessor. All outputs are private
 engineering records, not manuscript evidence, and are not eligible for
 publication, submission, redistribution, or release.
+
+## Complete Table 3 formal rerun
+
+A future manuscript-eligible Table 3 run must regenerate the complete reviewer
+matrix for Generalist, Fixed role, All roles, and WarrantRoute. It cannot rerun
+only WarrantRoute against the cached working baselines. With four datasets,
+balanced n=100, three reviewer roles, three models, and three repetitions, the
+formal inventory is 10,800 reviewer outputs. The four methods and 48 table rows
+are derived from that same frozen matrix; Fixed role and WarrantRoute are fixed
+on development data before final-test access.
+
+The prospective freeze template and source-free preflight are:
+
+```sh
+python3 experiments/rq2_role_prompted_llm/scripts/validate_table3_formal_freeze.py \
+  --freeze experiments/rq2_role_prompted_llm/config/table3_formal_full_matrix_v1.template.json
+```
+
+The tracked template intentionally returns `blocked` and makes no model call.
+Formal execution remains unavailable until all four corpus lanes pass 40/40
+governance gates and the new packet, model, method, analysis, and activation
+bindings are complete. See
+`protocol/table3_formal_publication_qualification_v1.md`.
+
+## Optional Portkey backend
+
+A separate Portkey AI Gateway adapter is available for a future, newly frozen
+run. It does not modify or resume any completed Ollama run. The adapter supports
+the OpenAI and Anthropic provider slugs supplied in the local setup guide, keeps
+the API key out of artifacts, and fails closed unless external transmission,
+current model pricing, and a dedicated non-resetting USD 100 Portkey key budget
+are explicitly confirmed.
+
+Every call is guarded by a shared file-locked USD ledger. The ledger reserves a
+conservative maximum token cost before network access, settles successful calls
+from returned usage tokens, and blocks any new reservation that would cross USD
+100. See `PORTKEY_SETUP.md` for configuration, preflight, and cost-control rules.
 
 ## Qwen3 WarrantRoute component
 
@@ -34,6 +80,79 @@ has not yet frozen the feature encoding, training target, model formulation,
 regularization, expert-time costs and budget, thresholds, route ties, failure
 action, development minima, or baseline procedures. See
 `protocol/qwen3_warrantroute_contract_v1.md`.
+
+## Working WarrantGate candidate
+
+For local Table 3 development, the selected working WarrantRoute candidate is
+**WarrantGate v0**, a cost-sensitive four-action gating policy over reviewer
+modes. It scores generalist sufficiency, qualitative-methods need,
+domain-context need, and a joint method-domain interaction, then selects one of
+`generalist`, `qualitative_methods`, `domain`, or `both`.
+
+The working rule is:
+
+```text
+S_G(x) = g(x)
+S_M(x) = m(x) - c_M
+S_D(x) = d(x) - c_D
+S_B(x) = min(m(x), d(x)) + i_MD(x) - (c_M + c_D + c_B)
+```
+
+The `min(m,d)` bottleneck is fixed for v0 so that `both` requires evidence on
+both specialist axes rather than becoming an all-expert default. WarrantGate v0
+may use the first-stage generalist rating projection and source-free packet
+structure only; it must not use source text, answer-key fields, specialist
+outputs, human/adjudicated outcomes, repair outcomes, held-out outcomes, or
+protected attributes. See
+`protocol/working_warrantgate_v0_decision.md`,
+`protocol/working_warrantgate_v0_design.md`, and
+`config/working_warrantgate_v0_policy.json`.
+
+An optional segment-aware extension, **WarrantGate-Adaptive v0**, is documented
+in `protocol/working_warrantgate_adaptive_mode_switching_v0.md` and configured
+in `config/working_warrantgate_adaptive_v0_policy.json`. It applies the same
+four-action scoring rule across ordered packet segments, adds a switch penalty
+and margin to avoid noisy mode changes, and collapses the segment route sequence
+to a packet-level role union for optional `Adaptive WarrantRoute` exports. This
+variant is not the default Table 3 row.
+
+A separate successor extension, internally called **WarrantLoop** and provisionally
+labeled **WarrantRoute-S** for paper-facing prose, is specified in
+`protocol/working_warrantloop_v0_design.md`. It models reviewer selection as
+finite-horizon, budgeted sequential acquisition: after the generalist
+diagnostic, a controller may acquire one specialist, observe only a frozen
+source-free projection of that role output, and decide whether the remaining
+specialist has enough expected marginal value to justify its cost. It preserves
+the same four terminal modes and is not an additional Table 3 method. The design
+now has a validated development-only offline replay in
+`scripts/run_working_warrantloop.py`, governed by
+`protocol/working_warrantloop_v0_execution_contract.md` and
+`config/working_warrantloop_v0_policy.json`. This prototype is not a prospective
+study freeze or manuscript evidence. Formal execution still requires a new
+successor freeze because the current WarrantRoute contract prohibits
+post-specialist rerouting.
+
+The separate retrospective four-corpus working replay is run by
+`scripts/run_working_warrantloop_multicorpus.py` under
+`config/working_warrantloop_multicorpus_v0.json`. It uses five-fold out-of-fold
+Dreaddit routes and applies one full-development Dreaddit policy unchanged to
+GoEmotion, CaChe, and ParlaMint-GB. It reuses cached role outputs and never
+overwrites the original 48-row Table 3. Its completed outputs remain private,
+working, and non-manuscript artifacts.
+
+The diagnostic-guided cumulative correction keeps the public method name
+**WarrantRoute** and is implemented by
+`scripts/run_working_warrantroute_cascade.py` with
+`config/working_warrantroute_cascade_replay_v1.json`. It pins the validated
+WarrantRoute-S route artifact, preserves every route decision and call count,
+and changes only the final composition to retain Generalist flags on specialist
+routes. Its internal audit identifier is `cumulative_output_v1`, not a separate
+paper-facing method. The calibrated cumulative prototypes use
+`config/working_warrantloop_calibrated_cascade_v1_policy.json` and
+`config/working_warrantloop_calibrated_cascade_v2_policy.json`; the latter adds
+validation-score breakpoint search under a declared mean-call budget. All three
+paths are retrospective working tools, and their `formal-run` commands remain
+fail-closed.
 
 ## Model-neutral WarrantRoute adapter
 

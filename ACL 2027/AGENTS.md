@@ -1,5 +1,8 @@
 # Workspace manuscript policy
 
+- Write all manuscript prose, headings, role and operation labels, captions,
+  tables, figures, and paper-facing design documents entirely in English.
+  Use consistent English terminology throughout.
 - Never incorporate fictional, synthetic, demo, toy, or mock datasets, or any
   experiment, result, model choice, metric, table, figure, or claim derived from
   them, into a manuscript source, draft, appendix, compiled PDF, or submission

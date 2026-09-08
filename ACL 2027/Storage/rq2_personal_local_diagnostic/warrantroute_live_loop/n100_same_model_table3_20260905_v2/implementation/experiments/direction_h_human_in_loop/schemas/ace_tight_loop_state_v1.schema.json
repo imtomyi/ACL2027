@@ -1,0 +1,509 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acl2027.local/schemas/ace_tight_loop_state_v1.schema.json",
+  "title": "ACE-TightLoop source-text-free state v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "packet_id",
+    "data_phase",
+    "contains_source_text",
+    "revision_round",
+    "route_mode",
+    "status",
+    "budget",
+    "agent_assignments",
+    "completed_agent_roles",
+    "candidate",
+    "evidence_map",
+    "issues",
+    "hard_checks",
+    "decision",
+    "event_log"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ace-tight-loop-state-v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "packet_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "data_phase": {
+      "enum": [
+        "qualification",
+        "development",
+        "validation",
+        "held_out"
+      ]
+    },
+    "contains_source_text": {
+      "const": false
+    },
+    "revision_round": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2
+    },
+    "route_mode": {
+      "enum": [
+        "generalist",
+        "qualitative_methods",
+        "domain",
+        "both"
+      ]
+    },
+    "status": {
+      "enum": [
+        "awaiting_initial_agents",
+        "awaiting_selected_auditors",
+        "awaiting_revision",
+        "awaiting_recheck",
+        "accepted",
+        "human_escalation",
+        "quarantined"
+      ]
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_agent_calls",
+        "agent_calls_used",
+        "max_revision_rounds"
+      ],
+      "properties": {
+        "max_agent_calls": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 32
+        },
+        "agent_calls_used": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "max_revision_rounds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        }
+      }
+    },
+    "agent_assignments": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "agent_id",
+          "role",
+          "model_id",
+          "model_family",
+          "prompt_hash"
+        ],
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "role": {
+            "$ref": "#/$defs/agentRole"
+          },
+          "model_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "model_family": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "prompt_hash": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    },
+    "completed_agent_roles": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/agentRole"
+      }
+    },
+    "candidate": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/candidate"
+        }
+      ]
+    },
+    "evidence_map": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/evidenceMap"
+        }
+      ]
+    },
+    "issues": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/issue"
+      }
+    },
+    "hard_checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_valid",
+        "evidence_ids_valid",
+        "quotation_fidelity",
+        "source_counts_reconcile",
+        "prohibited_fields_absent",
+        "protected_inference_absent",
+        "frozen_hashes_match"
+      ],
+      "properties": {
+        "schema_valid": {
+          "type": "boolean"
+        },
+        "evidence_ids_valid": {
+          "type": "boolean"
+        },
+        "quotation_fidelity": {
+          "type": "boolean"
+        },
+        "source_counts_reconcile": {
+          "type": "boolean"
+        },
+        "prohibited_fields_absent": {
+          "type": "boolean"
+        },
+        "protected_inference_absent": {
+          "type": "boolean"
+        },
+        "frozen_hashes_match": {
+          "type": "boolean"
+        }
+      }
+    },
+    "decision": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/decision"
+        }
+      ]
+    },
+    "event_log": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_index",
+          "event_type",
+          "actor_id",
+          "artifact_hash"
+        ],
+        "properties": {
+          "event_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "event_type": {
+            "enum": [
+              "initial_proposal",
+              "independent_evidence_map",
+              "methods_audit",
+              "domain_audit",
+              "issue_register_locked",
+              "revision",
+              "recheck",
+              "decision",
+              "human_escalation",
+              "quarantine"
+            ]
+          },
+          "actor_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "artifact_hash": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "agentRole": {
+      "enum": [
+        "proposer",
+        "evidence_scout",
+        "methods_challenger",
+        "domain_challenger",
+        "reviser",
+        "failure_reflector",
+        "counterexample_reflector",
+        "memory_steward"
+      ]
+    },
+    "identifierArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 128,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "producer_agent_id",
+        "claim",
+        "central_concept",
+        "scope",
+        "evidence_ids",
+        "counterevidence_ids",
+        "playbook_bullet_ids",
+        "uncertainty"
+      ],
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "producer_agent_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "claim": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "central_concept": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/identifierArray"
+        },
+        "counterevidence_ids": {
+          "$ref": "#/$defs/identifierArray"
+        },
+        "playbook_bullet_ids": {
+          "$ref": "#/$defs/identifierArray"
+        },
+        "uncertainty": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "evidenceMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producer_agent_id",
+        "support_ids",
+        "counterevidence_ids",
+        "context_gap_ids",
+        "source_count",
+        "cluster_count",
+        "concentration_flag"
+      ],
+      "properties": {
+        "producer_agent_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "support_ids": {
+          "$ref": "#/$defs/identifierArray"
+        },
+        "counterevidence_ids": {
+          "$ref": "#/$defs/identifierArray"
+        },
+        "context_gap_ids": {
+          "$ref": "#/$defs/identifierArray"
+        },
+        "source_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cluster_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "concentration_flag": {
+          "type": "boolean"
+        }
+      }
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "issue_id",
+        "owner_role",
+        "severity",
+        "category",
+        "evidence_ids",
+        "diagnosis",
+        "requested_change",
+        "status",
+        "resolution"
+      ],
+      "properties": {
+        "issue_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "owner_role": {
+          "enum": [
+            "evidence_scout",
+            "methods_challenger",
+            "domain_challenger"
+          ]
+        },
+        "severity": {
+          "enum": [
+            "minor",
+            "material",
+            "hard"
+          ]
+        },
+        "category": {
+          "enum": [
+            "evidence_mismatch",
+            "counterevidence_omission",
+            "source_concentration",
+            "code_theme_confusion",
+            "boundary_failure",
+            "method_contract_violation",
+            "biomedical_overreach",
+            "causal_overreach",
+            "protected_inference",
+            "context_loss",
+            "other"
+          ]
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/identifierArray"
+        },
+        "diagnosis": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "requested_change": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "status": {
+          "enum": [
+            "open",
+            "resolved",
+            "rejected_by_owner",
+            "human_hold"
+          ]
+        },
+        "resolution": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2000
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "reason_codes",
+        "missing_agent_roles",
+        "required_additional_calls"
+      ],
+      "properties": {
+        "action": {
+          "enum": [
+            "wait",
+            "accept",
+            "revise",
+            "human_escalation",
+            "quarantine"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "missing_agent_roles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/agentRole"
+          }
+        },
+        "required_additional_calls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        }
+      }
+    }
+  }
+}

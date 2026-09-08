@@ -10,15 +10,18 @@ processing. Verified fields are marked VERIFIED with their basis.
 ## 1. Identity, source, date, hash
 
 - Dataset name: ParlaMint-GB (British Parliament component of ParlaMint).
-- Version: ParlaMint 3.0. VERIFIED (CLARIN.SI repository). Pin the exact release
-  used and its handle. Candidate: CLARIN.SI handle `11356/1486`. TODO to confirm
-  whether the linguistically annotated or plain variant is used.
+- Version: ParlaMint 3.0, CLARIN.SI handle `11356/1486`, archive
+  `ParlaMint-GB.tgz`. VERIFIED from the downloaded source archive. The archive
+  expands under `ParlaMint-GB.TEI/`.
 - Source: ParlaMint project, CLARIN ERIC. Reference paper: Erjavec et al., The
   ParlaMint corpora of parliamentary proceedings, Language Resources and
   Evaluation, 2023. VERIFIED (citation and repository).
-- Download date: TODO.
-- File hashes: TODO. Record checksums for the downloaded ParlaMint-GB archive and
-  each extracted file used.
+- Download date: 2026-09-01 (Asia/Seoul).
+- File hashes: downloaded archive
+  `dataset/raw/parlamint_gb/ParlaMint-GB.tgz` SHA-256
+  `ec1f6d82976904866c710123b5d77d6aad20886c44240236e3d442c0708c018a`.
+  Gzip integrity check passed, and the archive lists 6,677 tar members. Record
+  checksums for extracted files only after a processing pipeline selects them.
 
 ## 2. Population, domains, language, sampling, splits
 
@@ -28,8 +31,10 @@ processing. Verified fields are marked VERIFIED with their basis.
   here.
 - Document unit: one debate or agenda item, with speaker turns retained for
   context. Fix at freeze. TODO to finalize the unit and counts.
-- Selection rule and split role: all of ParlaMint-GB is reserved for the held-out
-  cross-domain confirmatory evaluation. No development or tuning use.
+- Selection rule and split role: all of ParlaMint-GB is reserved for held-out
+  cross-domain descriptive evaluation. No development or tuning use. The CaChe
+  comparison remains the sole confirmatory held-out test in the frozen
+  four-corpus design.
 - Clustering: resample over debate-level source clusters for the bootstrap. Fix
   the exact cluster key at freeze.
 
@@ -60,11 +65,14 @@ processing. Verified fields are marked VERIFIED with their basis.
 
 ## 5. Access, approved processing, retention, deletion
 
-- Access controls: store under `dataset/raw/parlamint_gb/` with restricted
-  handling until release review. TODO on path creation.
-- Approved model or vendor processing: local open-weight reviewer and
-  candidate-generation models named in the preregistration. Record any external
-  inference endpoint and its terms before use. TODO.
+- Access controls: stored under `dataset/raw/parlamint_gb/` with restricted
+  handling until release review. Directory permissions are `0700`; archive
+  permissions are `0600`.
+- Approved model or vendor processing: none documented yet for execution. Local
+  open-weight reviewer and candidate-generation models named in the
+  preregistration still require the project governance determination and
+  activation freeze before use. Record any external inference endpoint and its
+  terms before use.
 - Retention and deletion: follow the workspace retention schedule. TODO to record
   the schedule reference.
 

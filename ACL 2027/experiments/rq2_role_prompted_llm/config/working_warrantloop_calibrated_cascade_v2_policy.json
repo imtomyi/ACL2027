@@ -1,0 +1,134 @@
+{
+  "policy_schema_version": "working-warrantloop-calibrated-cascade-policy-v2",
+  "fitted_policy_schema_version": "working-warrantloop-calibrated-cascade-fitted-policy-v2",
+  "route_record_schema_version": "working-warrantloop-calibrated-cascade-route-v2",
+  "policy_id": "working_warrantloop_calibrated_cascade_v2",
+  "status": "development_only_not_manuscript_eligible",
+  "router_name": "WarrantLoop-CalibratedCascade",
+  "paper_facing_name": "WarrantRoute-C",
+  "router_formulation": "model_calibrated_cumulative_sequential_role_acquisition_under_mean_call_budget",
+  "terminal_modes": [
+    "generalist",
+    "qualitative_methods",
+    "domain",
+    "both"
+  ],
+  "initial_actions": [
+    "STOP_G",
+    "ACQUIRE_M",
+    "ACQUIRE_D",
+    "ACQUIRE_BOTH"
+  ],
+  "transitions": [
+    "GM",
+    "GD",
+    "GB",
+    "MB",
+    "DB"
+  ],
+  "output_composition": {
+    "retain_generalist_output": true,
+    "combination": "cumulative_flag_union",
+    "monotonic_recall_invariant": true
+  },
+  "feature_source_boundary": {
+    "uses_source_free_packet_structure": true,
+    "uses_structured_generalist_projection": true,
+    "uses_acquired_specialist_projection": true,
+    "uses_source_text": false,
+    "uses_free_form_rationale": false,
+    "uses_known_intended_flaw_type_at_inference": false,
+    "uses_human_or_final_grader_outcomes": false,
+    "uses_heldout_outcomes_for_fitting": false,
+    "cross_packet_memory": false
+  },
+  "development": {
+    "allowed_corpus_id": "dreaddit",
+    "allowed_run_root_name": "dreaddit_dev580_working_v1",
+    "allowed_dataset_role_substring": "development_only",
+    "required_source_split": "development_train",
+    "packet_set": "balanced_n100",
+    "split_seed": "working-warrantloop-calibrated-cascade-v2-split-20260902",
+    "split_ratios": {
+      "train": 0.75,
+      "validation": 0.15,
+      "smoke_test": 0.10
+    },
+    "split_by": "packet_source_component_hash_without_answer_key",
+    "minimum_total_packets": 50,
+    "minimum_train_packets_per_flaw": 5,
+    "smoke_test_packets": 10
+  },
+  "estimator": {
+    "type": "l2_regularized_binary_logistic_pair",
+    "probabilities": [
+      "marginal_improvement",
+      "marginal_harm"
+    ],
+    "l2": 0.25,
+    "learning_rate": 0.15,
+    "maximum_iterations": 5000,
+    "convergence_tolerance": 1e-07,
+    "minimum_class_count_for_logistic": 3,
+    "constant_target_smoothing": "laplace_add_one"
+  },
+  "costs": {
+    "generalist": 1.0,
+    "qualitative_methods": 1.0,
+    "domain": 1.0,
+    "both_coordination": 0.25,
+    "lambda": 0.0
+  },
+  "threshold_selection": {
+    "objective": "maximum_validation_recall_subject_to_mean_total_role_acquisitions_budget",
+    "maximum_mean_total_role_acquisitions": 1.75,
+    "budget_tolerance": 1e-12,
+    "candidate_strategy": "declared_grid_plus_validation_score_breakpoints",
+    "maximum_candidate_count": 1000,
+    "candidates": [
+      -0.2,
+      -0.15,
+      -0.1,
+      -0.05,
+      0.0,
+      0.02,
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "tie_break": [
+      "higher_recall",
+      "lower_mean_total_role_acquisitions",
+      "lower_mean_incremental_cost",
+      "higher_threshold"
+    ]
+  },
+  "routing_precision": {
+    "score_precision": "ieee754_binary64",
+    "score_tolerance": 1e-09,
+    "threshold_tie_action": "STOP",
+    "transition_tie_order": [
+      "GM",
+      "GD",
+      "GB"
+    ]
+  },
+  "transition_tie_order": [
+    "GM",
+    "GD",
+    "GB"
+  ],
+  "maximum_specialist_acquisitions": 2,
+  "missing_observation_action": "stop_at_selected_mode_and_retain_prior_outputs",
+  "formal_run_enabled": false,
+  "manuscript_eligible": false
+}
