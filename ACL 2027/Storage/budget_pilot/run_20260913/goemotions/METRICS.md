@@ -6,7 +6,7 @@ Conformability is a local Qwen-judged evidence-grounding pass rate, not human ve
 | Method | GT | Acc % ↑ | Micro-F1 % ↑ | Macro-F1 % ↑ | Conformability % ↑ | Status |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | Qwen3-8B | — | 24.22 | 33.95 | 23.23 | — | complete; predictions 128/128; judged 0/128 |
-| ICL | ✓ | — | — | — | — | running; predictions 77/128; judged 0/128 |
+| ICL | ✓ | — | — | — | — | running; predictions 100/128; judged 0/128 |
 | MIPROv2 | ✓ | — | — | — | — | queued; predictions 0/128; judged 0/128 |
 | GEPA | ✓ | — | — | — | — | queued; predictions 0/128; judged 0/128 |
 

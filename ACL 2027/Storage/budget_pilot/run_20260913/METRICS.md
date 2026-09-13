@@ -1,6 +1,6 @@
 # Reduced four-dataset pilot
 
-Updated: 2026-09-13T09:28:44+09:00. User-authorized new protocol: at most 2 hours of wall time per dataset, serial execution (up to about 8 hours total, plus transition overhead).
+Updated: 2026-09-13T09:29:36+09:00. User-authorized new protocol: at most 2 hours of wall time per dataset, serial execution (up to about 8 hours total, plus transition overhead).
 
 Model: Qwen3-8B Q4_K_M, thinking off, seed 42. No full-run scores or predictions are imported. Fixed outcome-blind subsets are used for every method in each dataset. Small pilot results have high sampling uncertainty and are not full-test benchmarks.
 
@@ -27,14 +27,14 @@ Test N=24. Queue: queued; — / — 0/24.
 
 ## GoEmotions
 
-Test N=128. Queue: running; icl / prediction 76/128.
+Test N=128. Queue: running; icl / prediction 99/128.
 
 Wall-time deadline: 11:20:34 KST.
 
 | Method | Acc % | Reference agreement % | Micro-F1 % | Macro-F1 % | Conformability % | Progress |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | base | 24.22 | — | 33.95 | 23.23 | — | complete; predicted 128/128; judged 0/128; unresolved 0 |
-| icl | — | — | — | — | — | running; predicted 77/128; judged 0/128; unresolved 0 |
+| icl | — | — | — | — | — | running; predicted 100/128; judged 0/128; unresolved 0 |
 | miprov2 | — | — | — | — | — | queued; predicted 0/128; judged 0/128; unresolved 0 |
 | gepa | — | — | — | — | — | queued; predicted 0/128; judged 0/128; unresolved 0 |
 
