@@ -1,84 +1,81 @@
-# Four-dataset experimental results
+# Reduced four-dataset pilot
 
-Updated: **2026-09-13T09:09:19+09:00**. This shared snapshot refreshes with the five-minute monitor; per-run reports can be newer.
+Updated: 2026-09-13T09:28:42+09:00. User-authorized new protocol: at most 2 hours of wall time per dataset, serial execution (up to about 8 hours total, plus transition overhead).
 
-GoEmotions: miprov2, optimization, 0/5427; queue running; process alive.
+Model: Qwen3-8B Q4_K_M, thinking off, seed 42. No full-run scores or predictions are imported. Fixed outcome-blind subsets are used for every method in each dataset. Small pilot results have high sampling uncertainty and are not full-test benchmarks.
 
-Last health check: **healthy**, at 2026-09-13T09:09:05+09:00. Recovery is enabled for diagnosed operational failures. [Recovery rules](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/experiment_monitor/RECOVERY.md>).
+Supervised offline: Base, 8-example ICL, MIPROv2 (2 candidates, 4 trials), GEPA (96 metric-call budget). Dreaddit additionally runs DC GT yes/no. CaChe and ParlaMint run Base, ACE offline GT yes/no, DC online GT yes/no, ACE online GT yes/no using the existing provisional task. GPT-5 and supervised ACE remain outside these queues; ICL/MIPROv2/GEPA are not implemented for the provisional corpora.
 
-Diagnostic and exploratory records only. Pending results stay blank. No manuscript result is filled from this report.
+GT yes on CaChe/ParlaMint means unverified model pseudo-labels (†), never human GT. Their human-GT Acc is N/A; reference agreement is separately named. Conformability is a reference-blind same-family LLM grounding judgment, not human verification. Unresolved judgments remain unknown. Offline test labels never feed adaptation; online feedback follows the current prediction.
 
-[Metric definitions and interpretation](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/METRICS.md>).
+A 2-hour deadline stops a corpus gracefully and proceeds to the next. Incomplete rows remain incomplete; the deadline does not guarantee all rows finish. A resumed corpus retains its original deadline.
 
 ## Dreaddit
 
-Queue: **paused**. [Run-specific metrics](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/dreaddit_icl/comparison_run_20260912/METRICS.md>).
+Test N=24. Queue: queued; — / — 0/24.
 
-Conformability is a blinded local Qwen-judged evidence-grounding pass rate, not independently verified correctness.
+| Method | Acc % | Reference agreement % | Micro-F1 % | Macro-F1 % | Conformability % | Progress |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| base | — | — | — | — | — | queued; predicted 0/24; judged 0/24; unresolved 0 |
+| icl | — | — | — | — | — | queued; predicted 0/24; judged 0/24; unresolved 0 |
+| miprov2 | — | — | — | — | — | queued; predicted 0/24; judged 0/24; unresolved 0 |
+| gepa | — | — | — | — | — | queued; predicted 0/24; judged 0/24; unresolved 0 |
+| dc_gt | — | — | — | — | — | queued; predicted 0/24; judged 0/24; unresolved 0 |
+| dc_no_gt | — | — | — | — | — | queued; predicted 0/24; judged 0/24; unresolved 0 |
 
-| Method | GT | Acc ↑ (%) | Conformability ↑ (%) | Progress |
-| --- | --- | ---: | ---: | --- |
-| GPT-5 | — | — | — | API setup pending |
-| Qwen3-8B | — | 76.69 | — | predictions 712/712; judged 588/712; unresolved 0 |
-| ICL ✓ | ✓ | 51.40 | — | predictions 712/712; judged 0/712; unresolved 0 |
-| MIPROv2 ✓ | ✓ | 78.09 | — | predictions 712/712; judged 0/712; unresolved 0 |
-| GEPA ✓ | ✓ | 78.65 | — | predictions 712/712; judged 0/712; unresolved 0 |
-| DC (CU) ✓ | ✓ | — | — | predictions 97/712; judged 0/712; unresolved 0 |
-| DC (CU) ✗ | ✗ | — | — | predictions 0/712; judged 0/712; unresolved 0 |
-
-Both final percentages require all 712 items. Unresolved judgments are not converted to false or excluded silently.
-Secondary audit is performed after prediction/adaptation finishes, with no audit feedback to training or memory.
-Same-family judging may favor Qwen outputs. This adapted classification rubric is not identical to the prior thematic-review instrument.
+[Run details](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/budget_pilot/run_20260913/dreaddit/METRICS.md>).
 
 ## GoEmotions
 
-Queue: **running**. [Run-specific metrics](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/goemotions_offline/run_20260912/METRICS.md>).
+Test N=128. Queue: running; icl / prediction 75/128.
 
-Local diagnostic. Official test N = 5,427. ACC is exact label-set match. F1 is reported separately.
-Conformability is a local Qwen-judged evidence-grounding pass rate, not human verification.
+Wall-time deadline: 11:20:34 KST.
 
-| Method | GT | Acc % ↑ | Micro-F1 % ↑ | Macro-F1 % ↑ | Conformability % ↑ | Status |
-| --- | --- | ---: | ---: | ---: | ---: | --- |
-| Qwen3-8B | — | 25.63 | 37.06 | 30.30 | — | complete; predictions 5427/5427; judged 0/5427 |
-| ICL | ✓ | 20.66 | 33.19 | 24.94 | — | complete; predictions 5427/5427; judged 0/5427 |
-| MIPROv2 | ✓ | — | — | — | — | optimizing; predictions 0/5427; judged 0/5427 |
-| GEPA | ✓ | — | — | — | — | queued; predictions 0/5427; judged 0/5427 |
+| Method | Acc % | Reference agreement % | Micro-F1 % | Macro-F1 % | Conformability % | Progress |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| base | 24.22 | — | 33.95 | 23.23 | — | complete; predicted 128/128; judged 0/128; unresolved 0 |
+| icl | — | — | — | — | — | running; predicted 76/128; judged 0/128; unresolved 0 |
+| miprov2 | — | — | — | — | — | queued; predicted 0/128; judged 0/128; unresolved 0 |
+| gepa | — | — | — | — | — | queued; predicted 0/128; judged 0/128; unresolved 0 |
 
-All adaptation uses training/development labels only. Test outputs never update prompts.
-Invalid outputs count as incorrect exact matches. Their F1 predictions are empty sets.
-The original splits are preserved; disjoint comment IDs do not guarantee disjoint authors or identical-text exclusion.
-This transfers official DSPy optimizers to a new classification task. It is not an exact reproduction of the finance results.
-GPT-5 and ACE are not included in this local queue.
+[Run details](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/budget_pilot/run_20260913/goemotions/METRICS.md>).
 
-## CaChe and ParlaMint-GB
+## CaChe
 
-Queue: **paused**. [Run-specific metrics](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/paired_feedback/run_20260912/METRICS.md>).
+Test N=8. Queue: queued; — / — 0/8.
 
-Reference annotations saved: **10/600**. This run is paused while GoEmotions has priority.
+| Method | Acc % | Reference agreement % | Micro-F1 % | Macro-F1 % | Conformability % | Progress |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| base | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
+| ace_offline_no_gt | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
+| ace_offline_ref | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
+| dc_online_no_gt | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
+| dc_online_ref | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
+| ace_online_no_gt | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
+| ace_online_ref | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
 
-Real excerpts; 100 adaptation and 200 evaluation items per corpus. GT ✓† means unverified local Qwen3-8B reference labels are supplied to adaptation. These are pseudo-labels, NOT human ground truth. GT ✗ receives no reference labels. Base receives neither.
+[Run details](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/budget_pilot/run_20260913/cache/METRICS.md>).
 
-Human-GT ACC/F1 are N/A. Reference agreement is exact topic-set agreement with the frozen model annotation, not accuracy. Same-family model bias applies. Conformability is a reference-blind LLM grounding judgment, not human verification.
+## ParlaMint-GB
 
-Reference annotation preparation: 10/600. Sealed: False.
+Test N=8. Queue: queued; — / — 0/8.
 
-| Corpus | Method | GT labels | Human-GT Acc | Reference agreement % | Conformability % | Progress |
-| --- | --- | --- | --- | ---: | ---: | --- |
-| CaChe | Qwen3-8B | — | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
-| CaChe | ACE offline | ✗ | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
-| CaChe | ACE offline | ✓† | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
-| CaChe | DC online | ✗ | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
-| CaChe | DC online | ✓† | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
-| CaChe | ACE online | ✗ | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
-| CaChe | ACE online | ✓† | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
-| ParlaMint-GB | Qwen3-8B | — | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
-| ParlaMint-GB | ACE offline | ✗ | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
-| ParlaMint-GB | ACE offline | ✓† | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
-| ParlaMint-GB | DC online | ✗ | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
-| ParlaMint-GB | DC online | ✓† | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
-| ParlaMint-GB | ACE online | ✗ | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
-| ParlaMint-GB | ACE online | ✓† | N/A | — | — | queued; adapted 0; predictions 0/200; judged 0/200; unresolved 0; invalid topic outputs 0 |
+| Method | Acc % | Reference agreement % | Micro-F1 % | Macro-F1 % | Conformability % | Progress |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| base | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
+| ace_offline_no_gt | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
+| ace_offline_ref | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
+| dc_online_no_gt | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
+| dc_online_ref | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
+| ace_online_no_gt | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
+| ace_online_ref | N/A | — | — | — | — | queued; predicted 0/8; judged 0/8; unresolved 0 |
 
-† References are generated once from the source and fixed codebook, with no evaluated answers, playbooks or judge outcomes. All 600 annotations are sealed before comparative prediction. Matching codebook IDs and verbatim evidence checks verify format/traceability only, not semantic correctness.
-Offline: feedback only on 100 adaptation items, then freeze memory. Online: label feedback only after the current prediction, affecting future items. Same task, data, order, model, seed and per-call caps across each pair; native official with/no-GT prompt templates differ. Conformability never feeds adaptation.
-Local exploratory method transfer with model-generated supervision; keep separate from human-GT benchmark and manuscript results. The earlier GT-free run is preserved separately; structured topic outputs in this protocol require new paired baselines.
+[Run details](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/budget_pilot/run_20260913/parlamint_gb/METRICS.md>).
+
+## Preserved earlier runs
+
+Earlier full-test scores use different denominators and protocols. They remain in their original directories and must not be compared as the same run.
+
+- [Dreaddit](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/dreaddit_icl/comparison_run_20260912/METRICS.md>)
+- [GoEmotions](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/goemotions_offline/run_20260912/METRICS.md>)
+- [Paired corpora](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/paired_feedback/run_20260912/METRICS.md>)

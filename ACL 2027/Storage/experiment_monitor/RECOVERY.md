@@ -1,3 +1,13 @@
+# Active protocol change: 2026-09-13
+
+The user explicitly replaced the full runs with new reduced experiments capped at two hours per dataset. Monitor Storage/budget_pilot/run_20260913/supervisor.json and its current corpus. The original full GoEmotions queue and every previous run stay paused and preserved; never restart them. This section supersedes older target/scope statements below.
+
+Use experiments/reporting/check_health.py and update_results.py; both dispatch to the new pilot through Storage/budget_pilot/ACTIVE.json. The serial supervisor is experiments/budget_pilot/supervise.py. Its children are supervised.py (PILOT_CORPUS=goemotions or dreaddit) and paired.py (cache or parlamint_gb). GoEmotions test N=128, Dreaddit N=24, CaChe and ParlaMint N=8 each. Preserve the frozen per-corpus settings and original deadline when recovering. Do not extend a deadline, silently skip a failed row, or automatically rerun budget-exhausted corpora. Partial rows are explicitly incomplete. Normal budget expiry is not an incident. Check the supervisor and child identities and locks before any recovery, prevent duplicate model workers, and stop at the user's bounded runtime.
+
+New protocol outputs are not comparable as the same run to the old full-test scores. Notion updates must use a separate clearly labeled reduced-pilot table/section with actual N, preserving the original table. CaChe/ParlaMint reference agreement is not Acc; GT yes uses unverified pseudo-labels. All artifacts stay diagnostic under Storage; no manuscript modification.
+
+When the four-corpus bounded queue finishes, report completed/failed/budget-exhausted rows and remove the heartbeat after attempting final Notion synchronization. Operational safeguards below still apply except where this explicit authorized transition supersedes them.
+
 # Experiment monitoring and bounded recovery
 
 The five-minute heartbeat now diagnoses stalls and repairs operational failures. It currently supervises the GoEmotions queue. The other datasets remain deliberately paused. A healthy run must not be interrupted to demonstrate recovery.

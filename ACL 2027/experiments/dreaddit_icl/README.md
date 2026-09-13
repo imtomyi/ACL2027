@@ -54,7 +54,7 @@ Run from `/Users/tom/Documents/GitHub/ACL2027` using the existing Python
 environment (only its installed tokenizer library is reused):
 
 ```sh
-ace_paper/reproduction_workspace/paper_reproduction/.venv-finance/bin/python \
+'ACL 2027/Storage/dreaddit_icl/runtime313/bin/python' \
   'ACL 2027/experiments/dreaddit_icl/run_local.py' \
   --samples 20 --output 'ACL 2027/Storage/dreaddit_icl/CHOOSE_NEW_RUN_NAME'
 ```

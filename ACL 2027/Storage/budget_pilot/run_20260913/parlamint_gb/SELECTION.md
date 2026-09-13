@@ -1,0 +1,1 @@
+Fixed record-ID hash subset of the preserved real-corpus session-disjoint pilot. Four adaptation excerpts and eight test excerpts; no label, prediction, score, or judgment used for selection. New pseudo-label annotations are generated and sealed before evaluation.

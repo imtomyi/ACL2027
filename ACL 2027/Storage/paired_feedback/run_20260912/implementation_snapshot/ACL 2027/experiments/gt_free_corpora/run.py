@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 RUN = ROOT/'Storage/gt_free_corpora/run_20260912'
 SHARED = ROOT/'experiments/dreaddit_icl'
-UPSTREAM = ROOT.parent/'ace_paper/original_sources/ace'
+UPSTREAM = ROOT/'ace_paper/original_sources/ace'
 sys.path.insert(0, str(SHARED))
 from comparison import Native, atomic
 from optimizers import dc_adapter

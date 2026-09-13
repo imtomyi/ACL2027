@@ -22,6 +22,10 @@ def write_atomic(path, text):
     temp.replace(path)
 
 def main():
+    if (STORAGE/'budget_pilot/ACTIVE.json').exists():
+        import runpy
+        runpy.run_path(str(ROOT/'experiments/budget_pilot/report.py'),run_name='__main__')
+        return
     now = datetime.now(ZoneInfo('Asia/Seoul')).isoformat(timespec='seconds')
     go = RUNS[1][1]
     queue = read_json(go/'queue.json')

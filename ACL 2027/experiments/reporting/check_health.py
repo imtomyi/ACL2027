@@ -34,6 +34,10 @@ def classify(status, process_matches, stage, idle_seconds, median_seconds=0,
     return 'healthy', None
 
 def main():
+    if (ROOT/'Storage/budget_pilot/ACTIVE.json').exists():
+        import runpy
+        runpy.run_path(str(ROOT/'experiments/budget_pilot/health.py'),run_name='__main__')
+        return
     os.umask(0o077);MONITOR.mkdir(parents=True,exist_ok=True)
     lock=(MONITOR/'observation.lock').open('w');fcntl.flock(lock,fcntl.LOCK_EX)
     now=time.time();q=read(RUN/'queue.json');method=q.get('method','');stage=q.get('stage','')
