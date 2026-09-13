@@ -1,0 +1,26 @@
+# CaChe Playbook E3 position 10
+
+Private ACE-inspired flaw-detection memory.
+
+## seed-warrant v1
+
+Type: immutable seed.
+
+- applicability: Every proposed material flaw
+- detection_check: Locate the assertion and test its evidence-to-claim warrant.
+- evidence_requirement: Identify relevant exact passages or an explicit whole-packet missing warrant.
+- countercondition: A defensible alternative interpretation alone is not a flaw.
+- Distinct supporting packets: 0
+- Distinct supporting source groups: 0
+
+## seed-context v1
+
+Type: immutable seed.
+
+- applicability: Attribution, scope, causal or aggregate claims
+- detection_check: Check speaker, scope, negation, uncertainty and consequential countercases.
+- evidence_requirement: Compare each relevant account under its actual stated conditions.
+- countercondition: Do not infer missing context or the opposite of an unsupported assertion.
+- Distinct supporting packets: 0
+- Distinct supporting source groups: 0
+

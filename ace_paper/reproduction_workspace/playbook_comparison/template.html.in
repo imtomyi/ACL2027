@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ACE Playbooks | Initial & Offline</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#26332c;background:#fff;letter-spacing:0;color-scheme:light}*{box-sizing:border-box}body{margin:0;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}.top{padding:15px 28px;border-bottom:1px solid #e0e6e2;font-size:13px;font-weight:650;color:#65746b;flex-shrink:0}.spread{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);flex:1;min-height:0}.panel{display:flex;flex-direction:column;min-width:0;min-height:0}.panel+.panel{border-left:1px solid #d5dfd8}.heading{display:flex;align-items:baseline;gap:12px;padding:24px 30px 20px;background:#f2f4f2;border-bottom:1px solid #dce3dd;flex-shrink:0;flex-wrap:wrap}.panel:last-child .heading{background:#e8f3ed}.heading h1{font-size:24px;line-height:1.2;margin:0;font-weight:650}.heading span{font-size:12px;color:#687a6e}.document{overflow-y:auto;overscroll-behavior:contain;padding:8px 30px 50px;min-height:0;scrollbar-gutter:stable}.document:focus-visible{outline:2px solid #238363;outline-offset:-2px}section{margin-top:26px}h2{font-size:11px;line-height:1.5;font-weight:700;color:#758176;margin:0 0 12px;overflow-wrap:anywhere}.entry{padding:13px 0;border-top:1px solid #e6ebe7}.id{display:block;font:11px ui-monospace,SFMono-Regular,monospace;color:#829087;margin-bottom:6px}.text{font-size:14px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.panel:last-child .id{color:#388266}.empty{color:#c1c9c2;font-size:16px;margin:6px 0 14px}@media(min-width:1500px){.document{padding-left:48px;padding-right:48px}.heading{padding-left:48px}}@media(max-width:650px){.top{padding:12px 14px}.heading{padding:18px 14px;gap:6px}.heading h1{font-size:19px}.heading span{font-size:10px}.document{padding:5px 14px 30px;scrollbar-gutter:auto}.text{font-size:12px;line-height:1.65}h2{font-size:10px}.id{font-size:10px}section{margin-top:20px}}
+.section-nav{display:flex;flex-wrap:wrap;gap:4px 18px;padding:10px 28px;border-bottom:1px solid #e0e6e2;flex-shrink:0;background:#fff}.section-nav button{font:500 12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#687a6e;background:none;border:0;border-bottom:2px solid transparent;padding:8px 0;cursor:pointer;line-height:1.4}.section-nav button:hover{color:#185e45}.section-nav button[aria-pressed="true"]{color:#185e45;border-bottom-color:#238363}.section-nav button:focus-visible{outline:2px solid #238363;outline-offset:3px}@media(max-width:650px){.section-nav{padding:6px 14px;gap:0 14px}.section-nav button{font-size:11px;padding:7px 0;min-height:36px}}
+</style>
+<div class="top">ACE / Playbooks</div>
+<nav class="section-nav" id="section-nav" aria-label="Jump to section"></nav>
+<main class="spread">
+ <div class="panel"><header class="heading"><h1>Initial</h1></header><div class="document" id="initial" tabindex="0" role="region" aria-label="Initial playbook"></div></div>
+ <div class="panel"><header class="heading"><h1>Final Playbook</h1><span>Offline · No GT</span></header><div class="document" id="offline" tabindex="0" role="region" aria-label="Offline-trained playbook"></div></div>
+</main>
+<script id="dataset" type="application/json">/*__DATA__*/</script>
+<script>
+const data=JSON.parse(document.getElementById('dataset').textContent);
+const sectionNames=[...new Set([...data.initial.sections,...data.offline.sections])];
+const shortNames=['Strategies','APIs','Code snippets','Common mistakes','Workflows','Verification','Troubleshooting','Others'];
+for(const key of ['initial','offline']){
+ const root=document.getElementById(key),source=data[key];
+ for(const name of source.sections){
+  const section=document.createElement('section'),title=document.createElement('h2');
+  section.id=key+'-section-'+sectionNames.indexOf(name);
+  title.textContent=name;section.append(title);
+  const items=source.items.filter(x=>x.section===name);
+  for(const item of items){
+   const article=document.createElement('article');article.className='entry';
+   const id=document.createElement('span');id.className='id';id.textContent='['+item.id+']';
+   const text=document.createElement('p');text.className='text';text.textContent=item.text;
+   article.append(id,text);section.append(article);
+  }
+  if(!items.length){const empty=document.createElement('p');empty.className='empty';empty.textContent='—';section.append(empty);}
+  root.append(section);
+ }
+}
+for(const [index,name] of sectionNames.entries()){
+ const button=document.createElement('button');button.type='button';
+ button.textContent=shortNames[index]||name;button.title=name;
+ button.setAttribute('aria-pressed','false');
+ button.addEventListener('click',()=>{
+  for(const other of document.querySelectorAll('.section-nav button'))other.setAttribute('aria-pressed',String(other===button));
+  for(const key of ['initial','offline']){
+   const root=document.getElementById(key),target=document.getElementById(key+'-section-'+index);
+   if(target)root.scrollTo({top:root.scrollTop+target.getBoundingClientRect().top-root.getBoundingClientRect().top-12,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+  }
+ });
+ document.getElementById('section-nav').append(button);
+}
+// Leave enough space to align even short final sections at the top of each pane.
+const resize=new ResizeObserver(entries=>{for(const {target:root} of entries){const last=root.lastElementChild;root.style.paddingBottom=Math.max(50,root.clientHeight-last.offsetHeight-12)+'px';}});
+for(const key of ['initial','offline'])resize.observe(document.getElementById(key));
+</script>
+</html>

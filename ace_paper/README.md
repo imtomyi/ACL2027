@@ -1,41 +1,41 @@
-# ACE Paper Reproduction
+# ACE: original sources and reproduction work
 
-This directory is an isolated reproduction workspace for **Agentic Context
-Engineering: Evolving Contexts for Self-Improving Language Models** (ICLR 2026,
-arXiv:2510.04618). It uses the authors' released ACE and ACE-AppWorld code and
-targets the paper's reported AppWorld and Finance results.
+There are two canonical locations. Use these paths for new work:
 
-## Active reproduction
+| Directory | Ownership and purpose |
+| --- | --- |
+| `original_sources/` | Pristine official Git checkouts and the downloaded paper PDF |
+| `reproduction_workspace/` | Locally written scripts, experiments, outputs, environments, notes, and patched working sources |
 
-The active, paper-faithful work is in `paper_reproduction/`:
+## Authors' published playbooks
 
-- `source_manifest.json`: paper and official repository revisions.
-- `targets.json`: the exact Table 1 and Table 2 values being reproduced.
-- `docs/STATUS.md`: completed setup, known release gaps, and current blocker.
-- `scripts/preflight.py`: structural and API-readiness checks.
-- `scripts/run_table1_appworld.sh`: AppWorld commands.
-- `scripts/run_table2_finance.sh`: Finance commands.
+Open `original_sources/ace-appworld/experiments/playbooks/`.
 
-Run the structural preflight with:
+- `appworld_offline_trained_no_gt_playbook.txt`: authors' released offline result.
+- `appworld_online_trained_playbook.txt`: authors' released online result.
+- `appworld_initial_playbook.txt`: authors' initial instructions.
+- `appworld_offline_trained_with_gt_playbook.txt`: empty in the pinned release.
 
-```bash
-paper_reproduction/.venv-finance/bin/python \
-  paper_reproduction/scripts/preflight.py
-```
+These are not locally trained Qwen outputs.
 
-Exact paper rollouts require an authorized `SAMBANOVA_API_KEY` for the paper's
-non-thinking DeepSeek-V3.1 model. No local or substitute model is accepted as
-evidence for the paper's reported numbers.
+## Local reproduction files
 
-## Isolation
+- `reproduction_workspace/paper_reproduction/scripts/`: local runners and adapters.
+- `reproduction_workspace/paper_reproduction/model_comparison/`: local model runs and learned playbooks.
+- `reproduction_workspace/paper_reproduction/runs/`: paper-target runs, supervision status, and preflight reports.
+- `reproduction_workspace/working_sources/ace-appworld-latest/`: original AppWorld checkout plus the recorded compatibility patch and runtime data.
+- `reproduction_workspace/reproduction/` and `results/`: historical local smoke experiment.
+- `reproduction_workspace/BIOMEDICAL_PLAYBOOK_FEEDBACK_DESIGN.md`: locally written design proposal.
+- `reproduction_workspace/maintenance/`: relocation manifest and verification report.
 
-Everything used by this reproduction lives under this `ace_paper/` directory.
-It does not read, import, modify, or compare against any other ACL2027
-experiment, result, or manuscript.
+## Legacy path aliases
 
-## Archived local smoke
+The old top-level `paper_reproduction`, `upstream`, `reproduction`, `results`,
+`.venv`, and document paths are symbolic links, not duplicate datasets or new
+sources. They preserve old absolute paths in logs, links, virtual-environment
+entry points, and launch commands. Do not remove them without migrating those
+references. Physical files are stored under the two canonical directories.
 
-The older `reproduction/`, `results/`, and `REPRODUCTION_REPORT.md` artifacts
-are retained only for provenance. They used a local Qwen model to exercise the
-mechanism and are excluded from the paper reproduction and all reported-paper
-claims.
+The `sources/` paths used by existing runners likewise resolve to official
+checkouts or the explicitly separated patched working checkout. Historical
+experiment records are preserved rather than rewriting their provenance.
