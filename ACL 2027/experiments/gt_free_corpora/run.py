@@ -133,6 +133,14 @@ def generate(native,q,playbook):
     return response,value
 
 def adapt(native,q,value,memory,next_id,step,total):
+    result=_adapt_impl(native,q,value,memory,next_id,step,total)
+    if os.environ.get('EXPERIMENT_RUN_ID')=='run_20260914_uniform':
+        from uniform_protocol import bounded_memory
+        candidate,accepted=bounded_memory(native,memory,result[0])
+        if not accepted:return candidate,next_id,'retained_previous_over_budget'
+    return result
+
+def _adapt_impl(native,q,value,memory,next_id,step,total):
     reflection=native.chat([dict(role='user',content=REF.format(q,value['reasoning'],value['final_answer'],
         'No ground truth or correctness feedback is available. Self-review only; do not assume the answer is incorrect.',
         extract_playbook_bullets(memory,value['bullet_ids'])))],max_tokens=1536,role='reflector',output_format='json')
@@ -143,7 +151,7 @@ def adapt(native,q,value,memory,next_id,step,total):
     except ValueError:return memory,next_id,'retained_previous_invalid_reflection'
     tags=[t for t in tags if isinstance(t,dict) and isinstance(t.get('id'),str) and t.get('tag') in ['helpful','harmful','neutral']] if isinstance(tags,list) else []
     updated=update_bullet_counts(memory,tags)
-    curator=native.chat([dict(role='user',content=CUR.format(current_step=step,total_samples=total,token_budget=8000,
+    curator=native.chat([dict(role='user',content=CUR.format(current_step=step,total_samples=total,token_budget=(4096 if os.environ.get('EXPERIMENT_RUN_ID')=='run_20260914_uniform' else 8000),
         playbook_stats=json.dumps(get_playbook_stats(updated)),recent_reflection=reflection,current_playbook=updated,question_context=q))],max_tokens=2048,role='curator',output_format='json')
     status='accepted'
     try:

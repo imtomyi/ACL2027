@@ -1,5 +1,6 @@
 """Adapters over pinned official DSPy and DC implementations; all inference is local."""
 import hashlib
+import os
 import json
 import re
 import sys
@@ -167,5 +168,12 @@ def dc_adapter(native):
         result=model.advanced_generate('DynamicCheatsheet_Cumulative',input_txt=question,
                     cheatsheet=memory,generator_template=generator,cheatsheet_template=curator,
                     temperature=0,max_tokens=2048,max_num_rounds=1,allow_code_execution=False)
+        if os.environ.get('EXPERIMENT_RUN_ID')=='run_20260914_uniform':
+            from uniform_protocol import bounded_memory
+            candidate,accepted=bounded_memory(native,memory,result['final_cheatsheet'])
+            result['final_cheatsheet']=candidate
+            if not accepted:
+                model.saved['memory_update_status']='retained_previous_over_budget'
+                model.save()
         return result['final_output'],result['final_cheatsheet']
     return run

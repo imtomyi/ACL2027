@@ -96,6 +96,14 @@ def get_reference(c,split,i,row):
     return d
 
 def adapt(native,q,value,memory,next_id,step,total,reference):
+    result=_adapt_impl(native,q,value,memory,next_id,step,total,reference)
+    if os.environ.get('EXPERIMENT_RUN_ID')=='run_20260914_uniform':
+        from uniform_protocol import bounded_memory
+        candidate,accepted=bounded_memory(native,memory,result[0])
+        if not accepted:return candidate,next_id,'retained_previous_over_budget'
+    return result
+
+def _adapt_impl(native,q,value,memory,next_id,step,total,reference):
     if reference is None:return g.adapt(native,q,value,memory,next_id,step,total)
     ref_text=feedback(reference)
     prompt=REF_GT.format(q,value['reasoning'],value['final_answer'],ref_text,
@@ -108,7 +116,7 @@ def adapt(native,q,value,memory,next_id,step,total,reference):
     except ValueError:return memory,next_id,'retained_previous_invalid_reflection'
     tags=[t for t in tags if isinstance(t,dict) and isinstance(t.get('id'),str) and t.get('tag') in ['helpful','harmful','neutral']] if isinstance(tags,list) else []
     updated=g.update_bullet_counts(memory,tags)
-    content=CUR_GT.format(current_step=step,total_samples=total,token_budget=8000,playbook_stats=json.dumps(g.get_playbook_stats(updated)),recent_reflection=raw,current_playbook=updated,question_context=q+'\n'+ref_text)
+    content=CUR_GT.format(current_step=step,total_samples=total,token_budget=(4096 if os.environ.get('EXPERIMENT_RUN_ID')=='run_20260914_uniform' else 8000),playbook_stats=json.dumps(g.get_playbook_stats(updated)),recent_reflection=raw,current_playbook=updated,question_context=q+'\n'+ref_text)
     raw=native.chat([dict(role='user',content=content)],max_tokens=2048,role='curator',output_format='json');status='accepted'
     try:
         ops=json.loads(raw)['operations'];assert isinstance(ops,list)

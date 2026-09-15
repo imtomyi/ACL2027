@@ -1,0 +1,107 @@
+{
+  "protocol": "four-corpus-server-v5-gepa-r7",
+  "parent": "/home/sy23985/Storage/acl2027_server_v5_20260914",
+  "parent_prediction_seal": "84e81e7b72a1ce69359fef80e7101168284b055690ed97e190c65430a525c4bc",
+  "runtime": {
+    "python": "/home/sy23985/Storage/acl2027_miata_resume_20260913/runtime/venv/bin/python",
+    "ollama": "/home/sy23985/Storage/acl2027_miata_resume_20260913/runtime/ollama_distribution/bin/ollama",
+    "model_store": "/home/sy23985/Storage/acl2027_miata_resume_20260913/runtime/ollama_models",
+    "model": "qwen3:8b",
+    "model_digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+    "quantization": "Q4_K_M",
+    "tokenizer": "/home/sy23985/Storage/acl2027_miata_resume_20260913/runtime/hf_cache/hub/models--Qwen--Qwen3-8B/snapshots/b968826d9c46dd6066d109eabc6255188de91218",
+    "scope": "development_preflight_only"
+  },
+  "cells": [
+    {
+      "id": "dreaddit__offline__gepa__gt_yes__seed42",
+      "dataset": "dreaddit",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 42,
+      "n": 100
+    },
+    {
+      "id": "dreaddit__offline__gepa__gt_yes__seed43",
+      "dataset": "dreaddit",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 43,
+      "n": 100
+    },
+    {
+      "id": "dreaddit__offline__gepa__gt_yes__seed44",
+      "dataset": "dreaddit",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 44,
+      "n": 100
+    },
+    {
+      "id": "goemotions__offline__gepa__gt_yes__seed42",
+      "dataset": "goemotions",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 42,
+      "n": 100
+    },
+    {
+      "id": "goemotions__offline__gepa__gt_yes__seed43",
+      "dataset": "goemotions",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 43,
+      "n": 100
+    },
+    {
+      "id": "goemotions__offline__gepa__gt_yes__seed44",
+      "dataset": "goemotions",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 44,
+      "n": 100
+    }
+  ],
+  "optimizer_pins": {
+    "dspy": "3.0.3",
+    "gepa": "0.0.7",
+    "litellm": "1.100.1",
+    "module_sha256": {
+      "dspy.teleprompt.gepa.gepa": "a4714ca94449f4d3aaf9f6a4fcaeef9971aafb250a308e789a0bdf90b502490f",
+      "dspy.teleprompt.gepa.gepa_utils": "a17dd11fb7f0bf504e78df22565c7283161f8c3ee7093db2c1e62a26b4304e45",
+      "gepa.api": "748907cd5a66e542609ad7830e1fa99a9b81bbf07e085106bab9b851a898c4fe",
+      "gepa.core.engine": "40fb21e1810e4a407291728b045dce45229f3bf9c6afd9dfc7f5cdddd4287953",
+      "gepa.core.state": "03744d05178b36c60b0a5bef4a9df7d6acc38d42e278ca5ca3511302dfeb4802"
+    }
+  },
+  "budget": {
+    "max_metric_calls": 3000,
+    "reflection_minibatch_size": 3,
+    "train_n": 100,
+    "development_n": 100,
+    "basis": "v5 GUIDELINES method budget: 3,000 metric calls including initialization/validation, reflection minibatch 3"
+  },
+  "task_transfer": {
+    "output": "Model wire output nests evidence within each selected label. Deterministic encoding produces the unchanged canonical label_ids/explanation/evidence/bullet_ids fields, retaining all model-selected labels and quotes. Coding and insufficient_context are mutually exclusive schema branches. No label is guessed, dropped, or repaired using GT.",
+    "gepa": "Pinned DSPy GEPA and GEPA package, with module sources recorded in optimizer_pins. Task generation and reflection both use the common native Qwen3-8B runtime through a single-output local LM; no external provider client is constructed. Reflection uses temperature 1.0 as in the documented DSPy GEPA configuration; task generation uses temperature 0. Upstream defaults are retained for Pareto candidate selection, merge and perfect-score skipping. GEPA search uses its native per-item scores: item F1 between the reference and predicted label sets, which equals exact match for single-label Dreaddit, with textual feedback naming the reference labels and each missed or unsupported label. Because GEPA 0.0.7 aggregates per-item scores by arithmetic mean, the final program is selected separately among GEPA candidates by the registered full-development corpus objective, macro-F1 for Dreaddit and micro-F1 for GoEmotions, computed from that candidate's recorded predictions on all 100 development records, with no additional model calls. Ties are broken by the GEPA mean score and then by the earlier candidate. GEPA internals are not modified. A candidate whose learned context exceeds the 4096-token budget produces an invalid output without model calls and scores zero.",
+    "gt": "Train and development GT are read during optimization only. The selected program is frozen and hashed before any evaluation input is read, and no evaluation GT reaches prediction.",
+    "memory": "The learned context is bounded by the shared 4096-tokenizer-token budget that applies to the Base/ICL and adaptation runtimes.",
+    "failures": "Exhausted format failures are recorded as invalid evaluation outputs and evaluation continues. An invalid development prediction scores zero in GEPA search, and any invalid development prediction sets a candidate's corpus objective to zero rather than gaining from abstention. No test-output repair.",
+    "restart": "Immutable per-item evaluation commits, a saved compiled program, the GEPA run directory, an append-only prediction ledger and a request cache resume a run without repeating optimization.",
+    "dependencies": "Only the installed pinned DSPy and GEPA optimizers execute; provider initializers, dotenv and external-client imports do not execute.",
+    "concurrency": "Independent one-GPU streams, one request at a time per stream; throughput profile, not single-GPU reference timing."
+  },
+  "judge": null,
+  "full_panel_runs": 84,
+  "stage_runs": 6,
+  "stage_predictions": 600,
+  "development_probe_n": 6,
+  "predecessor": "Base/ICL prediction stage, adaptation r3/r4/r5 and MIPROv2 r6; no trajectory, program or score is imported",
+  "development_gate": "Both seed-42 conditions must complete six development sources end to end under a 30-metric-call probe budget, with a selected program and six valid predictions, before any production seed run is admitted."
+}

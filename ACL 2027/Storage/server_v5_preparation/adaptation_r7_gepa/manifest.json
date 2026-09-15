@@ -1,0 +1,213 @@
+{
+  "protocol": "four-corpus-server-v5-gepa-r7",
+  "parent": "/home/sy23985/Storage/acl2027_server_v5_20260914",
+  "parent_prediction_seal": "84e81e7b72a1ce69359fef80e7101168284b055690ed97e190c65430a525c4bc",
+  "runtime": {
+    "python": "/home/sy23985/Storage/acl2027_miata_resume_20260913/runtime/venv/bin/python",
+    "ollama": "/home/sy23985/Storage/acl2027_miata_resume_20260913/runtime/ollama_distribution/bin/ollama",
+    "model_store": "/home/sy23985/Storage/acl2027_miata_resume_20260913/runtime/ollama_models",
+    "model": "qwen3:8b",
+    "model_digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+    "quantization": "Q4_K_M",
+    "tokenizer": "/home/sy23985/Storage/acl2027_miata_resume_20260913/runtime/hf_cache/hub/models--Qwen--Qwen3-8B/snapshots/b968826d9c46dd6066d109eabc6255188de91218",
+    "scope": "development_preflight_only"
+  },
+  "cells": [
+    {
+      "id": "dreaddit__offline__gepa__gt_yes__seed42",
+      "dataset": "dreaddit",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 42,
+      "n": 100
+    },
+    {
+      "id": "dreaddit__offline__gepa__gt_yes__seed43",
+      "dataset": "dreaddit",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 43,
+      "n": 100
+    },
+    {
+      "id": "dreaddit__offline__gepa__gt_yes__seed44",
+      "dataset": "dreaddit",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 44,
+      "n": 100
+    },
+    {
+      "id": "goemotions__offline__gepa__gt_yes__seed42",
+      "dataset": "goemotions",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 42,
+      "n": 100
+    },
+    {
+      "id": "goemotions__offline__gepa__gt_yes__seed43",
+      "dataset": "goemotions",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 43,
+      "n": 100
+    },
+    {
+      "id": "goemotions__offline__gepa__gt_yes__seed44",
+      "dataset": "goemotions",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 44,
+      "n": 100
+    }
+  ],
+  "optimizer_pins": {
+    "dspy": "3.0.3",
+    "gepa": "0.0.7",
+    "litellm": "1.100.1",
+    "module_sha256": {
+      "dspy.teleprompt.gepa.gepa": "a4714ca94449f4d3aaf9f6a4fcaeef9971aafb250a308e789a0bdf90b502490f",
+      "dspy.teleprompt.gepa.gepa_utils": "a17dd11fb7f0bf504e78df22565c7283161f8c3ee7093db2c1e62a26b4304e45",
+      "gepa.api": "748907cd5a66e542609ad7830e1fa99a9b81bbf07e085106bab9b851a898c4fe",
+      "gepa.core.engine": "40fb21e1810e4a407291728b045dce45229f3bf9c6afd9dfc7f5cdddd4287953",
+      "gepa.core.state": "03744d05178b36c60b0a5bef4a9df7d6acc38d42e278ca5ca3511302dfeb4802"
+    }
+  },
+  "budget": {
+    "max_metric_calls": 3000,
+    "reflection_minibatch_size": 3,
+    "train_n": 100,
+    "development_n": 100,
+    "basis": "v5 GUIDELINES method budget: 3,000 metric calls including initialization/validation, reflection minibatch 3"
+  },
+  "task_transfer": {
+    "output": "Model wire output nests evidence within each selected label. Deterministic encoding produces the unchanged canonical label_ids/explanation/evidence/bullet_ids fields, retaining all model-selected labels and quotes. Coding and insufficient_context are mutually exclusive schema branches. No label is guessed, dropped, or repaired using GT.",
+    "gepa": "Pinned DSPy GEPA and GEPA package, with module sources recorded in optimizer_pins. Task generation and reflection both use the common native Qwen3-8B runtime through a single-output local LM; no external provider client is constructed. Reflection uses temperature 1.0 as in the documented DSPy GEPA configuration; task generation uses temperature 0. Upstream defaults are retained for Pareto candidate selection, merge and perfect-score skipping. GEPA search uses its native per-item scores: item F1 between the reference and predicted label sets, which equals exact match for single-label Dreaddit, with textual feedback naming the reference labels and each missed or unsupported label. Because GEPA 0.0.7 aggregates per-item scores by arithmetic mean, the final program is selected separately among GEPA candidates by the registered full-development corpus objective, macro-F1 for Dreaddit and micro-F1 for GoEmotions, computed from that candidate's recorded predictions on all 100 development records, with no additional model calls. Ties are broken by the GEPA mean score and then by the earlier candidate. GEPA internals are not modified. A candidate whose learned context exceeds the 4096-token budget produces an invalid output without model calls and scores zero.",
+    "gt": "Train and development GT are read during optimization only. The selected program is frozen and hashed before any evaluation input is read, and no evaluation GT reaches prediction.",
+    "memory": "The learned context is bounded by the shared 4096-tokenizer-token budget that applies to the Base/ICL and adaptation runtimes.",
+    "failures": "Exhausted format failures are recorded as invalid evaluation outputs and evaluation continues. An invalid development prediction scores zero in GEPA search, and any invalid development prediction sets a candidate's corpus objective to zero rather than gaining from abstention. No test-output repair.",
+    "restart": "Immutable per-item evaluation commits, a saved compiled program, the GEPA run directory, an append-only prediction ledger and a request cache resume a run without repeating optimization.",
+    "dependencies": "Only the installed pinned DSPy and GEPA optimizers execute; provider initializers, dotenv and external-client imports do not execute.",
+    "concurrency": "Independent one-GPU streams, one request at a time per stream; throughput profile, not single-GPU reference timing."
+  },
+  "judge": null,
+  "full_panel_runs": 84,
+  "stage_runs": 6,
+  "stage_predictions": 600,
+  "development_probe_n": 6,
+  "predecessor": "Base/ICL prediction stage, adaptation r3/r4/r5 and MIPROv2 r6; no trajectory, program or score is imported",
+  "development_gate": "Both seed-42 conditions must complete six development sources end to end under a 30-metric-call probe budget, with a selected program and six valid predictions, before any production seed run is admitted.",
+  "files": {
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/stages/adaptation_r7_gepa/code/run.py": "8c0ab17c9de1f027c0135a70ad5de4062ca1c125c7ee483edfd42c2f5ad3d088",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/stages/adaptation_r7_gepa/code/test_gepa.py": "980ef2bca80f12dcfa622abecf081e81c4fe3956693e47fa25f651ea2de44d42",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/stages/adaptation_r7_gepa/code/gepa_optimizer.py": "95c3e26735fbb1c4c000cd7773aec8fe92fd87c5f0529cf692adeefc06226bba",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/stages/adaptation_r7_gepa/code/test_optimizer.py": "6f2890a7cccca4bd9595b84804f4593ce7ee44e1ffec142921c0d4b2868335d5",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/stages/adaptation_r7_gepa/code/optimizer.py": "d83083ef81c56f46341b16c8e5b20d2e295451ee79fa48530bb40a5947006f24",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/stages/adaptation_r7_gepa/code/output_contract.py": "f6a689634c207474b930fecb070e23294ccb61ef2b11e84f4b36b6ee4710f895",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/stages/adaptation_r7_gepa/code/stage.py": "877fd3296c619bda26795f4a86a0b75de2c7e4e88122717f2ec02fb837068d72",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/stages/adaptation_r7_gepa/plan.json": "443f3f662d03d638e50f4239715db2e89352bbf1ce673e6a63dc9d1ffd0890ad",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/stages/adaptation_r7_gepa/orders.json": "c3eba44aec0640553ededc8a1d7237a18e9151d9edb4d969d32abcd543d3cb76",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/stages/adaptation_r7_gepa/preflight/report.json": "47501b05f543466d44b6835bc8fd26f9d5889dcd4aa55ec9b7bad2f2d3b6455a",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/stages/adaptation_r7_gepa/tests.json": "982ade5e41c0379970627e26f1e3043bfcba6b5445f513f4550c4c6b12efcb43",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/stages/adaptation_r7_gepa/preflight/execution.json": "4e6037607929f5276c784c87329ef344e1407669171a0dcc629033fb9150fb03",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/stages/adaptation_r7_gepa/REVISION.json": "b26b2792da605ec8b5b3ec74dd801efe6eb1a6412e45aee3da6933b305550b58",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/code/launch_predictions.py": "b95f913e3195a72b9b375c64fde8399ef423ee83b205ae8adbfa2e3122203d52",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/code/preflight.py": "77949dcc13435aba0d52fdcaa184fc5118379c82261b7f15027886ae7b149aba",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/code/core.py": "332d92b15440ea61710d6ad0bd31de9fd2427c4325577ed672cc70179267d13f",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/code/predict_stage.py": "34de88c992d11b7790855d60a5ee70f475450d2adfdb2650306fad0e2eae2dd7",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/code/report_predictions.py": "1a8dada63c53ab2c8f508c348d30491761e749cbad1e433da878c971b3037f0e",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/code/prepare_data.py": "c2cb3ed3fdf21d59ea6a933ae7096db11bec404d4d59eef3f71610502a0bf225",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/code/test_prediction_stage.py": "70d14afedf8f5fa1e11f641cff04c747decee789c353b2a2765979c99afa8ae9",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/code/prepare_prediction_stage.py": "41866a1c5da72aaf7ed21f25286658ce2d1e2c7d6e4b362d7de3b94031e2faf6",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/code/test_core.py": "c699b110024ee107240b8a2acd5e41ec99d6d8d61e0c19296da7c35781e8ad09",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/code/manage_services.py": "dfd83c0051f0e9064b9bf0229b1122b6952ab3eea55975f0d079bc181f38ae9a",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/dreaddit/test.jsonl": "b4542d942f80017563589c3e233a70b9fdaf67764ac47287ef11ce54fc5bd911",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/dreaddit/manifest.json": "7982c8e011ad93aed79ebd76a64d374ed0829e61d5e4cd13cbde9ce50a662104",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/dreaddit/train.jsonl": "2444685f0a91d802a1e455ff46633ba217c1660fe91f521f3f873b3b4026cb7e",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/dreaddit/dev.jsonl": "12a3533de4c58ebb15fd40c39a7b9293113da5e881ab9f6e7e56ab953161398e",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/parlamint_gb/test.jsonl": "78c995028b9c4a3a8e820836d0a09560e8a1988ce2e2a22483382489a703a585",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/parlamint_gb/manifest.json": "3a97c6f453c92571a148b76f16b7401f1f6521e1b9049b3f1b2832adda7030cf",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/parlamint_gb/train.jsonl": "69e402f9dffbd6fec4e66402f0180ba1587389984ee49e21164386b776ef6f57",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/parlamint_gb/dev.jsonl": "017882e16c0cdb1585f000b66d1cf41974bf093758365204ecd04da3dc1787fd",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/cache/test.jsonl": "0701fbac43d43b81dd96b6978a0f991a46956cedee21acc31a98fc7acaf3dfe6",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/cache/manifest.json": "6b8fbded3a8ec98f143a1599dd9b5f04619c2b0713585e0da73cbfd3fb5f87b3",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/cache/train.jsonl": "058a254c441997f553475a5659d489fa86c4396be4a40467966e78c2faf39bc2",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/cache/dev.jsonl": "ef34be2e43c8d8a9cd025ffe2b6e28e4213aa28b46aa28414a656fe93e64eef9",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/goemotions/test.jsonl": "77e9308f72beba2d271b2995599e611f79ee18dfd640942c0666c2d27f5c5bc2",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/goemotions/manifest.json": "95af1ad4102b3ac1755e776c8961684b4996f75f05080c37045cd7189285475b",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/goemotions/train.jsonl": "c8e786571cb85739b8ee2caac56e05a1e3310c1909dba4d0d1f018dacb859628",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/data/goemotions/dev.jsonl": "ed18410ec1c6492bb258a97232c06ff3c24fc31b76e8aa15cb4c9a3fa96a1d35",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/orders.json": "1062ad8d71895fa470242c0c3817a05d83b526bd407b976dec706b368b625571",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/demonstrations.json": "95a88198a329da135339acb266107c3b43218f57d98f868cce19329d9dc51490",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/tasks.json": "7a265aa1293ab6eb0ebabe3a85eb55d29f66407a5c6fc34b9d00d7f04420aa94",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/runtime.json": "eeb30069b7a8d2757d7b08e800550f190bc82b54f42b3708b939dca317c0ec69",
+    "/home/sy23985/Storage/acl2027_server_v5_20260914/AMENDMENTS.json": "62421e7b2dcec77cd76f3fd95739ebeb576bcae81c085951973d72fed6d5df54"
+  },
+  "preflight_cases": 2,
+  "sealed_at": 1789434090.4019318,
+  "admitted_cells": [
+    {
+      "id": "dreaddit__offline__gepa__gt_yes__seed42",
+      "dataset": "dreaddit",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 42,
+      "n": 100
+    },
+    {
+      "id": "dreaddit__offline__gepa__gt_yes__seed43",
+      "dataset": "dreaddit",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 43,
+      "n": 100
+    },
+    {
+      "id": "dreaddit__offline__gepa__gt_yes__seed44",
+      "dataset": "dreaddit",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 44,
+      "n": 100
+    },
+    {
+      "id": "goemotions__offline__gepa__gt_yes__seed42",
+      "dataset": "goemotions",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 42,
+      "n": 100
+    },
+    {
+      "id": "goemotions__offline__gepa__gt_yes__seed43",
+      "dataset": "goemotions",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 43,
+      "n": 100
+    },
+    {
+      "id": "goemotions__offline__gepa__gt_yes__seed44",
+      "dataset": "goemotions",
+      "phase": "offline",
+      "method": "gepa",
+      "adaptation_gt": "yes",
+      "seed": 44,
+      "n": 100
+    }
+  ],
+  "withheld_cells": [],
+  "seal_sha256": "ae065f0b734d1e2e07f5f7a6803fe9104b9dc0ef3db37bfd056c2e2c790370fa"
+}

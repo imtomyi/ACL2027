@@ -149,6 +149,9 @@ def freeze(datasets, inventory):
         metrics='exact label-set accuracy, micro/macro F1; same-family blind grounding judge; invalid=wrong; unresolved stays unknown',
         deadline_seconds=7200,scope='new reduced diagnostic; no full-test scores imported; not exact paper reproduction; GPT-5 and ACE not included in supervised queue',
         code={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files})
+    if os.environ.get('EXPERIMENT_RUN_ID')=='run_20260914_uniform':
+        from uniform_protocol import freeze_config
+        cfg=freeze_config(cfg)
     p=RUN/'frozen_config.json'
     if p.exists(): assert json.loads(p.read_text())==cfg
     else:

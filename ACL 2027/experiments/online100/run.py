@@ -5,9 +5,9 @@ ROOT=Path(__file__).resolve().parents[2]
 CORPUS=os.environ.get('PILOT_CORPUS','goemotions')
 assert CORPUS in ('dreaddit','goemotions','cache','parlamint_gb')
 SUPERVISED=CORPUS in ('dreaddit','goemotions')
-RUN=ROOT/'Storage/online100/run_20260913'/CORPUS
+RUN=ROOT/'Storage/online100'/os.environ.get('EXPERIMENT_RUN_ID','run_20260913')/CORPUS
 N=100
-METHODS=['dc_online_ref','dc_online_no_gt','ace_online_ref','ace_online_no_gt']
+METHODS=['dc_online_ref','dc_online_no_gt','ace_online_ref','ace_online_no_gt'] if SUPERVISED else ['dc_online_no_gt','ace_online_no_gt']
 def load(name,path):
     spec=importlib.util.spec_from_file_location(name,path);mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod);return mod
 # Reuse the pinned native adapters and ACE operations without changing active offline code.
@@ -43,7 +43,7 @@ def prepare():
     else:
         source=ROOT/'Storage/paired_feedback/run_20260912/data'/f'{CORPUS}_test.jsonl'
         selected=sorted(g.read(source),key=lambda r:hashlib.sha256(('budget-pilot-v1:42:test:'+r['record_id']).encode()).hexdigest())[:N]
-        provenance={'source':str(source),'sha256':g.sha(source),'selection':'SHA256 budget-pilot-v1:42:test:record_id; first 100 of preserved 200 held-out excerpts'}
+        provenance={'source':str(source),'source_sha256':g.sha(source),'selection':'SHA256 budget-pilot-v1:42:test:record_id; first 100 of preserved 200 held-out excerpts'}
     assert len(selected)==N and len({r['record_id'] for r in selected})==N
     raw=''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in selected)
     target=data/'test.jsonl'
@@ -58,11 +58,14 @@ def prepare():
     dc_root=g.dc_adapter.__globals__['DC'];files+=list((dc_root/'dynamic_cheatsheet').rglob('*.py'))+list((dc_root/'prompts').glob('*.txt'))
     config=dict(protocol='online100-v1',corpus=CORPUS,n=N,methods=METHODS,model='qwen3:8b',quantization='Q4_K_M',seed=42,thinking=False,context=32768,
         task=g.TASK,codebook=g.TOPICS,output_schema=g.GEN_SCHEMA,judge=g.JUDGE,
-        ground_truth='released dataset labels' if SUPERVISED else 'unverified Qwen3-8B pseudo-labels; human Acc N/A',
+        ground_truth='released dataset labels' if SUPERVISED else 'No reference labels generated or supplied; GT-free only; human Acc and reference agreement N/A',
         online='Empty initial memory per method. Same 100 IDs in fixed order. Commit prediction before feedback, update only future inputs. One pass. No offline playbook reuse. No judge feedback to adaptation.',
         caps=dict(generator=1024,dc_generator=2048,dc_curator=4096,reflector=1536,curator=2048,playbook=8000,judge=384,teacher=1024),
         limitations='Local task transfer, not exact paper reproduction. Same-family judge/reference bias. Small ordered stream. Sampling differs from full and offline pilots.',
         data_manifest=g.sha(data/'manifest.json'),code={str(f):g.sha(f) for f in files})
+    if os.environ.get('EXPERIMENT_RUN_ID')=='run_20260914_uniform':
+        from uniform_protocol import freeze_config
+        config=freeze_config(config)
     if (RUN/'frozen_config.json').exists():assert read(RUN/'frozen_config.json')==config
     else:g.atomic(RUN/'frozen_config.json',config)
     for f in files:
@@ -72,7 +75,7 @@ def prepare():
     render()
 
 def prepare_references():
-    if SUPERVISED:return
+    if SUPERVISED or not any(m.endswith('_ref') for m in METHODS):return
     directory=RUN/'references';directory.mkdir(exist_ok=True);native=p.Native(directory/'calls')
     for i,row in enumerate(rows()):
         dest=directory/f'{i:04d}.json'
@@ -117,6 +120,14 @@ def parse(response):
     return value
 
 def adapt(native,q,value,memory,next_id,step,ref):
+    result=_adapt_impl(native,q,value,memory,next_id,step,ref)
+    if os.environ.get('EXPERIMENT_RUN_ID')=='run_20260914_uniform':
+        from uniform_protocol import bounded_memory
+        candidate,accepted=bounded_memory(native,memory,result[0])
+        if not accepted:return candidate,next_id,'retained_previous_over_budget'
+    return result
+
+def _adapt_impl(native,q,value,memory,next_id,step,ref):
     if ref is None:return g.adapt(native,q,value,memory,next_id,step,N)
     # Paired helper uses official GT templates and bullet operations; wording must reflect true GT provenance.
     if not SUPERVISED:return p.adapt(native,q,value,memory,next_id,step,N,ref)
@@ -127,7 +138,7 @@ def adapt(native,q,value,memory,next_id,step,ref):
     except (ValueError,AttributeError):return memory,next_id,'retained_previous_invalid_reflection'
     tags=[t for t in tags if isinstance(t,dict) and isinstance(t.get('id'),str) and t.get('tag') in ('helpful','harmful','neutral')] if isinstance(tags,list) else []
     updated=g.update_bullet_counts(memory,tags)
-    prompt=p.CUR_GT.format(current_step=step,total_samples=N,token_budget=8000,playbook_stats=json.dumps(g.get_playbook_stats(updated)),recent_reflection=raw,current_playbook=updated,question_context=q+'\n'+feedback(ref))
+    prompt=p.CUR_GT.format(current_step=step,total_samples=N,token_budget=(4096 if os.environ.get('EXPERIMENT_RUN_ID')=='run_20260914_uniform' else 8000),playbook_stats=json.dumps(g.get_playbook_stats(updated)),recent_reflection=raw,current_playbook=updated,question_context=q+'\n'+feedback(ref))
     raw=native.chat([dict(role='user',content=prompt)],max_tokens=2048,role='curator',output_format='json')
     try:
         ops=json.loads(raw)['operations'];assert isinstance(ops,list)

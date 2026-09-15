@@ -23,6 +23,8 @@ def write_atomic(path, text):
 
 def main():
     if (STORAGE/'budget_pilot/ACTIVE.json').exists():
+        active=json.loads((ROOT/'Storage/budget_pilot/ACTIVE.json').read_text())
+        if active.get('run_id'):os.environ.setdefault('EXPERIMENT_RUN_ID',active['run_id'])
         import runpy
         runpy.run_path(str(ROOT/'experiments/budget_pilot/report.py'),run_name='__main__')
         return
