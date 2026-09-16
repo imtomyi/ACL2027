@@ -2,7 +2,7 @@
 
 **Qwen3-8B (Q4_K_M) · Four corpora · 100 evaluation items per corpus · Seeds 42, 43, 44**
 
-Report generated: **2026-09-15 13:09:46 UTC**. This is a live internal experiment record; historical local/server scores are excluded.
+Report generated: **2026-09-16 00:28:29 UTC**. This is a live internal experiment record; historical local/server scores are excluded.
 
 | **Progress** | **Current / planned** |
 | --- | ---: |
@@ -229,9 +229,9 @@ A separate experiment from the four-corpus panel above: the released ace-appworl
 | **Method** | **GT** | **Test-Normal TGC ↑** | **Test-Normal SGC ↑** | **Test-Challenge TGC ↑** | **Test-Challenge SGC ↑** | **Status** |
 | --- | :---: | ---: | ---: | ---: | ---: | --- |
 | ReAct | — | 17.9 | 3.6 | 6.2 | 1.4 | normal complete; challenge complete |
-| ACE offline | ✓ | 22.0 | 10.7 | — | — | normal complete; challenge running |
-| ACE offline | ✗ | 20.8 | 10.7 | — | — | normal complete; challenge running |
-| ACE online | ✗ | 18.4 | 5.4 | — | — | normal complete; challenge running |
+| ACE offline | ✓ | 22.0 | 10.7 | 8.4 | 1.4 | normal complete; challenge complete |
+| ACE offline | ✗ | 20.8 | 10.7 | 8.2 | 3.6 | normal complete; challenge complete |
+| ACE online | ✗ | 18.4 | 5.4 | 7.0 | 0.7 | normal complete; challenge complete |
 
 **Paper reference, not our results:** Zhang et al. (ICLR 2026), Table 1, DeepSeek-V3.1 backbone.
 
@@ -250,12 +250,12 @@ A separate experiment from the four-corpus panel above: the released ace-appworl
 | `ReAct_test_challenge` | evaluation | 417/417 | 874 | complete | — |
 | `ACE_offline_with_GT_adaptation` | adaptation | 90/90 | 1410 | complete | [playbook.txt](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/appworld_ace_qwen/playbooks/offline_with_GT/playbook.txt>) (148 bullets) |
 | `ACE_offline_with_GT_evaluation_test_normal` | evaluation | 168/168 | 539 | complete | — |
-| `ACE_offline_with_GT_evaluation_test_challenge` | evaluation | 402/417 | 3159 | running | — |
+| `ACE_offline_with_GT_evaluation_test_challenge` | evaluation | 417/417 | 3303 | complete | — |
 | `ACE_offline_no_GT_adaptation` | adaptation | 90/90 | 86 | complete | [playbook.txt](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/appworld_ace_qwen/playbooks/offline_no_GT/playbook.txt>) (72 bullets) |
 | `ACE_offline_no_GT_evaluation_test_normal` | evaluation | 168/168 | 122 | complete | — |
-| `ACE_offline_no_GT_evaluation_test_challenge` | evaluation | 376/417 | 1370 | running | — |
+| `ACE_offline_no_GT_evaluation_test_challenge` | evaluation | 417/417 | 1499 | complete | — |
 | `ACE_online_no_GT_test_normal` | online | 168/168 | 422 | complete | [playbook.txt](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/appworld_ace_qwen/playbooks/online_no_GT_test_normal/playbook.txt>) (93 bullets) |
-| `ACE_online_no_GT_test_challenge` | online | 129/417 | 860 | running | [playbook.txt](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/appworld_ace_qwen/playbooks/online_no_GT_test_challenge/playbook.txt>) (61 bullets) |
+| `ACE_online_no_GT_test_challenge` | online | 417/417 | 2880 | complete | [playbook.txt](</Users/tom/Documents/GitHub/ACL2027/ACL 2027/Storage/appworld_ace_qwen/playbooks/online_no_GT_test_challenge/playbook.txt>) (121 bullets) |
 
 Context exhausted counts model calls whose input did not fit the 32,768-token context; following the upstream generator, such a call returns an empty response and the input is never truncated. Deviations from the paper environment: Python 3.13 (changes traceback formatting shown to the agent), a one-line evaluator return-value compatibility patch, and the released configurations’ single offline epoch. Native-bridge revision r2 (decided 2026-09-15): a model response the local runtime leaves incomplete is retried up to three times and, if still incomplete, its partial text is passed to the agent; r1 stopped the shard instead. Only the three test_challenge shards that stopped on such a response were rerun; every other job had none, so its calls and scores are unchanged. Trained playbooks are mirrored under `Storage/appworld_ace_qwen/playbooks/`; snapshots every 30 tasks sit beside each live file.
 
